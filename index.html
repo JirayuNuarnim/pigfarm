@@ -715,7 +715,7 @@ function loadState(){
     return true;
   }catch(e){ console.warn("loadState ล้มเหลว", e); return false; }
 }
-function resetData(){ if(confirm("ล้างข้อมูลที่บันทึกไว้ในเครื่องนี้ แล้วกลับไปใช้ข้อมูลตัวอย่างเริ่มต้น?")){ _noSave=true; try{localStorage.removeItem(STORE_KEY);}catch(e){} location.reload(); } } // _noSave กัน beforeunload เซฟทับ
+function resetData(){ if(ROLE!=='owner'){ toast('🔒 เฉพาะเจ้าของเท่านั้นที่ล้าง/รีเซ็ตข้อมูลได้'); return; } if(confirm("ล้างข้อมูลที่บันทึกไว้ในเครื่องนี้ แล้วกลับไปใช้ข้อมูลตัวอย่างเริ่มต้น?")){ _noSave=true; try{localStorage.removeItem(STORE_KEY);}catch(e){} location.reload(); } } // _noSave กัน beforeunload เซฟทับ · เฉพาะเจ้าของ
 
 /* ============================================================
    การเชื่อมต่อระบบจริง — เปิดใช้เมื่อใส่คีย์ (ดูคู่มือ 2 ไฟล์ที่แนบ)
@@ -900,6 +900,40 @@ async function flushSyncV2(){
   const cfg=_dirtyCfg; _dirtyCfg=false;
   for(const it of items){ try{ await saveHouseSection(it.h,it.section); }catch(e){ console.warn('sync house',e); } }
   if(cfg){ try{ await saveConfigAll(); }catch(e){ console.warn('sync cfg',e); } }
+  try{ rtBaseline(); }catch(e){}   // absorb ของที่เราเพิ่งเขียนเข้าเส้นฐาน → poll จะไม่เตือน "ข้อมูลใหม่" จากการแก้ของตัวเอง
+}
+/* ---------- Realtime-lite: เตือนเมื่อทีมคนอื่นแก้ข้อมูล (poll updated_at ทุก 25 วิ · ไม่ทับข้อมูลที่กำลังพิมพ์) ---------- */
+let _rtTimer=null, _rtSeenTs=0;
+function rtActive(){ const c=CONFIG.supabase; return !!(c&&c.enabled&&c.backend==='v2'&&ROLE!==null); }
+async function rtMaxTs(){
+  const q=async tbl=>{ const r=await supaFetch('/rest/v1/'+tbl+'?select=updated_at&order=updated_at.desc&limit=1',{method:'GET'}); if(!r||!r.ok) return 0; const a=await r.json(); return (a&&a[0]&&a[0].updated_at)?Date.parse(a[0].updated_at):0; };
+  try{ const a=await Promise.all([q('houses'),q('app_config')]); return Math.max(a[0]||0,a[1]||0); }catch(e){ return 0; }
+}
+async function rtBaseline(){ if(!rtActive()) return; const t=await supaToken(); if(!t) return; const mx=await rtMaxTs(); if(mx) _rtSeenTs=mx; }
+async function rtPoll(){
+  try{
+    if(document.hidden||!rtActive()) return;
+    const t=await supaToken(); if(!t) return;
+    const mx=await rtMaxTs(); if(!mx) return;
+    if(_rtSeenTs===0){ _rtSeenTs=mx; return; }     // ครั้งแรก = ตั้งเส้นฐานเฉยๆ
+    if(mx>_rtSeenTs){ _rtSeenTs=mx; rtShowBanner(); }
+  }catch(e){}
+}
+function rtStart(){ if(_rtTimer||!rtActive()) return; _rtTimer=setInterval(rtPoll,25000); }
+function rtShowBanner(){
+  if(document.getElementById('rtBanner')) return;
+  const d=document.createElement('div'); d.id='rtBanner';
+  d.style.cssText='position:fixed;left:50%;top:62px;transform:translateX(-50%);z-index:70;background:var(--brand,#0f6b5f);color:#fff;padding:9px 14px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.28);font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:12px;max-width:92vw';
+  const btn=document.createElement('span'); btn.style.cursor='pointer'; btn.textContent='🔄 มีข้อมูลใหม่จากทีม — แตะเพื่อโหลดล่าสุด'; btn.onclick=rtRefresh;
+  const x=document.createElement('span'); x.style.cssText='cursor:pointer;opacity:.75;font-weight:400'; x.textContent='✕'; x.onclick=function(e){ e.stopPropagation(); d.remove(); };
+  d.appendChild(btn); d.appendChild(x); document.body.appendChild(d);
+}
+async function rtRefresh(){
+  const el=document.getElementById('rtBanner'); if(el) el.remove();
+  try{ await cloudLoadV2(); }catch(e){}
+  try{ const mx=await rtMaxTs(); if(mx) _rtSeenTs=mx; }catch(e){}
+  try{ const top=navHist[navHist.length-1]; if(top&&top.fn) top.fn(); }catch(e){}
+  try{ toast('โหลดข้อมูลล่าสุดจากทีมแล้ว ✓'); }catch(e){}
 }
 
 /* ---------- (C2) Supabase Auth — ล็อกอินจริง (ชื่อผู้ใช้ + รหัสผ่าน) ผ่าน GoTrue REST ----------
@@ -1064,6 +1098,7 @@ function doLogin(user){
   navHist=[]; navBacking=false;
   try{ syncTodayCounters(); }catch(e){}   // รีเซ็ตตัวนับ "วันนี้" ให้ตรงวันจริงหลังโหลดข้อมูล (เดโม/คลาวด์) ก่อนเรนเดอร์
   route();
+  try{ rtStart(); rtBaseline(); }catch(e){}   // เริ่มเฝ้าดูข้อมูลใหม่จากทีม (realtime-lite)
 }
 // ตรวจชื่อผู้ใช้ + รหัสผ่านกับ Supabase Auth จริง (เซิร์ฟเวอร์เป็นคนยืนยัน ไม่ใช่โค้ดหน้าเว็บ)
 async function login(){
@@ -5136,8 +5171,8 @@ function renderAdmin(){
   v.innerHTML=`
     <h2 class="page">⚙️ จัดการเล้า</h2>
     <div class="sub">เพิ่มหรือลดจำนวนหลัง</div>
-    <div class="banner info" style="border-style:dashed">💾 <div>ข้อมูลถูก<b>บันทึกอัตโนมัติในเครื่องนี้</b> (ไม่หายเมื่อรีเฟรช) · ของจริงหลายเครื่องจะย้ายไปฐานข้อมูลกลาง
-      <a href="#" onclick="resetData();return false" style="color:var(--bad);font-weight:700;margin-left:6px">♻️ ล้าง/กลับค่าเริ่มต้น</a></div></div>
+    ${ROLE==='owner'?`<div class="banner info" style="border-style:dashed">💾 <div>ข้อมูลถูก<b>บันทึกอัตโนมัติในเครื่องนี้</b> (ไม่หายเมื่อรีเฟรช) · ของจริงหลายเครื่องจะย้ายไปฐานข้อมูลกลาง
+      <a href="#" onclick="resetData();return false" style="color:var(--bad);font-weight:700;margin-left:6px">♻️ ล้าง/กลับค่าเริ่มต้น</a></div></div>`:''}
 
     <div class="card">
       <h3>🏚️ จัดการจำนวนเล้า <span class="more">${houseCount()} หลัง</span></h3>
