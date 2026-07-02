@@ -3010,7 +3010,40 @@ function houseStatusCardHTML(h){
       ${btn('กำลังล้างคอก','🧹',empty)}
     </div>
     <div class="banner info" style="margin:12px 0 0">${empty?'ℹ️':'🔒'} <div>${empty?'เล้าว่างแล้ว — ตั้ง "กำลังล้างคอก" ระหว่างทำความสะอาด แล้วกลับเป็น "ว่าง" เมื่อพร้อมรับหมูรุ่นใหม่':'เมื่อนำหมูเข้าเลี้ยง สถานะเป็น "กำลังเลี้ยง" อัตโนมัติ · จะตั้ง "กำลังล้างคอก" ได้เมื่อจำนวนหมูเหลือ 0'}</div></div>
+    ${ROLE==='owner'&&(h.intake||(h.dailyLog||[]).length||pigs>0)?`<div class="sub" style="margin-top:10px;text-align:right"><a href="#" onclick="ownerResetHouse();return false" style="color:var(--bad);font-weight:600">🗑️ ล้างข้อมูลรุ่นนี้ — กรอกผิดหลัง (เฉพาะเจ้าของ)</a></div>`:''}
   </div>`;
+}
+// 🗑️ เจ้าของล้างข้อมูลรุ่นปัจจุบัน (กรณีเสมียนกรอกผิดหลัง) → เล้ากลับเป็น "ว่าง"
+// เฉพาะ ROLE เจ้าของจริงเท่านั้น (ไม่นับ view-as-role) · ไม่เก็บเข้าประวัติปิดชุด (เป็นข้อมูลผิด ไม่ใช่รุ่นจริง)
+// คงไว้: ประวัติการแก้ไข (editLog) + รุ่นที่ปิดแล้ว (closedBatches) + หมูระหว่างทางเข้าหลังนี้ (incoming)
+// หลักฐานกันโกง: สรุปข้อมูลก่อนล้างถูกส่งเข้า audit_log ฝั่งเซิร์ฟเวอร์ (แก้/ลบไม่ได้)
+function ownerResetHouse(){
+  const h=currentHouse; if(!h) return;
+  if(ROLE!=='owner'){ toast('🔒 เฉพาะเจ้าของเท่านั้นที่ล้างข้อมูลรุ่นได้'); return; }
+  const outRef=HOUSES.some(x=>x.id!==h.id && (x.incoming||[]).some(t=>t.fromId===h.id));
+  if(outRef){ alert('ล้างไม่ได้: หลังนี้ "ย้ายออก" หมูไปหลังอื่นและยังรอปลายทางยืนยันรับเข้า — ให้หลังปลายทางยืนยันรับเข้า หรือแก้/ลบรายการย้ายออกก่อน (กันหมูค้างกลางทางไร้ต้นทาง)'); return; }
+  const dl=h.dailyLog||[], vl=h.vetLog||[];
+  const movedIn=dl.reduce((s,e)=>s+(e.moveInN||0),0);
+  const sum='รับเข้า '+fmt(h.received||0)+' ตัว · คงเหลือ '+fmt(h.pigs||0)+' ตัว · บันทึกรายวัน '+dl.length+' รายการ · บันทึกหมอ '+vl.length+' รายการ · ยา '+((h.meds||[]).length)+' รายการ';
+  if(!confirm('ล้างข้อมูล "รุ่นปัจจุบัน" ของหลัง '+(h.code||'')+' ทั้งหมด?\n\n'+sum+(movedIn>0?'\n\n⚠️ รุ่นนี้มีหมู "ย้ายเข้า" มาจากหลังอื่น '+fmt(movedIn)+' ตัว — ล้างแล้วหมูจำนวนนี้จะหายจากยอดรวม (หลังต้นทางหักออกไปแล้ว) โปรดแน่ใจก่อน':'')+'\n\nใช้เมื่อ "กรอกผิดหลัง" — เล้าจะกลับเป็นสถานะ "ว่าง"\n(ประวัติการแก้ไข และรุ่นที่ปิดแล้ว จะยังอยู่เป็นหลักฐาน)')) return;
+  const typed=prompt('เพื่อความปลอดภัย พิมพ์รหัสหลัง "'+(h.code||'')+'" เพื่อยืนยันการล้าง:');
+  if(typed===null) return;
+  if((typed||'').trim().toUpperCase()!==String(h.code||'').toUpperCase()){ toast('รหัสหลังไม่ตรง — ยกเลิกการล้าง'); return; }
+  const it=h.intake||{};
+  const before={intake:{source:it.source||'',dateIn:it.dateIn||'',inN:it.inN||0,price:it.price||0,extra:(it.extra||[]).length},
+    received:h.received||0,pigs:h.pigs||0,dailyDays:dl.length,movedIn:movedIn,
+    firstDay:dl.length?dl[dl.length-1].date:'',lastDay:dl.length?dl[0].date:'',
+    vetRecs:vl.length,meds:(h.meds||[]).length,feedReqs:(h.feedReqs||[]).length};
+  h.intake=null; h.dailyLog=[]; h.vetLog=[]; h.meds=[]; h.feedReqs=[]; h.batch=null; h.batchLog=[];
+  h.received=0; h.pigs=0; h.dailyAnchor=null; h.closedDate=null; h.cleanStart=null;
+  h.deadToday=0; h.cullToday=0; h.soldToday=0; h.moveToday=0; h.sick=0; h.filled=false;
+  h.status='ว่าง';
+  intakeEditing=false; extraIntakeOpen=false; editIdx=-1;
+  logHouseEdit(h,[{label:'ล้างข้อมูลรุ่น',from:sum,to:'ว่าง'}],'🗑️ เจ้าของล้างข้อมูลรุ่น (กรอกผิดหลัง)');
+  logAudit('house',h.id,'owner_reset_batch',before,'เจ้าของล้างข้อมูลรุ่นของหลัง '+(h.code||'')+' (กรอกผิดหลัง)');
+  syncHouseClerk(h); syncHouseVet(h);
+  toast('🗑️ ล้างข้อมูลรุ่นของหลัง '+(h.code||'')+' แล้ว — เล้ากลับเป็น "ว่าง" พร้อมเริ่มใหม่');
+  clerkForm();
 }
 // ---- เนื้อหาแท็บ "บันทึกรายวัน": เล้าว่าง → ต้องกรอกข้อมูลการรับเข้าก่อน ----
 function clerkDailyBody(h){
