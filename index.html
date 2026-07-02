@@ -3032,7 +3032,7 @@ function intakeFormHTML(h){
   const v=(k,d)=>{const x=it[k];return (x!=null&&x!=='')?x:(d!=null?d:'');};
   // มีรอบ "รับเข้าเพิ่มเติม" → ฟอร์มนี้แก้เฉพาะ "รอบแรก" (ยอดรวม = รอบแรก + รอบเพิ่ม คิดให้อัตโนมัติตอนบันทึก)
   const xArr=it.extra||[], xN=xArr.reduce((s,e)=>s+(e.n||0),0), xW=xArr.reduce((s,e)=>s+(e.w||0),0);
-  const baseN=(it.inN!=null&&it.inN!=='')?Math.max(0,(it.inN||0)-xN):'';
+  const baseN=(it.inN!=null&&it.inN!=='')?Math.max(0,(it.inN||0)-xN):((!empty&&(h.received||h.pigs))||''); // เล้าที่มีหมูแต่ไม่มีข้อมูลรับเข้า (กรอกย้อนหลังจากกระดาษ) → เติมยอดตั้งต้นเดิมให้ กันยอดคงเหลือเพี้ยน
   const baseW=Math.max(0,(it.totalW||0)-xW);
   const baseAvg=(baseN&&baseW)?+(baseW/baseN).toFixed(1):(v('avgW')||'');
   // แถวค่าสายพันธุ์: จำนวนตัว × ค่า/ตัว = มูลค่า
@@ -3148,7 +3148,12 @@ function submitIntake(){
 function editIntake(){ intakeEditing=true; entryTab='daily'; clerkForm(); }
 function cancelIntake(){ intakeEditing=false; if((currentHouse.pigs||0)>0) clerkForm(); else renderHouseList(); }
 function intakeSummaryHTML(h,showEdit){
-  const it=h.intake; if(!it) return '';
+  const it=h.intake;
+  if(!it) return `<div class="card">
+    <h3>📥 ข้อมูลการรับเข้า <span class="more">รุ่นปัจจุบัน</span></h3>
+    <div class="banner info">📝 <div>หลังนี้ยังไม่มี<b>ข้อมูลการรับเข้า</b> (เช่น เล้าที่กรอกยอดย้อนหลังจากกระดาษ) — กรอก แหล่ง/วันที่/ราคาลูกหมู ได้เลย ระบบจะใช้คิดต้นทุนตอนปิดชุด · <b>จำนวนหมูคงเหลือจะไม่เปลี่ยน</b>ถ้าจำนวนรับเข้าตรงกับยอดตั้งต้นเดิม (${fmt(h.received||h.pigs||0)} ตัว)</div></div>
+    ${showEdit?`<div class="sub" style="margin-top:10px"><a href="#" onclick="editIntake();return false" style="color:var(--info);font-weight:600">✏️ กรอกข้อมูลการรับเข้า</a></div>`:''}
+  </div>`;
   const BR=[['Duroc','breedDurocN','breedDuroc'],['แม่สองสาย','breedCross2N','breedCross2'],['พันธุ์แท้ L','breedPureLN','breedPureL'],['พันธุ์แท้ Y','breedPureYN','breedPureY']];
   const breeds=BR.map(function(x){return {label:x[0],n:it[x[1]]||0,p:it[x[2]]||0,amt:(it[x[1]]||0)*(it[x[2]]||0)};}).filter(function(b){return b.amt>0;});
   const extra=it.extra||[], extraN=extra.reduce((s,e)=>s+(e.n||0),0), baseN=(it.inN||0)-extraN;
