@@ -86,6 +86,16 @@
   .mrow .d{color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.4}
   .gobtn{flex:0 0 auto;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:var(--brand-soft);color:var(--brand)}
   .gobtn .mi{width:20px;height:20px;stroke-width:2.6}
+  .gfull{position:fixed!important;inset:0;z-index:120;border-radius:0!important;margin:0!important;display:flex;flex-direction:column}
+  .gfull #fgsvg{flex:1;height:auto!important;min-height:0}
+  .ginfofloat{position:fixed;left:12px;right:12px;bottom:12px;z-index:121;box-shadow:0 14px 44px rgba(0,0,0,.45);max-width:640px;margin:0 auto}
+  .gnode{cursor:pointer;transition:filter .12s}
+  .gnode:hover{filter:brightness(1.25) drop-shadow(0 0 6px rgba(83,234,210,.8))}
+  .gnode.gsel{stroke:#fff;stroke-width:3;filter:drop-shadow(0 0 8px rgba(83,234,210,.9))}
+  .glab{font-size:11px;fill:#9db8b2;text-anchor:middle;pointer-events:none}
+  .glab.gfarm{font-size:12.5px;font-weight:700;fill:#8fd8ca}
+  .glab.gvet{fill:#e3a7d3}
+  .glab.gnum{font-size:10.5px;font-weight:700;fill:#6fcab8}
   .seclab{display:flex;align-items:center;gap:10px;margin:20px 2px 12px;color:var(--muted);font-size:12.5px;font-weight:800;letter-spacing:.4px}
   .seclab::before{content:"";width:4px;height:15px;border-radius:99px;background:linear-gradient(180deg,var(--brand),#3fb8a6)}
   .seclab::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
@@ -288,6 +298,7 @@
   <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5L5.5 13.5H11L10.5 21.5 18 10.5h-5.5L13 2.5Z"/></symbol>
   <symbol id="i-exit" viewBox="0 0 24 24"><path d="M14 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H14"/><path d="M10 12h10M16.5 8.5L20 12l-3.5 3.5"/></symbol>
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5.5l6.5 6.5L9 18.5"/></symbol>
+  <symbol id="i-net" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="17.5" r="2.6"/><circle cx="19" cy="17.5" r="2.6"/><path d="M10.8 7.3L6.3 15.3M13.2 7.3l4.5 8M7.6 17.5h8.8"/></symbol>
 </svg>
 
 <!-- ============ LOGIN ============ -->
@@ -1224,6 +1235,7 @@ function refreshBack(){const b=$("#backBtn"); if(b) b.style.display=navHist.leng
 const HOME_MENU = {
   owner: [
     {icon:'📊', t:'ภาพรวม',            d:'สรุปทุกฟาร์ม · จำนวนหมู · สถานะหลัง',     fn:'renderOwner'},
+    {icon:'🕸️', t:'แผนผังฟาร์ม',        d:'กราฟเครือข่าย ฟาร์ม → เล้า → หมอ · แตะจุดดูสถานะ/เข้าเล้า', fn:'renderFarmGraph'},
     {icon:'📈', t:'ประสิทธิภาพ',        d:'คะแนน/ผลงาน รายฟาร์ม · รายหมอ',          fn:'renderPerf'},
     {icon:'💊', t:'ต้นทุนยา',           d:'ค่ายา/เวชภัณฑ์ รายฟาร์ม · รายหลัง',        fn:'renderMedDash'},
     {icon:'📦', t:'คลังยา/อุปกรณ์',       d:'ยอดคงเหลือ · มูลค่า · ของใกล้หมด ทุกฟาร์ม', fn:'renderStock'},
@@ -1267,7 +1279,7 @@ function goHome(){ if(!ROLE) return; viewRole=null; if(hasRoleHub()) renderRoleH
 function enterRole(r){ viewRole=(r===ROLE?null:r); renderHome(); } // เลือกบทบาท → หน้าหัวข้อของบทบาทนั้น
 // ---- ชิ้นส่วน UI หน้าหลัก ----
 // ไอคอน SVG ประจำเมนู (แทนอิโมจิ) — อิโมจิที่ไม่มีในตารางจะแสดงตามเดิม
-const MENU_ICON={'📊':'i-chart','📈':'i-trend','💊':'i-pill','📦':'i-box','👥':'i-users','🔒':'i-shield','📝':'i-pen','📆':'i-cal','🏭':'i-barn','💉':'i-medkit','🌾':'i-wheat','📤':'i-export','🩺':'i-steth','🧪':'i-flask','🏠':'i-barn','👔':'i-crown','📋':'i-clip','⚙️':'i-gear'};
+const MENU_ICON={'📊':'i-chart','📈':'i-trend','💊':'i-pill','📦':'i-box','👥':'i-users','🔒':'i-shield','📝':'i-pen','📆':'i-cal','🏭':'i-barn','💉':'i-medkit','🌾':'i-wheat','📤':'i-export','🩺':'i-steth','🧪':'i-flask','🏠':'i-barn','👔':'i-crown','📋':'i-clip','⚙️':'i-gear','🕸️':'i-net'};
 const CHIP_CLASSES=['chip-a','chip-b','chip-c','chip-d','chip-e'];
 function useIco(id,style){ return '<svg class="mi" aria-hidden="true"'+(style?' style="'+style+'"':'')+'><use href="#'+id+'"/></svg>'; }
 // สรุปยอดสดบนการ์ดทักทาย — เห็นภาพรวมทันทีไม่ต้องกดเข้าเมนู (พังเงียบถ้าข้อมูลไม่พร้อม ไม่ล้มทั้งหน้า)
@@ -1377,6 +1389,125 @@ function renderHome(){
 }
 /* ---------- router ---------- */
 function route(){ return hasRoleHub()? renderRoleHub() : renderHome(); } // เจ้าของ/เสมียน/ผู้ดูแล → หน้าเลือกบทบาทก่อน · หมอ/ยาสูตร → หน้าหัวข้อของตัวเอง
+
+/* ---------- แผนผังฟาร์ม (กราฟเครือข่ายแบบ Obsidian) — เจ้าของ ---------- */
+let _gv={x:0,y:0,w:1000,h:780}, _gDrag=null;
+function gSetVB(){ const s=document.getElementById('fgsvg'); if(s) s.setAttribute('viewBox',_gv.x+' '+_gv.y+' '+_gv.w+' '+_gv.h); }
+function gZoom(f){ const cx=_gv.x+_gv.w/2, cy=_gv.y+_gv.h/2; _gv.w=Math.min(2600,Math.max(320,_gv.w*f)); _gv.h=_gv.w*0.78; _gv.x=cx-_gv.w/2; _gv.y=cy-_gv.h/2; gSetVB(); }
+function gReset(){ _gv={x:0,y:0,w:1000,h:780}; gSetVB(); }
+function gDown(e){ const s=e.currentTarget; s.setPointerCapture&&s.setPointerCapture(e.pointerId); _gDrag={px:e.clientX,py:e.clientY,x:_gv.x,y:_gv.y,cw:s.clientWidth||1}; }
+function gMove(e){ if(!_gDrag) return; const k=_gv.w/_gDrag.cw; _gv.x=_gDrag.x-(e.clientX-_gDrag.px)*k; _gv.y=_gDrag.y-(e.clientY-_gDrag.py)*k; gSetVB(); }
+function gUp(){ _gDrag=null; }
+function gHouseColor(h){ // สีตามสถานะวันนี้
+  if((h.pigs||0)<=0) return (h.status==='กำลังล้างคอก')?'#5aa7e8':'#8a9aa0';
+  return h.filled?'#35e0c8':'#f0b429';
+}
+function gSelect(kind,key){ // แตะจุด → โชว์ข้อมูลย่อ + ปุ่มเข้าเล้า
+  const p=document.getElementById('gInfo'); if(!p) return;
+  document.querySelectorAll('#fgsvg .gsel').forEach(c=>c.classList.remove('gsel'));
+  const el=document.getElementById('gn_'+kind+'_'+key); if(el) el.classList.add('gsel');
+  if(kind==='h'){ const h=HOUSES.find(x=>x.id===+key); if(!h) return;
+    const a=dailyAgg(h), loss=(h.received>0)?(((a.deadN+a.cullN)/h.received)*100):0;
+    const today=((h.deadToday||0)+(h.cullToday||0)+(h.soldToday||0))>0?` · <b>วันนี้:</b> ${h.deadToday?'ตาย <b style="color:var(--bad)">'+fmt(h.deadToday)+'</b> ':''}${h.cullToday?'คัด '+fmt(h.cullToday)+' ':''}${h.soldToday?'ขาย '+fmt(h.soldToday):''}`:'';
+    p.innerHTML=`<b style="font-size:16px">🏠 หลัง ${escA(h.code||'')}</b> <span class="sub" style="margin:0">· ${escA(h.farm||'')}</span><br>
+      <span class="sub" style="margin:0">คงเหลือ <b style="color:var(--ink)">${fmt(h.pigs||0)}</b>/${fmt(h.received||0)} ตัว · ${escA(h.status||'-')} · ${(h.pigs||0)>0?(h.filled?'✅ กรอกแล้ววันนี้':'⏳ รอกรอกวันนี้'):'—'} · 🩺 ${escA(h.vet||'-')}</span><br>
+      <span class="sub" style="margin:0">🪵 ตายสะสม <b style="color:var(--bad)">${fmt(a.deadN)}</b> · 🔪 คัดขาย <b style="color:var(--ink)">${fmt(a.cullN)}</b> · 💰 ขายขุน <b style="color:var(--ok)">${fmt(a.soldN)}</b>${(h.received>0)?' · สูญเสีย '+loss.toFixed(1)+'%':''}${today}</span>
+      <button class="btn sm" style="margin-top:8px" onclick="gOpenHouse(${h.id})">เปิดหน้าเล้านี้ ›</button>`;
+  } else if(kind==='f'){ const hs=myHouses().filter(x=>(x.farm||'ไม่ระบุฟาร์ม')===key);
+    const pigs=hs.reduce((s,x)=>s+(x.pigs||0),0), act=hs.filter(x=>(x.pigs||0)>0).length, wait=hs.filter(x=>(x.pigs||0)>0&&!x.filled).length;
+    p.innerHTML=`<b style="font-size:16px">🏭 ${escA(key)}</b><br><span class="sub" style="margin:0">${fmt(hs.length)} หลัง · เลี้ยงอยู่ ${fmt(act)} · หมูรวม <b style="color:var(--ink)">${fmt(pigs)}</b> ตัว${wait?' · <span style="color:#b7791f">รอกรอก '+fmt(wait)+' หลัง</span>':''}</span>`;
+  } else if(kind==='v'){ const hs=myHouses().filter(x=>(x.vet||'').trim()===key&&(x.pigs||0)>0);
+    p.innerHTML=`<b style="font-size:16px">🩺 ${escA(key)}</b><br><span class="sub" style="margin:0">ดูแล ${fmt(hs.length)} หลังที่กำลังเลี้ยง · หมูรวม <b style="color:var(--ink)">${fmt(hs.reduce((s,x)=>s+(x.pigs||0),0))}</b> ตัว</span>`;
+  }
+}
+function gOpenHouse(id){ const h=HOUSES.find(x=>x.id===id); if(!h) return; gUnfull(); if(ROLE==='owner'||ROLE==='admin') viewRole='clerk'; openForm(id); }
+function gUnfull(){ const c=document.getElementById('gCard'), p=document.getElementById('gInfo'), b=document.getElementById('gFullBtn');
+  if(c) c.classList.remove('gfull'); if(p) p.classList.remove('ginfofloat'); if(b) b.textContent='⛶ เต็มจอ'; }
+function gFull(){ const c=document.getElementById('gCard'), p=document.getElementById('gInfo'), b=document.getElementById('gFullBtn');
+  if(!c) return; const on=c.classList.toggle('gfull');
+  if(p) p.classList.toggle('ginfofloat',on);
+  if(b) b.textContent=on?'✕ ออกเต็มจอ':'⛶ เต็มจอ';
+}
+function renderFarmGraph(){
+  histPush('fgraph',renderFarmGraph);
+  const hs=myHouses()||[];
+  const byFarm={}; hs.forEach(h=>{ const f=h.farm||'ไม่ระบุฟาร์ม'; (byFarm[f]=byFarm[f]||[]).push(h); });
+  const fnames=Object.keys(byFarm).sort();
+  const vets={}; hs.forEach(h=>{ const vn=(h.vet||'').trim(); if(vn&&(h.pigs||0)>0){ (vets[vn]=vets[vn]||[]).push(h); } });
+  const W=1000,H=780,cx=W/2,cy=H/2, R1=200, R2=118;
+  let edges='', nodes='', labels='';
+  const esc1=s=>escA(String(s));
+  const housePos={};
+  fnames.forEach((f,i)=>{
+    const a=-Math.PI/2 + i*2*Math.PI/Math.max(1,fnames.length);
+    const fx=cx+R1*Math.cos(a), fy=cy+R1*Math.sin(a);
+    edges+=`<line x1="${cx}" y1="${cy}" x2="${fx}" y2="${fy}" stroke="#2b6e63" stroke-width="1.8" opacity=".55"/>`;
+    const arr=byFarm[f], n=arr.length;
+    const spread=Math.min(Math.PI*1.15, .5+n*.24);
+    arr.forEach((h,j)=>{
+      const b=a-spread/2+(n>1? j*spread/(n-1) : spread/2);
+      const rr=R2+((j%2)*26)+ (n>8?(j%3)*14:0);
+      const hx=fx+rr*Math.cos(b), hy=fy+rr*Math.sin(b);
+      housePos[h.id]=[hx,hy];
+      const r=Math.max(7,Math.min(17,4+Math.sqrt(h.pigs||0)*0.5));
+      edges+=`<line x1="${fx}" y1="${fy}" x2="${hx}" y2="${hy}" stroke="#2b6e63" stroke-width="1.1" opacity=".42"/>`;
+      const deadRing=(h.deadToday||0)>0?` stroke="#e24b4a" stroke-width="2.4"`:'';
+      nodes+=`<circle id="gn_h_${h.id}" class="gnode" cx="${hx}" cy="${hy}" r="${r}" fill="${gHouseColor(h)}"${deadRing} onclick="gSelect('h','${h.id}')"><title>หลัง ${esc1(h.code)} · ${fmt(h.pigs||0)} ตัว${(h.deadToday||0)>0?' · ตายวันนี้ '+fmt(h.deadToday):''}</title></circle>`;
+      labels+=`<text x="${hx}" y="${hy+r+13}" class="glab">${esc1(h.code||'')}</text>`;
+      if((h.pigs||0)>0||(h.received||0)>0){
+        const ag=dailyAgg(h);
+        labels+=`<text x="${hx}" y="${hy+r+25}" class="glab gnum">${fmt(h.pigs||0)}/${fmt(h.received||0)}</text>`;
+        labels+=`<text x="${hx}" y="${hy+r+37}" class="glab gnum"><tspan fill="#f09590">ต ${fmt(ag.deadN)}</tspan><tspan dx="7" fill="#cfe0db">ค ${fmt(ag.cullN)}</tspan><tspan dx="7" fill="#9be9a8">ข ${fmt(ag.soldN)}</tspan></text>`;
+      }
+    });
+    const fpigs=arr.reduce((s,x)=>s+(x.pigs||0),0);
+    nodes+=`<circle id="gn_f_${esc1(f)}" class="gnode" cx="${fx}" cy="${fy}" r="16" fill="#1f7d6e" stroke="#54ead2" stroke-width="1.6" onclick="gSelect('f','${esc1(f)}')"><title>${esc1(f)} · ${fmt(fpigs)} ตัว</title></circle>`;
+    labels+=`<text x="${fx}" y="${fy-24}" class="glab gfarm">${esc1(f)}</text>`;
+    labels+=`<text x="${fx}" y="${fy+33}" class="glab gnum">${fmt(fpigs)} ตัว</text>`;
+  });
+  const vnames=Object.keys(vets).sort();
+  vnames.forEach((vn,i)=>{
+    const ids=vets[vn].map(h=>h.id).filter(id=>housePos[id]);
+    let ax=0,ay=0; ids.forEach(id=>{ax+=housePos[id][0];ay+=housePos[id][1];});
+    let vx,vy;
+    const R3=Math.min(W,H)/2-46; // วงหมอต้องไม่ตกขอบภาพ
+    if(ids.length){ ax/=ids.length; ay/=ids.length; const dx=ax-cx,dy=ay-cy,d=Math.max(1,Math.hypot(dx,dy)); vx=cx+dx/d*R3; vy=cy+dy/d*R3; }
+    else { const a=-Math.PI/2+i*2*Math.PI/Math.max(1,vnames.length); vx=cx+R3*Math.cos(a); vy=cy+R3*Math.sin(a); }
+    ids.forEach(id=>{ edges+=`<line x1="${vx}" y1="${vy}" x2="${housePos[id][0]}" y2="${housePos[id][1]}" stroke="#c95ab0" stroke-width="1" stroke-dasharray="3 5" opacity=".5"/>`; });
+    nodes+=`<circle id="gn_v_${esc1(vn)}" class="gnode" cx="${vx}" cy="${vy}" r="11" fill="#c95ab0" stroke="#f3b7e3" stroke-width="1.4" onclick="gSelect('v','${esc1(vn)}')"><title>🩺 ${esc1(vn)}</title></circle>`;
+    labels+=`<text x="${vx}" y="${vy-17}" class="glab gvet">🩺 ${esc1(vn)}</text>`;
+  });
+  const totPigs=hs.reduce((s,h)=>s+(h.pigs||0),0);
+  const v=$("#view");
+  v.innerHTML=`
+    <h2 class="page">🕸️ แผนผังฟาร์ม</h2>
+    <div class="sub">บริษัท → ฟาร์ม → เล้า (เส้นประชมพู = หมอที่ดูแล) · <b>แตะจุด</b>เพื่อดูข้อมูล · ลากเลื่อน/ซูมได้</div>
+    <div class="card" id="gCard" style="padding:0;overflow:hidden;background:radial-gradient(80% 70% at 50% 38%,#14262c 0%,#0d1a1f 100%);border-color:#23424a">
+      <div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(83,234,210,.18);flex-wrap:wrap">
+        <span style="color:#8fd8ca;font-size:12.5px;font-weight:700">${fmt(fnames.length)} ฟาร์ม · ${fmt(hs.length)} หลัง · ${fmt(totPigs)} ตัว</span>
+        <span style="flex:1"></span>
+        <button class="btn sm ghost" style="padding:6px 12px" onclick="gZoom(0.8)">➕ ซูมเข้า</button>
+        <button class="btn sm ghost" style="padding:6px 12px" onclick="gZoom(1.25)">➖ ซูมออก</button>
+        <button class="btn sm ghost" style="padding:6px 12px" onclick="gReset()">⟲ รีเซ็ต</button>
+        <button class="btn sm ghost" id="gFullBtn" style="padding:6px 12px" onclick="gFull()">⛶ เต็มจอ</button>
+      </div>
+      <svg id="fgsvg" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:min(72vh,640px);cursor:grab;touch-action:none"
+        onpointerdown="gDown(event)" onpointermove="gMove(event)" onpointerup="gUp()" onpointercancel="gUp()">
+        <defs>
+          <radialGradient id="grootg" cx="50%" cy="42%" r="65%"><stop offset="0%" stop-color="#eafff3"/><stop offset="60%" stop-color="#a8e6c4"/><stop offset="100%" stop-color="#5aa88a"/></radialGradient>
+        </defs>
+        ${edges}
+        <circle class="gnode" cx="${cx}" cy="${cy}" r="27" fill="url(#grootg)" stroke="#54ead2" stroke-width="2" onclick="gSelect('f','')"/>
+        <text x="${cx}" y="${cy+4.5}" text-anchor="middle" style="font-size:12px;font-weight:800;fill:#0b3b30;pointer-events:none">SJF</text>
+        ${nodes}${labels}
+      </svg>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;padding:9px 14px;border-top:1px solid rgba(83,234,210,.18);color:#9db8b2;font-size:11.5px">
+        <span>🟢 กรอกแล้ววันนี้</span><span>🟡 รอกรอก</span><span>⚪ ว่าง</span><span>🔵 ล้างคอก</span><span>🟣 หมอ</span><span style="color:#f0908a">⭕ ขอบแดง = มีตายวันนี้</span><span>· ขนาดจุด = จำนวนหมู</span>
+      </div>
+    </div>
+    <div class="card" id="gInfo"><span class="sub" style="margin:0">👆 แตะจุดบนแผนผัง เพื่อดูรายละเอียด ฟาร์ม / เล้า / หมอ</span></div>`;
+  _gv={x:0,y:0,w:W,h:H}; gSetVB();
+}
 
 /* ---------- OWNER dashboard ---------- */
 // efficiency score per house from FCR, mortality, data completeness
