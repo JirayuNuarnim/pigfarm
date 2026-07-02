@@ -1054,7 +1054,7 @@ function nowStamp(){try{const t=new Date(),d=new Date(DEMO_DATE.getFullYear(),DE
 function todayStr(){try{return new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}catch(e){return '';}}
 const HOUSE_EDIT_LABELS={farm:'ฟาร์ม',code:'รหัสหลัง',zone:'โซน',vet:'หมอผู้รับผิดชอบ',assistant:'ผู้ช่วย',worker:'พนักงานประจำหลัง',cap:'ความจุ',area:'พื้นที่',fanNo:'พัดลมไม่มีชัทเตอร์',fanSh:'พัดลมมีชัทเตอร์',fanTotal:'พัดลมรวม'};
 const DAILY_EDIT_LABELS={deadType:'ประเภทตาย',deadN:'ตาย(ตัว)',deadW:'ตาย-นน.(กก.)',cullType:'ประเภทคัดขาย',cullN:'คัดขาย(ตัว)',cullW:'คัด-นน.(กก.)',cullP:'คัด-ราคา/กก.',cullCust:'ลูกค้า(คัด)',cullBill:'บิล(คัด)',soldN:'ขายขุน(ตัว)',soldW:'ขาย-นน.(กก.)',soldP:'ขาย-ราคา/กก.',soldCust:'ลูกค้า(ขาย)',soldBill:'บิล(ขาย)',moveN:'ย้ายออก(ตัว)',moveW:'ย้าย-นน.(กก.)',moveDest:'หลังปลายทาง',moveNote:'หมายเหตุย้าย'};
-const INTAKE_EDIT_LABELS={source:'แหล่งรับเข้า',dateIn:'วันที่รับเข้า',nurseryDays:'วันเลี้ยงอนุบาล',vet:'หมอผู้ดูแล',worker:'พนักงานประจำหลัง',assistant:'ผู้ช่วย',inN:'จำนวนรับเข้า',avgW:'นน.เฉลี่ย',totalW:'นน.รวม',breedTotal:'ค่าสายพันธุ์รวม',note:'หมายเหตุ'};
+const INTAKE_EDIT_LABELS={source:'แหล่งรับเข้า',dateIn:'วันที่รับเข้า',nurseryDays:'วันเลี้ยงอนุบาล',vet:'หมอผู้ดูแล',worker:'พนักงานประจำหลัง',assistant:'ผู้ช่วย',inN:'จำนวนรับเข้า',avgW:'นน.เฉลี่ย',totalW:'นน.รวม',price:'ราคาลูกหมู/ตัว',breedTotal:'ค่าสายพันธุ์รวม',note:'หมายเหตุ'};
 // บันทึกการแก้ไขลง "ประวัติการแก้ไขข้อมูลประจำหลัง" — ใช้ร่วมทุกจุดที่มีการแก้ไข
 // ── Audit กันโกงฝั่งเซิร์ฟเวอร์: ยิงบันทึกเข้า audit_log (append-only · เซิร์ฟเวอร์ประทับผู้แก้จาก token จริง) ──
 // fire-and-forget · ทำงานเฉพาะโหมดคลาวด์จริงที่มี token · ไม่มี token (เช่น preview) → ข้ามเงียบๆ ไม่ล็อกเอาต์/ไม่พังของเดิม
@@ -3030,6 +3030,11 @@ function clerkDailyBody(h){
 function intakeFormHTML(h){
   const it=h.intake||{}, empty=(h.pigs||0)<=0;
   const v=(k,d)=>{const x=it[k];return (x!=null&&x!=='')?x:(d!=null?d:'');};
+  // มีรอบ "รับเข้าเพิ่มเติม" → ฟอร์มนี้แก้เฉพาะ "รอบแรก" (ยอดรวม = รอบแรก + รอบเพิ่ม คิดให้อัตโนมัติตอนบันทึก)
+  const xArr=it.extra||[], xN=xArr.reduce((s,e)=>s+(e.n||0),0), xW=xArr.reduce((s,e)=>s+(e.w||0),0);
+  const baseN=(it.inN!=null&&it.inN!=='')?Math.max(0,(it.inN||0)-xN):'';
+  const baseW=Math.max(0,(it.totalW||0)-xW);
+  const baseAvg=(baseN&&baseW)?+(baseW/baseN).toFixed(1):(v('avgW')||'');
   // แถวค่าสายพันธุ์: จำนวนตัว × ค่า/ตัว = มูลค่า
   const breedRow=(key,label)=>`<tr>
     <td class="lab">${label}</td>
@@ -3053,10 +3058,15 @@ function intakeFormHTML(h){
     </div>
     <div class="frow" style="margin-top:10px"><label>พนักงานผู้ช่วย</label><input id="i_asst" class="cin tl" value="${escA(v('assistant',h.assistant))}" placeholder="🧑‍🔧 ชื่อผู้ช่วย"></div>
     <div class="grid2">
-      <div class="frow" style="margin-bottom:0"><label>จำนวนรับเข้า <span class="req">*</span></label><div class="unit"><input id="i_inN" class="cin tl" type="number" value="${v('inN')}" placeholder="0" oninput="calcIntake()"><span class="u">ตัว</span></div></div>
-      <div class="frow" style="margin-bottom:0"><label>น้ำหนักเฉลี่ย</label><div class="unit"><input id="i_avgW" class="cin tl" type="number" value="${v('avgW')}" placeholder="0" oninput="calcIntake()"><span class="u">กก./ตัว</span></div></div>
+      <div class="frow" style="margin-bottom:0"><label>จำนวนรับเข้า${xN?' (รอบแรก)':''} <span class="req">*</span></label><div class="unit"><input id="i_inN" class="cin tl" type="number" value="${baseN}" placeholder="0" oninput="calcIntake()"><span class="u">ตัว</span></div></div>
+      <div class="frow" style="margin-bottom:0"><label>น้ำหนักเฉลี่ย${xN?' (รอบแรก)':''}</label><div class="unit"><input id="i_avgW" class="cin tl" type="number" value="${baseAvg}" placeholder="0" oninput="calcIntake()"><span class="u">กก./ตัว</span></div></div>
     </div>
-    <div class="frow" style="margin-top:10px;margin-bottom:0"><label>น้ำหนักรวม <span class="hint">(อัตโนมัติ = จำนวน × นน.เฉลี่ย)</span></label><div class="unit"><input id="i_totalW" class="cin tl" value="0" readonly style="background:var(--soft);font-weight:700"><span class="u">กก.</span></div></div>
+    ${xN?`<div class="banner info" style="margin-top:10px">🔄 <div>หลังนี้มี<b>รอบรับเข้าเพิ่มเติม ${fmt(xN)} ตัว</b> แยกบันทึกไว้แล้ว — ช่องด้านบนแก้เฉพาะ<b>รอบแรก</b> · ยอดรวม (รอบแรก + ${fmt(xN)}) ระบบคิดให้อัตโนมัติตอนบันทึก</div></div>`:''}
+    <div class="grid2" style="margin-top:10px">
+      <div class="frow" style="margin-bottom:0"><label>น้ำหนักรวม <span class="hint">(อัตโนมัติ)</span></label><div class="unit"><input id="i_totalW" class="cin tl" value="0" readonly style="background:var(--soft);font-weight:700"><span class="u">กก.</span></div></div>
+      <div class="frow" style="margin-bottom:0"><label>💰 ราคาลูกหมู/ตัว <span class="hint">(ต้นทุนรอบนี้)</span></label><div class="unit"><input id="i_price" class="cin tl" type="number" value="${v('price')}" placeholder="0" oninput="calcIntake()"><span class="u">บาท</span></div></div>
+    </div>
+    <div class="sub" id="i_pigCostNote" style="margin-top:6px"></div>
     <div class="frow" style="margin-top:12px;margin-bottom:0"><label>📝 หมายเหตุ <span class="hint">(จดกันลืม — จะแสดงตอนสรุปปิดชุดด้วย)</span></label>
       <textarea id="i_note" class="cin tl" rows="2" style="width:100%;resize:vertical" placeholder="เช่น ลูกหมูจากแม่พันธุ์ชุดพิเศษ · พบลูกแคระแยกเลี้ยง · เงื่อนไขราคา/ข้อตกลงพิเศษ ฯลฯ">${escA(v('note'))}</textarea></div>
     <div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)">
@@ -3082,6 +3092,8 @@ function calcIntake(){
   if(!document.getElementById('i_inN')) return;
   const inN=gv('i_inN'), avgW=gv('i_avgW');
   const t=document.getElementById('i_totalW'); if(t) t.value=Math.round(inN*avgW);
+  const pr=gv('i_price'), pn=document.getElementById('i_pigCostNote');
+  if(pn) pn.innerHTML=(inN>0&&pr>0)?('มูลค่าลูกหมูรอบนี้: <b style="color:var(--brand)">'+fmt(Math.round(inN*pr))+'</b> บาท ('+fmt(inN)+' ตัว × '+fmt(pr)+') — ใช้คิดต้นทุนตอนปิดชุดอัตโนมัติ'):'';
   let bt=0;
   ['Duroc','Cross2','PureL','PureY'].forEach(k=>{
     const amt=gv('i_n'+k)*gv('i_b'+k); bt+=amt;
@@ -3095,7 +3107,11 @@ function submitIntake(){
   const inN=g('i_inN');
   if(inN<=0){toast('กรุณากรอก "จำนวนรับเข้า" ให้มากกว่า 0');return;}
   const h=currentHouse, wasEmpty=(h.pigs||0)<=0, avgW=g('i_avgW');
-  const oldReceived=h.received||0, delta=inN-oldReceived;
+  // ช่องในฟอร์ม = "รอบแรก" เท่านั้น → ยอดรวมจริง = รอบแรก + รอบรับเข้าเพิ่มเติมที่แยกบันทึกไว้ (กันยอดรอบเพิ่มหายตอนแก้ไข)
+  const xArr=(h.intake&&h.intake.extra)||[];
+  const xN=xArr.reduce((s,e)=>s+(e.n||0),0), xW=xArr.reduce((s,e)=>s+(e.w||0),0);
+  const totalInN=inN+xN, totalW=Math.round(inN*avgW)+xW;
+  const oldReceived=h.received||0, delta=totalInN-oldReceived;
   // แก้ไขรุ่นที่กำลังเลี้ยง: ห้ามลดจำนวนรับเข้าจนทำให้ "คงเหลือ" บางวันติดลบ (ยอดตาย/คัด/ขายรวมเกินจำนวนจริง)
   if(!wasEmpty && delta!==0 && (h.dailyLog||[]).length){
     const log=h.dailyLog, newAnchor=(h.dailyAnchor!=null?h.dailyAnchor:oldReceived)+delta;
@@ -3105,18 +3121,18 @@ function submitIntake(){
   }
   const oldIt=Object.assign({},h.intake||{}); // ค่าเดิมไว้เทียบบันทึกประวัติ
   h.intake={ source:t('i_source'), nurseryDays:g('i_nursery'), vet:t('i_vet'), worker:t('i_worker'),
-    assistant:t('i_asst'), dateIn:t('i_dateIn'), inN:inN, avgW:avgW, totalW:Math.round(inN*avgW), note:t('i_note'),
+    assistant:t('i_asst'), dateIn:t('i_dateIn'), inN:totalInN, avgW:(totalInN&&totalW?+(totalW/totalInN).toFixed(1):avgW), totalW:totalW, price:g('i_price'), note:t('i_note'),
     breedDurocN:g('i_nDuroc'), breedDuroc:g('i_bDuroc'),
     breedCross2N:g('i_nCross2'), breedCross2:g('i_bCross2'),
     breedPureLN:g('i_nPureL'), breedPureL:g('i_bPureL'),
     breedPureYN:g('i_nPureY'), breedPureY:g('i_bPureY'),
     breedTotal:g('i_nDuroc')*g('i_bDuroc')+g('i_nCross2')*g('i_bCross2')+g('i_nPureL')*g('i_bPureL')+g('i_nPureY')*g('i_bPureY') };
   if(oldIt.extra) h.intake.extra=oldIt.extra; // คงรายการ "รับเข้าเพิ่มเติม" ไว้
-  h.received=inN;
-  if(wasEmpty){ h.pigs=inN; h.status='กำลังเลี้ยง'; h.filled=true; h.cleanStart=null; } // เริ่มรุ่นใหม่ → ล้างสถานะ "กำลังล้างคอก"
+  h.received=totalInN;
+  if(wasEmpty){ h.pigs=totalInN; h.status='กำลังเลี้ยง'; h.filled=true; h.cleanStart=null; } // เริ่มรุ่นใหม่ → ล้างสถานะ "กำลังล้างคอก"
   else if(delta!==0){ // แก้จำนวนรับเข้าของรุ่นที่กำลังเลี้ยง → เลื่อน anchor + คำนวณ "คงเหลือ" ทุกวันใหม่ ให้ received − pigs = ยอดสูญเสียรวม เสมอ
     if((h.dailyLog||[]).length){ h.dailyAnchor=(h.dailyAnchor!=null?h.dailyAnchor:oldReceived)+delta; recalcDailyRemains(h); }
-    else { h.pigs=Math.max(0,(h.pigs||0)+delta); h.dailyAnchor=inN; }
+    else { h.pigs=Math.max(0,(h.pigs||0)+delta); h.dailyAnchor=totalInN; }
   }
   if(h.intake.source) h.source=h.intake.source;
   if(h.intake.vet) h.vet=h.intake.vet;
@@ -3142,25 +3158,34 @@ function intakeSummaryHTML(h,showEdit){
       <tr><th style="width:42%">แหล่งรับเข้า</th><td>${escA(it.source||'-')}</td></tr>
       <tr><th>วันที่รับเข้า</th><td>${escA(it.dateIn||'-')}</td></tr>
       <tr><th>วันเลี้ยงคลอด/อนุบาล</th><td>${it.nurseryDays?fmt(it.nurseryDays)+' วัน':'-'}</td></tr>
-      <tr><th>จำนวนรับเข้า${extraN?' (รวม)':''}</th><td><b style="color:var(--ink)">${fmt(it.inN||0)}</b> ตัว · เฉลี่ย ${it.avgW||'-'} กก./ตัว · รวม ${fmt(it.totalW||0)} กก.${extraN?`<div class="sub" style="margin-top:3px">รับเข้าเริ่มต้น ${fmt(baseN)} ตัว + 🔄 รับเข้าเพิ่มเติม ${fmt(extraN)} ตัว</div>`:''}</td></tr>
-      ${extraN?`<tr><th>🔄 รับเข้าเพิ่มเติม</th><td>${extra.map(e=>`<b style="color:var(--ink)">+${fmt(e.n)}</b> ตัว · ${escA(e.kind||'รับเข้าเพิ่ม')}${e.from?' จาก '+escA(e.from):''}${e.w?' · '+fmt(e.w)+' กก.':''} <span class="sub">(${escA(e.date||'')})</span>`).join('<br>')}</td></tr>`:''}
+      <tr><th>จำนวนรับเข้า${extraN?' (รวม)':''}</th><td><b style="color:var(--ink)">${fmt(it.inN||0)}</b> ตัว · เฉลี่ย ${it.avgW||'-'} กก./ตัว · รวม ${fmt(it.totalW||0)} กก.${it.price?` · 💰 ${fmt(it.price)} บาท/ตัว`:''}${extraN?`<div class="sub" style="margin-top:3px">รับเข้าเริ่มต้น ${fmt(baseN)} ตัว${it.price?' ('+fmt(it.price)+' บาท/ตัว)':''} + 🔄 รับเข้าเพิ่มเติม ${fmt(extraN)} ตัว</div>`:''}</td></tr>
+      ${extraN?`<tr><th>🔄 รับเข้าเพิ่มเติม</th><td>${extra.map(e=>`<b style="color:var(--ink)">+${fmt(e.n)}</b> ตัว · ${escA(e.kind||'รับเข้าเพิ่ม')}${e.from?' จาก '+escA(e.from):''}${e.w?' · '+fmt(e.w)+' กก.':''}${e.price?' · 💰 '+fmt(e.price)+' บาท/ตัว = <b style="color:var(--ink)">'+fmt(e.cost||Math.round(e.n*e.price))+'</b> บาท':''} <span class="sub">(${escA(e.date||'')})</span>`).join('<br>')}${(()=>{const xc=extra.reduce((s,e)=>s+(e.cost||((e.price||0)>0?Math.round((e.n||0)*e.price):0)),0);return xc>0?`<div class="sub" style="margin-top:4px"><b style="color:var(--ink)">รวมค่าลูกหมูรับเข้าเพิ่ม ${fmt(xc)} บาท</b> — คิดเข้าต้นทุนตอนปิดชุดอัตโนมัติ</div>`:'';})()}</td></tr>`:''}
       <tr><th>ผู้ดูแล</th><td>🩺 ${escA(it.vet||'-')} · 👷 ${escA(it.worker||'-')} · 🧑‍🔧 ${escA(it.assistant||'-')}</td></tr>
       ${breeds.length?`<tr><th>🧬 ค่าสายพันธุ์</th><td>${breeds.map(b=>escA(b.label)+' '+fmt(b.n)+' ตัว × '+fmt(b.p)+' = <b style="color:var(--ink)">'+fmt(b.amt)+'</b> บาท').join('<br>')}<div style="margin-top:4px"><b style="color:var(--ink)">รวม ${fmt(it.breedTotal||breeds.reduce((s,b)=>s+b.amt,0))} บาท</b></div></td></tr>`:''}
       ${it.note?`<tr><th>📝 หมายเหตุ</th><td style="white-space:pre-wrap">${escA(it.note)}</td></tr>`:''}
     </tbody></table>
-    ${showEdit?(extraIntakeOpen?`<div style="margin-top:12px;padding-top:13px;border-top:1px dashed var(--line)">
-      <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:var(--ok)">➕ รับเข้าหมูเพิ่มเติม <span class="hint" style="font-weight:400">(บวกเข้ายอดรับเข้า + คงเหลือทันที)</span></div>
+    ${showEdit?(extraIntakeOpen?(()=>{const dInISO=(it.dateIn&&/^\d{4}-\d{2}-\d{2}/.test(it.dateIn))?String(it.dateIn).slice(0,10):(thaiDayToISO(it.dateIn||'')||'');return `<div style="margin-top:12px;padding-top:13px;border-top:1px dashed var(--line)">
+      <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:var(--ok)">➕ รับเข้าหมูเพิ่มเติม <span class="hint" style="font-weight:400">(อีกรอบ/อีกแหล่ง — เลือกวันที่ย้อนหลังได้ · แต่ละรอบเก็บราคาของตัวเอง)</span></div>
       <div class="grid2">
-        <div class="frow" style="margin-bottom:0"><label>จำนวนตัว <span class="req">*</span></label><div class="unit"><input id="xi_n" class="cin tl" type="number" placeholder="0"><span class="u">ตัว</span></div></div>
-        <div class="frow" style="margin-bottom:0"><label>น้ำหนักรวม <span class="hint">(ถ้ามี)</span></label><div class="unit"><input id="xi_w" class="cin tl" type="number" placeholder="0"><span class="u">กก.</span></div></div>
+        <div class="frow" style="margin-bottom:0"><label>📅 วันที่รับเข้า</label><input id="xi_date" type="date" class="cin tl" value="${escA(expISO(DEMO_DATE))}" max="${escA(expISO(DEMO_DATE))}"${dInISO?` min="${escA(dInISO)}"`:''}></div>
+        <div class="frow" style="margin-bottom:0"><label>แหล่งรับเข้า</label><input id="xi_src" class="cin tl" list="xiSrcList" value="" placeholder="เช่น U1ค3 · ซื้อเพิ่ม · รับจากภายนอก"><datalist id="xiSrcList">${srcOptsHTML()}</datalist></div>
       </div>
-      <div class="frow" style="margin-top:10px;margin-bottom:0"><label>แหล่ง / หมายเหตุ</label><input id="xi_src" class="cin tl" value="รับเข้าเพิ่ม" placeholder="เช่น ซื้อเพิ่ม · รับจากภายนอก"></div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="frow" style="margin-bottom:0"><label>จำนวนตัว <span class="req">*</span></label><div class="unit"><input id="xi_n" class="cin tl" type="number" placeholder="0" oninput="calcExtraIntake()"><span class="u">ตัว</span></div></div>
+        <div class="frow" style="margin-bottom:0"><label>น้ำหนักเฉลี่ย <span class="hint">(ถ้ามี)</span></label><div class="unit"><input id="xi_avgW" class="cin tl" type="number" placeholder="0" oninput="calcExtraIntake()"><span class="u">กก./ตัว</span></div></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="frow" style="margin-bottom:0"><label>น้ำหนักรวม <span class="hint">(อัตโนมัติ = จำนวน × นน.เฉลี่ย · แก้ได้)</span></label><div class="unit"><input id="xi_w" class="cin tl" type="number" placeholder="0"><span class="u">กก.</span></div></div>
+        <div class="frow" style="margin-bottom:0"><label>💰 ราคาลูกหมู/ตัว <span class="hint">(ต้นทุนรอบนี้)</span></label><div class="unit"><input id="xi_price" class="cin tl" type="number" placeholder="0" oninput="calcExtraIntake()"><span class="u">บาท</span></div></div>
+      </div>
+      <div class="sub" style="margin-top:8px">มูลค่าลูกหมูรอบนี้: <b id="xi_cost" style="color:var(--brand)">—</b></div>
+      <div class="frow" style="margin-top:10px;margin-bottom:0"><label>📝 หมายเหตุ <span class="hint">(ถ้ามี)</span></label><input id="xi_note" class="cin tl" value="" placeholder="เช่น ล็อตเสริมจากเล้าคลอดชุด 2"></div>
       <div id="xi_err" style="color:var(--bad);font-size:12.5px;margin-top:6px;display:none"></div>
       <div class="actions" style="margin-top:12px">
         <button type="button" class="btn ghost" onclick="cancelExtraIntake()">ยกเลิก</button>
         <button type="button" class="btn" onclick="submitExtraIntake()">💾 บันทึกรับเข้าเพิ่ม</button>
       </div>
-    </div>`:`<div class="sub" style="margin-top:8px;display:flex;gap:16px;flex-wrap:wrap">
+    </div>`;})():`<div class="sub" style="margin-top:8px;display:flex;gap:16px;flex-wrap:wrap">
       <a href="#" onclick="editIntake();return false" style="color:var(--info)">✏️ แก้ไขข้อมูลการรับเข้า</a>
       <a href="#" onclick="openExtraIntake();return false" style="color:var(--ok);font-weight:600">➕ รับเข้าหมูเพิ่มเติม</a>
     </div>`):''}
@@ -3657,28 +3682,33 @@ function incomingHTML(h){
   </div>`;
 }
 // บวก "หมูรับเข้าเพิ่มเติม" เข้าหลัง → ลิงก์ครบ: ยอดจำนวนรับเข้า (intake.inN/totalW) + คงเหลือ (pigs) + บันทึกรายวัน (ย้ายเข้า) + received
-function addIntakeReceipt(h,n,w,from,note,kind){
+// opts: {dateThai:'16 มิ.ย.' (ย้อนหลังได้ · ไม่ใส่=วันนี้), price:ราคาลูกหมู/ตัวของรอบนี้ (ใช้คิดต้นทุนตอนปิดชุด)}
+function addIntakeReceipt(h,n,w,from,note,kind,opts){
   n=Math.round(Number(n)||0); if(n<=0) return false;
   w=Math.round(Number(w)||0);
+  opts=opts||{};
+  const dateThai=opts.dateThai||DEMO_DATE_DAY, price=Math.round(Number(opts.price)||0);
   const oldInN=(h.intake&&h.intake.inN)||0, oldPigs=h.pigs||0; // ค่าเดิมไว้บันทึกประวัติ
-  // 1) ยอดจำนวนรับเข้า (ตารางข้อมูลการรับเข้า) — เพิ่มเข้าทันที + เก็บรายการเพิ่มเติมไว้แสดง
+  // 1) ยอดจำนวนรับเข้า (ตารางข้อมูลการรับเข้า) — เพิ่มเข้าทันที + เก็บรายการเพิ่มเติมไว้แสดง (แยกรอบ: วันที่/แหล่ง/นน./ราคา ของตัวเอง)
   h.intake=h.intake||{source:from||'',inN:0,totalW:0,dateIn:DEMO_DATE_DAY};
   h.intake.inN=(h.intake.inN||0)+n;
   if(w>0){ h.intake.totalW=(h.intake.totalW||0)+w; h.intake.avgW=h.intake.inN?+(h.intake.totalW/h.intake.inN).toFixed(1):h.intake.avgW; }
   h.intake.extra=h.intake.extra||[];
-  h.intake.extra.unshift({n:n,w:w,from:from||'',note:note||'',date:DEMO_DATE_DAY,kind:kind||'รับเข้าเพิ่ม'});
+  h.intake.extra.unshift({n:n,w:w,from:from||'',note:note||'',date:dateThai,kind:kind||'รับเข้าเพิ่ม',price:price,cost:price>0?Math.round(n*price):0});
   h.received=h.intake.inN; // received = ยอดรับเข้ารวม
-  // 2) คงเหลือต้นวัน (pigs) + บันทึกรายวัน "ย้ายเข้า" ให้ recalc คงเหลือถูกต้อง
+  // 2) บันทึกรายวัน "ย้ายเข้า" — แทรกตามวันที่ (ใหม่→เก่า) รองรับลงย้อนหลัง แล้วคำนวณคงเหลือใหม่ทั้งสาย
   h.dailyLog=h.dailyLog||[];
   if(!h.dailyLog.length && h.dailyAnchor==null) h.dailyAnchor=(h.pigs||0);
-  const newPigs=(h.pigs||0)+n;
-  h.dailyLog.unshift({date:DEMO_DATE_DAY,by:h.worker||'เสมียน',remain:newPigs,
-    deadN:0,cullN:0,soldN:0,moveN:0, moveInN:n,moveInFrom:from||(kind||''),moveInW:w,moveInNote:note||''});
-  h.pigs=newPigs; h.filled=true; h.moveInToday=n;
-  h.deadToday=0; h.cullToday=0; h.soldToday=0; h.moveToday=0; // แถวล่าสุดเป็น "ย้ายเข้า" → ตัวนับตาย/คัด/ขาย "วันนี้" เป็น 0 (กันหน้าเจ้าของนับค่าของวันก่อนค้าง)
+  const entry={date:dateThai,by:h.worker||'เสมียน',remain:0,
+    deadN:0,cullN:0,soldN:0,moveN:0, moveInN:n,moveInFrom:from||(kind||''),moveInW:w,moveInNote:note||''};
+  const log=h.dailyLog, ek=parseThaiDate(dateThai)||DEMO_DATE;
+  let pos=log.length; for(let k=0;k<log.length;k++){ const dk=parseThaiDate(log[k].date)||DEMO_DATE; if(dk<=ek){ pos=k; break; } }
+  log.splice(pos,0,entry);
+  recalcDailyRemains(h); // คงเหลือทุกวัน + pigs + ตัวนับ "วันนี้" (ย้ายเข้าเพิ่มยอดอย่างเดียว ไม่มีทางทำให้ติดลบ)
+  if(dateThai===DEMO_DATE_DAY) h.filled=true; // เฉพาะรับเข้าวันนี้จริง — ลงย้อนหลังไม่นับเป็น "กรอกแล้ววันนี้"
   if(h.pigs>0){ h.status='กำลังเลี้ยง'; h.cleanStart=null; }
   // 3) บันทึกลงประวัติการแก้ไขประจำหลัง
-  logHouseEdit(h,[{label:'จำนวนรับเข้า',from:fmt(oldInN),to:fmt(h.intake.inN)},{label:'หมูคงเหลือ',from:fmt(oldPigs),to:fmt(h.pigs)}],(kind||'รับเข้าเพิ่ม')+' +'+fmt(n)+' ตัว'+(from?' · จาก '+escA(from):''));
+  logHouseEdit(h,[{label:'จำนวนรับเข้า',from:fmt(oldInN),to:fmt(h.intake.inN)},{label:'หมูคงเหลือ',from:fmt(oldPigs),to:fmt(h.pigs)}],(kind||'รับเข้าเพิ่ม')+' +'+fmt(n)+' ตัว'+(from?' · จาก '+escA(from):'')+' · วันที่ '+dateThai+(price>0?' · ราคา '+fmt(price)+' บาท/ตัว':''));
   return true;
 }
 function confirmIncoming(houseId,idx){
@@ -3693,16 +3723,29 @@ function confirmIncoming(houseId,idx){
 // รับเข้าหมูเพิ่มเติมโดยตรง (ไม่ได้มาจากการย้าย เช่น ซื้อเพิ่ม/รับจากภายนอก)
 function openExtraIntake(){ extraIntakeOpen=true; clerkForm(); }
 function cancelExtraIntake(){ extraIntakeOpen=false; clerkForm(); }
+function calcExtraIntake(){ // นน.รวม = จำนวน × นน.เฉลี่ย (แก้ทับได้) + โชว์มูลค่าลูกหมูรอบนี้
+  const g=id=>{const e=$("#"+id);return e&&e.value!==''?Number(e.value):0;};
+  const n=g('xi_n'), avg=g('xi_avgW');
+  const we=$("#xi_w"); if(we&&avg>0) we.value=Math.round(n*avg);
+  const p=g('xi_price'), ce=$("#xi_cost"); if(ce) ce.textContent=(n>0&&p>0)?fmt(Math.round(n*p))+' บาท ('+fmt(n)+' ตัว × '+fmt(p)+')':'—';
+}
 function submitExtraIntake(){
   const h=currentHouse; if(!h) return;
   const g=id=>{const e=$("#"+id);return e&&e.value!==''?Number(e.value):0;};
+  const err=msg=>{const e=$("#xi_err"); if(e){e.textContent=msg;e.style.display='block';}};
   const n=g('xi_n');
-  if(n<=0){ const e=$("#xi_err"); if(e){e.textContent='กรุณาระบุจำนวนมากกว่า 0';e.style.display='block';} return; }
-  const w=g('xi_w'), src=(($("#xi_src")||{}).value||'').trim()||'รับเข้าเพิ่ม';
-  addIntakeReceipt(h,n,w,src,'','รับเข้าเพิ่ม');
+  if(n<=0){ err('กรุณาระบุจำนวนมากกว่า 0'); return; }
+  const avg=g('xi_avgW'); let w=g('xi_w'); if(!w&&avg>0) w=Math.round(n*avg);
+  const price=g('xi_price');
+  const de=$("#xi_date"), todayISO=expISO(DEMO_DATE), dISO=(de&&de.value)||todayISO;
+  if(dISO>todayISO){ err('เลือกวันที่ล่วงหน้าไม่ได้ — เลือกได้ถึงวันนี้'); return; }
+  if(de&&de.min&&dISO<de.min){ err('วันที่รับเข้าเพิ่มต้องไม่ก่อนวันรับเข้ารอบแรก ('+de.min+')'); return; }
+  const src=(($("#xi_src")||{}).value||'').trim()||'รับเข้าเพิ่ม';
+  const note=(($("#xi_note")||{}).value||'').trim();
+  addIntakeReceipt(h,n,w,src,note,'รับเข้าเพิ่ม',{dateThai:isoToThaiDay(dISO),price:price});
   extraIntakeOpen=false;
   syncHouseClerk(h);
-  toast('รับเข้าเพิ่ม '+fmt(n)+' ตัว → ยอดรับเข้ารวม '+fmt(h.intake.inN)+' ตัว ✓');
+  toast('รับเข้าเพิ่ม '+fmt(n)+' ตัว'+(price>0?' × '+fmt(price)+' บาท':'')+' → ยอดรับเข้ารวม '+fmt(h.intake.inN)+' ตัว ✓');
   clerkForm();
 }
 
@@ -3872,8 +3915,8 @@ function batchHTML(h){
         <tr><td class="lab">รับเข้า</td>
           <td class="num"><b id="s_inN">0</b></td>
           <td>${binp('b_inW',it.totalW||'')}</td>
-          <td>${binp('b_inP',(it.breedTotal&&(it.inN||h.pigs))?Math.round(it.breedTotal/(it.inN||h.pigs)):'')}<div class="sub" style="font-size:11px;margin-top:2px">บาท/ตัว</div></td>
-          <td class="num"><b id="s_inVal">—</b></td></tr>
+          <td>${binp('b_inP',it.price?it.price:((it.breedTotal&&(it.inN||h.pigs))?Math.round(it.breedTotal/(it.inN||h.pigs)):''))}<div class="sub" style="font-size:11px;margin-top:2px">บาท/ตัว</div></td>
+          <td class="num"><b id="s_inVal">—</b><div class="sub" id="s_inExtraNote" style="font-size:11px;margin-top:2px"></div></td></tr>
         <tr><td class="lab">ⓘ ตาย / ขายซาก</td>
           <td>${binp('b_deadN',a.deadN||'')}</td>
           <td>${binp('b_deadW',a.deadW||'')}</td>
@@ -4004,8 +4047,12 @@ function calcBatch(){
   feedAgg(currentHouse).forEach((r,i)=>{const pr=gv('f_pr_'+i);feedKg+=r.kg;feedCost+=r.kg*pr;const amt=document.getElementById('f_amt_'+i);if(amt)amt.textContent=fmt(Math.round(r.kg*pr));});
   const cft=document.getElementById('c_feedTotal'); if(cft) cft.value=Math.round(feedCost);
   const otherCost=['c_inject','c_vaccine','c_feedmed','c_formula','c_supply','c_equip','c_labor','c_asst','c_vetman','c_clerk','c_bio','c_elec','c_dep'].reduce((s,id)=>s+gv(id),0)+bxTotal(); // + ค่าใช้จ่ายอื่นๆ ที่เพิ่มเอง
-  const breedTotal=(currentHouse&&currentHouse.intake&&currentHouse.intake.breedTotal)||0;
-  const pigCost=(inP>0?inN*inP:breedTotal); // ถ้าไม่กรอก "ราคารับเข้า/ตัว" → ใช้ค่าลูกหมูที่บันทึกตอนรับเข้า (breedTotal) แทน · กันต้นทุนลูกหมูเป็น 0 ทำให้กำไรพองเกินจริง
+  const bIt=(currentHouse&&currentHouse.intake)||{}, breedTotal=bIt.breedTotal||0;
+  // ต้นทุนลูกหมูแบบหลายรอบ: รอบรับเข้าเพิ่มที่บันทึกราคาไว้ → คิดตามราคาของรอบนั้น · ตัวที่เหลือ (รอบแรก+รอบที่ไม่ใส่ราคา) → คิดด้วย "ราคารับเข้า/ตัว" (b_inP)
+  const xLots=(bIt.extra||[]).filter(e=>(e.price||0)>0&&(e.n||0)>0);
+  const xN=xLots.reduce((s,e)=>s+e.n,0), xCost=xLots.reduce((s,e)=>s+e.n*e.price,0);
+  const pigCost=(inP>0?Math.max(0,inN-xN)*inP:breedTotal)+xCost; // ถ้าไม่กรอก "ราคารับเข้า/ตัว" → ใช้ค่าลูกหมูที่บันทึกตอนรับเข้า (breedTotal) แทน · กันต้นทุนลูกหมูเป็น 0 ทำให้กำไรพองเกินจริง
+  const xn=document.getElementById('s_inExtraNote'); if(xn) xn.textContent=xCost>0?('รวมรอบรับเข้าเพิ่ม '+fmt(xN)+' ตัว = '+fmt(Math.round(xCost))+' บาท (ตามราคาแต่ละรอบ) · ราคา/ตัวซ้ายมือใช้กับ '+fmt(Math.max(0,inN-xN))+' ตัวที่เหลือ'):'';
   const revenue=deadVal+cullVal+outVal;
   const totalCost=pigCost+feedCost+otherCost;
   const profit=revenue-totalCost;
