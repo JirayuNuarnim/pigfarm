@@ -99,6 +99,16 @@
   @keyframes gdash{to{stroke-dashoffset:-52}}
   .gedge{stroke-dasharray:7 8;animation:gdash 3s linear infinite}
   .gvetline{animation:gdash 4s linear infinite}
+  @keyframes gbr{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  .gbreathe{animation:gbr 4.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center} /* ชีพจรเล้า: ปกติเต้นช้า */
+  .gbreathe.gtrouble{animation-duration:1.25s} /* มีตายวันนี้ = เต้นถี่ */
+  @keyframes gflashk{0%{filter:none}20%{filter:drop-shadow(0 0 18px rgba(53,224,200,1)) brightness(1.6)}100%{filter:none}}
+  .gflash{animation:gflashk 1.6s ease-out 3} /* วาบเมื่อมีข้อมูลใหม่เข้ามาสดๆ */
+  #gFeed{position:absolute;right:10px;top:52px;width:250px;max-height:46%;overflow:hidden;display:none;flex-direction:column;gap:6px;z-index:5;pointer-events:none}
+  @media(min-width:900px){#gFeed{display:flex}}
+  @keyframes gfin{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+  .gfi{background:rgba(13,26,31,.74);border:1px solid rgba(83,234,210,.16);border-radius:10px;padding:7px 10px;color:#cfe0db;font-size:11.5px;line-height:1.45;backdrop-filter:blur(3px);animation:gfin .35s ease both}
+  .gfi b{color:#8fd8ca}
   #fgsvg .ghouse,#fgsvg .gvetg,#fgsvg .gfarmg,#fgsvg .gvetline,#fgsvg .gedge{transition:opacity .28s}
   #fgsvg .glab{paint-order:stroke;stroke:#0d1a1f;stroke-width:2.6px;stroke-linejoin:round}
   #fgsvg .gvetline.goff{opacity:.22;stroke-width:.8;animation:none;pointer-events:none} /* เส้นหมอ→เล้าว่าง: จางบาง เห็นความเชื่อมโยงแต่ไม่รก (ไม่ animate ประหยัดแรงเครื่อง) */
@@ -124,6 +134,22 @@
   .glab.gnum{font-size:10.5px;font-weight:700;fill:#6fcab8}
   .seclab{display:flex;align-items:center;gap:10px;margin:20px 2px 12px;color:var(--muted);font-size:12.5px;font-weight:800;letter-spacing:.4px}
   .seclab::before{content:"";width:4px;height:15px;border-radius:99px;background:linear-gradient(180deg,var(--brand),#3fb8a6)}
+  /* ===== แถบเมนูซ้ายถาวร (จอคอม ≥1100px) ===== */
+  .shell{display:flex;align-items:stretch}
+  #sbar{display:none}
+  .homelist{display:flex;flex-direction:column;gap:10px}
+  @media(min-width:1100px){
+    #sbar{display:flex;flex-direction:column;gap:2px;position:sticky;top:58px;align-self:flex-start;width:206px;flex:0 0 206px;height:calc(100vh - 58px);overflow-y:auto;padding:9px 6px 14px;background:rgba(255,255,255,.72);backdrop-filter:blur(8px);border-right:1px solid var(--line)}
+    .content{flex:1;min-width:0;padding:16px 26px 70px;max-width:none}
+    .homelist{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
+  }
+  .sbi{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:10px;border:none;background:transparent;color:var(--ink-2,#3c4a47);font-size:14px;font-weight:600;text-align:left;cursor:pointer;width:100%;transition:background .1s}
+  .sbi:hover{background:var(--brand-soft);color:var(--brand-d)}
+  .sbi.on{background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;box-shadow:0 3px 10px rgba(31,125,110,.28)}
+  .sbi .mi{width:20px;height:20px;flex:0 0 auto;stroke-width:2}
+  .sbi .sbt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sbi .bd{margin-left:auto;background:var(--warn);color:#fff;font-size:11px;font-weight:800;border-radius:999px;padding:1px 8px;flex:0 0 auto}
+  .sbsec{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.5px;margin:8px 6px 3px}
   .seclab::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
   @keyframes rowin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   .mrow{animation:rowin .32s ease both}
@@ -367,7 +393,10 @@
     <div class="pill" id="rolePill"></div>
     <button class="linkbtn" onclick="goHome()" title="กลับหน้าหลัก">ออก</button>
   </div>
-  <div class="content" id="view"></div>
+  <div class="shell">
+    <nav id="sbar" aria-label="เมนูหลัก"></nav>
+    <div class="content" id="view"></div>
+  </div>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -1020,7 +1049,11 @@ async function rtPoll(){
     const t=await supaToken(); if(!t) return;
     const mx=await rtMaxTs(); if(!mx) return;
     if(_rtSeenTs===0){ _rtSeenTs=mx; return; }     // ครั้งแรก = ตั้งเส้นฐานเฉยๆ
-    if(mx>_rtSeenTs){ _rtSeenTs=mx; rtShowBanner(); }
+    if(mx>_rtSeenTs){ _rtSeenTs=mx;
+      const top=navHist[navHist.length-1];
+      if(top&&top.key==='fgraph'&&typeof gLiveRefresh==='function'){ gLiveRefresh(); } // หน้าแผนผัง = โหลด+วาดใหม่เอง + วาบแสงเล้าที่เปลี่ยน
+      else rtShowBanner();
+    }
   }catch(e){}
 }
 function rtStart(){ if(_rtTimer||!rtActive()) return; _rtTimer=setInterval(rtPoll,25000); }
@@ -1241,6 +1274,7 @@ function logout(){
 /* ---------- navigation history (ปุ่มย้อนกลับ) ---------- */
 let navHist=[], navBacking=false;
 function histPush(key,fn){
+  try{ sbSync((fn&&fn.name)||''); }catch(e){} // อัปเดตแถบเมนูซ้าย (จอคอม) ทุกครั้งที่เปลี่ยนหน้า — รวมตอนกดย้อนกลับ
   if(navBacking) return;
   const top=navHist[navHist.length-1];
   if(top && top.key===key){ top.fn=fn; return; }
@@ -1369,7 +1403,31 @@ function homeRowBtn(onclick,icon,title,desc,cta,extra,badge,corner,idx){
       <div class="gobtn">${useIco('i-chev')}</div>
     </button>`;
 }
-const homeList=inner=>`<div style="display:flex;flex-direction:column;gap:10px">${inner}</div>`;
+const homeList=inner=>`<div class="homelist">${inner}</div>`;
+// ── แถบเมนูซ้ายถาวร (จอคอม) — สร้างใหม่ทุกครั้งที่เปลี่ยนหน้า (เรียกจาก histPush) ──
+function sbSync(fnName){
+  const sb=document.getElementById('sbar'); if(!sb) return;
+  if(!ROLE){ sb.innerHTML=''; return; }
+  try{
+    const role=effRole(), items=HOME_MENU[role]||[];
+    let h=`<button class="sbi" onclick="goHome()"><span class="logo-ico" style="width:20px;height:20px;background-color:currentColor;flex:0 0 auto"></span><span class="sbt">หน้าหลัก</span></button>`;
+    if(hasRoleHub()){
+      h+=`<div class="sbsec">มุมมองบทบาท</div>
+        <select class="cin tl" style="margin:0 4px 4px;width:calc(100% - 8px);text-align:left" onchange="enterRole(this.value)">
+          ${ALL_ROLES.map(r=>`<option value="${r}"${r===role?' selected':''}>${escA((ROLE_ICON[r]||'')+' '+(ROLE_LABEL[r]||r))}${r===ROLE?' (ของคุณ)':''}</option>`).join('')}
+        </select>`;
+    }
+    h+='<div class="sbsec">เมนูการทำงาน</div>';
+    items.forEach(it=>{
+      let n=0; try{ n=badgeCount(taskBadge(it.fn)); }catch(e){}
+      const id=MENU_ICON[it.icon];
+      h+=`<button class="sbi${fnName===it.fn?' on':''}" onclick="${it.fn}()">${id?useIco(id):('<span style="font-size:18px;flex:0 0 auto">'+it.icon+'</span>')}<span class="sbt">${escA(it.t)}</span>${n?'<span class="bd">'+fmt(n)+'</span>':''}</button>`;
+    });
+    h+=`<div style="flex:1;min-height:14px"></div>
+      <button class="sbi" style="color:var(--bad)" onclick="logout()">${useIco('i-exit')}<span class="sbt">ออกจากระบบ</span></button>`;
+    sb.innerHTML=h;
+  }catch(e){ sb.innerHTML=''; }
+}
 const logoutBtnHTML=`<div style="margin-top:26px;display:flex;justify-content:center"><button type="button" onclick="logout()" style="cursor:pointer;display:inline-flex;align-items:center;gap:9px;background:#fff;color:var(--bad,#d23b3b);border:1.5px solid var(--bad,#d23b3b);border-radius:13px;padding:13px 26px;font-size:15px;font-weight:700"><svg class="mi" aria-hidden="true" style="width:20px;height:20px;stroke-width:2.2"><use href="#i-exit"/></svg> ออกจากระบบ</button></div>`;
 // ---- หน้าเลือกบทบาท (เจ้าของ/เสมียน/ผู้ดูแล) — แสดงทุกบทบาทให้เข้าไปดู ----
 function roleHubQuickHTML(){
@@ -1417,16 +1475,19 @@ function renderHome(){
 function route(){ return hasRoleHub()? renderRoleHub() : renderHome(); } // เจ้าของ/เสมียน/ผู้ดูแล → หน้าเลือกบทบาทก่อน · หมอ/ยาสูตร → หน้าหัวข้อของตัวเอง
 
 /* ---------- แผนผังฟาร์ม (กราฟเครือข่ายแบบ Obsidian) — เจ้าของ ---------- */
-let _gv={x:0,y:0,w:1000,h:780}, _gDrag=null;
+let _gv={x:0,y:0,w:1000,h:780}, _gDrag=null, _gWantFull=true, _gSnap=null, _gLiveBusy=false;
+let _gPartsRAF=0, _gAnimRAF=0, _gTourOn=false, _gTourTimer=null, _gTourIdx=-1;
 function gSetVB(){ const s=document.getElementById('fgsvg'); if(s) s.setAttribute('viewBox',_gv.x+' '+_gv.y+' '+_gv.w+' '+_gv.h); }
 function gZoom(f){ const cx=_gv.x+_gv.w/2, cy=_gv.y+_gv.h/2; _gv.w=Math.min(2600,Math.max(320,_gv.w*f)); _gv.h=_gv.w*0.78; _gv.x=cx-_gv.w/2; _gv.y=cy-_gv.h/2; gSetVB(); }
 function gReset(){ _gv={x:0,y:0,w:1000,h:780}; gSetVB(); }
-function gDown(e){ const s=e.currentTarget; s.setPointerCapture&&s.setPointerCapture(e.pointerId); _gDrag={px:e.clientX,py:e.clientY,x:_gv.x,y:_gv.y,cw:s.clientWidth||1}; }
+function gDown(e){ if(_gTourOn) gTourStop(); const s=e.currentTarget; s.setPointerCapture&&s.setPointerCapture(e.pointerId); _gDrag={px:e.clientX,py:e.clientY,x:_gv.x,y:_gv.y,cw:s.clientWidth||1}; }
 function gMove(e){ if(!_gDrag) return; const k=_gv.w/_gDrag.cw; _gv.x=_gDrag.x-(e.clientX-_gDrag.px)*k; _gv.y=_gDrag.y-(e.clientY-_gDrag.py)*k; gSetVB(); }
 function gUp(){ _gDrag=null; }
-function gHouseColor(h){ // สีตามสถานะวันนี้
+function gHouseColor(h){ // สีตามสถานะวันนี้ · เล้ายังไม่กรอก: ยิ่งสายยิ่งแดง (จอกลายเป็นบอร์ดตามงาน)
   if((h.pigs||0)<=0) return (h.status==='กำลังล้างคอก')?'#5aa7e8':'#8a9aa0';
-  return h.filled?'#35e0c8':'#f0b429';
+  if(h.filled) return '#35e0c8';
+  const hr=new Date().getHours()+new Date().getMinutes()/60;
+  return hr<9?'#f2d55c' : hr<12?'#f0b429' : hr<15?'#ec8b2f' : '#e2603f';
 }
 let _gSpotVet=null;
 const gCssEsc=(window.CSS&&CSS.escape)?s=>CSS.escape(s):s=>String(s).replace(/["\\\]]/g,'\\$&'); // กันเครื่องเก่าไม่มี CSS.escape
@@ -1470,8 +1531,85 @@ function gUnfull(){ const c=document.getElementById('gCard'), p=document.getElem
   if(c) c.classList.remove('gfull'); if(p) p.classList.remove('ginfofloat'); if(b) b.textContent='⛶ เต็มจอ'; }
 function gFull(){ const c=document.getElementById('gCard'), p=document.getElementById('gInfo'), b=document.getElementById('gFullBtn');
   if(!c) return; const on=c.classList.toggle('gfull');
+  _gWantFull=on; // จำการเลือกของผู้ใช้ — อัปเดตสด/เข้าใหม่จะเคารพสถานะนี้
   if(p) p.classList.toggle('ginfofloat',on);
   if(b) b.textContent=on?'✕ ออกเต็มจอ':'⛶ เต็มจอ';
+}
+/* ── เครื่องยนต์ "จอมอนิเตอร์สด" ── */
+function gSnapHouses(){ const m={}; (myHouses()||[]).forEach(h=>{ m[h.id]={f:!!h.filled,p:h.pigs||0,d:h.deadToday||0,e:(h.editLog&&h.editLog[0]&&h.editLog[0].ts)||0}; }); return m; }
+function gFeedFill(){ // ฟีดเหตุการณ์ล่าสุด (จากประวัติการแก้ไขของทุกเล้า)
+  const el=document.getElementById('gFeed'); if(!el) return;
+  const ev=[];
+  (myHouses()||[]).forEach(h=>{ (h.editLog||[]).slice(0,6).forEach(e=>{ if(e&&e.ts) ev.push({ts:e.ts,time:e.time||'',by:e.by||'',code:h.code||'',note:e.note||''}); }); });
+  ev.sort((a,b)=>b.ts-a.ts);
+  el.innerHTML=ev.slice(0,12).map((e,i)=>`<div class="gfi" style="animation-delay:${i*45}ms"><b>หลัง ${escA(e.code)}</b> · ${escA((e.note||'บันทึกข้อมูล').slice(0,60))}<br><span style="opacity:.62">${escA(e.by)} · ${escA(e.time)}</span></div>`).join('')
+    ||'<div class="gfi" style="opacity:.55">ยังไม่มีเหตุการณ์ล่าสุด</div>';
+}
+function gBurst(x,y){ // เม็ดแสงพุ่งจากเล้าที่มีข้อมูลใหม่ เข้าศูนย์กลาง SJF
+  const s=document.getElementById('fgsvg'); if(!s) return;
+  const el=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  el.setAttribute('r','3.6'); el.setAttribute('fill','#35e0c8'); s.appendChild(el);
+  const t0=performance.now(), dur=950, c=window._gCenter||[0,0];
+  (function st(n){ const p=Math.min(1,(n-t0)/dur), e2=1-Math.pow(1-p,2);
+    el.setAttribute('cx',String(x+(c[0]-x)*e2)); el.setAttribute('cy',String(y+(c[1]-y)*e2)); el.setAttribute('opacity',String(1-p*0.9));
+    if(p<1&&el.isConnected) requestAnimationFrame(st); else el.remove(); })(t0);
+}
+function gPartsStart(){ // เม็ดแสงวิ่งตามเส้น เล้า→หมอ→ฟาร์ม→SJF (หยุดเองเมื่อออกจากหน้า)
+  cancelAnimationFrame(_gPartsRAF);
+  const svg=document.getElementById('fgsvg'); if(!svg) return;
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const old=document.getElementById('gParts'); if(old) old.remove();
+  const layer=document.createElementNS('http://www.w3.org/2000/svg','g'); layer.id='gParts'; svg.appendChild(layer);
+  const segs=window._gSegs||[]; if(!segs.length) return;
+  const N=Math.min(16,Math.max(6,Math.round(segs.length/12)));
+  const ps=[];
+  for(let i=0;i<N;i++){ const el=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    el.setAttribute('r','2.3'); el.setAttribute('fill','#5fd9c4'); el.setAttribute('opacity','.75'); layer.appendChild(el);
+    ps.push({el,seg:segs[(Math.random()*segs.length)|0],t:Math.random(),sp:.35+Math.random()*.5}); }
+  let last=performance.now();
+  (function loop(n){
+    if(!layer.isConnected) return; // ออกจากหน้าแผนผังแล้ว → จบลูป
+    const dt=Math.min(.06,(n-last)/1000); last=n;
+    if(!document.hidden) ps.forEach(p=>{ p.t+=p.sp*dt; if(p.t>=1){ p.t=0; p.seg=segs[(Math.random()*segs.length)|0]; }
+      const s2=p.seg; p.el.setAttribute('cx',String(s2.x1+(s2.x2-s2.x1)*p.t)); p.el.setAttribute('cy',String(s2.y1+(s2.y2-s2.y1)*p.t)); });
+    _gPartsRAF=requestAnimationFrame(loop);
+  })(last);
+}
+async function gLiveRefresh(){ // ข้อมูลใหม่จากทีม → โหลด+วาดใหม่เงียบๆ + วาบแสงเล้าที่เปลี่ยน (คงมุมมอง/ซูมเดิม)
+  if(_gLiveBusy) return; _gLiveBusy=true;
+  try{
+    const before=_gSnap||gSnapHouses();
+    await cloudLoadV2();
+    const after=gSnapHouses(), changed=[];
+    Object.keys(after).forEach(id=>{ const a=after[id], b=before[id]; if(!b||a.f!==b.f||a.p!==b.p||a.d!==b.d||a.e!==b.e) changed.push(+id); });
+    const keep={x:_gv.x,y:_gv.y,w:_gv.w,h:_gv.h}, keepW=window._gW;
+    renderFarmGraph();
+    if(window._gW===keepW){ _gv=keep; gSetVB(); } // ผังขนาดเดิม → คงตำแหน่งซูม/เลื่อนที่ผู้ใช้ดูอยู่
+    changed.forEach(id=>{ const c=document.getElementById('gn_h_'+id); if(c) c.classList.add('gflash');
+      const hp=(window._gHousePos||{})[id]; if(hp) gBurst(hp[0],hp[1]); });
+    if(changed.length) toast('🔄 ข้อมูลใหม่เข้ามา '+fmt(changed.length)+' เล้า');
+  }catch(e){}
+  _gLiveBusy=false;
+}
+/* ── โหมดพาชม (Auto-tour) ── */
+function gAnimVB(tx,ty,tw,ms){ cancelAnimationFrame(_gAnimRAF);
+  const f={x:_gv.x,y:_gv.y,w:_gv.w,h:_gv.h}, t0=performance.now();
+  (function st(n){ const p=Math.min(1,(n-t0)/ms), e2=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+    _gv.x=f.x+(tx-f.x)*e2; _gv.y=f.y+(ty-f.y)*e2; _gv.w=f.w+(tw-f.w)*e2; _gv.h=_gv.w; gSetVB();
+    if(p<1) _gAnimRAF=requestAnimationFrame(st); })(t0);
+}
+function gTourToggle(){ _gTourOn?gTourStop():gTourStart(); }
+function gTourStart(){ _gTourOn=true; _gTourIdx=-2;
+  const b=document.getElementById('gTourBtn'); if(b){ b.textContent='⏸ หยุดพาชม'; b.style.background='var(--brand)'; b.style.color='#fff'; }
+  gTourStep(); _gTourTimer=setInterval(gTourStep,16000); }
+function gTourStop(){ _gTourOn=false; if(_gTourTimer){ clearInterval(_gTourTimer); _gTourTimer=null; }
+  const b=document.getElementById('gTourBtn'); if(b){ b.textContent='🎬 พาชม'; b.style.background=''; b.style.color=''; } }
+function gTourStep(){ const svg=document.getElementById('fgsvg'); if(!svg){ gTourStop(); return; }
+  const farms=window._gFarms||[]; if(!farms.length) return;
+  _gTourIdx++; if(_gTourIdx>=farms.length) _gTourIdx=-1;
+  if(_gTourIdx<0){ gAnimVB(0,0,window._gW||1000,1400); gSelect('f',''); return; } // แวะภาพรวมทั้งบริษัทก่อนวนรอบใหม่
+  const t=farms[_gTourIdx], side=Math.max(720,2*(t.ext+140));
+  gAnimVB(t.fx-side/2,t.fy-side/2,side,1400); gSelect('f',t.f);
 }
 function renderFarmGraph(){
   histPush('fgraph',renderFarmGraph);
@@ -1510,13 +1648,17 @@ function renderFarmGraph(){
   const R1=totalH>120?340:270;
   const W=2*(R1+maxExt+185), H=W, cx=W/2, cy=H/2;
   let edges='', nodes='', labels='';
+  const gSegs=[], gFarmsArr=[], gHPos={}; // เก็บพิกัดไว้ให้เม็ดแสงวิ่ง + โหมดพาชม + จุดวาบข้อมูลใหม่
   farmGroups.forEach((fg,i)=>{
     const f=fg.f, a=fg.a, fx=cx+R1*Math.cos(a), fy=cy+R1*Math.sin(a);
+    let fExt=140;
     edges+=`<line class="gedge" x1="${cx}" y1="${cy}" x2="${fx}" y2="${fy}" stroke="#2f8577" stroke-width="1.8" opacity=".6"/>`;
+    gSegs.push({x1:fx,y1:fy,x2:cx,y2:cy});
     fg.groups.forEach((g,gi)=>{
       const b=g.b; let vx=fx, vy=fy;
       if(g.vn){ // จุดหมอ: กิ่งกลางระหว่างฟาร์มกับเล้า
         vx=fx+g.dv*Math.cos(b); vy=fy+g.dv*Math.sin(b);
+        gSegs.push({x1:vx,y1:vy,x2:fx,y2:fy});
         edges+=`<line class="gvetline gmain" data-vet="${esc1(g.vn)}" x1="${fx}" y1="${fy}" x2="${vx}" y2="${vy}" stroke="#c95ab0" stroke-width="1.7" stroke-dasharray="5 6" opacity=".7"/>`;
         nodes+=`<g class="gvetg" data-vet="${esc1(g.vn)}" transform="translate(${vx} ${vy})"><g class="gfloat" style="animation-duration:${(6.2+((i*3+gi)%6)*0.7).toFixed(1)}s;animation-delay:-${((i*5+gi*3)%40)/10}s">
           <circle class="gnode" data-vetnode="${esc1(g.vn)}" r="11" fill="#c95ab0" stroke="#f3b7e3" stroke-width="1.4" onclick="gSelect('v','${esc1(g.vn)}')"><title>🩺 ${esc1(g.vn)}</title></circle>
@@ -1528,11 +1670,22 @@ function renderFarmGraph(){
         const hx=vx+sl.rad*Math.cos(sl.bb), hy=vy+sl.rad*Math.sin(sl.bb);
         const r=Math.max(7,Math.min(17,4+Math.sqrt(h.pigs||0)*0.5));
         const active=(h.pigs||0)>0;
+        gHPos[h.id]=[hx,hy]; fExt=Math.max(fExt,g.dv+sl.rad);
+        if(active) gSegs.push({x1:hx,y1:hy,x2:vx,y2:vy});
         edges+=`<line class="gvetline${active?'':' goff'}" data-vet="${esc1(g.vn)}" data-house="${h.id}" x1="${vx}" y1="${vy}" x2="${hx}" y2="${hy}" stroke="${g.vn?'#c95ab0':'#2b6e63'}" stroke-width="1" stroke-dasharray="3 5" opacity=".5"/>`;
         const deadRing=(h.deadToday||0)>0?` stroke="#e24b4a" stroke-width="2.4"`:'';
         // วงแสงกระเพื่อม: เขียว = ลงบันทึกแล้ววันนี้ · แดง(เร็ว) = มีตายวันนี้ · เล้าที่มีหมูลอยขยับเบาๆ (เล้าว่างนิ่งไว้ ประหยัดแรงเครื่องเมื่อมีหลายร้อยจุด)
         const ping=(active&&(h.filled||(h.deadToday||0)>0))?`<circle class="gping${(h.deadToday||0)>0?' gping-bad':''}" r="${r+3}" fill="none" stroke="${(h.deadToday||0)>0?'#e24b4a':'#35e0c8'}" stroke-width="2.2"/>`:'';
-        let inner=ping+`<circle id="gn_h_${h.id}" class="gnode" r="${r}" fill="${gHouseColor(h)}"${deadRing} onclick="gSelect('h','${h.id}')"><title>หลัง ${esc1(h.code)} · ${fmt(h.pigs||0)} ตัว${(h.deadToday||0)>0?' · ตายวันนี้ '+fmt(h.deadToday):''}</title></circle>`;
+        // ◔ วงแหวนอายุรุ่น: ครบวง ≈ 130 วันเลี้ยง · ทอง = ใกล้จับขาย (>85%)
+        let ageRing='';
+        if(active&&h.intake&&h.intake.dateIn){
+          const dIn=/^\d{4}-\d{2}-\d{2}/.test(h.intake.dateIn)?String(h.intake.dateIn).slice(0,10):(thaiDayToISO(h.intake.dateIn)||'');
+          if(dIn){ const days=Math.max(0,Math.round((DEMO_DATE-new Date(dIn+'T00:00:00'))/86400000));
+            const p=Math.min(1,days/130), C=2*Math.PI*(r+4.5);
+            ageRing=`<circle r="${r+4.5}" fill="none" stroke="${p>0.85?'#ffd166':'#3fb8a6'}" stroke-width="2" opacity=".75" stroke-dasharray="${(C*p).toFixed(1)} ${(C*(1-p)+0.01).toFixed(1)}" transform="rotate(-90)"><title>เลี้ยงมา ${fmt(days)} วัน</title></circle>`;
+          }
+        }
+        let inner=ping+ageRing+`<circle id="gn_h_${h.id}" class="gnode${active?' gbreathe':''}${(h.deadToday||0)>0?' gtrouble':''}" r="${r}" fill="${gHouseColor(h)}"${deadRing} onclick="gSelect('h','${h.id}')"><title>หลัง ${esc1(h.code)} · ${fmt(h.pigs||0)} ตัว${(h.deadToday||0)>0?' · ตายวันนี้ '+fmt(h.deadToday):''}</title></circle>`;
         inner+=`<text x="0" y="${r+13}" class="glab">${esc1(h.code||'')}</text>`;
         if(active||(h.received||0)>0){
           const ag=dailyAgg(h);
@@ -1543,6 +1696,7 @@ function renderFarmGraph(){
       });
     });
     const fpigs=byFarm[f].reduce((s,x)=>s+(x.pigs||0),0);
+    gFarmsArr.push({f,fx,fy,ext:fExt});
     nodes+=`<g class="gfarmg" transform="translate(${fx} ${fy})"><g class="gfloat" style="animation-duration:${(7+i*0.9).toFixed(1)}s;animation-delay:-${(i*1.7).toFixed(1)}s">
       <circle id="gn_f_${esc1(f)}" class="gnode" r="16" fill="#1f7d6e" stroke="#54ead2" stroke-width="1.6" onclick="gSelect('f','${esc1(f)}')"><title>${esc1(f)} · ${fmt(fpigs)} ตัว</title></circle>
       <text x="0" y="-24" class="glab gfarm">${esc1(f)}</text>
@@ -1563,14 +1717,22 @@ function renderFarmGraph(){
     });
   }
   const totPigs=hs.reduce((s,h)=>s+(h.pigs||0),0);
+  // แถบสรุปสดวันนี้ (อัปเดตเองเมื่อมีข้อมูลใหม่)
+  const actArr=hs.filter(h=>(h.pigs||0)>0), filledN=actArr.filter(h=>h.filled).length;
+  const deadT=hs.reduce((s,h)=>s+(h.deadToday||0),0), outT=hs.reduce((s,h)=>s+(h.soldToday||0)+(h.cullToday||0),0);
+  const chip=(txt,col)=>`<span style="background:rgba(255,255,255,.07);border:1px solid rgba(83,234,210,.18);border-radius:999px;padding:3px 11px;font-size:12px;font-weight:700;color:${col||'#8fd8ca'}">${txt}</span>`;
   const v=$("#view");
   v.innerHTML=`
     <h2 class="page">🕸️ แผนผังฟาร์ม</h2>
-    <div class="sub">บริษัท → ฟาร์ม → 🩺 หมอ → เล้าที่หมอรับผิดชอบ · <b>แตะจุด</b>เพื่อดูข้อมูล (แตะหมอ = สปอตไลท์) · ลากเลื่อน/ซูมได้</div>
-    <div class="card" id="gCard" style="padding:0;overflow:hidden;background:radial-gradient(80% 70% at 50% 38%,#14262c 0%,#0d1a1f 100%);border-color:#23424a">
-      <div style="display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(83,234,210,.18);flex-wrap:wrap">
+    <div class="sub">บริษัท → ฟาร์ม → 🩺 หมอ → เล้าที่หมอรับผิดชอบ · <b>แตะจุด</b>เพื่อดูข้อมูล (แตะหมอ = สปอตไลท์) · ลากเลื่อน/ซูมได้ · 🔄 อัปเดตสดอัตโนมัติ</div>
+    <div class="card" id="gCard" style="position:relative;padding:0;overflow:hidden;background:radial-gradient(80% 70% at 50% 38%,#14262c 0%,#0d1a1f 100%);border-color:#23424a">
+      <div style="display:flex;gap:7px;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(83,234,210,.18);flex-wrap:wrap">
         <span style="color:#8fd8ca;font-size:12.5px;font-weight:700">${fmt(fnames.length)} ฟาร์ม · ${fmt(hs.length)} หลัง · ${fmt(totPigs)} ตัว</span>
+        ${chip('📝 กรอกแล้ว '+fmt(filledN)+'/'+fmt(actArr.length)+' หลัง',filledN>=actArr.length?'#7ae2b8':'#ffd166')}
+        ${chip('🪵 ตายวันนี้ '+fmt(deadT)+' ตัว',deadT>0?'#ff9b93':'#8fd8ca')}
+        ${chip('💰 ขาย+คัดวันนี้ '+fmt(outT)+' ตัว','#9be9a8')}
         <span style="flex:1"></span>
+        <button class="btn sm ghost" id="gTourBtn" style="padding:6px 12px" onclick="gTourToggle()">🎬 พาชม</button>
         <button class="btn sm ghost" style="padding:6px 12px" onclick="gZoom(0.8)">➕ ซูมเข้า</button>
         <button class="btn sm ghost" style="padding:6px 12px" onclick="gZoom(1.25)">➖ ซูมออก</button>
         <button class="btn sm ghost" style="padding:6px 12px" onclick="gReset()">⟲ รีเซ็ต</button>
@@ -1582,18 +1744,37 @@ function renderFarmGraph(){
           <radialGradient id="grootg" cx="50%" cy="42%" r="65%"><stop offset="0%" stop-color="#eafff3"/><stop offset="60%" stop-color="#a8e6c4"/><stop offset="100%" stop-color="#5aa88a"/></radialGradient>
         </defs>
         ${edges}
+        <circle cx="${cx}" cy="${cy}" r="56" fill="none" stroke="#35e0c8" stroke-width="1" opacity=".18" stroke-dasharray="2 7"/>
+        <circle cx="${cx}" cy="${cy}" r="82" fill="none" stroke="#c95ab0" stroke-width="1" opacity=".10" stroke-dasharray="2 9"/>
         <g transform="translate(${cx} ${cy})"><g class="gfloat" style="animation-duration:8.5s">
           <circle class="gnode" r="27" fill="url(#grootg)" stroke="#54ead2" stroke-width="2" onclick="gSelect('f','')"/>
           <text x="0" y="4.5" text-anchor="middle" style="font-size:12px;font-weight:800;fill:#0b3b30;pointer-events:none">SJF</text></g></g>
+        <g pointer-events="none">
+          <animateTransform attributeName="transform" type="rotate" from="0 ${cx} ${cy}" to="360 ${cx} ${cy}" dur="9s" repeatCount="indefinite"/>
+          ${[7,6,5,4,3,2,1].map(k=>{const ang=-k*0.13, x=cx+56*Math.cos(ang), y=cy+56*Math.sin(ang);
+            return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(0.7+(7-k)*0.42).toFixed(2)}" fill="#7de9d6" opacity="${(0.1+(7-k)*0.11).toFixed(2)}"/>`;}).join('')}
+          <circle cx="${cx+56}" cy="${cy}" r="4" fill="#d6fff6" style="filter:drop-shadow(0 0 7px rgba(53,224,200,.95))"/>
+        </g>
+        <g pointer-events="none" opacity=".65">
+          <animateTransform attributeName="transform" type="rotate" from="360 ${cx} ${cy}" to="0 ${cx} ${cy}" dur="15s" repeatCount="indefinite"/>
+          ${[5,4,3,2,1].map(k=>{const ang=k*0.11, x=cx+82*Math.cos(ang), y=cy+82*Math.sin(ang);
+            return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(0.5+(5-k)*0.3).toFixed(2)}" fill="#f3b7e3" opacity="${(0.1+(5-k)*0.1).toFixed(2)}"/>`;}).join('')}
+          <circle cx="${cx+82}" cy="${cy}" r="2.8" fill="#ffe3f6" style="filter:drop-shadow(0 0 6px rgba(201,90,176,.9))"/>
+        </g>
         ${nodes}${labels}
       </svg>
+      <div id="gFeed"></div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;padding:9px 14px;border-top:1px solid rgba(83,234,210,.18);color:#9db8b2;font-size:11.5px">
-        <span>🟢 กรอกแล้ววันนี้</span><span>🟡 รอกรอก</span><span>⚪ ว่าง</span><span>🔵 ล้างคอก</span><span>🟣 หมอ</span><span style="color:#f0908a">⭕ ขอบแดง = มีตายวันนี้</span><span>· ขนาดจุด = จำนวนหมู</span>
+        <span>🟢 กรอกแล้ววันนี้</span><span>🟡→🔴 ยังไม่กรอก (ยิ่งสายยิ่งแดง)</span><span>⚪ ว่าง</span><span>🔵 ล้างคอก</span><span>🟣 หมอ</span><span style="color:#f0908a">⭕ ขอบแดง = มีตายวันนี้</span><span style="color:#ffd166">◔ วงรอบจุด = อายุรุ่น (ทอง = ใกล้จับ)</span>
       </div>
     </div>
     <div class="card" id="gInfo"><span class="sub" style="margin:0">👆 แตะจุดบนแผนผัง เพื่อดูรายละเอียด ฟาร์ม / เล้า / หมอ</span></div>`;
   _gv={x:0,y:0,w:W,h:H}; gSetVB();
-  gFull(); // เปิดหน้าแผนผัง = เต็มจอทันที (กด ✕ เพื่อกลับหน้าปกติ)
+  window._gSegs=gSegs; window._gFarms=gFarmsArr; window._gHousePos=gHPos; window._gW=W; window._gCenter=[cx,cy];
+  _gSnap=gSnapHouses();           // สแนปช็อตไว้เทียบหาเล้าที่มีข้อมูลใหม่ (วาบแสง)
+  gFeedFill();                    // ฟีดเหตุการณ์ล่าสุดข้างจอ
+  gPartsStart();                  // เม็ดแสงวิ่งตามเส้น
+  if(_gWantFull) gFull();         // เปิดหน้าแผนผัง = เต็มจอทันที (ถ้าผู้ใช้เพิ่งกด ✕ ออกไป จะเคารพการเลือกนั้น)
 }
 
 /* ---------- OWNER dashboard ---------- */
