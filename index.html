@@ -1333,6 +1333,7 @@ function doLogin(user){
   try{ syncTodayCounters(); }catch(e){}   // รีเซ็ตตัวนับ "วันนี้" ให้ตรงวันจริงหลังโหลดข้อมูล (เดโม/คลาวด์) ก่อนเรนเดอร์
   route();
   try{ rtStart(); rtBaseline(); }catch(e){}   // เริ่มเฝ้าดูข้อมูลใหม่จากทีม (realtime-lite)
+  try{ presenceStart(); }catch(e){}           // ☄️ ส่งสัญญาณออนไลน์ — โผล่เป็นดาวหางบนแผนผังของทุกคน
 }
 // ตรวจชื่อผู้ใช้ + รหัสผ่านกับ Supabase Auth จริง (เซิร์ฟเวอร์เป็นคนยืนยัน ไม่ใช่โค้ดหน้าเว็บ)
 async function login(){
@@ -1360,6 +1361,7 @@ function enter(role){ const u=USERS.find(x=>x.role===role); const f=$("#lg_user"
 // LINE Login — ยังไม่เปิดใช้ (ต้องตั้งค่า LINE + เซิร์ฟเวอร์) · ไม่เข้าระบบให้แบบข้ามรหัส
 function loginWithLine(){ toast("ระบบ LINE Login ยังไม่เปิดใช้ — เข้าสู่ระบบด้วยชื่อผู้ใช้และรหัสผ่าน"); }
 function logout(){
+  try{ presenceStop(); }catch(e){}      // หยุดสัญญาณออนไลน์ — ดาวหางหายไปเองใน ~2 นาที
   supaSignOut(); clearSession();        // ออกจากระบบ Supabase + ลบ session ในเครื่อง
   ROLE=null;CURRENT_USER=null;currentHouse=null;navHist=[];
   const e=$("#lg_err"); if(e){e.classList.remove("show");e.textContent="";}
@@ -1878,6 +1880,69 @@ function gTourStep(){ const svg=document.getElementById('fgsvg'); if(!svg){ gTou
   const t=farms[_gTourIdx], side=Math.max(720,2*(t.ext+140));
   gAnimVB(t.fx-side/2,t.fy-side/2,side,1400); gSelect('f',t.f);
 }
+/* ── ☄️ ดาวหางคนออนไลน์ — ใครล็อกอินอยู่ = ดาวหางโคจรรอบเครือข่าย (สีตามบทบาท + ชื่อไม่กลับหัว) ──
+   หลังบ้าน: ตาราง app_presence (user_id, name, role, updated_at) · แอปส่งสัญญาณทุก 60 วิ · ออนไลน์ = มีสัญญาณใน 2 นาที */
+let _gpUsers=[], _gpPingTimer=null, _gpPollTimer=null;
+async function presencePing(){ // ส่งสัญญาณ "ฉันยังอยู่" (เงียบๆ · โหมดคลาวด์เท่านั้น)
+  try{
+    const c=CONFIG.supabase; if(!(c.enabled&&c.backend==='v2'&&ROLE!==null)) return;
+    const t=await supaToken(); if(!t) return;
+    const uid=SUPA&&SUPA.user&&SUPA.user.id; if(!uid) return;
+    supaFetch('/rest/v1/app_presence?on_conflict=user_id',{method:'POST',
+      headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({user_id:uid, name:(CURRENT_USER&&CURRENT_USER.name)||'', role:ROLE||'', updated_at:new Date().toISOString()})});
+  }catch(e){}
+}
+function presenceStart(){ if(_gpPingTimer) return; presencePing(); _gpPingTimer=setInterval(presencePing,60000); }
+function presenceStop(){ if(_gpPingTimer){ clearInterval(_gpPingTimer); _gpPingTimer=null; } }
+async function presenceFetch(){ // รายชื่อคนที่ออนไลน์ (สัญญาณล่าสุดภายใน 2 นาที)
+  try{
+    const c=CONFIG.supabase; if(!(c.enabled&&c.backend==='v2')) return null;
+    const since=new Date(Date.now()-120000).toISOString();
+    const r=await supaFetch('/rest/v1/app_presence?select=user_id,name,role,updated_at&updated_at=gte.'+encodeURIComponent(since),{method:'GET'});
+    if(!r||!r.ok) return null;
+    return await r.json();
+  }catch(e){ return null; }
+}
+function gOrbitSVG(cx,cy,HH,botPad){ // วาดดาวหาง 1 ดวง/คน — ทุกวงอยู่ "นอกเขตเล้า" เสมอ (ไม่วิ่งทับจุด/ตัวเลขใต้เล้า และไม่ทับแถวหมอด้านล่าง)
+  const users=(_gpUsers&&_gpUsers.length)?_gpUsers:[{name:(typeof whoNow==='function'?whoNow():'ฉัน'),role:ROLE||'owner'}];
+  const COL={owner:'#ffd166',admin:'#6fc6f2',clerk:'#7ae2b8',vet:'#f3a7e0',formula:'#c9b3ff'};
+  const n=Math.min(users.length,12);
+  // เขตเล้าสุดขอบ = HH/2-185 (ตอนคำนวณผืนกราฟ) + ป้ายตัวเลขใต้เล้า ~40px → วงในสุดเริ่มที่ HH/2-140
+  const inner=HH/2-140;
+  const outer=Math.max(inner+12, HH/2-Math.max(96,(botPad||40)+34)); // วงนอกสุด: เว้นแถวหมอที่ยังไม่ระบุเล้า (ด้านล่าง) + ขอบผืนกราฟ
+  const step=n>1?(outer-inner)/2:0;
+  return users.slice(0,12).map((u,i)=>{
+    const col=COL[u.role]||'#9fe8d8', RO=inner+(i%3)*step, a0=Math.round(i*360/n), rev=(i%2===1);
+    const dur=46+((i*9)%26), hx=cx+RO, hy=cy;
+    const tail=[5,4,3,2,1].map(k=>{ const ang=(rev?1:-1)*k*0.045, x=cx+RO*Math.cos(ang), y=cy+RO*Math.sin(ang);
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(1+(5-k)*0.75).toFixed(2)}" fill="${col}" opacity="${(0.08+(5-k)*0.13).toFixed(2)}"/>`; }).join('');
+    return `<g opacity=".95">
+      <animateTransform attributeName="transform" type="rotate" from="${a0} ${cx} ${cy}" to="${a0+(rev?-360:360)} ${cx} ${cy}" dur="${dur}s" repeatCount="indefinite"/>
+      ${tail}
+      <circle cx="${hx}" cy="${hy}" r="6.5" fill="${col}" style="filter:drop-shadow(0 0 9px ${col})"/>
+      <circle cx="${hx}" cy="${hy}" r="2.6" fill="#fff" opacity=".9"/>
+      <g><animateTransform attributeName="transform" type="rotate" from="0 ${hx} ${hy}" to="${rev?360:-360} ${hx} ${hy}" dur="${dur}s" repeatCount="indefinite"/>
+        <text x="${hx}" y="${hy-15}" text-anchor="middle" style="font-size:13px;font-weight:800;fill:${col};paint-order:stroke;stroke:rgba(10,20,24,.85);stroke-width:3px">${escA((typeof ROLE_ICON!=='undefined'&&ROLE_ICON[u.role])||'👤')} ${escA(u.name||'ผู้ใช้')}</text></g>
+    </g>`;
+  }).join('');
+}
+async function gUsersRefresh(){ // อัปเดตวงโคจร (เฉพาะตอนเปิดหน้าแผนผัง · วาดใหม่เมื่อรายชื่อเปลี่ยนเท่านั้น)
+  try{
+    const top=navHist&&navHist[navHist.length-1]; if(!top||top.key!=='fgraph') return;
+    const rows=await presenceFetch(); if(!rows) return;
+    const seen={}, list=[];
+    rows.forEach(r=>{ if(r&&r.user_id&&!seen[r.user_id]){ seen[r.user_id]=1; list.push({name:r.name||'ผู้ใช้',role:r.role||''}); } });
+    const key=JSON.stringify(list);
+    if(key!==window._gpKey){
+      window._gpKey=key; _gpUsers=list;
+      const g=document.getElementById('gOrbitUsers');
+      if(g&&window._gCenter&&window._gHH) g.innerHTML=gOrbitSVG(window._gCenter[0],window._gCenter[1],window._gHH,window._gBotPad);
+      const chip=document.getElementById('gOnlineChip'); if(chip) chip.textContent='☄️ ออนไลน์ '+fmt(Math.max(1,list.length))+' คน';
+    }
+  }catch(e){}
+}
+function gUsersPollStart(){ if(_gpPollTimer) return; _gpPollTimer=setInterval(gUsersRefresh,30000); }
 /* ── ⛩ ชั้นผู้ซื้อบนแผนผัง — รวมยอดจากบิลแท่นขาย 30 วันล่าสุด ── */
 function sbGraphBuyers(){
   const p=todayISO().split('-'), cut=expISO(new Date(+p[0],+p[1]-1,+p[2]-30));
@@ -2095,6 +2160,9 @@ function renderFarmGraph(){
         <text x="0" y="-16" class="glab gvet">🩺 ${esc1(vn)}</text></g></g>`;
     });
   }
+  // ☄️ ระยะกันชนล่างของวงโคจร: เผื่อแถวหมอที่ยังไม่ระบุเล้า (กันดาวหางวิ่งทับ)
+  const _vPer=Math.max(2,Math.floor((W-260)/175));
+  const botPad=unassigned.length?(56+(Math.ceil(unassigned.length/_vPer)-1)*80+46):40;
   const totPigs=hs.reduce((s,h)=>s+(h.pigs||0),0);
   // แถบสรุปสดวันนี้ (อัปเดตเองเมื่อมีข้อมูลใหม่)
   const actArr=hs.filter(h=>(h.pigs||0)>0), filledN=actArr.filter(h=>h.filled).length;
@@ -2111,6 +2179,7 @@ function renderFarmGraph(){
         ${chip('🪵 ตายวันนี้ '+fmt(deadT)+' ตัว',deadT>0?'#ff9b93':'#8fd8ca')}
         ${chip('💰 ขาย+คัดวันนี้ '+fmt(outT)+' ตัว','#9be9a8')}
         ${hasBuy?chip('⛩ ผู้ซื้อ 30 วัน '+fmt(_gb.list.length)+' เจ้า · '+fmt(_gb.list.reduce((s,o)=>s+o.total,0))+' ฿','#eecf8f'):''}
+        <span id="gOnlineChip" style="background:rgba(255,255,255,.07);border:1px solid rgba(83,234,210,.18);border-radius:999px;padding:3px 11px;font-size:12px;font-weight:700;color:#9fe8d8">☄️ ออนไลน์ ${fmt(Math.max(1,_gpUsers.length))} คน</span>
         <div class="seg" style="margin:0">
           <button class="${_gLens==='std'?'on':''}" onclick="gLensSet('std')">📊 คงเหลือ</button>
           <button class="${_gLens==='hp'?'on':''}" onclick="gLensSet('hp')">⚰️ สุขภาพ</button>
@@ -2155,10 +2224,11 @@ function renderFarmGraph(){
           <circle cx="${cx+82}" cy="${cy}" r="2.8" fill="#ffe3f6" style="filter:drop-shadow(0 0 6px rgba(201,90,176,.9))"/>
         </g>
         ${nodes}${labels}
+        <g id="gOrbitUsers" pointer-events="none">${gOrbitSVG(cx,cy,HH,botPad)}</g>
       </svg>
       <div id="gFeed"></div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;padding:9px 14px;border-top:1px solid rgba(83,234,210,.18);color:#9db8b2;font-size:11.5px">
-        <span>🟢 กรอกแล้ววันนี้</span><span>🟡→🔴 ยังไม่กรอก (ยิ่งสายยิ่งแดง)</span><span>⚪ ว่าง</span><span>🔵 ล้างคอก</span><span>🟣 หมอ</span><span style="color:#f0908a">⭕ ขอบแดง = มีตายวันนี้</span><span style="color:#ffd166">◔ วงรอบจุด = อายุรุ่น (ทอง = ใกล้จับ)</span><span style="color:#eecf8f">⛩ ป้ายทอง = ผู้ซื้อ (บิลแท่นขาย 30 วัน · เส้นทอง = เงินไหลจากฟาร์ม)</span><span style="color:#ffb46b">🏮 = มีบิลรอใส่ราคา</span>
+        <span>🟢 กรอกแล้ววันนี้</span><span>🟡→🔴 ยังไม่กรอก (ยิ่งสายยิ่งแดง)</span><span>⚪ ว่าง</span><span>🔵 ล้างคอก</span><span>🟣 หมอ</span><span style="color:#f0908a">⭕ ขอบแดง = มีตายวันนี้</span><span style="color:#ffd166">◔ วงรอบจุด = อายุรุ่น (ทอง = ใกล้จับ)</span><span style="color:#eecf8f">⛩ ป้ายทอง = ผู้ซื้อ (บิลแท่นขาย 30 วัน · เส้นทอง = เงินไหลจากฟาร์ม)</span><span style="color:#ffb46b">🏮 = มีบิลรอใส่ราคา</span><span style="color:#9fe8d8">☄️ ดาวหาง = คนที่ออนไลน์อยู่ตอนนี้ (สีตามบทบาท)</span>
         ${_gLens==='hp'?'<span style="color:#ff9b93;font-weight:700">🔭 เลนส์สุขภาพ: สีจุด = %ตายสะสมของรุ่น (เขียว ≤2% · เหลือง ≤4% · ส้ม ≤7% · แดง >7%) · วงประม่วง = หมอยังไม่บันทึกวันนี้</span>':''}
         ${_gLens==='med'?'<span style="color:#ffd166;font-weight:700">🔭 เลนส์ต้นทุนยา: สีจุด = ค่ายา/ตัว เทียบทั้งบริษัท (เขียว = ต่ำกว่าค่ากลาง · เหลือง = สูง · แดง = แพงสุด 20%)</span>':''}
         ${_gLens==='age'?'<span style="color:#ffd166;font-weight:700">🔭 เลนส์อายุรุ่น: ฟ้า <60 วัน · เขียว <120 · เหลือง <170 · ทอง ≥170 วัน = ใกล้จับ (วงกระเพื่อม)</span>':''}
@@ -2166,7 +2236,8 @@ function renderFarmGraph(){
     </div>
     <div class="card" id="gInfo"><span class="sub" style="margin:0">👆 แตะจุดบนแผนผัง เพื่อดูรายละเอียด ฟาร์ม / เล้า / หมอ</span></div>`;
   _gv={x:0,y:0,w:W,h:H}; gSetVB();
-  window._gSegs=gSegs; window._gFarms=gFarmsArr; window._gHousePos=gHPos; window._gW=W; window._gCenter=[cx,cy];
+  window._gSegs=gSegs; window._gFarms=gFarmsArr; window._gHousePos=gHPos; window._gW=W; window._gHH=HH; window._gBotPad=botPad; window._gCenter=[cx,cy];
+  window._gpKey=''; gUsersRefresh(); gUsersPollStart();   // ☄️ ดาวหางคนออนไลน์ (อัปเดตทุก 30 วิ ระหว่างเปิดหน้านี้)
   window._gVetPos=vetPos; window._gBuyPos=buyPos;
   // ดัชนีค้นหา: หลัง + หมอ + ฟาร์ม + ผู้ซื้อ (label โชว์ · s ไว้เทียบคำค้น)
   window._gIndex=hs.filter(h=>gHPos[h.id]).map(h=>({t:'h',k:String(h.id),label:'🏠 '+(h.code||'')+' · '+(h.farm||'')+((h.pigs||0)>0?' · '+fmt(h.pigs)+' ตัว':' · ว่าง'),s:((h.code||'')+' '+(h.farm||'')).toLowerCase(),x:gHPos[h.id][0],y:gHPos[h.id][1]}))
