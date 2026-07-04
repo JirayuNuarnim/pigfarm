@@ -6702,13 +6702,20 @@ function sbPersist(){ try{ localStorage.setItem('sjfSaleBills', JSON.stringify(S
 async function saveSaleBillRemote(b){
   const r=await supaFetch('/rest/v1/rpc/save_sale_bill',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({p_id:b.id, p_farm:b.farm||'', p_bill_date:b.dateISO||todayISO(), p_kind:b.kind||'fatten', p_data:b})});
-  return !!(r&&r.ok);
+  const ok=!!(r&&r.ok);
+  if(ok){ b._synced=true; sbPersist(); }   // ติดธง "ขึ้นคลาวด์แล้ว" — ใช้แยกบิลออฟไลน์ตอนโหลดข้อมูลกลาง
+  return ok;
 }
 async function sbCloudLoad(){ // โหลดบิลจากระบบกลาง (ถ้าหลังบ้านยังไม่เปิดตาราง → คงข้อมูลในเครื่อง)
   const r=await supaFetch('/rest/v1/rpc/load_sale_bills',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
   if(!r||!r.ok) return false;
   const rows=await r.json(); if(!Array.isArray(rows)) return false;
-  SALE_BILLS=rows.map(x=>{ const d=(x.data&&typeof x.data==='object')?x.data:{}; d.id=x.id; d.farm=x.farm; d.kind=x.kind||d.kind||'fatten'; d.dateISO=(x.bill_date||d.dateISO||'').slice(0,10); return d; });
+  const cloud=rows.map(x=>{ const d=(x.data&&typeof x.data==='object')?x.data:{}; d.id=x.id; d.farm=x.farm; d.kind=x.kind||d.kind||'fatten'; d.dateISO=(x.bill_date||d.dateISO||'').slice(0,10); d._synced=true; return d; });
+  const ids={}; cloud.forEach(b=>ids[b.id]=1);
+  // บิลที่สร้างตอนออฟไลน์/ซิงก์ไม่สำเร็จ (ยังไม่เคยขึ้นคลาวด์) → เก็บไว้ + ดันขึ้นคลาวด์ใหม่ ไม่โดนทับหาย
+  const localOnly=SALE_BILLS.filter(b=>b&&b.id&&!b._synced&&!ids[b.id]);
+  SALE_BILLS=localOnly.concat(cloud);
+  localOnly.forEach(b=>syncSaleBill(b));
   sbPersist(); return true;
 }
 function syncSaleBill(b){ sbPersist(); if(CONFIG.supabase.enabled && CONFIG.supabase.backend==='v2' && b){ _dirtySB[b.id]=b; scheduleSyncV2(); } }
@@ -6990,7 +6997,10 @@ function sbDelete(id){
    · ตาย/คัด: ยอดจริงรายหลังจากรายการทีละตัว + ราคาเฉลี่ยตามช่วงราคา · ราคายังไม่ใส่ = ลงจำนวน/น้ำหนักไว้ก่อน (ราคา 0) */
 function sbBillRef(b){ const r=(b.billBook?b.billBook+'/':'')+(b.billNo||''); return r||'-'; }
 function sbRowUid(){ return 'sb'+Date.now()+'_'+Math.round(Math.random()*1e6); }
-function sbFindHouse(code,farm){ return HOUSES.find(y=>y.code===code&&(!farm||(y.farm||'')===farm))||HOUSES.find(y=>y.code===code); }
+function sbFindHouse(code,farm){ // บิลระบุฟาร์ม = จับคู่เฉพาะหลังในฟาร์มนั้น (กันรหัสซ้ำข้ามฟาร์ม เช่น A1 มีหลายฟาร์ม → ตัดสต็อกผิดหลัง)
+  if(farm) return HOUSES.find(y=>y.code===code&&(y.farm||'')===farm)||null;
+  return HOUSES.find(y=>y.code===code)||null;
+}
 function sbBandVal(b,items,type){ // มูลค่ารวมของหมูกลุ่มนี้ตามช่วงราคา · null = มีช่วงที่ยังไม่ใส่ราคา
   let v=0;
   for(const x of items){ const bd=(b.bands||[])[sbBandIdx(b,sbNum(x.w))]; const r=bd&&bd[type];
