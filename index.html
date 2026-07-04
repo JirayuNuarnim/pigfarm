@@ -377,6 +377,21 @@
   body.theme-dark .banner.info{color:#a9c2f5;border-color:#3a4d7d}
   body.theme-dark .banner.bad{color:#f5b0a8;border-color:#6b4050}
   body.theme-dark .banner.ok{color:#9fe8c9;border-color:#31635f}
+/* ── (SS) หน้าดูบิลแท่นขาย + พิมพ์ A4 ── */
+#sbPrintOverlay{position:fixed;inset:0;z-index:220;background:rgba(8,14,26,.74);overflow:auto;padding:18px 12px}
+#sbPrintOverlay .sbp-tools{max-width:794px;margin:0 auto 10px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+#sbPrintPage{background:#fff;color:#1a1a1a;width:794px;max-width:100%;margin:0 auto;padding:26px 30px;border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.45);font-family:'IBM Plex Sans Thai',Tahoma,sans-serif}
+/* บิลต้องเป็นกระดาษขาวเสมอ — กันธีมมืดของแอปทะลุเข้าตาราง (แถวสลับ/หัวตาราง) */
+body.theme-dark #sbPrintPage table, body.theme-dark #sbPrintPage tbody tr:nth-child(even) td, body.theme-dark #sbPrintPage tbody tr:nth-child(even) th, body.theme-dark #sbPrintPage tbody td, body.theme-dark #sbPrintPage tbody th, body.theme-dark #sbPrintPage thead th{background:transparent;color:#1a1a1a;border-color:#444}
+body.theme-dark #sbPrintPage th[style*="f1f1ea"], body.theme-dark #sbPrintPage td[style*="f1f1ea"]{background:#f1f1ea}
+#sbPrintPage table{color:#1a1a1a}
+@media print{
+  body>*:not(#sbPrintOverlay){display:none!important}
+  #sbPrintOverlay{position:static;background:#fff;padding:0;overflow:visible}
+  #sbPrintOverlay .sbp-tools{display:none!important}
+  #sbPrintPage{width:auto;max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none}
+  @page{size:A4 portrait;margin:10mm}
+}
 </style>
 </head>
 <body>
@@ -404,6 +419,7 @@
   <symbol id="i-exit" viewBox="0 0 24 24"><path d="M14 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H14"/><path d="M10 12h10M16.5 8.5L20 12l-3.5 3.5"/></symbol>
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5.5l6.5 6.5L9 18.5"/></symbol>
   <symbol id="i-net" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="17.5" r="2.6"/><circle cx="19" cy="17.5" r="2.6"/><path d="M10.8 7.3L6.3 15.3M13.2 7.3l4.5 8M7.6 17.5h8.8"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3.5v17M6.5 20.5h11M12 6H5.5M12 6h6.5"/><path d="M5.5 6l-2.8 6h5.6z"/><path d="M18.5 6l-2.8 6h5.6z"/></symbol>
 </svg>
 
 <!-- ============ LOGIN ============ -->
@@ -1072,6 +1088,7 @@ async function cloudLoadV2(){
       return true;
     }
     HOUSES=rows.map(mergeHouse);
+    try{ await sbCloudLoad(); }catch(e){}   // บิลแท่นขาย (ถ้าหลังบ้านยังไม่มีตาราง → ใช้ข้อมูลในเครื่องไปก่อน)
     return true;
   }catch(e){ console.warn('cloudLoadV2',e); return false; }
 }
@@ -1090,8 +1107,10 @@ async function flushSyncV2(){
   _syncTimer2=null;
   const items=Object.values(_dirtyH); _dirtyH={};
   const cfg=_dirtyCfg; _dirtyCfg=false;
+  const bills=Object.values(_dirtySB); _dirtySB={};
   for(const it of items){ try{ await saveHouseSection(it.h,it.section); }catch(e){ console.warn('sync house',e); } }
   if(cfg){ try{ await saveConfigAll(); }catch(e){ console.warn('sync cfg',e); } }
+  for(const b of bills){ try{ await saveSaleBillRemote(b); }catch(e){ console.warn('sync salebill',e); } }
   try{ rtBaseline(); }catch(e){}   // absorb ของที่เราเพิ่งเขียนเข้าเส้นฐาน → poll จะไม่เตือน "ข้อมูลใหม่" จากการแก้ของตัวเอง
 }
 /* ---------- Realtime-lite: เตือนเมื่อทีมคนอื่นแก้ข้อมูล (poll updated_at ทุก 25 วิ · ไม่ทับข้อมูลที่กำลังพิมพ์) ---------- */
@@ -1099,7 +1118,7 @@ let _rtTimer=null, _rtSeenTs=0;
 function rtActive(){ const c=CONFIG.supabase; return !!(c&&c.enabled&&c.backend==='v2'&&ROLE!==null); }
 async function rtMaxTs(){
   const q=async tbl=>{ const r=await supaFetch('/rest/v1/'+tbl+'?select=updated_at&order=updated_at.desc&limit=1',{method:'GET'}); if(!r||!r.ok) return 0; const a=await r.json(); return (a&&a[0]&&a[0].updated_at)?Date.parse(a[0].updated_at):0; };
-  try{ const a=await Promise.all([q('houses'),q('app_config')]); return Math.max(a[0]||0,a[1]||0); }catch(e){ return 0; }
+  try{ const a=await Promise.all([q('houses'),q('app_config'),q('sale_bills')]); return Math.max(a[0]||0,a[1]||0,a[2]||0); }catch(e){ return 0; }
 }
 async function rtBaseline(){ if(!rtActive()) return; const t=await supaToken(); if(!t) return; const mx=await rtMaxTs(); if(mx) _rtSeenTs=mx; }
 async function rtPoll(){
@@ -1357,6 +1376,7 @@ const HOME_MENU = {
     {icon:'🕸️', t:'แผนผังฟาร์ม',        d:'กราฟเครือข่าย ฟาร์ม → เล้า → หมอ · แตะจุดดูสถานะ/เข้าเล้า', fn:'renderFarmGraph'},
     {icon:'📈', t:'ประสิทธิภาพ',        d:'คะแนน/ผลงาน รายฟาร์ม · รายหมอ',          fn:'renderPerf'},
     {icon:'💊', t:'ต้นทุนยา',           d:'ค่ายา/เวชภัณฑ์ รายฟาร์ม · รายหลัง',        fn:'renderMedDash'},
+    {icon:'⚖️', t:'แท่นขายหมู',         d:'บิลขายรายคันรถ ทุกฟาร์ม · เติมราคาที่ค้าง',   fn:'renderSaleStand'},
     {icon:'📦', t:'คลังยา/อุปกรณ์',       d:'ยอดคงเหลือ · มูลค่า · ของใกล้หมด ทุกฟาร์ม', fn:'renderStock'},
     {icon:'👥', t:'จัดการผู้ใช้',        d:'เปิด/แก้/ปิด บัญชีทีม + ตั้งรหัสผ่าน',      fn:'renderUsers'},
     {icon:'🔒', t:'ประวัติการแก้ (กันโกง)', d:'บันทึกจากเซิร์ฟเวอร์ · ใครแก้อะไร เมื่อไหร่ · ลบ/แก้ไม่ได้', fn:'renderAuditLog'},
@@ -1364,6 +1384,7 @@ const HOME_MENU = {
   clerk: [
     {icon:'📝', t:'กรอกข้อมูลรายวัน',    d:'ตาย/คัด/ขาย/ย้าย + ปิดชุด รายหลัง',       fn:'renderHouseList'},
     {icon:'📆', t:'กรอกข้อมูลย้อนหลัง',   d:'ลงข้อมูลจากกระดาษ หลายวันรวดเดียว (ตอนเริ่มใช้)', fn:'renderBackfill'},
+    {icon:'⚖️', t:'แท่นขายหมู',          d:'บิลขายรายคันรถ · น้ำหนักรายตัว · ตาย/คัดขาย · ราคาเว้นได้', fn:'renderSaleStand'},
     {icon:'🏭', t:'ข้อมูลประจำฟาร์ม',    d:'ภาพรวมหลังในแต่ละฟาร์ม',                fn:'renderClerkFarm'},
     {icon:'💉', t:'รายการเบิกยา',        d:'ดูรายการเบิกยา/เวชภัณฑ์ของหมอ',          fn:'renderClerkReq'},
     {icon:'🌾', t:'รายการเบิกอาหาร',     d:'ดูใบเบิกอาหารของหมอ',                   fn:'renderClerkFeedReq'},
@@ -1398,7 +1419,7 @@ function goHome(){ if(!ROLE) return; viewRole=null; if(hasRoleHub()) renderRoleH
 function enterRole(r){ viewRole=(r===ROLE?null:r); renderHome(); } // เลือกบทบาท → หน้าหัวข้อของบทบาทนั้น
 // ---- ชิ้นส่วน UI หน้าหลัก ----
 // ไอคอน SVG ประจำเมนู (แทนอิโมจิ) — อิโมจิที่ไม่มีในตารางจะแสดงตามเดิม
-const MENU_ICON={'📊':'i-chart','📈':'i-trend','💊':'i-pill','📦':'i-box','👥':'i-users','🔒':'i-shield','📝':'i-pen','📆':'i-cal','🏭':'i-barn','💉':'i-medkit','🌾':'i-wheat','📤':'i-export','🩺':'i-steth','🧪':'i-flask','🏠':'i-barn','👔':'i-crown','📋':'i-clip','⚙️':'i-gear','🕸️':'i-net'};
+const MENU_ICON={'📊':'i-chart','📈':'i-trend','💊':'i-pill','📦':'i-box','👥':'i-users','🔒':'i-shield','📝':'i-pen','📆':'i-cal','🏭':'i-barn','💉':'i-medkit','🌾':'i-wheat','📤':'i-export','🩺':'i-steth','🧪':'i-flask','🏠':'i-barn','👔':'i-crown','📋':'i-clip','⚙️':'i-gear','🕸️':'i-net','⚖️':'i-scale'};
 const CHIP_CLASSES=['chip-a','chip-b','chip-c','chip-d','chip-e'];
 function useIco(id,style){ return '<svg class="mi" aria-hidden="true"'+(style?' style="'+style+'"':'')+'><use href="#'+id+'"/></svg>'; }
 // สรุปยอดสดบนการ์ดทักทาย — เห็นภาพรวมทันทีไม่ต้องกดเข้าเมนู (พังเงียบถ้าข้อมูลไม่พร้อม ไม่ล้มทั้งหน้า)
@@ -1918,6 +1939,7 @@ function clerkNav(active){
   return `<div class="seg">
     <button class="${active==='rec'?'on':''}" onclick="renderHouseList()">📝 กรอกข้อมูลรายวัน</button>
     <button class="${active==='backfill'?'on':''}" onclick="renderBackfill()">📆 กรอกย้อนหลัง</button>
+    <button class="${active==='sale'?'on':''}" onclick="renderSaleStand()">⚖️ แท่นขายหมู</button>
     <button class="${active==='farm'?'on':''}" onclick="renderClerkFarm()">🏭 ข้อมูลประจำฟาร์ม</button>
     <button class="${active==='req'?'on':''}" onclick="renderClerkReq()">💉 รายการเบิกยา</button>
     <button class="${active==='freq'?'on':''}" onclick="renderClerkFeedReq()">🌾 รายการเบิกอาหาร</button>
@@ -3272,6 +3294,10 @@ function taskBadge(fn){ const role=effRole();
     const d=myHouses().filter(h=>(h.pigs||0)>0&&!h.filled).length, c=myHouses().filter(needsClose).length;
     const parts=[]; if(d)parts.push(d+' รอกรอก'); if(c)parts.push(c+' รอปิดชุด');
     return parts.length?{txt:parts.join(' · '),kind:c?'bad':'warn'}:{txt:'ครบแล้ว',kind:'ok'};
+  }
+  if(fn==='renderSaleStand'){
+    const n=(typeof SALE_BILLS!=='undefined'?SALE_BILLS:[]).filter(b=>sbPricePending(b)).length;
+    return n?{txt:n+' บิลรอใส่ราคา',kind:'warn'}:null;
   }
   if(fn==='renderStock'){
     const s=stockAlertSummary(stockFarmsForUser()), p=[];
@@ -6263,6 +6289,614 @@ function removeHouse(id){ if(blockIfReadonly())return;
   queueSave(); // เก็บลงเครื่อง (v1 ยิงทั้งก้อนขึ้นคลาวด์ด้วย)
   toast("ลบแล้ว · เหลือ "+houseCount()+" หลัง");
   renderAdmin();
+}
+/* ============================================================
+   (SS) แท่นขายหมู — บิลขายรายคันรถ/รายรอบ (ขุน · ตาย/คัดขาย · แม่-พ่อพันธุ์)
+   ออกแบบตามบิลกระดาษจริงของทีม (บิลขายหมู + ใบชั่งรถ + ใบส่งขายช่วงราคา)
+   · น้ำหนักรายตัวกรอกเร็ว Enter รัว ๆ / วางทีเดียวหลายตัว
+   · แบ่งหลังในคันเดียวกัน + อายุวัน/หมอ ดึงจากข้อมูลหลังอัตโนมัติ
+   · เทียบตาชั่งรถ (รถเบา/รถหนัก) กับผลรวมรายตัวให้อัตโนมัติ (กันตกหล่น/กันโกง)
+   · ราคาเว้นว่างได้ → ป้าย "⏳ รอใส่ราคา" ให้เจ้าของเข้ามาเติมภายหลัง
+   เก็บ SALE_BILLS + localStorage · ซิงก์ RPC save_sale_bill / load_sale_bills · ลบได้เฉพาะเจ้าของ/ผู้ดูแล
+   ============================================================ */
+let SALE_BILLS=[]; try{ const _sb0=JSON.parse(localStorage.getItem('sjfSaleBills')||'[]'); if(Array.isArray(_sb0)) SALE_BILLS=_sb0; }catch(e){}
+let _dirtySB={};
+function sbPersist(){ try{ localStorage.setItem('sjfSaleBills', JSON.stringify(SALE_BILLS)); }catch(e){} }
+async function saveSaleBillRemote(b){
+  const r=await supaFetch('/rest/v1/rpc/save_sale_bill',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({p_id:b.id, p_farm:b.farm||'', p_bill_date:b.dateISO||todayISO(), p_kind:b.kind||'fatten', p_data:b})});
+  return !!(r&&r.ok);
+}
+async function sbCloudLoad(){ // โหลดบิลจากระบบกลาง (ถ้าหลังบ้านยังไม่เปิดตาราง → คงข้อมูลในเครื่อง)
+  const r=await supaFetch('/rest/v1/rpc/load_sale_bills',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  if(!r||!r.ok) return false;
+  const rows=await r.json(); if(!Array.isArray(rows)) return false;
+  SALE_BILLS=rows.map(x=>{ const d=(x.data&&typeof x.data==='object')?x.data:{}; d.id=x.id; d.farm=x.farm; d.kind=x.kind||d.kind||'fatten'; d.dateISO=(x.bill_date||d.dateISO||'').slice(0,10); return d; });
+  sbPersist(); return true;
+}
+function syncSaleBill(b){ sbPersist(); if(CONFIG.supabase.enabled && CONFIG.supabase.backend==='v2' && b){ _dirtySB[b.id]=b; scheduleSyncV2(); } }
+const SB_KIND={fatten:{ico:'🐖',t:'ขายหมูขุน'}, deadcull:{ico:'⚰️',t:'หมูตาย/คัดขาย'}, breeder:{ico:'🐷',t:'แม่/พ่อพันธุ์'}};
+const SB_BANDS_DEF=[[0,9],[10,14],[15,19],[20,29],[30,39],[40,49],[50,59],[60,69],[70,79],[80,89],[90,99],[100,120],[121,150],[151,300]];
+function sbNum(v){ const x=parseFloat(v); return isFinite(x)?x:0; }
+function sbNewId(){ return 'sb'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function sbThaiDate(iso){ if(!iso) return '-'; const p=String(iso).split('-'); if(p.length<3) return iso; try{ return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return iso; } }
+function sbAgeDays(code,farm){ // อายุหมู (วัน) จากวันรับเข้าของหลัง
+  const h=HOUSES.find(x=>x.code===code && (!farm||(x.farm||'')===farm)) || HOUSES.find(x=>x.code===code);
+  if(!h||!h.intake||!h.intake.dateIn) return null;
+  const raw=h.intake.dateIn, iso=/^\d{4}-\d{2}-\d{2}/.test(raw)?String(raw).slice(0,10):(thaiDayToISO(raw)||'');
+  if(!iso) return null; const p=iso.split('-'); const d=new Date(+p[0],+p[1]-1,+p[2]);
+  const n=Math.round((DEMO_DATE-d)/86400000); return n>0?n:null;
+}
+function sbHouseInfo(code,farm){
+  const h=HOUSES.find(x=>x.code===code && (!farm||(x.farm||'')===farm)) || HOUSES.find(x=>x.code===code);
+  if(!h) return '';
+  const age=sbAgeDays(code,farm), parts=[];
+  if(age) parts.push(age+' วัน'); if(h.vet) parts.push(escA(h.vet)); if(h.pigs!=null) parts.push('คงเหลือ '+fmt(h.pigs));
+  return parts.join(' · ');
+}
+function sbBandIdx(b,w){ const bs=b.bands||[]; for(let i=0;i<bs.length;i++){ if(w>=bs[i].a&&w<=bs[i].b) return i; } return bs.length-1; }
+function sbCalc(b){
+  const c={n:0,totW:0,avg:0,houseN:0,scaleNet:null,diff:null,gross:null,deduct:0,net:null,pending:false,bandAgg:[]};
+  c.houseN=(b.houses||[]).reduce((s,x)=>s+(parseInt(x.n)||0),0);
+  if(b.kind==='deadcull'){
+    const items=b.items||[]; c.n=items.length; c.totW=items.reduce((s,x)=>s+sbNum(x.w),0);
+    const agg=(b.bands||[]).map(()=>({cullW:0,deadW:0}));
+    items.forEach(x=>{ const i=sbBandIdx(b,sbNum(x.w)); if(!agg[i]) return; if(x.type==='cull') agg[i].cullW+=sbNum(x.w); else agg[i].deadW+=sbNum(x.w); });
+    c.bandAgg=agg;
+    let gross=0, missing=false;
+    (b.bands||[]).forEach((bd,i)=>{
+      if(agg[i].cullW>0){ if(bd.cull===''||bd.cull==null) missing=true; else gross+=agg[i].cullW*sbNum(bd.cull); }
+      if(agg[i].deadW>0){ if(bd.dead===''||bd.dead==null) missing=true; else gross+=agg[i].deadW*sbNum(bd.dead); }
+    });
+    c.gross=(c.totW>0&&!missing)?Math.round(gross):null; c.pending=c.totW>0&&missing;
+  }else{
+    const ws=b.weights||[]; c.n=ws.length; c.totW=ws.reduce((s,x)=>s+sbNum(x),0);
+    const p=b.pricePerKg;
+    if(c.totW>0){ if(p===''||p==null) c.pending=true; else c.gross=Math.round(c.totW*sbNum(p)); }
+  }
+  c.avg=c.n?(c.totW/c.n):0;
+  const si=sbNum(b.scaleIn), so=sbNum(b.scaleOut);
+  if(si>0&&so>0){ c.scaleNet=Math.abs(so-si); c.diff=Math.round((c.totW-c.scaleNet)*10)/10; }
+  c.deduct=(b.deducts||[]).reduce((s,x)=>s+sbNum(x.amt),0);
+  if(c.gross!=null) c.net=c.gross-c.deduct;
+  return c;
+}
+function sbPricePending(b){ try{ return sbCalc(b).pending; }catch(e){ return false; } }
+function sbCanWrite(){ return ['owner','admin','clerk'].includes(ROLE); }
+/* ---------- หน้า "แท่นขายหมู" (รายการบิล) ---------- */
+let sbKindFilter='', sbFarmFilter='', SB_D=null, SB_ISNEW=false;
+function renderSaleStand(){
+  histPush('salestand',renderSaleStand);
+  const bills=SALE_BILLS.slice().filter(b=>(!sbKindFilter||b.kind===sbKindFilter)&&(!sbFarmFilter||b.farm===sbFarmFilter))
+    .sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||''))||((b.createdAt||0)-(a.createdAt||0)));
+  const farms=[...new Set(SALE_BILLS.map(b=>b.farm).filter(Boolean))];
+  const pend=SALE_BILLS.filter(sbPricePending).length;
+  const seg=[['','ทั้งหมด'],['fatten','🐖 ขุน'],['deadcull','⚰️ ตาย/คัด'],['breeder','🐷 พันธุ์']]
+    .map(k=>`<button class="${sbKindFilter===k[0]?'on':''}" onclick="sbKindFilter='${k[0]}';renderSaleStand()">${k[1]}</button>`).join('');
+  const rows=bills.map(b=>{
+    const c=sbCalc(b), K=SB_KIND[b.kind]||SB_KIND.fatten;
+    const money=c.net!=null?`<b style="color:var(--ok)">${fmt(c.net)} บาท</b>${c.deduct?`<span class="more"> (หัก ${fmt(c.deduct)})</span>`:''}`
+      :(c.pending?'<span style="background:var(--warn);color:#fff;border-radius:999px;padding:2px 10px;font-size:11.5px;font-weight:700">⏳ รอใส่ราคา</span>':'<span class="more">—</span>');
+    const diff=c.scaleNet!=null?`<span class="more"> · ตาชั่งรถ ${fmt(c.scaleNet)} กก. (${c.diff>=0?'รายตัวมากกว่า ':'น้อยกว่า '}${fmt(Math.abs(c.diff))} กก.)</span>`:'';
+    const ref=(b.billBook||b.billNo)?` · 📄 เล่ม ${escA(b.billBook||'-')}/${escA(b.billNo||'-')}`:'';
+    const posted=b.postedAt?`<span style="background:var(--ok);color:#fff;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700" title="ลงเข้าหลัง: ${escA((b.postedHouses||[]).join(', '))}">⬇️ ลงหลังแล้ว</span>`:`<button class="btn ghost sm" title="ลงบันทึกเข้าหลัง (ตัดคงเหลือ)" style="padding:6px 10px" onclick="event.stopPropagation();sbPostToHouses('${b.id}')">⬇️</button>`;
+    return `<div class="fieldrow" style="cursor:pointer" onclick="sbEdit('${b.id}')">
+      <div class="fmeta"><div class="fn">${K.ico} <b>${sbThaiDate(b.dateISO)}</b> · ${escA(b.farm||'-')} → ${escA(b.buyer||'ไม่ระบุผู้ซื้อ')}${ref}</div>
+      <div class="sub" style="margin:3px 0 0">${fmt(c.n)} ตัว · ${fmt(Math.round(c.totW))} กก.${c.n?` · เฉลี่ย ${(c.avg).toFixed(1)} กก./ตัว`:''}${diff}${b.truck?` · 🚚 ${escA(b.truck)}`:''} · ✍️ ${escA(b.by||'-')}</div></div>
+      <div style="text-align:right;white-space:nowrap;display:flex;align-items:center;gap:8px">${money}${posted}<button class="btn ghost sm" title="ดูบิล / พิมพ์ A4" style="padding:6px 10px" onclick="event.stopPropagation();sbPrint('${b.id}')">🖨</button><button class="btn ghost sm" title="ส่งออก Excel บิลนี้" style="padding:6px 10px" onclick="event.stopPropagation();sbExportXls('${b.id}')">📊</button></div></div>`;
+  }).join('');
+  $("#view").innerHTML=`
+    <h2 class="page">⚖️ แท่นขายหมู</h2>
+    <div class="sub">บิลขายรายคันรถ/รายรอบ · น้ำหนักรายตัว · เทียบตาชั่งรถอัตโนมัติ · ${sbCanWrite()?'ราคาใส่ทีหลังได้ (ขึ้นป้ายรอเจ้าของเติม)':'ดูอย่างเดียว'}</div>
+    ${effRole()==='clerk'?clerkNav('sale'):''}
+    ${pend?`<div class="banner info">⏳ <div><b>${pend} บิล</b> ยังไม่ใส่ราคา — เปิดบิลแล้วเติมราคา/กก. หรือช่วงราคาได้เลย</div></div>`:''}
+    ${sbCanWrite()?`<div class="card"><h3>＋ บันทึกการขายใหม่</h3>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <button class="btn sm" onclick="sbNew('fatten')">🐖 ขายหมูขุน (รายคันรถ)</button>
+        <button class="btn sm" onclick="sbNew('deadcull')">⚰️ หมูตาย/คัดขาย (ช่วงราคา)</button>
+        <button class="btn ghost sm" onclick="sbNew('breeder')">🐷 แม่/พ่อพันธุ์</button>
+      </div>
+      <div class="sub" style="margin-top:8px">💡 มีบิลกระดาษ? ถ่ายรูปส่งให้ผู้ดูแลระบบสแกนลงให้ได้เช่นกัน</div></div>`:''}
+    <div class="card">
+      <h3>📚 บิลทั้งหมด <span class="more">${fmt(bills.length)} บิล</span></h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+        <div class="seg" style="margin:0">${seg}</div>
+        <select class="cin tl" style="max-width:220px" onchange="sbFarmFilter=this.value;renderSaleStand()">
+          <option value="">ทุกฟาร์ม</option>${farms.map(f=>`<option ${f===sbFarmFilter?'selected':''}>${escA(f)}</option>`).join('')}</select>
+      </div>
+      ${rows||'<div class="sub">— ยังไม่มีบิลขาย — กดปุ่มด้านบนเพื่อเริ่มบันทึก หรือรอข้อมูลซิงก์จากทีม —</div>'}
+    </div>`;
+}
+/* ---------- ฟอร์มบิล ---------- */
+function sbBlank(kind){
+  return {id:sbNewId(), kind:kind, farm:(myFarms()!=='*'&&myFarms().length?myFarms()[0]:(FARMS[0]||'')), dateISO:todayISO(), time:'',
+    buyer:'', truck:'', billBook:'', billNo:'', houses:[{code:'',n:''}], weights:[], items:[{house:'',type:'dead',w:''}],
+    bands:SB_BANDS_DEF.map(x=>({a:x[0],b:x[1],cull:'',dead:''})), scaleIn:'', scaleOut:'', fastPen:'', fastStand:'',
+    pricePerKg:'', deducts:[], note:'', by:whoNow(), createdAt:Date.now(), editLog:[]};
+}
+function sbNew(kind){ if(blockIfReadonly())return; if(!sbCanWrite()){toast('บัญชีนี้บันทึกบิลขายไม่ได้');return;} SB_D=sbBlank(kind); SB_ISNEW=true; renderSaleBillForm(); }
+function sbEdit(id){ const b=SALE_BILLS.find(x=>x.id===id); if(!b) return; SB_D=JSON.parse(JSON.stringify(b)); if(!SB_D.bands||!SB_D.bands.length) SB_D.bands=SB_BANDS_DEF.map(x=>({a:x[0],b:x[1],cull:'',dead:''})); SB_ISNEW=false; renderSaleBillForm(); }
+function sbF(k,v){ if(!SB_D)return; SB_D[k]=v; sbRefresh(); }
+function sbHousesHTML(){
+  const hs=SB_D.houses||[];
+  const codes=[...new Set(HOUSES.filter(h=>!SB_D.farm||(h.farm||'')===SB_D.farm).slice().sort(byCode).map(h=>h.code))];
+  return `<datalist id="sbHouseDL">${codes.map(c=>`<option value="${escA(c)}">`).join('')}</datalist>`+
+    hs.map((r,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap">
+      <input class="cin" list="sbHouseDL" placeholder="หลัง เช่น 32 / J.40" style="max-width:150px" value="${escA(r.code)}" oninput="SB_D.houses[${i}].code=this.value;sbRefresh()">
+      <input class="cin" type="number" min="0" placeholder="กี่ตัว" style="max-width:110px" value="${escA(r.n)}" oninput="SB_D.houses[${i}].n=this.value;sbRefresh()">
+      <span class="sub" id="sbHInfo${i}" style="flex:1;min-width:120px">${r.code?sbHouseInfo(r.code,SB_D.farm):''}</span>
+      <button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.houses.splice(${i},1);renderSaleBillForm()">✕</button>
+    </div>`).join('')+
+    `<button class="btn ghost sm" onclick="SB_D.houses.push({code:'',n:''});renderSaleBillForm()">＋ เพิ่มหลัง (คันเดียวหลายหลังได้)</button>`;
+}
+function sbWChipsHTML(){
+  const ws=SB_D.weights||[]; if(!ws.length) return '<div class="sub">— ยังไม่มีน้ำหนัก — พิมพ์เลขแล้วกด Enter รัว ๆ ได้เลย —</div>';
+  let out='', rowSum=0;
+  ws.forEach((w,i)=>{
+    rowSum+=sbNum(w);
+    out+=`<span onclick="sbWDel(${i})" title="แตะเพื่อลบ" style="display:inline-flex;align-items:baseline;gap:4px;background:transparent;border:1px solid var(--line);border-radius:9px;padding:4px 9px;margin:0 5px 6px 0;cursor:pointer"><span style="font-size:10.5px;color:var(--muted)">${i+1}</span><b>${escA(w)}</b></span>`;
+    if((i+1)%10===0){ out+=`<span style="display:inline-block;background:var(--brand,#0f6b5f);color:#fff;border-radius:9px;padding:4px 10px;margin:0 5px 6px 0;font-weight:800;font-size:12.5px">Σ ${fmt(Math.round(rowSum*10)/10)}</span><br>`; rowSum=0; }
+  });
+  if(ws.length%10!==0 && rowSum>0) out+=`<span style="display:inline-block;background:var(--brand,#0f6b5f);opacity:.75;color:#fff;border-radius:9px;padding:4px 10px;font-weight:800;font-size:12.5px">Σ ${fmt(Math.round(rowSum*10)/10)}</span>`;
+  return out;
+}
+function sbWKey(e){ if(e.key==='Enter'){ e.preventDefault(); sbWAdd(); } }
+function sbWAdd(){ const el=$("#sbWIn"); if(!el) return; const v=parseFloat(el.value); if(!isFinite(v)||v<=0){ el.value=''; el.focus(); return; } SB_D.weights.push(v); el.value=''; el.focus(); sbRefresh(); }
+function sbWDel(i){ if(!confirm('ลบน้ำหนักตัวที่ '+(i+1)+' ('+SB_D.weights[i]+' กก.) ?')) return; SB_D.weights.splice(i,1); sbRefresh(); }
+function sbWUndo(){ if(SB_D.weights.length){ SB_D.weights.pop(); sbRefresh(); } }
+function sbWPasteApply(){ const t=$("#sbWPaste"); if(!t) return; const nums=(t.value.match(/\d+(?:\.\d+)?/g)||[]).map(Number).filter(v=>v>0); if(!nums.length){ toast('ไม่พบตัวเลขในข้อความ'); return; } nums.forEach(v=>SB_D.weights.push(v)); t.value=''; toast('เพิ่มน้ำหนัก '+nums.length+' ตัวแล้ว'); sbRefresh(); }
+function sbItemsHTML(){
+  const its=SB_D.items||[];
+  return its.map((r,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap">
+      <input class="cin" list="sbHouseDL" placeholder="หลัง" style="max-width:130px" value="${escA(r.house)}" oninput="SB_D.items[${i}].house=this.value;sbRefresh()">
+      <select class="cin tl" style="max-width:130px" onchange="SB_D.items[${i}].type=this.value;sbRefresh()">
+        <option value="dead" ${r.type!=='cull'?'selected':''}>⚰️ ตาย</option><option value="cull" ${r.type==='cull'?'selected':''}>✂️ คัดขาย</option></select>
+      <input class="cin" type="number" step="0.1" min="0" placeholder="นน. (กก.)" style="max-width:120px" value="${escA(r.w)}" oninput="SB_D.items[${i}].w=this.value;sbRefresh()">
+      <button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.items.splice(${i},1);renderSaleBillForm()">✕</button>
+    </div>`).join('')+
+    `<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="SB_D.items.push({house:'',type:'dead',w:''});renderSaleBillForm()">＋ เพิ่มหมู 1 ตัว</button>
+    <button class="btn ghost sm" onclick="var L=SB_D.items[SB_D.items.length-1]||{};SB_D.items.push({house:L.house||'',type:L.type||'dead',w:''});renderSaleBillForm()">⧉ เพิ่มซ้ำหลังเดิม</button></div>`;
+}
+function sbBandsHTML(){
+  const c=sbCalc(SB_D);
+  const rows=(SB_D.bands||[]).map((bd,i)=>{
+    const ag=c.bandAgg[i]||{cullW:0,deadW:0}; const has=ag.cullW>0||ag.deadW>0;
+    return `<tr style="${has?'':'opacity:.45'}">
+      <td><b>${bd.a}–${bd.b}</b></td>
+      <td class="num">${ag.cullW?fmt(Math.round(ag.cullW*10)/10):'-'}</td>
+      <td><input class="cin" type="number" step="0.5" style="max-width:90px;padding:5px 8px" placeholder="฿/กก." value="${escA(bd.cull)}" oninput="SB_D.bands[${i}].cull=this.value;sbRefresh()"></td>
+      <td class="num">${ag.cullW&&bd.cull!==''?fmt(Math.round(ag.cullW*sbNum(bd.cull))):'-'}</td>
+      <td class="num">${ag.deadW?fmt(Math.round(ag.deadW*10)/10):'-'}</td>
+      <td><input class="cin" type="number" step="0.5" style="max-width:90px;padding:5px 8px" placeholder="฿/กก." value="${escA(bd.dead)}" oninput="SB_D.bands[${i}].dead=this.value;sbRefresh()"></td>
+      <td class="num">${ag.deadW&&bd.dead!==''?fmt(Math.round(ag.deadW*sbNum(bd.dead))):'-'}</td></tr>`;
+  }).join('');
+  return `<div style="overflow-x:auto"><table>
+    <thead><tr><th>ช่วง นน. (กก.)</th><th class="num">คัดขาย (กก.)</th><th>ราคาคัด/กก.</th><th class="num">เงินคัด</th><th class="num">ตาย (กก.)</th><th>ราคาตาย/กก.</th><th class="num">เงินตาย</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>
+    <div class="sub" style="margin-top:7px">💡 ใส่ราคาเฉพาะช่วงที่มีน้ำหนัก (แถวเข้ม) · เว้นว่างได้ — บิลจะติดป้าย "รอใส่ราคา" ให้เจ้าของเติม</div>`;
+}
+function sbDeductsHTML(){
+  const ds=SB_D.deducts||[];
+  return ds.map((d,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap">
+      <input class="cin" placeholder="อ้างอิง เช่น ลดบิล 69/03265" style="max-width:230px" value="${escA(d.ref)}" oninput="SB_D.deducts[${i}].ref=this.value">
+      <input class="cin" type="number" step="1" placeholder="จำนวนเงิน (บาท)" style="max-width:160px" value="${escA(d.amt)}" oninput="SB_D.deducts[${i}].amt=this.value;sbRefresh()">
+      <button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.deducts.splice(${i},1);renderSaleBillForm()">✕</button></div>`).join('')+
+    `<button class="btn ghost sm" onclick="SB_D.deducts.push({ref:'',amt:''});renderSaleBillForm()">＋ เพิ่มรายการหัก/ลดบิล</button>`;
+}
+function sbSumHTML(){
+  const c=sbCalc(SB_D);
+  const alloc=c.houseN&&c.n&&SB_D.kind!=='deadcull'?(c.houseN===c.n?`<span style="color:var(--ok)">✓ ตรงกับที่แบ่งหลัง (${fmt(c.houseN)})</span>`:`<span style="color:var(--bad)">⚠️ แบ่งหลังรวม ${fmt(c.houseN)} ตัว ≠ ชั่งจริง ${fmt(c.n)} ตัว</span>`):'';
+  const diff=c.scaleNet!=null?`<div class="kpi"><div class="lab">🚛 ตาชั่งรถ (สุทธิ)</div><div class="val">${fmt(c.scaleNet)}</div></div>
+    <div class="kpi"><div class="lab">${c.diff>=0?'รายตัวมากกว่าตาชั่ง':'รายตัวน้อยกว่าตาชั่ง'}</div><div class="val" style="color:${Math.abs(c.diff)>Math.max(150,c.totW*0.02)?'var(--bad)':'var(--ink)'}">${fmt(Math.abs(c.diff))} กก.</div></div>`:'';
+  const money=c.net!=null?`<div class="kpi"><div class="lab">💰 ยอดสุทธิ${c.deduct?' (หัก '+fmt(c.deduct)+')':''}</div><div class="val" style="color:var(--ok)">${fmt(c.net)} ฿</div></div>`
+    :(c.pending?`<div class="kpi"><div class="lab">💰 ยอดเงิน</div><div class="val" style="color:var(--warn);font-size:15px">⏳ รอใส่ราคา</div></div>`:'');
+  return `<div class="kpis">
+    <div class="kpi"><div class="lab">🐷 จำนวน</div><div class="val">${fmt(c.n)} ตัว</div></div>
+    <div class="kpi"><div class="lab">⚖️ น้ำหนักรวม</div><div class="val">${fmt(Math.round(c.totW*10)/10)} กก.</div></div>
+    <div class="kpi"><div class="lab">📏 เฉลี่ย/ตัว</div><div class="val">${c.n?c.avg.toFixed(2):'-'}</div></div>
+    ${diff}${money}</div>${alloc?`<div class="sub" style="margin-top:7px">${alloc}</div>`:''}`;
+}
+function sbRefresh(){ // อัปเดตเฉพาะส่วนคำนวณ (ไม่วาดฟอร์มใหม่ทั้งหน้า — โฟกัสช่องพิมพ์ไม่หลุด)
+  const s=$("#sbSum"); if(s) s.innerHTML=sbSumHTML();
+  const w=$("#sbWChips"); if(w) w.innerHTML=sbWChipsHTML();
+  const bb=$("#sbBandsBox"); if(bb) bb.innerHTML=sbBandsHTML();
+  (SB_D.houses||[]).forEach((r,i)=>{ const el=$("#sbHInfo"+i); if(el) el.innerHTML=r.code?sbHouseInfo(r.code,SB_D.farm):''; });
+}
+function renderSaleBillForm(){
+  if(!SB_D){ renderSaleStand(); return; }
+  histPush('salebillform',renderSaleBillForm);
+  const K=SB_KIND[SB_D.kind]||SB_KIND.fatten, isDC=SB_D.kind==='deadcull';
+  const buyers=[...new Set(SALE_BILLS.map(b=>b.buyer).filter(Boolean).concat(CUSTOMERS))];
+  const farmOpts=FARMS.map(f=>`<option ${f===SB_D.farm?'selected':''}>${escA(f)}</option>`).join('')+(SB_D.farm&&!FARMS.includes(SB_D.farm)?`<option selected>${escA(SB_D.farm)}</option>`:'');
+  $("#view").innerHTML=`
+    <h2 class="page">${K.ico} ${SB_ISNEW?'บันทึก':'แก้ไข'}${K.t} <span class="more">${sbThaiDate(SB_D.dateISO)}</span></h2>
+    <div class="sub">${isDC?'ลงหมูทีละตัว (หลัง/ประเภท/น้ำหนัก) · ราคาตามช่วงน้ำหนัก แยกคัดขาย-ตาย':'กรอกน้ำหนักรายตัวเหมือนบิลกระดาษ · ระบบรวม/เฉลี่ย/เทียบตาชั่งรถให้เอง'}</div>
+    ${!SB_ISNEW&&SB_D.postedAt?`<div class="banner ok">⬇️ <div><b>บิลนี้ลงเข้าหลังแล้ว</b> (${escA((SB_D.postedHouses||[]).join(', '))}) — ถ้าแก้ตัวเลข/ราคา ให้กด "ลงเข้าหลัง" ซ้ำ ระบบจะแทนที่ของเดิมให้ ไม่ลงซ้อน <button class="btn ghost sm" style="margin-left:8px" onclick="sbSave();sbPostToHouses('${SB_D.id}')">⬇️ ลงเข้าหลังซ้ำ (อัปเดต)</button></div></div>`:''}
+    <div class="card"><h3>🧾 หัวบิล</h3>
+      <div class="fgrid">
+        <div class="frow"><label>วันที่ขาย</label><input type="date" class="cin" value="${escA(SB_D.dateISO)}" onchange="sbF('dateISO',this.value)"></div>
+        <div class="frow"><label>ฟาร์ม</label><select class="cin tl" onchange="sbF('farm',this.value);renderSaleBillForm()">${farmOpts}</select></div>
+        <div class="frow"><label>ผู้ซื้อ</label><input class="cin" list="sbBuyerDL" placeholder="เช่น บ.ราชบุรีค้าสุกร / เฮียมลชัย" value="${escA(SB_D.buyer)}" oninput="SB_D.buyer=this.value"><datalist id="sbBuyerDL">${buyers.map(x=>`<option value="${escA(x)}">`).join('')}</datalist></div>
+        <div class="frow"><label>ทะเบียนรถ</label><input class="cin" placeholder="เช่น 83-6009" value="${escA(SB_D.truck)}" oninput="SB_D.truck=this.value"></div>
+        <div class="frow"><label>บิลกระดาษ เล่มที่</label><input class="cin" placeholder="เช่น 074" value="${escA(SB_D.billBook)}" oninput="SB_D.billBook=this.value"></div>
+        <div class="frow"><label>เลขที่</label><input class="cin" placeholder="เช่น 18" value="${escA(SB_D.billNo)}" oninput="SB_D.billNo=this.value"></div>
+      </div></div>
+    <div class="card"><h3>📌 สรุปสด</h3><div id="sbSum">${sbSumHTML()}</div></div>
+    ${isDC?`
+    <div class="card"><h3>🐷 รายการหมู (ทีละตัว)</h3><datalist id="sbHouseDL">${[...new Set(HOUSES.filter(h=>!SB_D.farm||(h.farm||'')===SB_D.farm).slice().sort(byCode).map(h=>h.code))].map(c=>`<option value="${escA(c)}">`).join('')}</datalist>
+      <div id="sbItemsBox">${sbItemsHTML()}</div></div>
+    <div class="card"><h3>💵 ราคาตามช่วงน้ำหนัก</h3><div id="sbBandsBox">${sbBandsHTML()}</div></div>`
+    :`
+    <div class="card"><h3>🏠 มาจากหลังไหนบ้าง <span class="more">คันเดียวหลายหลังได้ · อายุ/หมอ ดึงให้อัตโนมัติ</span></h3><div id="sbHousesBox">${sbHousesHTML()}</div></div>
+    <div class="card"><h3>⚖️ น้ำหนักรายตัว <span class="more">พิมพ์เลข → Enter → ตัวต่อไป · แตะป้ายเพื่อลบ · ทุก 10 ตัวขึ้นยอดรวมแถวเหมือนบิลกระดาษ</span></h3>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+        <input id="sbWIn" type="number" step="0.1" inputmode="decimal" class="cin" placeholder="กก." style="max-width:150px;font-size:24px;font-weight:800;text-align:center" onkeydown="sbWKey(event)">
+        <button class="btn sm" onclick="sbWAdd()">＋ เพิ่ม</button>
+        <button class="btn ghost sm" onclick="sbWUndo()">↩︎ ลบตัวล่าสุด</button>
+      </div>
+      <div id="sbWChips" style="line-height:1.9">${sbWChipsHTML()}</div>
+      <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:700;color:var(--info)">📋 วางทีเดียวหลายตัว (จากไฟล์/รูปที่สแกน)</summary>
+        <textarea id="sbWPaste" class="cin" rows="3" style="margin-top:8px" placeholder="วางตัวเลขคั่นด้วยช่องว่างหรือขึ้นบรรทัดใหม่ เช่น  104 122 111 99 129"></textarea>
+        <button class="btn sm" style="margin-top:8px" onclick="sbWPasteApply()">เพิ่มทั้งหมด</button></details>
+      <div class="fgrid" style="margin-top:12px">
+        <div class="frow"><label>ราคา/กก. (บาท) — เว้นว่างได้</label><input type="number" step="0.25" class="cin" placeholder="⏳ ให้เจ้าของเติมทีหลังได้" value="${escA(SB_D.pricePerKg)}" oninput="sbF('pricePerKg',this.value)"></div>
+        <div class="frow"><label>อดอาหารในเล้า (ชม.)</label><input type="number" step="0.5" class="cin" value="${escA(SB_D.fastPen)}" oninput="SB_D.fastPen=this.value"></div>
+        <div class="frow"><label>อดอาหารที่แท่น (ชม.)</label><input type="number" step="0.5" class="cin" value="${escA(SB_D.fastStand)}" oninput="SB_D.fastStand=this.value"></div>
+      </div></div>`}
+    <div class="card"><h3>🚛 ตาชั่งรถ <span class="more">ใส่แล้วระบบเทียบกับผลรวมรายตัวให้อัตโนมัติ</span></h3>
+      <div class="fgrid">
+        <div class="frow"><label>รถเบา (กก.)</label><input type="number" class="cin" value="${escA(SB_D.scaleIn)}" oninput="sbF('scaleIn',this.value)"></div>
+        <div class="frow"><label>รถหนัก (กก.)</label><input type="number" class="cin" value="${escA(SB_D.scaleOut)}" oninput="sbF('scaleOut',this.value)"></div>
+      </div></div>
+    <div class="card"><h3>➖ หัก/ลดบิล <span class="more">เช่น ลดบิลรอบก่อน · หักค่าซาก</span></h3><div id="sbDedBox">${sbDeductsHTML()}</div></div>
+    <div class="card"><h3>📝 หมายเหตุ</h3><textarea class="cin" rows="2" placeholder="เช่น อดอาหารในเล้า 14 ชม. · หมายเหตุอื่น ๆ" oninput="SB_D.note=this.value">${escA(SB_D.note)}</textarea></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 30px">
+      <button class="btn sm" style="font-size:16px;padding:13px 30px" onclick="sbSave()">💾 บันทึกบิล</button>
+      <button class="btn sm" style="font-size:15px;padding:13px 22px;background:linear-gradient(135deg,#2a7fb8,#1f5f8b)" onclick="sbSaveAndPost()">💾+⬇️ บันทึก แล้วลงเข้าหลังเลย</button>
+      <button class="btn ghost sm" onclick="renderSaleStand()">ยกเลิก</button>
+      <button class="btn ghost sm" onclick="sbPrintObj(SB_D)">🖨 ดูบิล / พิมพ์ A4</button>
+      <button class="btn ghost sm" onclick="sbExportXlsObj(SB_D)">📊 Excel บิลนี้</button>
+      ${!SB_ISNEW&&['owner','admin'].includes(ROLE)?`<button class="btn ghost sm" style="color:var(--bad);margin-left:auto" onclick="sbDelete('${SB_D.id}')">🗑 ลบบิลนี้ (เจ้าของ/ผู้ดูแล)</button>`:''}
+    </div>`;
+  setTimeout(()=>{ const el=$("#sbWIn"); if(el&&SB_ISNEW&&!isDC) el.focus(); },60);
+}
+function sbSave(){
+  if(blockIfReadonly())return; if(!sbCanWrite()){toast('บัญชีนี้บันทึกบิลขายไม่ได้');return;}
+  if(!SB_D.farm){ toast('เลือกฟาร์มก่อน'); return; }
+  const c=sbCalc(SB_D);
+  if(SB_D.kind==='deadcull'){ SB_D.items=(SB_D.items||[]).filter(x=>sbNum(x.w)>0); if(!SB_D.items.length){ toast('ยังไม่มีรายการหมู (ใส่น้ำหนักอย่างน้อย 1 ตัว)'); return; } }
+  else if(!(SB_D.weights||[]).length){ toast('ยังไม่ได้กรอกน้ำหนักรายตัว'); return; }
+  SB_D.houses=(SB_D.houses||[]).filter(x=>x.code);
+  SB_D.deducts=(SB_D.deducts||[]).filter(x=>x.ref||sbNum(x.amt));
+  SB_D.editLog=SB_D.editLog||[];
+  SB_D.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',note:(SB_ISNEW?'สร้างบิล':'แก้ไขบิล')+(c.pending?' (ยังไม่ใส่ราคา)':'')});
+  const i=SALE_BILLS.findIndex(x=>x.id===SB_D.id);
+  if(i>=0) SALE_BILLS[i]=SB_D; else SALE_BILLS.unshift(SB_D);
+  syncSaleBill(SB_D);
+  logAudit('บิลขาย', SB_D.id, SB_ISNEW?'สร้างบิลขาย':'แก้ไขบิลขาย', null, (SB_D.farm||'')+' · '+(SB_KIND[SB_D.kind]||{}).t+' · '+(SB_D.buyer||'-')+' · '+fmt(c.n)+' ตัว '+fmt(Math.round(c.totW))+' กก.'+(c.net!=null?' · '+fmt(c.net)+' บาท':' · รอใส่ราคา'));
+  toast('บันทึกบิลแล้ว ✓'+(c.pending?' — ติดป้ายรอใส่ราคาให้เจ้าของ':''));
+  SB_D=null; renderSaleStand();
+}
+function sbDelete(id){
+  if(!['owner','admin'].includes(ROLE)){ toast('ลบได้เฉพาะเจ้าของ/ผู้ดูแล'); return; }
+  const b=SALE_BILLS.find(x=>x.id===id); if(!b) return;
+  if(!confirm('ลบบิลขายวันที่ '+sbThaiDate(b.dateISO)+' ('+(b.buyer||'-')+') ?'+(b.postedAt?'\n⚠️ บิลนี้ลงเข้าหลังแล้ว — ระบบจะถอนบันทึกออกจากหลังให้ด้วย':'')+'\nการลบถูกบันทึกในประวัติกันโกง')) return;
+  if(b.postedAt) sbUnpost(b.id);
+  SALE_BILLS=SALE_BILLS.filter(x=>x.id!==id); sbPersist();
+  if(CONFIG.supabase.enabled&&CONFIG.supabase.backend==='v2'){ supaFetch('/rest/v1/rpc/delete_sale_bill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_id:id})}); }
+  logAudit('บิลขาย', id, 'ลบบิลขาย', null, (b.farm||'')+' · '+(b.buyer||'-'));
+  toast('ลบบิลแล้ว'); SB_D=null; renderSaleStand();
+}
+/* ---------- ⬇️ ลงบิลเข้าบันทึกประจำหลัง (จับรหัสหลังในบิล → dailyLog + ตัดคงเหลือ) ----------
+   · แถวที่สร้างติดธง _fromBill = id บิล → กดลงซ้ำ = แทนที่ของเดิม (ไม่ลงซ้อน) · ลบบิล = ถอนแถวออกให้ด้วย
+   · ขุน/พันธุ์: น้ำหนักต่อหลัง = เฉลี่ยทั้งคัน × จำนวนตัวของหลังนั้น (บิลจริงไม่แยกน้ำหนักรายหลัง)
+   · ตาย/คัด: ยอดจริงรายหลังจากรายการทีละตัว + ราคาเฉลี่ยตามช่วงราคา · ราคายังไม่ใส่ = ลงจำนวน/น้ำหนักไว้ก่อน (ราคา 0) */
+function sbBillRef(b){ const r=(b.billBook?b.billBook+'/':'')+(b.billNo||''); return r||'-'; }
+function sbRowUid(){ return 'sb'+Date.now()+'_'+Math.round(Math.random()*1e6); }
+function sbFindHouse(code,farm){ return HOUSES.find(y=>y.code===code&&(!farm||(y.farm||'')===farm))||HOUSES.find(y=>y.code===code); }
+function sbBandVal(b,items,type){ // มูลค่ารวมของหมูกลุ่มนี้ตามช่วงราคา · null = มีช่วงที่ยังไม่ใส่ราคา
+  let v=0;
+  for(const x of items){ const bd=(b.bands||[])[sbBandIdx(b,sbNum(x.w))]; const r=bd&&bd[type];
+    if(r===''||r==null) return null; v+=sbNum(x.w)*sbNum(r); }
+  return v;
+}
+function sbPostRowsFor(b){ // เตรียมแถว dailyLog ต่อหลัง (ยังไม่แตะข้อมูลจริง)
+  const c=sbCalc(b), dThai=isoToThaiDay(b.dateISO), ref=sbBillRef(b), buyer=b.buyer||'-';
+  const base={date:dThai, by:whoNow(), remain:0,
+    deadType:'',deadN:0,deadW:0,deadP:0,deadCust:'-',deadBill:'-',
+    cullType:'',cullN:0,cullW:0,cullP:0,cullCust:'-',cullBill:'-',
+    soldN:0,soldW:0,soldP:0,soldCust:'-',soldBill:'-',
+    moveN:0,moveW:0,moveDest:'',moveNote:'', dead:0,outN:0,avg:0,value:0, cust:'-',bill:'-', _fromBill:b.id};
+  const rows=[], miss=[];
+  const r1=v=>Math.round(v*10)/10;
+  if(b.kind==='deadcull'){
+    const g={};
+    (b.items||[]).forEach(x=>{ if(!x.house||!sbNum(x.w)) return; (g[x.house]=g[x.house]||{cull:[],dead:[]})[x.type==='cull'?'cull':'dead'].push(x); });
+    Object.keys(g).forEach(code=>{
+      const H=sbFindHouse(code,b.farm); if(!H){ miss.push(code); return; }
+      const e=Object.assign({},base,{rowId:sbRowUid()});
+      const dd=g[code].dead, cc=g[code].cull;
+      if(dd.length){ e.deadN=dd.length; e.deadW=r1(dd.reduce((s,x)=>s+sbNum(x.w),0));
+        const v=sbBandVal(b,dd,'dead'); e.deadP=(v!=null&&e.deadW)?+(v/e.deadW).toFixed(2):0;
+        e.deadType='ตาย'; e.deadCust=buyer; e.deadBill=ref; }
+      if(cc.length){ e.cullN=cc.length; e.cullW=r1(cc.reduce((s,x)=>s+sbNum(x.w),0));
+        const v=sbBandVal(b,cc,'cull'); e.cullP=(v!=null&&e.cullW)?+(v/e.cullW).toFixed(2):0;
+        e.cullType='คัดขาย'; e.cullCust=buyer; e.cullBill=ref; }
+      e.dead=e.deadN; e.outN=e.cullN; e.value=(e.deadW*e.deadP)+(e.cullW*e.cullP);
+      rows.push({code:code,H:H,e:e});
+    });
+  }else{
+    const price=(b.pricePerKg===''||b.pricePerKg==null)?0:sbNum(b.pricePerKg);
+    (b.houses||[]).forEach(x=>{ const n=parseInt(x.n)||0; if(!x.code||!n) return;
+      const H=sbFindHouse(x.code,b.farm); if(!H){ miss.push(x.code); return; }
+      const e=Object.assign({},base,{rowId:sbRowUid()});
+      e.soldN=n; e.soldW=r1(c.avg*n); e.soldP=price; e.soldCust=buyer; e.soldBill=ref;
+      e.outN=n; e.avg=+(c.avg.toFixed(1)); e.value=Math.round(e.soldW*e.soldP);
+      rows.push({code:x.code,H:H,e:e});
+    });
+  }
+  return {rows:rows, miss:miss, pending:c.pending};
+}
+function sbUnpost(billId,quiet){ // ถอนแถวที่ลงจากบิลนี้ออกจากทุกหลัง (ใช้ตอนลงซ้ำ/ลบบิล)
+  let n=0;
+  HOUSES.forEach(h=>{
+    const L=h.dailyLog||[]; const keep=L.filter(e=>!(e&&e._fromBill===billId));
+    if(keep.length!==L.length){ n+=L.length-keep.length; h.dailyLog=keep; recalcDailyRemains(h);
+      if(!quiet){ logHouseEdit(h,[{label:'บิลแท่นขาย',from:'ลงแล้ว',to:'ถอนออก'}],'ถอนบันทึกจากบิลแท่นขาย'); }
+      syncHouseClerk(h); }
+  });
+  return n;
+}
+function sbPostToHouses(id){
+  if(blockIfReadonly())return; if(!sbCanWrite()){ toast('บัญชีนี้ลงบันทึกไม่ได้'); return; }
+  const b=SALE_BILLS.find(x=>x.id===id); if(!b){ toast('ไม่พบบิล — บันทึกบิลก่อน'); return; }
+  const prep=sbPostRowsFor(b);
+  if(!prep.rows.length){ toast('ไม่พบหลังที่ตรงกับระบบในบิลนี้'+(prep.miss.length?' (ไม่รู้จัก: '+prep.miss.join(', ')+')':'')); return; }
+  // สรุปให้ยืนยันก่อนลงจริง
+  const dThai=isoToThaiDay(b.dateISO);
+  const lines=prep.rows.map(r=>{
+    const p=[]; if(r.e.soldN)p.push('ขาย '+fmt(r.e.soldN)+' ตัว/'+fmt(r.e.soldW)+' กก.');
+    if(r.e.deadN)p.push('ตาย '+fmt(r.e.deadN)+' ตัว/'+fmt(r.e.deadW)+' กก.');
+    if(r.e.cullN)p.push('คัด '+fmt(r.e.cullN)+' ตัว/'+fmt(r.e.cullW)+' กก.');
+    const dup=(r.H.dailyLog||[]).some(e=>e&&e.date===dThai&&e._fromBill!==b.id&&((r.e.soldN&&e.soldN)||(r.e.deadN&&e.deadN)||(r.e.cullN&&e.cullN)));
+    return '• หลัง '+r.code+' ('+(r.H.farm||'-')+'): '+p.join(' · ')+(dup?'  ⚠️ วันนี้มีบันทึกประเภทเดียวกันอยู่แล้ว (ตรวจกันซ้ำด้วย)':'');
+  });
+  const wasPosted=!!b.postedAt;
+  let msg='⬇️ ลงบันทึกเข้าหลัง — วันที่ '+dThai+' (บิล '+sbBillRef(b)+')\n\n'+lines.join('\n');
+  if(prep.miss.length) msg+='\n\n⚠️ ไม่พบหลังในระบบ (ข้าม): '+prep.miss.join(', ');
+  if(prep.pending) msg+='\n\n⏳ บิลนี้ยังไม่ใส่ราคาครบ — จะลงจำนวน/น้ำหนักไว้ก่อน (มูลค่า 0) · ใส่ราคาแล้วกดลงซ้ำ ระบบจะอัปเดตให้';
+  if(wasPosted) msg+='\n\n🔄 บิลนี้เคยลงแล้ว — ระบบจะแทนที่ของเดิม (ไม่ลงซ้อน)';
+  if(!confirm(msg)) return;
+  sbUnpost(b.id,true); // ลงซ้ำ = ถอนของเดิมก่อน (เงียบ ๆ — เดี๋ยว log รวมตอนลงใหม่)
+  const done=[], fail=[];
+  prep.rows.forEach(r=>{
+    const h=r.H;
+    const merged=(h.dailyLog||[]).concat([r.e]).sort((a,bb)=>(parseThaiDate(bb.date)||0)-(parseThaiDate(a.date)||0));
+    const rems=chainRemains(h,merged); let bad=false;
+    for(let k=0;k<rems.length;k++){ if(rems[k]<0){ bad=true; break; } }
+    if(bad){ fail.push(r.code+' (คงเหลือไม่พอ — ตรวจยอดหลังนี้)'); return; }
+    h.dailyLog=merged; recalcDailyRemains(h);
+    const p=[]; if(r.e.soldN)p.push('ขาย '+r.e.soldN); if(r.e.deadN)p.push('ตาย '+r.e.deadN); if(r.e.cullN)p.push('คัด '+r.e.cullN);
+    logHouseEdit(h,[{label:'จากบิลแท่นขาย '+sbBillRef(b),from:'-',to:p.join(' · ')}],'ลงจากบิลแท่นขาย '+sbBillRef(b)+' · '+(b.buyer||'-'));
+    syncHouseClerk(h);
+    done.push(r.code);
+  });
+  if(done.length){ b.postedAt=Date.now(); b.postedHouses=done.slice(); b.postedBy=whoNow(); syncSaleBill(b);
+    logAudit('บิลขาย', b.id, 'ลงบิลเข้าหลัง', null, done.join(', ')+(fail.length?' · ไม่สำเร็จ: '+fail.join(', '):'')); }
+  toast((done.length?'✅ ลงเข้าหลังแล้ว: '+done.join(', '):'ไม่ได้ลงหลังไหนเลย')+(fail.length?' · ❌ '+fail.join(', '):''));
+  const top=navHist[navHist.length-1]; if(top&&top.fn) top.fn();
+}
+function sbSaveAndPost(){ const id=SB_D&&SB_D.id; sbSave(); if(id&&SB_D===null&&SALE_BILLS.some(x=>x.id===id)) sbPostToHouses(id); } // SB_D===null = บันทึกผ่านแล้วจริง (กันลงข้อมูลเก่าเมื่อ validation ไม่ผ่าน)
+/* ---------- แบบฟอร์มบิลกระดาษ (ใช้ทั้งหน้าดูบิลในเว็บ / พิมพ์ A4 / ชีตแรกใน Excel) ---------- */
+function sbBillPaperHTML(b){
+  const c=sbCalc(b), BD='border:1px solid #444';
+  const TH='background:#f1f1ea;font-weight:700';
+  const line=v=>'<span style="border-bottom:1px dotted #666;padding:0 10px;font-weight:800">'+escA(v==null||v===''?'-':v)+'</span>';
+  const PEND='<span style="color:#b06000;font-weight:800">รอใส่ราคา</span>';
+  const title={fatten:'บิลขายหมู',deadcull:'ใบส่งขาย หมูตาย/คัดขาย',breeder:'บิลขายหมู (แม่/พ่อพันธุ์)'}[b.kind]||'บิลขายหมู';
+  let h='';
+  // ── หัวบิล ──
+  h+='<table style="width:100%;border-collapse:collapse;margin-bottom:4px"><tr>'
+    +'<td style="'+BD+';width:110px;text-align:center;padding:5px 4px"><div style="font-size:26px;line-height:1">🐷</div><div style="font-size:10px;font-weight:800;letter-spacing:1px">SJF FARM</div></td>'
+    +'<td style="padding:4px 12px;font-size:14px;vertical-align:bottom">เล่มที่ '+line(b.billBook)+'</td>'
+    +'<td style="padding:4px 12px;font-size:14px;text-align:right;vertical-align:bottom">เลขที่ '+line(b.billNo)+'</td></tr>'
+    +'<tr><td colspan="3" style="text-align:center;font-size:21px;font-weight:800;padding:7px 0 3px">'+title+'</td></tr></table>';
+  h+='<table style="width:100%;border-collapse:collapse;margin-bottom:7px"><tr>'
+    +'<td style="font-size:14px;padding:3px 0">ชื่อผู้ซื้อ '+line(b.buyer)+'</td>'
+    +'<td style="font-size:14px;padding:3px 0;text-align:center">ฟาร์ม '+line(b.farm)+'</td>'
+    +'<td style="font-size:14px;padding:3px 0;text-align:right">วันที่ '+line(sbThaiDate(b.dateISO))+'</td></tr></table>';
+  if(b.kind==='deadcull'){
+    // ── รายการหมู แยกคัดขาย/ตาย (คู่คอลัมน์ หลัง|น.น. เหมือนใบส่งขาย) ──
+    const mk=(items,label)=>{
+      let t='<table style="width:100%;border-collapse:collapse">'
+        +'<tr><th colspan="2" style="'+BD+';'+TH+';font-size:13px;padding:3px">'+label+'</th></tr>'
+        +'<tr><th style="'+BD+';'+TH+';font-size:11px;width:45%">หลัง</th><th style="'+BD+';'+TH+';font-size:11px">น.น. (กก.)</th></tr>';
+      const n=Math.max(items.length,8);
+      for(let i=0;i<n;i++){ const x=items[i];
+        t+='<tr><td style="'+BD+';font-size:13px;text-align:center;padding:2px 4px">'+(x?escA(x.house||'-'):'&nbsp;')+'</td>'
+          +'<td style="'+BD+';font-size:13px;font-weight:700;text-align:center;padding:2px 4px">'+(x?sbNum(x.w):'')+'</td></tr>'; }
+      const tw=items.reduce((s,x)=>s+sbNum(x.w),0);
+      t+='<tr><td style="'+BD+';'+TH+';font-size:12px;text-align:center">'+fmt(items.length)+' ตัว</td><td style="'+BD+';'+TH+';font-size:12px;text-align:center">'+fmt(Math.round(tw*10)/10)+'</td></tr></table>';
+      return t;
+    };
+    const culls=(b.items||[]).filter(x=>x.type==='cull'), deads=(b.items||[]).filter(x=>x.type!=='cull');
+    h+='<table style="width:100%;border-collapse:collapse;margin-bottom:8px"><tr>'
+      +'<td style="width:49%;vertical-align:top">'+mk(culls,'หมูคัดขาย')+'</td><td style="width:2%"></td>'
+      +'<td style="width:49%;vertical-align:top">'+mk(deads,'หมูตาย')+'</td></tr></table>';
+    // ── ตารางช่วงราคา ──
+    let bt='<table style="width:100%;border-collapse:collapse;margin-bottom:8px">'
+      +'<tr><th rowspan="2" style="'+BD+';'+TH+';font-size:11px">ช่วงราคา<br>(กก.)</th><th colspan="2" style="'+BD+';'+TH+';font-size:11px">น้ำหนัก (กก.)</th><th colspan="2" style="'+BD+';'+TH+';font-size:11px">ราคาต่อ กก.</th><th colspan="2" style="'+BD+';'+TH+';font-size:11px">จำนวนเงิน (บาท)</th></tr>'
+      +'<tr>'+['คัดขาย','ตาย','คัดขาย','ตาย','คัดขาย','ตาย'].map(x=>'<th style="'+BD+';'+TH+';font-size:11px">'+x+'</th>').join('')+'</tr>';
+    let gc=0,gd=0;
+    (b.bands||[]).forEach((bd,i)=>{ const ag=c.bandAgg[i]||{cullW:0,deadW:0};
+      const mc=(ag.cullW&&bd.cull!==''&&bd.cull!=null)?Math.round(ag.cullW*sbNum(bd.cull)):null;
+      const md=(ag.deadW&&bd.dead!==''&&bd.dead!=null)?Math.round(ag.deadW*sbNum(bd.dead)):null;
+      gc+=mc||0; gd+=md||0;
+      const dim=!(ag.cullW||ag.deadW);
+      const td=(v,bold)=>'<td style="'+BD+';font-size:12px;text-align:center;padding:2px 4px'+(bold?';font-weight:700':'')+(dim?';color:#999':'')+'">'+(v==null?'-':v)+'</td>';
+      bt+='<tr>'+td(bd.a+' - '+bd.b)+td(ag.cullW?fmt(Math.round(ag.cullW*10)/10):'-')+td(ag.deadW?fmt(Math.round(ag.deadW*10)/10):'-')
+        +td(ag.cullW?((bd.cull===''||bd.cull==null)?PEND:fmt(sbNum(bd.cull))):'-')+td(ag.deadW?((bd.dead===''||bd.dead==null)?PEND:fmt(sbNum(bd.dead))):'-')
+        +td(mc!=null?fmt(mc):'-',true)+td(md!=null?fmt(md):'-',true)+'</tr>';
+    });
+    bt+='<tr><td style="'+BD+';'+TH+';font-size:12px;text-align:center">รวม</td>'
+      +'<td style="'+BD+';'+TH+';text-align:center;font-size:12px">'+fmt(Math.round(c.bandAgg.reduce((s,a)=>s+a.cullW,0)*10)/10)+'</td>'
+      +'<td style="'+BD+';'+TH+';text-align:center;font-size:12px">'+fmt(Math.round(c.bandAgg.reduce((s,a)=>s+a.deadW,0)*10)/10)+'</td>'
+      +'<td colspan="2" style="'+BD+';'+TH+';text-align:center;font-size:12px">รวมจำนวนเงิน</td>'
+      +'<td style="'+BD+';'+TH+';text-align:center;font-size:12px;font-weight:800">'+(c.pending?PEND:fmt(gc))+'</td>'
+      +'<td style="'+BD+';'+TH+';text-align:center;font-size:12px;font-weight:800">'+(c.pending?PEND:fmt(gd))+'</td></tr></table>';
+    h+=bt;
+  }else{
+    // ── ตารางน้ำหนักรายตัว 10 คู่คอลัมน์ (ไล่ลงทีละคอลัมน์ เหมือนบิลกระดาษ · เกิน 100 ตัวขึ้นแผ่นต่อ) ──
+    const ws=b.weights||[];
+    for(let page=0; page*100<Math.max(ws.length,1); page++){
+      const off=page*100;
+      let g='<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:8px"><tr>';
+      for(let j=0;j<10;j++) g+='<th style="'+BD+';'+TH+';font-size:10px;width:3.6%;padding:2px 1px">ตัว</th><th style="'+BD+';'+TH+';font-size:10px;width:6.4%;padding:2px 1px">น.น.</th>';
+      g+='</tr>';
+      for(let r=0;r<10;r++){ g+='<tr>';
+        for(let j=0;j<10;j++){ const idx=off+j*10+r;
+          g+='<td style="'+BD+';font-size:9px;color:#888;text-align:center;padding:2px 1px">'+(idx<ws.length?(idx+1):'&nbsp;')+'</td>'
+            +'<td style="'+BD+';font-size:12.5px;font-weight:700;text-align:center;padding:2px 1px">'+(idx<ws.length?ws[idx]:'')+'</td>'; }
+        g+='</tr>'; }
+      g+='<tr>';
+      for(let j=0;j<10;j++){ let s=0,has=false;
+        for(let r=0;r<10;r++){ const idx=off+j*10+r; if(idx<ws.length){ s+=sbNum(ws[idx]); has=true; } }
+        g+='<td colspan="2" style="'+BD+';'+TH+';text-align:center;font-size:11.5px;padding:3px 1px">'+(has?fmt(Math.round(s*10)/10):'&nbsp;')+'</td>'; }
+      g+='</tr></table>';
+      h+=g;
+    }
+  }
+  // ── ล่าง: หมายเหตุ (ซ้าย) + สรุปยอด (ขวา) ──
+  const noteLines=[];
+  (b.houses||[]).forEach(x=>{ const age=sbAgeDays(x.code,b.farm);
+    const H=HOUSES.find(y=>y.code===x.code&&(!b.farm||(y.farm||'')===b.farm))||HOUSES.find(y=>y.code===x.code)||{};
+    noteLines.push('หลัง '+escA(x.code)+' = '+fmt(parseInt(x.n)||0)+' ตัว'+((age||H.vet)?' ('+(age?age+' วัน':'')+(H.vet?(age?' / ':'')+escA(H.vet):'')+')':'')); });
+  if(sbNum(b.fastPen)>0||sbNum(b.fastStand)>0) noteLines.push('อดอาหารในเล้า '+sbNum(b.fastPen)+' ชม. · ที่แท่น '+sbNum(b.fastStand)+' ชม.');
+  if(c.scaleNet!=null) noteLines.push('นน.รายตัว'+(c.diff>=0?'มากกว่า':'น้อยกว่า')+'ตาชั่งรถ '+fmt(Math.abs(c.diff))+' กก.'+(c.n?' ('+(Math.abs(c.diff)/c.n).toFixed(2)+' กก./ตัว)':''));
+  (b.deducts||[]).forEach(d=>noteLines.push('หัก: '+escA(d.ref||'-')+' = '+fmt(sbNum(d.amt))+' บาท'));
+  if(b.note) noteLines.push('หมายเหตุ: '+escA(b.note));
+  const sumR=(k,v,u,big)=>'<tr><td style="padding:3px 6px;font-size:13px;white-space:nowrap">'+k+'</td>'
+    +'<td style="border-bottom:1px dotted #666;text-align:right;font-weight:800;font-size:'+(big?'15px':'13.5px')+';padding:3px 8px">'+v+'</td>'
+    +'<td style="font-size:12px;padding:3px 2px;width:38px">'+u+'</td></tr>';
+  let right='<table style="width:100%;border-collapse:collapse">';
+  if(b.kind==='deadcull'){
+    const nc=(b.items||[]).filter(x=>x.type==='cull').length, nd=(b.items||[]).length-nc;
+    right+=sumR('จำนวนตัว (คัดขาย / ตาย)',fmt(nc)+' / '+fmt(nd),'ตัว');
+  }
+  right+=sumR('จำนวนหมูรวม',fmt(c.n),'ตัว')
+    +sumR('น้ำหนักรวมสุทธิ',fmt(Math.round(c.totW*10)/10),'กก.')
+    +sumR('น้ำหนักเฉลี่ย',c.n?c.avg.toFixed(2):'-','กก.');
+  if(b.kind!=='deadcull') right+=sumR('ราคา/กก.',(b.pricePerKg===''||b.pricePerKg==null)?PEND:fmt(sbNum(b.pricePerKg)),'บาท');
+  right+=sumR('จำนวนเงินรวม',c.gross!=null?fmt(c.gross):PEND,'บาท');
+  if(c.deduct) right+=sumR('หักส่วนลด/ลดบิล','-'+fmt(c.deduct),'บาท');
+  right+=sumR('จำนวนเงินสุทธิ',c.net!=null?fmt(c.net):PEND,'บาท',true)+'</table>';
+  h+='<table style="width:100%;border-collapse:collapse"><tr>'
+    +'<td style="'+BD+';vertical-align:top;width:54%;padding:6px 9px"><div style="font-size:13px;font-weight:800;margin-bottom:3px">หมายเหตุ :</div>'
+    +(noteLines.length?noteLines.map(x=>'<div style="font-size:13px;margin:2.5px 0">'+x+'</div>').join(''):'<div style="font-size:13px;color:#999">—</div>')+'</td>'
+    +'<td style="'+BD+';vertical-align:top;padding:6px 9px">'+right+'</td></tr></table>';
+  // ── รถ + ตาชั่ง ──
+  h+='<table style="width:100%;border-collapse:collapse;margin-top:7px"><tr>'
+    +'<td style="'+BD+';font-size:13px;padding:4px 9px">ทะเบียนรถขนส่ง: <b>'+escA(b.truck||'-')+'</b></td>'
+    +'<td style="'+BD+';font-size:13px;padding:4px 9px;text-align:center">รถเบา: <b>'+(sbNum(b.scaleIn)?fmt(sbNum(b.scaleIn)):'-')+'</b></td>'
+    +'<td style="'+BD+';font-size:13px;padding:4px 9px;text-align:center">รถหนัก: <b>'+(sbNum(b.scaleOut)?fmt(sbNum(b.scaleOut)):'-')+'</b></td>'
+    +'<td style="'+BD+';font-size:13px;padding:4px 9px;text-align:center">สุทธิ: <b>'+(c.scaleNet!=null?fmt(c.scaleNet):'-')+'</b> กก.</td></tr></table>';
+  // ── ลายเซ็น ──
+  h+='<table style="width:100%;margin-top:30px;border-collapse:collapse"><tr>'
+    +'<td style="text-align:center;font-size:13px;padding:6px">ผู้รับของ ...............................................</td>'
+    +'<td style="text-align:center;font-size:13px;padding:6px">ผู้ส่งของ ..........'+escA(b.by||'')+'..........</td></tr></table>';
+  return h;
+}
+/* ---------- หน้าดูบิลในเว็บ + พิมพ์ A4 / PDF ---------- */
+let SB_PRINT_B=null;
+function sbPrintObj(b){
+  if(!b) return;
+  SB_PRINT_B=b;
+  let ov=document.getElementById('sbPrintOverlay'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='sbPrintOverlay';
+  ov.innerHTML='<div class="sbp-tools">'
+    +'<button class="btn sm" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF (A4)</button>'
+    +'<button class="btn ghost sm" onclick="sbExportXlsObj(SB_PRINT_B)">📊 Excel</button>'
+    +'<button class="btn ghost sm" onclick="sbPrintClose()">✕ ปิด</button></div>'
+    +'<div id="sbPrintPage">'+sbBillPaperHTML(b)+'</div>';
+  ov.addEventListener('click',function(e){ if(e.target===ov) sbPrintClose(); });
+  document.body.appendChild(ov);
+}
+function sbPrint(id){ const b=SALE_BILLS.find(x=>x.id===id); if(!b){ toast('ไม่พบบิล'); return; } sbPrintObj(b); }
+function sbPrintClose(){ const ov=document.getElementById('sbPrintOverlay'); if(ov) ov.remove(); SB_PRINT_B=null; }
+/* ---------- ส่งออกบิลขายเป็น Excel รายบิล (หน้าตาเหมือนบิลกระดาษ · ปริ๊นจาก Excel ได้เลย) ---------- */
+function sbExportXls(id){ const b=SALE_BILLS.find(x=>x.id===id); if(!b){ toast('ไม่พบบิล'); return; } sbExportXlsObj(b); }
+function sbExportXlsObj(b){
+  const c=sbCalc(b), K=SB_KIND[b.kind]||SB_KIND.fatten;
+  const meta=[
+    {k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},
+    {k:'ประเภท',v:K.t},
+    {k:'วันที่ขาย',v:sbThaiDate(b.dateISO)},
+    {k:'ฟาร์ม',v:b.farm||'-'},
+    {k:'ผู้ซื้อ',v:b.buyer||'-'},
+    {k:'ทะเบียนรถ',v:b.truck||'-'},
+    {k:'บิลกระดาษ',v:(b.billBook||b.billNo)?('เล่มที่ '+(b.billBook||'-')+' เลขที่ '+(b.billNo||'-')):'-'},
+    {k:'ผู้บันทึก',v:b.by||'-'},
+    {k:'ออกเอกสาร',v:DEMO_DATE_SHORT+' โดย '+((CURRENT_USER&&CURRENT_USER.name)||'-')}
+  ];
+  if(b.note) meta.push({k:'หมายเหตุ',v:b.note});
+  const PEND='รอใส่ราคา';
+  const sumRows=[
+    ['จำนวนหมู', c.n, 'ตัว'],
+    ['น้ำหนักรวม (รายตัว)', Math.round(c.totW*10)/10, 'กก.'],
+    ['น้ำหนักเฉลี่ย/ตัว', c.n?Math.round(c.avg*100)/100:'', 'กก.']
+  ];
+  if(sbNum(b.scaleIn)>0&&sbNum(b.scaleOut)>0){
+    sumRows.push(['ตาชั่งรถ — รถเบา', sbNum(b.scaleIn), 'กก.'],
+      ['ตาชั่งรถ — รถหนัก', sbNum(b.scaleOut), 'กก.'],
+      ['ตาชั่งรถ — สุทธิ', c.scaleNet, 'กก.'],
+      ['ผลต่าง รายตัว − ตาชั่งรถ', c.diff, 'กก.']);
+  }
+  if(sbNum(b.fastPen)>0) sumRows.push(['อดอาหารในเล้า', sbNum(b.fastPen), 'ชม.']);
+  if(sbNum(b.fastStand)>0) sumRows.push(['อดอาหารที่แท่น', sbNum(b.fastStand), 'ชม.']);
+  if(b.kind!=='deadcull') sumRows.push(['ราคา/กก.', (b.pricePerKg===''||b.pricePerKg==null)?PEND:sbNum(b.pricePerKg), 'บาท']);
+  sumRows.push(['ยอดเงินรวม', c.gross!=null?c.gross:PEND, 'บาท']);
+  if(c.deduct) sumRows.push(['หัก/ลดบิล', -c.deduct, 'บาท']);
+  sumRows.push(['ยอดสุทธิ', c.net!=null?c.net:PEND, 'บาท']);
+  const sheets=[{name:'บิล A4', html:sbBillPaperHTML(b)},
+    {name:'สรุปบิล', html:xlsSheet({title:'บิลขายหมู — '+K.t+' · '+(b.farm||'')+' → '+(b.buyer||'-'),
+    meta:meta, columns:[{label:'รายการ',w:200},{label:'ค่า',type:'dec',w:120},{label:'หน่วย',w:70}], rows:sumRows})}];
+  if((b.houses||[]).length){
+    sheets.push({name:'แยกหลัง', html:xlsSheet({title:'มาจากหลังไหนบ้าง',
+      columns:[{label:'หลัง',w:100},{label:'จำนวน (ตัว)',type:'num',w:95},{label:'อายุ (วัน)',type:'num',w:85},{label:'หมอผู้ดูแล',w:130}],
+      rows:b.houses.map(h=>{ const H=HOUSES.find(x=>x.code===h.code&&(!b.farm||(x.farm||'')===b.farm))||HOUSES.find(x=>x.code===h.code)||{};
+        return [h.code, parseInt(h.n)||'', sbAgeDays(h.code,b.farm)||'', H.vet||'']; }),
+      totals:['รวม', c.houseN, '', '']})});
+  }
+  if(b.kind==='deadcull'){
+    sheets.push({name:'รายการหมู', html:xlsSheet({title:'รายการหมู (ทีละตัว)',
+      columns:[{label:'ลำดับ',type:'num',w:60},{label:'หลัง',w:90},{label:'ประเภท',w:90},{label:'น้ำหนัก (กก.)',type:'dec',w:105}],
+      rows:(b.items||[]).map((x,i)=>[i+1, x.house||'-', x.type==='cull'?'คัดขาย':'ตาย', sbNum(x.w)]),
+      totals:['','','รวม', Math.round(c.totW*10)/10]})});
+    const bandRows=(b.bands||[]).map((bd,i)=>{ const ag=c.bandAgg[i]||{cullW:0,deadW:0}; if(!(ag.cullW||ag.deadW)) return null;
+      return [bd.a+'–'+bd.b,
+        ag.cullW?Math.round(ag.cullW*10)/10:'', ag.cullW?((bd.cull===''||bd.cull==null)?PEND:sbNum(bd.cull)):'', (ag.cullW&&bd.cull!==''&&bd.cull!=null)?Math.round(ag.cullW*sbNum(bd.cull)):'',
+        ag.deadW?Math.round(ag.deadW*10)/10:'', ag.deadW?((bd.dead===''||bd.dead==null)?PEND:sbNum(bd.dead)):'', (ag.deadW&&bd.dead!==''&&bd.dead!=null)?Math.round(ag.deadW*sbNum(bd.dead)):''];
+    }).filter(Boolean);
+    sheets.push({name:'ช่วงราคา', html:xlsSheet({title:'ราคาตามช่วงน้ำหนัก (แยกคัดขาย/ตาย)',
+      columns:[{label:'ช่วง นน. (กก.)',w:105},{label:'คัดขาย (กก.)',type:'dec',w:95},{label:'ราคาคัด/กก.',type:'dec',w:90},{label:'เงินคัด (บาท)',type:'num',w:105},{label:'ตาย (กก.)',type:'dec',w:90},{label:'ราคาตาย/กก.',type:'dec',w:90},{label:'เงินตาย (บาท)',type:'num',w:105}],
+      rows:bandRows,
+      totals:['รวม', Math.round((c.bandAgg||[]).reduce((s,a)=>s+a.cullW,0)*10)/10, '', c.gross!=null?(b.bands||[]).reduce((s,bd,i)=>{const ag=c.bandAgg[i]||{cullW:0};return s+((ag.cullW&&bd.cull!==''&&bd.cull!=null)?Math.round(ag.cullW*sbNum(bd.cull)):0);},0):'', Math.round((c.bandAgg||[]).reduce((s,a)=>s+a.deadW,0)*10)/10, '', c.gross!=null?(b.bands||[]).reduce((s,bd,i)=>{const ag=c.bandAgg[i]||{deadW:0};return s+((ag.deadW&&bd.dead!==''&&bd.dead!=null)?Math.round(ag.deadW*sbNum(bd.dead)):0);},0):'']})});
+  }else{
+    // กริดน้ำหนักรายตัวแบบบิลกระดาษ: ไล่ลงทีละคอลัมน์ คอลัมน์ละ 10 ตัว + แถวรวมท้ายคอลัมน์
+    const ws=b.weights||[], CC=Math.max(1,Math.ceil(ws.length/10));
+    const cols=[]; for(let j=0;j<CC;j++){ cols.push({label:'ตัว',type:'num',w:45},{label:'นน.',type:'dec',w:65}); }
+    const rows=[]; for(let r=0;r<10;r++){ const row=[]; for(let j=0;j<CC;j++){ const idx=j*10+r; row.push(idx<ws.length?idx+1:'', idx<ws.length?sbNum(ws[idx]):''); } rows.push(row); }
+    const tot=[]; for(let j=0;j<CC;j++){ let s=0; for(let r=0;r<10;r++){ const idx=j*10+r; if(idx<ws.length) s+=sbNum(ws[idx]); } tot.push('รวม', s?Math.round(s*10)/10:''); }
+    sheets.push({name:'น้ำหนักรายตัว', html:xlsSheet({title:'น้ำหนักรายตัว (ไล่ลงทีละคอลัมน์ เหมือนบิลกระดาษ)', columns:cols, rows:rows, totals:tot})});
+  }
+  if((b.deducts||[]).length){
+    sheets.push({name:'หัก-ลดบิล', html:xlsSheet({title:'รายการหัก/ลดบิล',
+      columns:[{label:'อ้างอิง',w:240},{label:'จำนวนเงิน (บาท)',type:'num',w:130}],
+      rows:b.deducts.map(d=>[d.ref||'-', sbNum(d.amt)]), totals:['รวม', c.deduct]})});
+  }
+  const fname=('บิลขาย_'+K.t+'_'+(b.farm||'ฟาร์ม')+'_'+(b.dateISO||'')+(b.billNo?('_เลขที่'+b.billNo):'')).replace(/[\\\/:*?"<>|]/g,'-')+'.xls';
+  downloadXlsMulti(fname, sheets);
+  toast('ส่งออกบิลเป็น Excel แล้ว ✓ (เปิดแล้วสั่งพิมพ์ได้เลย)');
 }
 // เริ่มต้นแอป: วันที่ + โหลดข้อมูล (คลาวด์ก่อน ถ้าเปิดใช้ ไม่งั้น localStorage) + เตรียม LINE
 (async function(){
