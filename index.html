@@ -4124,16 +4124,108 @@ function recalcDailyRemains(h){
 let bfHouse='', bfRows=[], bfLoadedFor=null;
 function bfNum(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
 // แปลงรายการบันทึกเดิม → แถวในตารางย้อนหลัง (ติดธง existing + rowId ไว้อัปเดตในที่เดิม)
-function bfRowFromEntry(e){ if(!e.rowId) e.rowId='bfx'+Math.round(Math.random()*1e9); return { date:thaiDayToISO(e.date)||'', dead:(e.deadN||'')+'', cN:(e.cullN||'')+'', cW:(e.cullW||'')+'', cP:(e.cullP||'')+'', sN:(e.soldN||'')+'', sW:(e.soldW||'')+'', sP:(e.soldP||'')+'', existing:true, rowId:e.rowId, moveN:e.moveN||0, moveInN:e.moveInN||0 }; } // เขียน rowId กลับเข้า entry ต้นฉบับ (บันทึกเก่า/seed ไม่มี rowId) → bfSubmit จับคู่อัปเดตได้จริง
+function bfRowFromEntry(e){ if(!e.rowId) e.rowId='bfx'+Math.round(Math.random()*1e9); return { date:thaiDayToISO(e.date)||'',
+  dead:(e.deadN||'')+'', dW:(e.deadW||'')+'', dP:(e.deadP||'')+'', dType:e.deadType||'',
+  cN:(e.cullN||'')+'', cW:(e.cullW||'')+'', cP:(e.cullP||'')+'', cType:e.cullType||'', cCust:(e.cullCust&&e.cullCust!=='-')?e.cullCust:'', cBill:(e.cullBill&&e.cullBill!=='-')?e.cullBill:'',
+  sN:(e.soldN||'')+'', sW:(e.soldW||'')+'', sP:(e.soldP||'')+'', sCust:(e.soldCust&&e.soldCust!=='-')?e.soldCust:'', sBill:(e.soldBill&&e.soldBill!=='-')?e.soldBill:'',
+  mN:(e.moveN||'')+'', mW:(e.moveW||'')+'', mDest:e.moveDest||'',
+  existing:true, rowId:e.rowId, moveN:e.moveN||0, moveInN:e.moveInN||0, _open:false }; } // เขียน rowId กลับเข้า entry ต้นฉบับ (บันทึกเก่า/seed ไม่มี rowId) → bfSubmit จับคู่อัปเดตได้จริง
 // โหลดบันทึกเดิมทั้งหมดของหลังที่เลือกมาแสดง (เรียงเก่า→ใหม่)
-function bfLoadExisting(){ const h=HOUSES.find(x=>x.code===bfHouse); bfRows=(h&&h.dailyLog||[]).slice().sort((a,b)=>(parseThaiDate(a.date)||0)-(parseThaiDate(b.date)||0)).map(bfRowFromEntry); bfLoadedFor=bfHouse; }
+function bfLoadExisting(){ const h=HOUSES.find(x=>x.code===bfHouse); bfRows=(h&&h.dailyLog||[]).slice().sort((a,b)=>(parseThaiDate(a.date)||0)-(parseThaiDate(b.date)||0)).map(bfRowFromEntry); bfFeedRows=[]; bfMedRows=[]; bfLoadedFor=bfHouse; }
+/* ── กรอกย้อนหลัง: รายการอาหาร + ยา/เวชภัณฑ์/อุปกรณ์ (ข้อมูลฝั่งหมอ — เซิร์ฟเวอร์ให้สิทธิ์ เจ้าของ/ผู้ดูแล/หมอ เขียน) ── */
+let bfFeedRows=[], bfMedRows=[];
+function bfVetCanWrite(){ return ROLE==='owner'||ROLE==='admin'||ROLE==='vet'; }
+function bfIsoNext(iso){ if(!iso) return todayISO(); const p=iso.split('-'); return expISO(new Date(+p[0],+p[1]-1,+p[2]+1)); }
+function bfFeedAdd(){ const d=bfFeedRows.length?bfIsoNext(bfFeedRows[bfFeedRows.length-1].date):(bfRows.length&&bfRows[0].date?bfRows[0].date:todayISO()); bfFeedRows.push({date:d,no:'',med:'',kg:'',src:'',bill:''}); renderBfFeed(); } // ＋ = วันถัดไปอัตโนมัติ (ไม่ซ้ำวันเดิม)
+function bfFeedDup(i){ const r=bfFeedRows[i]; if(!r) return; bfFeedRows.splice(i+1,0,{date:r.date,no:'',med:'',kg:'',src:'',bill:''}); renderBfFeed(); } // ⧉ = รายการซ้อนวันเดียวกัน (รับอาหาร 2 รอบ)
+function bfFeedDel(i){ bfFeedRows.splice(i,1); renderBfFeed(); }
+function bfFeedSet(i,f,v){ if(bfFeedRows[i]) bfFeedRows[i][f]=v; }
+function bfFeedSum(){ const el=document.getElementById('bfFeedSum'); if(el){ const filled=bfFeedRows.filter(r=>(parseFloat(r.kg)||0)>0); const kg=filled.reduce((s,r)=>s+(parseFloat(r.kg)||0),0); el.innerHTML=bfFeedRows.length?('กรอกแล้ว <b>'+fmt(filled.length)+'</b>/'+fmt(bfFeedRows.length)+' แถว · รวม <b>'+fmt(Math.round(kg))+'</b> กก. — แถวว่างระบบข้ามให้ · มูลค่าค่าอาหารคิดตอนปิดชุด (ใส่ราคา/กก. ที่หน้าปิดชุดเหมือนเดิม)'):''; } }
+function bfFeedTableHTML(){
+  const rows=bfFeedRows.map((r,i)=>`<tr>
+    <td><input type="date" class="cin" style="width:142px" value="${escA(r.date||'')}" max="${todayISO()}" onchange="bfFeedSet(${i},'date',this.value)"></td>
+    <td><input class="cin tl" style="width:86px" value="${escA(r.no||'')}" placeholder="เช่น 108" oninput="bfFeedSet(${i},'no',this.value)"></td>
+    <td><input class="cin tl" style="width:130px" value="${escA(r.med||'')}" placeholder="ยาผสม (ถ้ามี)" oninput="bfFeedSet(${i},'med',this.value)"></td>
+    <td class="num"><input type="number" class="cin" style="width:86px" value="${escA(r.kg||'')}" placeholder="0" oninput="bfFeedSet(${i},'kg',this.value);bfFeedSum()"></td>
+    <td><input class="cin tl" style="width:110px" value="${escA(r.src||'')}" placeholder="เช่น SJF/VCF" oninput="bfFeedSet(${i},'src',this.value)"></td>
+    <td><input class="cin tl" style="width:100px" value="${escA(r.bill||'')}" placeholder="เลขบิล" oninput="bfFeedSet(${i},'bill',this.value)"></td>
+    <td style="white-space:nowrap"><button class="btn ghost sm" style="padding:4px 8px" title="เพิ่มรายการซ้อนวันเดียวกัน (รับอาหาร 2 รอบ)" onclick="bfFeedDup(${i})">⧉</button><button class="btn ghost sm" style="color:var(--bad);padding:4px 8px" onclick="bfFeedDel(${i})">🗑</button></td></tr>`).join('');
+  return `${bfFeedRows.length?`<div style="overflow-x:auto"><table>
+      <thead><tr><th>วันที่รับ</th><th>เบอร์อาหาร</th><th>ผสมยา</th><th class="num">จำนวน (กก.)</th><th>แหล่ง/โรงงาน</th><th>เลขบิล</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`:'<div class="sub" style="padding:6px 2px">ยังไม่มีแถว — กด "＋ เพิ่มรายการอาหาร"</div>'}
+    <div id="bfFeedSum" class="sub" style="margin-top:8px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn ghost" onclick="bfFeedAdd()">＋ เพิ่มรายการอาหาร</button>
+      ${bfFeedRows.length?'<button class="btn" style="width:auto" onclick="bfFeedSubmit()">💾 บันทึกรายการอาหารย้อนหลัง</button>':''}
+    </div>`;
+}
+function renderBfFeed(){ const el=document.getElementById('bfFeedBox'); if(el){ el.innerHTML=bfFeedTableHTML(); bfFeedSum(); } }
+function bfFeedSubmit(){
+  if(!bfVetCanWrite()){ toast('🔒 รายการอาหารเป็นข้อมูลฝั่งหมอ — บันทึกได้ด้วยบัญชี เจ้าของ/ผู้ดูแล/หมอ'); return; }
+  const h=HOUSES.find(x=>x.code===bfHouse); if(!h){toast('เลือกหลังก่อน');return;}
+  const rows=bfFeedRows.filter(r=>r.date&&(parseFloat(r.kg)||0)>0);
+  if(!rows.length){ toast('กรอกอย่างน้อย 1 แถวให้ครบ (วันที่ + จำนวน กก.)'); return; }
+  h.vetLog=h.vetLog||[];
+  rows.forEach(r=>{ h.vetLog.push({type:'feed',date:isoToThaiDay(r.date),by:whoNow(),feedSrc:(r.src||'').trim(),feedNo:(r.no||'').trim(),feedMed:(r.med||'').trim(),feedKg:parseFloat(r.kg)||0,feedBill:(r.bill||'').trim(),_backfill:true}); });
+  h.vetLog.sort((a,b)=>(parseThaiDate(b.date)||0)-(parseThaiDate(a.date)||0));
+  logHouseEdit(h,[{label:'รับอาหารย้อนหลัง',from:'-',to:fmt(rows.length)+' รายการ'}],'กรอกรายการอาหารย้อนหลัง');
+  syncHouseVet(h); queueSave();
+  toast('✅ บันทึกอาหารย้อนหลัง '+fmt(rows.length)+' รายการ → หลัง '+h.code+' (รวมเข้าหน้าปิดชุด/ข้อมูลหมอแล้ว)');
+  bfFeedRows=[]; renderBfFeed();
+}
+function bfMedAdd(){ const d=bfMedRows.length?bfIsoNext(bfMedRows[bfMedRows.length-1].date):(bfRows.length&&bfRows[0].date?bfRows[0].date:todayISO()); const cats=Object.keys(REQ_DATA); bfMedRows.push({date:d,cat:cats[0]||'',name:'',qty:'',price:''}); renderBfMed(); }
+function bfMedDup(i){ const r=bfMedRows[i]; if(!r) return; bfMedRows.splice(i+1,0,{date:r.date,cat:r.cat,name:'',qty:'',price:''}); renderBfMed(); }
+function bfMedDel(i){ bfMedRows.splice(i,1); renderBfMed(); }
+function bfMedSet(i,f,v){ if(bfMedRows[i]) bfMedRows[i][f]=v; }
+function bfMedAuto(i){ const r=bfMedRows[i]; if(!r) return; if(!(parseFloat(r.price)>0)){ const p=catalogPriceOf(r.cat,(r.name||'').trim()); if(p>0) r.price=String(p); } renderBfMed(); }
+function bfMedTot(i){ const el=document.getElementById('bfm_tot_'+i), r=bfMedRows[i]; if(el&&r) el.textContent=fmt(Math.round((parseFloat(r.qty)||0)*(parseFloat(r.price)||0))); bfMedSum(); }
+function bfMedSum(){ const el=document.getElementById('bfMedSum'); if(el){ const t=bfMedRows.reduce((s,r)=>s+(parseFloat(r.qty)||0)*(parseFloat(r.price)||0),0); el.innerHTML=bfMedRows.length?('รวม <b>'+fmt(bfMedRows.length)+'</b> รายการ · มูลค่า <b>'+fmt(Math.round(t))+'</b> บาท — เข้าหมวดต้นทุนยาของหลังนี้ทันที'):''; } }
+function bfMedTableHTML(){
+  const cats=Object.keys(REQ_DATA);
+  const allNames=[...new Set(cats.flatMap(c=>(REQ_DATA[c]||[]).map(x=>x.name)).filter(Boolean))];
+  const rows=bfMedRows.map((r,i)=>`<tr>
+    <td><input type="date" class="cin" style="width:142px" value="${escA(r.date||'')}" max="${todayISO()}" onchange="bfMedSet(${i},'date',this.value)"></td>
+    <td><select class="cin tl" style="width:120px" onchange="bfMedSet(${i},'cat',this.value);bfMedAuto(${i})">${cats.map(c=>`<option${(r.cat||'')===c?' selected':''}>${escA(c)}</option>`).join('')}</select></td>
+    <td><input class="cin tl" style="width:160px" list="bfMedNames" value="${escA(r.name||'')}" placeholder="ชื่อยา/อุปกรณ์" onchange="bfMedSet(${i},'name',this.value);bfMedAuto(${i})"></td>
+    <td class="num"><input type="number" class="cin" style="width:72px" value="${escA(r.qty||'')}" placeholder="0" oninput="bfMedSet(${i},'qty',this.value);bfMedTot(${i})"></td>
+    <td class="num"><input type="number" class="cin" style="width:86px" value="${escA(r.price||'')}" placeholder="0" oninput="bfMedSet(${i},'price',this.value);bfMedTot(${i})"></td>
+    <td class="num"><b id="bfm_tot_${i}">${fmt(Math.round((parseFloat(r.qty)||0)*(parseFloat(r.price)||0)))}</b></td>
+    <td style="white-space:nowrap"><button class="btn ghost sm" style="padding:4px 8px" title="เพิ่มรายการซ้อนวันเดียวกัน" onclick="bfMedDup(${i})">⧉</button><button class="btn ghost sm" style="color:var(--bad);padding:4px 8px" onclick="bfMedDel(${i})">🗑</button></td></tr>`).join('');
+  return `<datalist id="bfMedNames">${allNames.map(n=>`<option>${escA(n)}</option>`).join('')}</datalist>
+    ${bfMedRows.length?`<div style="overflow-x:auto"><table>
+      <thead><tr><th>วันที่เบิก/ใช้</th><th>หมวด</th><th>ชื่อรายการ</th><th class="num">จำนวน</th><th class="num">ราคา/หน่วย</th><th class="num">รวม (บาท)</th><th></th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`:'<div class="sub" style="padding:6px 2px">ยังไม่มีแถว — กด "＋ เพิ่มรายการยา/อุปกรณ์"</div>'}
+    <div id="bfMedSum" class="sub" style="margin-top:8px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn ghost" onclick="bfMedAdd()">＋ เพิ่มรายการยา/อุปกรณ์</button>
+      ${bfMedRows.length?'<button class="btn" style="width:auto" onclick="bfMedSubmit()">💾 บันทึกยา/อุปกรณ์ย้อนหลัง</button>':''}
+    </div>`;
+}
+function renderBfMed(){ const el=document.getElementById('bfMedBox'); if(el){ el.innerHTML=bfMedTableHTML(); bfMedSum(); } }
+function bfMedSubmit(){
+  if(!bfVetCanWrite()){ toast('🔒 รายการยาเป็นข้อมูลฝั่งหมอ — บันทึกได้ด้วยบัญชี เจ้าของ/ผู้ดูแล/หมอ'); return; }
+  const h=HOUSES.find(x=>x.code===bfHouse); if(!h){toast('เลือกหลังก่อน');return;}
+  const rows=bfMedRows.filter(r=>r.date&&(r.name||'').trim()&&(parseFloat(r.qty)||0)>0);
+  if(!rows.length){ toast('กรอกอย่างน้อย 1 แถวให้ครบ (วันที่ + ชื่อ + จำนวน)'); return; }
+  h.meds=h.meds||[];
+  rows.forEach(r=>{ const qty=parseFloat(r.qty)||0, price=parseFloat(r.price)||0;
+    h.meds.push({date:isoToThaiDay(r.date),cat:r.cat||'',name:r.name.trim(),dose:'',note:'กรอกย้อนหลัง',qty,price,total:Math.round(qty*price),vet:h.vet||whoNow(),_backfill:true}); });
+  h.meds.sort((a,b)=>(parseThaiDate(b.date)||0)-(parseThaiDate(a.date)||0));
+  logHouseEdit(h,[{label:'ยา/อุปกรณ์ย้อนหลัง',from:'-',to:fmt(rows.length)+' รายการ'}],'กรอกยา/อุปกรณ์ย้อนหลัง (ไม่ตัดสต็อกปัจจุบัน)');
+  syncHouseVet(h); queueSave();
+  toast('✅ บันทึกยา/อุปกรณ์ย้อนหลัง '+fmt(rows.length)+' รายการ → เข้าต้นทุนยาหลัง '+h.code);
+  bfMedRows=[]; renderBfMed();
+}
 function bfHousesForUser(){ return myHouses().slice().sort(byCode); }
 function bfEnsureRows(){ if(!Array.isArray(bfRows)) bfRows=[]; }
 function bfNextISO(){ bfEnsureRows();
   if(bfRows.length){ const last=bfRows[bfRows.length-1].date; if(last){ const p=last.split('-'); return expISO(new Date(+p[0],+p[1]-1,+p[2]+1)); } }
   return todayISO();
 }
-function bfAddRow(){ bfEnsureRows(); bfRows.push({date:bfNextISO(),dead:'',cN:'',cW:'',cP:'',sN:'',sW:'',sP:''}); renderBackfillGrid(); }
+function bfEmptyRow(dateISO){ return {date:dateISO||'',dead:'',dW:'',dP:'',dType:'',cN:'',cW:'',cP:'',cType:'',cCust:'',cBill:'',sN:'',sW:'',sP:'',sCust:'',sBill:'',mN:'',mW:'',mDest:'',_open:false}; }
+function bfAddRow(){ bfEnsureRows(); bfRows.push(bfEmptyRow(bfNextISO())); renderBackfillGrid(); }
+function bfDupRow(i){ bfEnsureRows(); const r=bfRows[i]; if(!r) return; bfRows.splice(i+1,0,bfEmptyRow(r.date)); renderBackfillGrid(); toast('⧉ เพิ่มรายการที่ 2 ของวัน '+(r.date||'')+' — แยกล็อต/ราคาได้เลย'); }
+function bfToggle(i){ bfEnsureRows(); if(bfRows[i]) bfRows[i]._open=!bfRows[i]._open; renderBackfillGrid(); }
 function bfDelRow(i){ bfEnsureRows(); bfRows.splice(i,1); renderBackfillGrid(); }
 function bfClear(){ bfRows=[]; bfLoadedFor=bfHouse; renderBackfillGrid(); }   // ล้างตาราง (ไม่ลบข้อมูลจริง) · กันโหลดเดิมกลับมาทันที
 function bfSet(i,f,v){ bfEnsureRows(); if(bfRows[i]) bfRows[i][f]=v; }
@@ -4145,47 +4237,64 @@ function bfGenDays(){
   if(end<cur){toast('วันที่สิ้นสุดต้องไม่ก่อนวันเริ่ม');return;}
   const days=Math.round((end-cur)/86400000)+1;
   if(days>180){toast('ช่วงเกิน 180 วัน — แบ่งช่วงย่อยก่อน');return;}
-  // ดึงบันทึกเดิมมาพรีฟิลตามวันที่ (วันไหนมีอยู่แล้ว → โชว์ค่าเดิม · วันไหนยังไม่มี → ช่องว่าง)
+  // ดึงบันทึกเดิมมาพรีฟิลตามวันที่ (วันไหนมีหลายรายการ → โชว์ครบทุกรายการ · วันไหนยังไม่มี → ช่องว่าง)
   const h=HOUSES.find(x=>x.code===bfHouse), existByISO={};
-  (h&&h.dailyLog||[]).forEach(e=>{ const iso=thaiDayToISO(e.date); if(iso) existByISO[iso]=e; });
+  (h&&h.dailyLog||[]).forEach(e=>{ const iso=thaiDayToISO(e.date); if(iso) (existByISO[iso]=existByISO[iso]||[]).push(e); });
   const rows=[], used=new Set();
-  for(let k=0;k<days;k++){ const iso=expISO(new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+k)); used.add(iso); rows.push(existByISO[iso]?bfRowFromEntry(existByISO[iso]):{date:iso,dead:'',cN:'',cW:'',cP:'',sN:'',sW:'',sP:''}); }
-  Object.keys(existByISO).forEach(iso=>{ if(!used.has(iso)) rows.push(bfRowFromEntry(existByISO[iso])); }); // คงบันทึกเดิมที่อยู่นอกช่วงไว้ด้วย (ไม่ซ่อน)
+  for(let k=0;k<days;k++){ const iso=expISO(new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+k)); used.add(iso);
+    if(existByISO[iso]) existByISO[iso].forEach(e=>rows.push(bfRowFromEntry(e)));
+    else rows.push(bfEmptyRow(iso)); }
+  Object.keys(existByISO).forEach(iso=>{ if(!used.has(iso)) existByISO[iso].forEach(e=>{ const r=bfRowFromEntry(e); r._outside=true; rows.push(r); }); }); // คงบันทึกเดิมที่อยู่นอกช่วงไว้ด้วย (ไม่ซ่อน · ติดป้ายให้รู้ว่าไม่ใช่ช่วงที่เลือก)
   rows.sort((a,b)=>new Date(a.date||0)-new Date(b.date||0));
   bfRows=rows; bfLoadedFor=bfHouse;
-  const exN=rows.filter(r=>r.existing).length;
-  renderBackfillGrid(); toast('สร้าง '+days+' วัน'+(exN?' · ดึงบันทึกเดิม '+exN+' วันมาแสดง':'')+' — กรอกเพิ่มได้เลย');
+  // สร้างแถว "รายการอาหาร" ตามช่วงเดียวกัน — วันไหนไม่มีรับอาหาร เว้นว่างไว้ ระบบข้ามให้ตอนบันทึก
+  bfFeedRows=[]; for(let k=0;k<days;k++){ bfFeedRows.push({date:expISO(new Date(cur.getFullYear(),cur.getMonth(),cur.getDate()+k)),no:'',med:'',kg:'',src:'',bill:''}); }
+  renderBfFeed();
+  const exN=rows.filter(r=>r.existing).length, outN=rows.filter(r=>r._outside).length;
+  renderBackfillGrid(); toast('สร้าง '+days+' วันตามช่วง ('+s+' → '+expISO(end)+') ทั้งตารางรายวันและตารางอาหาร'+(exN?' · บันทึกเดิม '+exN+' รายการ':'')+(outN?' · 📌 มีบันทึกเดิมนอกช่วง '+outN+' แถวแสดงรวมไว้กันตกหล่น':''));
 }
 function bfReceived(){ const el=$("#bf_recv"); if(el) return parseInt(el.value)||0; const h=HOUSES.find(x=>x.code===bfHouse); return (h&&h.received)||0; }
 function bfPreview(){ bfEnsureRows();
   const recv=bfReceived();
   const order=bfRows.map((r,i)=>({r,i})).filter(o=>o.r.date).sort((a,b)=>new Date(a.r.date)-new Date(b.r.date));
   const moveInSum=bfRows.reduce((s,r)=>s+(parseFloat(r.moveInN)||0),0);  // หมูย้ายเข้ารวมในแถวเดิม (received รวมไว้แล้ว)
-  let run=recv-moveInSum; const rem={}; let firstNeg=-1, totDead=0,totCull=0,totSold=0;   // เริ่มจากยอดตั้งต้นก่อนย้ายเข้า แล้วบวกย้ายเข้ารายวัน ให้ตรงกับการคำนวณจริง
-  order.forEach(o=>{ const r=o.r; run+=(parseFloat(r.moveInN)||0)-(bfNum(r.dead)+bfNum(r.cN)+bfNum(r.sN)); rem[o.i]=run; totDead+=bfNum(r.dead);totCull+=bfNum(r.cN);totSold+=bfNum(r.sN); if(run<0&&firstNeg<0)firstNeg=o.i; });
-  return {rem,firstNeg,final:run,recv,totDead,totCull,totSold,rows:order.length};
+  let run=recv-moveInSum; const rem={}; let firstNeg=-1, totDead=0,totCull=0,totSold=0,totMove=0,totVal=0;   // เริ่มจากยอดตั้งต้นก่อนย้ายเข้า แล้วบวกย้ายเข้ารายวัน ให้ตรงกับการคำนวณจริง
+  order.forEach(o=>{ const r=o.r;
+    const mv=r.existing?(parseFloat(r.moveN)||0):bfNum(r.mN); // แถวเดิม: ย้ายออกล็อกไว้ · แถวใหม่: จากช่อง มN
+    run+=(parseFloat(r.moveInN)||0)-(bfNum(r.dead)+bfNum(r.cN)+bfNum(r.sN)+mv); rem[o.i]=run;
+    totDead+=bfNum(r.dead); totCull+=bfNum(r.cN); totSold+=bfNum(r.sN); totMove+=mv;
+    totVal+=bfNum(r.dW)*bfNum(r.dP)+bfNum(r.cW)*bfNum(r.cP)+bfNum(r.sW)*bfNum(r.sP);
+    if(run<0&&firstNeg<0)firstNeg=o.i; });
+  return {rem,firstNeg,final:run,recv,totDead,totCull,totSold,totMove,totVal,rows:order.length};
 }
 function bfRecalcPreview(){ const p=bfPreview();
   bfRows.forEach((r,i)=>{ const el=document.getElementById('bf_rem_'+i); if(el){ const val=p.rem[i]; el.innerHTML=(val==null)?'<span class="sub">-</span>':('<b style="color:'+(val<0?'#c0392b':'#1e7e4f')+'">'+fmt(val)+'</b>'); } });
   const sm=document.getElementById('bf_summary');
-  if(sm) sm.innerHTML = p.rows? ('ตั้งต้น <b>'+fmt(p.recv)+'</b> ตัว · รวมตาย '+fmt(p.totDead)+' · คัด '+fmt(p.totCull)+' · ขาย '+fmt(p.totSold)+' → คงเหลือสุดท้าย <b style="color:'+(p.final<0?'#c0392b':'#1e7e4f')+'">'+fmt(p.final)+'</b> ตัว'+(p.firstNeg>=0?' · <b style="color:#c0392b">⚠️ มีบางวันคงเหลือติดลบ — ตรวจตัวเลข</b>':'')) : '<span class="sub">ยังไม่มีข้อมูล — สร้างแถวแล้วกรอกตัวเลข</span>';
+  if(sm) sm.innerHTML = p.rows? ('ตั้งต้น <b>'+fmt(p.recv)+'</b> ตัว · รวมตาย '+fmt(p.totDead)+' · คัด '+fmt(p.totCull)+' · ขาย '+fmt(p.totSold)+(p.totMove?' · ย้ายออก '+fmt(p.totMove):'')+' → คงเหลือสุดท้าย <b style="color:'+(p.final<0?'#c0392b':'#1e7e4f')+'">'+fmt(p.final)+'</b> ตัว'+(p.totVal?' · 💰 มูลค่ารวม (ซาก+คัด+ขาย) <b>'+fmt(Math.round(p.totVal))+'</b> บาท':'')+(p.firstNeg>=0?' · <b style="color:#c0392b">⚠️ มีบางวันคงเหลือติดลบ — ตรวจตัวเลข</b>':'')) : '<span class="sub">ยังไม่มีข้อมูล — สร้างแถวแล้วกรอกตัวเลข</span>';
 }
 function bfBuildEntry(h,r,dThai){
-  const deadN=bfNum(r.dead), cullN=bfNum(r.cN), cullW=bfNum(r.cW), cullP=bfNum(r.cP), soldN=bfNum(r.sN), soldW=bfNum(r.sW), soldP=bfNum(r.sP);
+  const deadN=bfNum(r.dead), deadW=bfNum(r.dW), deadP=bfNum(r.dP),
+    cullN=bfNum(r.cN), cullW=bfNum(r.cW), cullP=bfNum(r.cP),
+    soldN=bfNum(r.sN), soldW=bfNum(r.sW), soldP=bfNum(r.sP),
+    moveN=bfNum(r.mN), moveW=bfNum(r.mW);
   return { rowId:'bf'+Date.now()+'_'+Math.round(Math.random()*1e6), date:dThai, by:(CURRENT_USER&&CURRENT_USER.name)||'เสมียน', remain:0,
-    deadType:deadN?'ตาย':'', deadN, deadW:0, deadP:0, deadCust:'-', deadBill:'-',
-    cullType:cullN?'คัดขาย':'', cullN, cullW, cullP, cullCust:'-', cullBill:'-',
-    soldN, soldW, soldP, soldCust:'-', soldBill:'-',
-    moveN:0, moveW:0, moveDest:'', moveNote:'',
-    dead:deadN, outN:soldN+cullN, avg:soldN?+(soldW/soldN).toFixed(1):0, value:(soldW*soldP)+(cullW*cullP),
+    deadType:deadN?((r.dType||'').trim()||'ตาย'):'', deadN, deadW, deadP, deadCust:'-', deadBill:'-',
+    cullType:cullN?((r.cType||'').trim()||'คัดขาย'):'', cullN, cullW, cullP, cullCust:(r.cCust||'').trim()||'-', cullBill:(r.cBill||'').trim()||'-',
+    soldN, soldW, soldP, soldCust:(r.sCust||'').trim()||'-', soldBill:(r.sBill||'').trim()||'-',
+    moveN, moveW, moveDest:moveN?(r.mDest||''):'', moveNote:moveN?'ย้ายออก (กรอกย้อนหลัง)':'',
+    dead:deadN, outN:soldN+cullN, avg:soldN?+(soldW/soldN).toFixed(1):0, value:(soldW*soldP)+(cullW*cullP)+(deadW*deadP),
     cust:'-', bill:'-', _backfill:true };
 }
-function bfApplyRowToEntry(c,r){ // เขียนค่าจากแถว → entry (เฉพาะช่อง ตาย/คัด/ขาย · คงช่องอื่น เช่น ย้ายเข้า/ออก ไว้)
-  const deadN=bfNum(r.dead), cullN=bfNum(r.cN), cullW=bfNum(r.cW), cullP=bfNum(r.cP), soldN=bfNum(r.sN), soldW=bfNum(r.sW), soldP=bfNum(r.sP);
-  c.deadN=deadN; c.deadType=deadN?(c.deadType||'ตาย'):''; c.dead=deadN;
-  c.cullN=cullN; c.cullType=cullN?(c.cullType||'คัดขาย'):''; c.cullW=cullW; c.cullP=cullP;
+function bfApplyRowToEntry(c,r){ // เขียนค่าจากแถว → entry (ตาย/คัด/ขาย + ประเภท/ลูกค้า/บิล · คงการย้ายเข้า/ออกเดิมไว้)
+  const deadN=bfNum(r.dead), deadW=bfNum(r.dW), deadP=bfNum(r.dP),
+    cullN=bfNum(r.cN), cullW=bfNum(r.cW), cullP=bfNum(r.cP),
+    soldN=bfNum(r.sN), soldW=bfNum(r.sW), soldP=bfNum(r.sP);
+  c.deadN=deadN; c.deadType=deadN?((r.dType||'').trim()||c.deadType||'ตาย'):''; c.deadW=deadW; c.deadP=deadP; c.dead=deadN;
+  c.cullN=cullN; c.cullType=cullN?((r.cType||'').trim()||c.cullType||'คัดขาย'):''; c.cullW=cullW; c.cullP=cullP;
+  if((r.cCust||'').trim()) c.cullCust=r.cCust.trim(); if((r.cBill||'').trim()) c.cullBill=r.cBill.trim();
   c.soldN=soldN; c.soldW=soldW; c.soldP=soldP;
-  c.outN=soldN+cullN; c.value=(soldW*soldP)+(cullW*cullP); c.avg=soldN?+(soldW/soldN).toFixed(1):0;
+  if((r.sCust||'').trim()) c.soldCust=r.sCust.trim(); if((r.sBill||'').trim()) c.soldBill=r.sBill.trim();
+  c.outN=soldN+cullN; c.value=(soldW*soldP)+(cullW*cullP)+(deadW*deadP); c.avg=soldN?+(soldW/soldN).toFixed(1):0;
   return c;
 }
 function bfSubmit(){
@@ -4193,16 +4302,13 @@ function bfSubmit(){
   const h=HOUSES.find(x=>x.code===bfHouse); if(!h){toast('เลือกหลังก่อน');return;}
   const received=bfReceived();
   // แถวเดิม (existing) → อัปเดตในที่ · แถวใหม่ที่มีตัวเลข → เพิ่ม
-  const updByRowId={}; const newEntries=[]; let dup=0, updated=0;
-  const existDates=new Set((h.dailyLog||[]).map(e=>e.date));
+  // อนุญาตหลายรายการในวันเดียวกัน (แยกล็อต/ราคา เช่น ตาย 2 ราคา · ขาย 3 เจ้า) — ระบบรวมยอดต่อวันให้อัตโนมัติทุกหน้า
+  const updByRowId={}; const newEntries=[]; let updated=0;
   bfRows.forEach(r=>{
-    const hasData=bfNum(r.dead)||bfNum(r.cN)||bfNum(r.sN)||bfNum(r.cW)||bfNum(r.sW);
+    const hasData=bfNum(r.dead)||bfNum(r.cN)||bfNum(r.sN)||bfNum(r.cW)||bfNum(r.sW)||bfNum(r.dW)||bfNum(r.mN);
     if(r.existing && r.rowId){ updByRowId[r.rowId]=r; updated++; return; }
     if(!r.date || !hasData) return;
-    const dThai=isoToThaiDay(r.date);
-    if(existDates.has(dThai)){ dup++; return; }   // กันวันซ้ำ — รวมวันที่ของแถวใหม่ที่รับไปแล้วในรอบนี้ด้วย (กันแถวใหม่ 2 แถววันเดียวกันนับซ้ำ)
-    existDates.add(dThai);
-    newEntries.push(bfBuildEntry(h,r,dThai));
+    newEntries.push(bfBuildEntry(h,r,isoToThaiDay(r.date)));
   });
   if(!newEntries.length && !updated){ toast('ยังไม่มีข้อมูลให้บันทึก (กรอกอย่างน้อย 1 วันที่มีตัวเลข)'); return; }
   // ประกอบ log ผู้สมัคร (candidate) — ยังไม่แตะของจริงจนกว่าจะผ่านการตรวจ
@@ -4219,29 +4325,55 @@ function bfSubmit(){
   const note=[newEntries.length?('เพิ่ม '+newEntries.length+' วัน'):'',updated?('แก้ '+updated+' วัน'):''].filter(Boolean).join(' · ');
   logHouseEdit(h,[{label:'กรอกย้อนหลัง',from:'-',to:note}],'กรอกข้อมูลย้อนหลัง · '+note);
   syncHouseClerk(h);
-  toast('✅ บันทึกย้อนหลัง — '+note+(dup?' · ข้าม '+dup+' วันซ้ำ':'')+' → หลัง '+h.code+' · คงเหลือ '+fmt(h.pigs)+' ตัว');
+  toast('✅ บันทึกย้อนหลัง — '+note+' → หลัง '+h.code+' · คงเหลือ '+fmt(h.pigs)+' ตัว');
   bfLoadedFor=null; renderBackfill();   // โหลดสถานะล่าสุดกลับมาแสดง (รวมที่เพิ่งบันทึก)
 }
 function bfGridTableHTML(){ bfEnsureRows();
   if(!bfRows.length) return '<div class="sub" style="padding:12px 2px">ยังไม่มีแถว — กด "📅 สร้างแถวตามช่วงวันที่" หรือ "＋ เพิ่มวัน"</div>';
   const p=bfPreview();
   const inp=(i,f,w,recalc)=>`<input type="number" class="cin" style="width:${w}px" value="${bfRows[i][f]||''}" placeholder="0" oninput="bfSet(${i},'${f}',this.value)${recalc?';bfRecalcPreview()':''}">`;
+  const txt=(i,f,w,ph,list)=>`<input class="cin tl" style="width:${w}px" value="${escA(bfRows[i][f]||'')}" placeholder="${ph}"${list?` list="${list}"`:''} oninput="bfSet(${i},'${f}',this.value)">`;
+  const sel=(i,f,optsArr,w)=>`<select class="cin tl" style="width:${w}px" onchange="bfSet(${i},'${f}',this.value)">${['',...optsArr.filter(o=>o&&o.trim())].map(o=>`<option value="${escA(o)}"${(bfRows[i][f]||'')===o?' selected':''}>${o?escA(o):'— อัตโนมัติ —'}</option>`).join('')}</select>`;
   const exN=bfRows.filter(r=>r.existing).length;
-  return `${exN?'<div class="sub" style="margin:0 0 8px"><span style="background:#e6f4ea;color:#1e7e4f;padding:1px 7px;border-radius:6px;font-weight:700">✔ บันทึกแล้ว</span> = วันที่มีข้อมูลเดิมอยู่แล้ว ('+exN+' วัน) — แก้ตัวเลขในแถวได้ ระบบจะอัปเดตให้</div>':''}<div style="overflow-x:auto"><table>
-    <thead><tr><th>วันที่</th><th class="num">ตาย</th><th class="num">คัด(ตัว)</th><th class="num">คัด นน.(กก.)</th><th class="num">คัด ฿/กก.</th><th class="num">ขาย(ตัว)</th><th class="num">ขาย นน.(กก.)</th><th class="num">ขาย ฿/กก.</th><th class="num">คงเหลือ</th><th></th></tr></thead>
-    <tbody>${bfRows.map((r,i)=>{const ex=r.existing;return `<tr${ex?' style="background:#f3f8f4"':''}>
-      <td style="white-space:nowrap">${ex?'<div style="font-size:10px;color:#1e7e4f;font-weight:700;margin-bottom:1px">✔ บันทึกแล้ว</div>':''}<input type="date" class="cin" style="width:150px${ex?';background:#eef3ef':''}" value="${r.date||''}" ${ex?'disabled title="วันที่มีบันทึกแล้ว — แก้วันที่ไม่ได้"':`onchange="bfSet(${i},'date',this.value);bfRecalcPreview()"`}></td>
-      <td class="num">${inp(i,'dead',58,true)}</td>
-      <td class="num">${inp(i,'cN',58,true)}</td>
-      <td class="num">${inp(i,'cW',66,false)}</td>
-      <td class="num">${inp(i,'cP',58,false)}</td>
-      <td class="num">${inp(i,'sN',58,true)}</td>
-      <td class="num">${inp(i,'sW',66,false)}</td>
-      <td class="num">${inp(i,'sP',58,false)}</td>
+  const otherCodes=HOUSES.filter(x=>x.code&&x.code!==bfHouse).slice().sort(byCode).map(x=>x.code);
+  const hasDetail=r=>!!(r.dType||r.cType||r.cCust||r.cBill||r.sCust||r.sBill||bfNum(r.mN)||bfNum(r.dW));
+  return `${exN?'<div class="sub" style="margin:0 0 8px"><span style="background:#e6f4ea;color:#1e7e4f;padding:1px 7px;border-radius:6px;font-weight:700">✔ บันทึกแล้ว</span> = วันที่มีข้อมูลเดิมอยู่แล้ว ('+exN+' วัน) — แก้ตัวเลขในแถวได้ ระบบจะอัปเดตให้</div>':''}
+  <datalist id="bfCustList">${CUSTOMERS.filter(c=>c&&c.trim()).map(c=>`<option>${escA(c)}</option>`).join('')}</datalist>
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th></th><th>วันที่</th><th class="num">ตาย</th><th class="num">ตาย นน.</th><th class="num">฿ซาก/กก.</th><th class="num">คัด(ตัว)</th><th class="num">คัด นน.</th><th class="num">คัด ฿/กก.</th><th class="num">ขาย(ตัว)</th><th class="num">ขาย นน.</th><th class="num">ขาย ฿/กก.</th><th class="num">คงเหลือ</th><th></th></tr></thead>
+    <tbody>${bfRows.map((r,i)=>{const ex=r.existing;
+      const seq=(i>0&&r.date&&bfRows[i-1].date===r.date); // วันเดียวกับแถวก่อนหน้า = รายการซ้อน (แยกล็อต/ราคา)
+      let html=`<tr${ex?` style="background:#f3f8f4${r._outside?';opacity:.72':''}"`:''}>
+      <td><button class="btn ghost sm" style="padding:4px 8px${hasDetail(r)?';color:var(--brand);font-weight:800':''}" title="รายละเอียด: ประเภท/ลูกค้า/บิล/ย้ายออก" onclick="bfToggle(${i})">${r._open?'▴':'▾'}</button></td>
+      <td style="white-space:nowrap">${ex?'<div style="font-size:10px;color:#1e7e4f;font-weight:700;margin-bottom:1px">✔ บันทึกแล้ว</div>':''}${r._outside?'<div style="font-size:10px;color:#b7791f;font-weight:700;margin-bottom:1px">📌 บันทึกเดิม นอกช่วงที่เลือก</div>':''}${(r.moveInN||0)>0?'<div style="font-size:10px;color:var(--info);font-weight:700;margin-bottom:1px">🔄 ย้ายเข้า/รับเข้า +'+fmt(r.moveInN)+' ตัว (จากระบบ)</div>':''}${seq?'<div style="font-size:10px;color:var(--brand);font-weight:700;margin-bottom:1px">└ รายการซ้อนวันเดียวกัน</div>':''}<input type="date" class="cin" style="width:148px${ex?';background:#eef3ef':''}" value="${r.date||''}" ${ex?'disabled title="วันที่มีบันทึกแล้ว — แก้วันที่ไม่ได้"':`onchange="bfSet(${i},'date',this.value);bfRecalcPreview()"`}></td>
+      <td class="num">${inp(i,'dead',54,true)}</td>
+      <td class="num">${inp(i,'dW',62,true)}</td>
+      <td class="num">${inp(i,'dP',56,true)}</td>
+      <td class="num">${inp(i,'cN',54,true)}</td>
+      <td class="num">${inp(i,'cW',62,false)}</td>
+      <td class="num">${inp(i,'cP',56,false)}</td>
+      <td class="num">${inp(i,'sN',54,true)}</td>
+      <td class="num">${inp(i,'sW',62,false)}</td>
+      <td class="num">${inp(i,'sP',56,false)}</td>
       <td class="num" id="bf_rem_${i}">${p.rem[i]!=null?('<b style="color:'+(p.rem[i]<0?'#c0392b':'#1e7e4f')+'">'+fmt(p.rem[i])+'</b>'):'<span class="sub">-</span>'}</td>
-      <td>${ex?'':`<button class="btn ghost sm" style="color:var(--bad)" onclick="bfDelRow(${i})">🗑</button>`}</td>
-    </tr>`;}).join('')}</tbody>
-  </table></div>`;
+      <td style="white-space:nowrap"><button class="btn ghost sm" style="padding:4px 8px" title="เพิ่มรายการซ้อนวันเดียวกัน — แยกล็อต/ราคา (เช่น ตาย 2 ราคา · ขาย 3 เจ้า)" onclick="bfDupRow(${i})">⧉</button>${ex?'':`<button class="btn ghost sm" style="color:var(--bad);padding:4px 8px" onclick="bfDelRow(${i})">🗑</button>`}</td>
+    </tr>`;
+      if(r._open){ html+=`<tr${ex?' style="background:#f3f8f4"':''}><td></td><td colspan="12" style="padding:8px 10px 12px">
+        <div style="display:flex;gap:8px 14px;flex-wrap:wrap;align-items:flex-end">
+          <div><div class="sub" style="margin:0 0 3px;font-size:11.5px">ประเภทการตาย</div>${sel(i,'dType',DEATH_TYPES,130)}</div>
+          <div><div class="sub" style="margin:0 0 3px;font-size:11.5px">ประเภทคัดขาย</div>${sel(i,'cType',CULL_TYPES,130)}</div>
+          <div><div class="sub" style="margin:0 0 3px;font-size:11.5px">ลูกค้า (คัด)</div>${txt(i,'cCust',140,'ชื่อลูกค้า','bfCustList')}</div>
+          <div><div class="sub" style="margin:0 0 3px;font-size:11.5px">บิล (คัด)</div>${txt(i,'cBill',100,'เลขบิล')}</div>
+          <div><div class="sub" style="margin:0 0 3px;font-size:11.5px">ลูกค้า (ขาย)</div>${txt(i,'sCust',140,'ชื่อลูกค้า','bfCustList')}</div>
+          <div><div class="sub" style="margin:0 0 3px;font-size:11.5px">บิล (ขาย)</div>${txt(i,'sBill',100,'เลขบิล')}</div>
+          ${ex?`<div class="sub" style="margin:0;font-size:11.5px">🚚 ย้ายออกของวันเดิม: ${r.moveN?fmt(r.moveN)+' ตัว → '+escA(r.mDest||'-')+' (แก้ผ่านหน้าบันทึกรายวัน)':'—'}</div>`
+          :`<div><div class="sub" style="margin:0 0 3px;font-size:11.5px">🚚 ย้ายออก (ตัว)</div>${inp(i,'mN',60,true)}</div>
+          <div><div class="sub" style="margin:0 0 3px;font-size:11.5px">นน.ย้าย (กก.)</div>${inp(i,'mW',66,false)}</div>
+          <div><div class="sub" style="margin:0 0 3px;font-size:11.5px">ไปหลัง</div><select class="cin tl" style="width:110px" onchange="bfSet(${i},'mDest',this.value)"><option value="">— เลือก —</option>${otherCodes.map(c=>`<option${(r.mDest||'')===c?' selected':''}>${escA(c)}</option>`).join('')}</select></div>`}
+        </div></td></tr>`; }
+      return html;}).join('')}</tbody>
+  </table></div>
+  <div class="sub" style="margin-top:6px">▾ = กรอกรายละเอียดเพิ่ม (ประเภทตาย/คัด · ลูกค้า · เลขบิล · ย้ายออก) — เว้นว่างได้ ระบบใส่ค่ามาตรฐานให้ · <b>⧉ = เพิ่มรายการซ้อนวันเดียวกัน</b> เช่น ตาย 2 ล็อตคนละราคาซาก หรือขาย 3 เจ้าคนละราคา/น้ำหนัก (ระบบรวมยอดของวันให้อัตโนมัติ) · การ "ย้ายออกย้อนหลัง" บันทึกเป็นประวัติของหลังนี้ ให้ไปลงยอด "ย้ายเข้า/รับเข้าเพิ่ม" ที่หลังปลายทางเองด้วย</div>`;
 }
 function renderBackfillGrid(){ const el=$("#bfGrid"); if(el){ el.innerHTML=bfGridTableHTML(); bfRecalcPreview(); } }
 function renderBackfill(){
@@ -4278,6 +4410,16 @@ function renderBackfill(){
       <div id="bf_summary" class="sub" style="margin-top:10px"></div>
       <button class="btn" style="margin-top:12px" onclick="bfSubmit()">💾 บันทึกย้อนหลังทั้งหมด</button>
       <div class="sub" style="margin-top:8px">💡 "คงเหลือ" อัปเดตสดตามที่กรอก — ถ้าวันไหนติดลบ (แดง) แปลว่ายอด ตาย/คัด/ขาย เกินจำนวนหมูที่มี ณ วันนั้น</div>
+    </div>
+    <div class="card">
+      <h3>③ 🌾 รายการอาหาร (ย้อนหลัง) <span class="more">เข้าหน้าปิดชุด/ข้อมูลหมออัตโนมัติ</span></h3>
+      ${bfVetCanWrite()?'':'<div class="banner info">🔒 <div>หมวดอาหารและยาเป็น<b>ข้อมูลฝั่งหมอ</b> — บันทึกได้ด้วยบัญชี <b>เจ้าของ / ผู้ดูแล / หมอ</b> (บัญชีเสมียนกรอกหมวดนี้ไม่ได้ตามสิทธิ์ระบบ)</div></div>'}
+      <div id="bfFeedBox">${bfFeedTableHTML()}</div>
+    </div>
+    <div class="card">
+      <h3>④ 💊 ยา / เวชภัณฑ์ / อุปกรณ์ (ย้อนหลัง) <span class="more">เข้าต้นทุนยาของหลังทันที</span></h3>
+      <div class="banner info">ℹ️ <div>รายการย้อนหลัง<b>ไม่ตัดสต็อกคลังปัจจุบัน</b> (ของถูกใช้ไปแล้วในอดีต) · ราคา/หน่วยเติมอัตโนมัติจากแคทาล็อกถ้ามี — แก้เป็นราคาจริง ณ ตอนนั้นได้</div></div>
+      <div id="bfMedBox">${bfMedTableHTML()}</div>
     </div>`}`;
   setTimeout(bfRecalcPreview,30);
 }
