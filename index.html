@@ -151,6 +151,20 @@
   .sbi .sbt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .sbi .bd{margin-left:auto;background:var(--warn);color:#fff;font-size:11px;font-weight:800;border-radius:999px;padding:1px 8px;flex:0 0 auto}
   .sbsec{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.5px;margin:8px 6px 3px}
+  /* ===== ฟอร์มลงข้อมูลแบบกระชับ: มือถือ 2 คอลัมน์ (เท่าเดิม) · จอคอมเรียงแถวนอนแบบตาราง ===== */
+  .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+  .fgrid .frow{margin-bottom:0}
+  .fgrid .fspan{grid-column:1/-1}
+  @media(min-width:1100px){
+    .fgrid{grid-template-columns:repeat(auto-fit,minmax(148px,1fr))}
+    .fgrid .fspan{grid-column:auto}
+    .content .frow{margin-bottom:10px}
+    .content .frow label{margin-bottom:3px;font-size:12.5px}
+    .content .cin{padding:8px 10px;font-size:14px}
+    .content .grid2{gap:10px}
+    .content .card{padding:14px 16px;margin-bottom:12px}
+    .content .card h3{margin-top:0}
+  }
   .seclab::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
   @keyframes rowin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   .mrow{animation:rowin .32s ease both}
@@ -325,6 +339,44 @@
   /* กราฟแท่งในแอป (วาดเอง ไม่ใช้ไลบรารีนอก) */
   @keyframes barGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
   .chartbar{height:100%;border-radius:8px;transform-origin:left;animation:barGrow .7s cubic-bezier(.2,.8,.2,1)}
+
+  /* ===== 🌙 ธีมมืด โทนกรมท่า-มินต์ (สลับได้จากปุ่มบนแถบบน · จำค่าต่อเครื่อง) ===== */
+  body.theme-dark{
+    --bg:#1b2338; --card:#2b3554; --ink:#eef1f8; --ink-2:#ccd4e8; --muted:#93a0c2;
+    --line:#3a4668; --line-2:#333f60; --brand:#4fd6a4; --brand-d:#2fae83; --brand-soft:#28455c;
+    --ok:#57d9a7; --ok-soft:#26494b; --warn:#e6bb54; --warn-soft:#453f2a;
+    --bad:#f27d72; --bad-soft:#4b2f3d; --info:#86a8f2; --info-soft:#2c3a61;
+    --coral:#eb8f70; --coral-soft:#4a3536; --magenta:#d883c4; --magenta-soft:#45304c;
+    --soft:#242e4c; --app:#1e2740;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.25); --shadow:0 2px 4px rgba(0,0,0,.2),0 8px 22px rgba(0,0,0,.3);
+  }
+  body.theme-dark .app{background:
+    radial-gradient(55% 38% at 88% -6%, rgba(79,214,164,.08), transparent 62%),
+    radial-gradient(46% 34% at -8% 104%, rgba(109,128,173,.10), transparent 62%),
+    linear-gradient(rgba(109,128,173,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(109,128,173,.06) 1px, transparent 1px),
+    var(--app);background-size:auto,auto,36px 36px,36px 36px,auto}
+  body.theme-dark .app::after{background-color:rgba(79,214,164,.05)}
+  body.theme-dark .topbar{background:linear-gradient(90deg,#161d30,#1c3a41);border-bottom-color:rgba(79,214,164,.3)}
+  body.theme-dark #sbar{background:rgba(27,35,56,.86);border-right-color:var(--line)}
+  body.theme-dark .sbi{color:var(--ink-2)}
+  body.theme-dark .sbi:hover{background:#33406a;color:#7fd9b8}
+  body.theme-dark thead th{background:#26304e;color:#9fb3d6;border-bottom-color:var(--line)}
+  body.theme-dark tbody tr:nth-child(even) td,body.theme-dark tbody tr:nth-child(even) th{background:#2f3a5c}
+  body.theme-dark tfoot td{background:#26304e;border-top-color:var(--line)}
+  body.theme-dark .seg{background:#1c2440}
+  body.theme-dark .seg button.on{background:#2b3554;color:#7fd9b8;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  body.theme-dark .btn.ghost{background:#2b3554;color:var(--ink);border-color:var(--line)}
+  body.theme-dark .btn.ghost:hover{background:#33406a;border-color:#4a5880}
+  body.theme-dark .farmhead{background:linear-gradient(90deg,#2c3a5e,#2b3554)}
+  body.theme-dark .cin{background:#242e4c;color:var(--ink);border-color:var(--line)}
+  body.theme-dark .dot{box-shadow:0 0 0 3px var(--card)}
+  body.theme-dark .dot.ok{box-shadow:0 0 0 3px var(--card),0 0 9px rgba(84,214,165,.8)}
+  body.theme-dark .dot.wait{box-shadow:0 0 0 3px var(--card),0 0 9px rgba(230,187,84,.8)}
+  body.theme-dark .dot.bad{box-shadow:0 0 0 3px var(--card),0 0 9px rgba(242,125,114,.8)}
+  body.theme-dark .banner.info{color:#a9c2f5;border-color:#3a4d7d}
+  body.theme-dark .banner.bad{color:#f5b0a8;border-color:#6b4050}
+  body.theme-dark .banner.ok{color:#9fe8c9;border-color:#31635f}
 </style>
 </head>
 <body>
@@ -392,6 +444,7 @@
     <div class="spacer"></div>
     <div class="pill" id="datePill">📅 <b id="today"></b></div>
     <div class="pill" id="rolePill"></div>
+    <button class="linkbtn" id="themeBtn" onclick="themeToggle()" title="สลับโหมดสว่าง/มืด">🌙</button>
     <button class="linkbtn" onclick="goHome()" title="กลับหน้าหลัก">ออก</button>
   </div>
   <div class="shell">
@@ -817,6 +870,11 @@ const USERS = [
 let CURRENT_USER=null;
 function whoNow(){ return CURRENT_USER ? CURRENT_USER.name : (ROLE_LABEL[ROLE]||'-'); }
 function findUser(u){ u=String(u||'').trim().toLowerCase(); return USERS.find(x=>x.username.toLowerCase()===u); }
+/* ---------- 🌙 สลับธีมสว่าง/มืด (จำค่าต่อเครื่องผ่าน localStorage · ค่าเริ่มต้น = สว่าง เพื่ออ่านง่ายกลางแดด) ---------- */
+function themeApply(dark){ document.body.classList.toggle('theme-dark',!!dark); const b=document.getElementById('themeBtn'); if(b) b.textContent=dark?'☀️':'🌙'; }
+function themeToggle(){ const dark=!document.body.classList.contains('theme-dark'); try{ localStorage.setItem('farmTheme',dark?'dark':'light'); }catch(e){} themeApply(dark); toast(dark?'🌙 โหมดมืด — โทนกรมท่า-มินต์':'☀️ โหมดสว่าง'); }
+try{ themeApply(localStorage.getItem('farmTheme')==='dark'); }catch(e){}
+
 /* ---------- การมองเห็นตามฟาร์มที่ดูแล (farm-scoping) ---------- */
 function myFarms(){ return CURRENT_USER ? CURRENT_USER.farms : "*"; }       // '*' = ทุกฟาร์ม
 function seesAllFarms(){ return myFarms()==="*"; }
@@ -3753,32 +3811,31 @@ function dailyHTML(h){
   // record block: [type select] จำนวน / น้ำหนัก / [นน.เฉลี่ย] / ราคากิโลละ / มูลค่ารวม(auto) / ลูกค้า / เลขที่บิล
   const otherCodes=HOUSES.filter(x=>x.id!==h.id&&x.code).slice().sort(byCode).map(x=>x.code); // หลังปลายทางสำหรับย้ายออก
   const block=(key,title,color,typeLabel,opts,withAvg,noSale)=>`
-    <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)">
-      <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:${color}">${title}</div>
-      ${opts?`<div class="frow"><label>${typeLabel}</label>
-        <select class="cin tl" id="d_${key}Type">${opts.filter(o=>o&&o.trim()).map(o=>`<option>${escA(o)}</option>`).join("")}</select></div>`:''}
-      <div class="grid2">
+    <div style="margin-top:12px;padding-top:11px;border-top:1px dashed var(--line)">
+      <div style="font-weight:700;font-size:14px;margin-bottom:7px;color:${color}">${title}</div>
+      <div class="fgrid">
+        ${opts?`<div class="frow fspan"><label>${typeLabel}</label>
+          <select class="cin tl" id="d_${key}Type">${opts.filter(o=>o&&o.trim()).map(o=>`<option>${escA(o)}</option>`).join("")}</select></div>`:''}
         <div class="frow"><label>จำนวนตัว</label><div class="unit"><input class="cin tl" id="d_${key}N" placeholder="0" oninput="calcDaily()"><span class="u">ตัว</span></div></div>
         <div class="frow"><label>น้ำหนัก${withAvg?'รวม':''}</label><div class="unit"><input class="cin tl" id="d_${key}W" placeholder="0" oninput="calcDaily()"><span class="u">กก.</span></div></div>
-      </div>
-      ${withAvg?`<div class="frow"><label>น้ำหนักเฉลี่ย <span class="hint">(อัตโนมัติ)</span></label><div class="unit"><input class="cin tl" id="d_${key}Avg" value="0" readonly style="background:var(--soft);font-weight:700"><span class="u">กก./ตัว</span></div></div>`:''}
-      ${noSale?'':`<div class="grid2">
-        <div class="frow"><label>ราคากิโลละ${opts?' <span class="hint">(เติมอัตโนมัติตามน้ำหนัก · แก้ได้)</span>':''}</label><div class="unit"><input class="cin tl" id="d_${key}P" placeholder="0" oninput="calcDaily()"><span class="u">บาท/กก.</span></div></div>
+        ${withAvg?`<div class="frow"><label>นน.เฉลี่ย <span class="hint">(อัตโนมัติ)</span></label><div class="unit"><input class="cin tl" id="d_${key}Avg" value="0" readonly style="background:var(--soft);font-weight:700"><span class="u">กก./ตัว</span></div></div>`:''}
+        ${noSale?'':`
+        <div class="frow"><label>ราคากิโลละ${opts?' <span class="hint">(อัตโนมัติ·แก้ได้)</span>':''}</label><div class="unit"><input class="cin tl" id="d_${key}P" placeholder="0" oninput="calcDaily()"><span class="u">บาท/กก.</span></div></div>
         <div class="frow"><label>มูลค่ารวม <span class="hint">(อัตโนมัติ)</span></label><div class="unit"><input class="cin tl" id="d_${key}Val" value="0" readonly style="background:var(--soft);font-weight:700"><span class="u">บาท</span></div></div>
+        <div class="frow"><label>ชื่อลูกค้า</label><input class="cin tl" id="d_${key}Cust" list="custList" placeholder="เลือก/พิมพ์ชื่อ"></div>
+        <div class="frow"><label>เลขที่บิล</label><input class="cin tl" id="d_${key}Bill" placeholder="เช่น BL-0042"></div>`}
       </div>
-      <div class="grid2">
-        <div class="frow"><label>ชื่อลูกค้า</label><input class="cin tl" id="d_${key}Cust" list="custList" placeholder="เลือก/พิมพ์ชื่อลูกค้า"></div>
-        <div class="frow"><label>เลขที่บิล</label><input class="cin tl" id="d_${key}Bill" placeholder="เช่น BL-0042"></div>
-      </div>`}
     </div>`;
   return `<div class="card">
     <h3>📝 บันทึกรายวัน — ตาย / คัดขาย / ขายขุน / ย้ายออก</h3>
-    <div class="frow"><label>📅 วันที่บันทึก <span class="hint">(ตั้งต้น = วันนี้ · ย้อนหลังได้ถ้าลืมกรอก)</span></label>
-      <input type="date" class="cin tl" id="d_date" value="${escA(expISO(DEMO_DATE))}" max="${escA(expISO(DEMO_DATE))}" min="${escA(dailyMinISO(h))}"></div>
-    <div class="frow" id="fr_pigs"><label>จำนวนหมูคงเหลือต้นวัน <span class="hint">(คิดจากยอดรับเข้า − ตาย/คัด/ขาย/ย้ายสะสม · แก้ไม่ได้)</span></label>
-      <div class="unit"><input type="number" id="d_pigs" value="${h.pigs}" readonly style="background:var(--soft);font-weight:700"><span class="u">ตัว</span></div>
-      <div class="err" id="er_pigs"></div>
-      <div class="sub" id="remainHint" style="margin-top:6px;font-size:13px"></div></div>
+    <div class="grid2">
+      <div class="frow"><label>📅 วันที่บันทึก <span class="hint">(ตั้งต้น = วันนี้ · ย้อนหลังได้)</span></label>
+        <input type="date" class="cin tl" id="d_date" value="${escA(expISO(DEMO_DATE))}" max="${escA(expISO(DEMO_DATE))}" min="${escA(dailyMinISO(h))}"></div>
+      <div class="frow" id="fr_pigs"><label>หมูคงเหลือต้นวัน <span class="hint">(อัตโนมัติ · แก้ไม่ได้)</span></label>
+        <div class="unit"><input type="number" id="d_pigs" value="${h.pigs}" readonly style="background:var(--soft);font-weight:700"><span class="u">ตัว</span></div>
+        <div class="err" id="er_pigs"></div>
+        <div class="sub" id="remainHint" style="margin-top:4px;font-size:13px"></div></div>
+    </div>
 
     <datalist id="custList">${CUSTOMERS.filter(c=>c&&c.trim()).map(c=>`<option>${escA(c)}</option>`).join("")}</datalist>
     ${block('dead','⚰️ ตาย','var(--bad)','ประเภทการตาย',DEATH_TYPES,false,false)}
