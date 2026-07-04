@@ -105,10 +105,10 @@
   .gbreathe.gtrouble{animation-duration:1.25s} /* มีตายวันนี้ = เต้นถี่ */
   @keyframes gflashk{0%{filter:none}20%{filter:drop-shadow(0 0 18px rgba(53,224,200,1)) brightness(1.6)}100%{filter:none}}
   .gflash{animation:gflashk 1.6s ease-out 3} /* วาบเมื่อมีข้อมูลใหม่เข้ามาสดๆ */
-  #gFeed{position:absolute;right:10px;top:52px;width:250px;max-height:46%;overflow:hidden;display:none;flex-direction:column;gap:6px;z-index:5;pointer-events:none}
+  #gFeed{position:absolute;right:10px;bottom:12px;top:auto;width:240px;max-height:40%;overflow:hidden;display:none;flex-direction:column;justify-content:flex-end;gap:6px;z-index:5;pointer-events:none} /* ล่างขวา — พ้นป้ายผู้ซื้อ/เส้นทองกลางขวา และไม่ชนแผงต้องดู */
   @media(min-width:900px){#gFeed{display:flex}}
   @keyframes gfin{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
-  .gfi{background:rgba(13,26,31,.74);border:1px solid rgba(83,234,210,.16);border-radius:10px;padding:7px 10px;color:#cfe0db;font-size:11.5px;line-height:1.45;backdrop-filter:blur(3px);animation:gfin .35s ease both}
+  .gfi{background:rgba(13,26,31,.74);border:1px solid rgba(83,234,210,.16);border-radius:10px;padding:7px 10px;color:#cfe0db;font-size:11.5px;line-height:1.45;backdrop-filter:blur(3px);animation:gfin .35s ease both;pointer-events:auto} /* การ์ดกดได้ (บินไปหาหลัง) · ช่องว่างระหว่างการ์ดยังลาก/ซูมแผนที่ทะลุได้ */
   .gfi b{color:#8fd8ca}
   #fgsvg .ghouse,#fgsvg .gvetg,#fgsvg .gfarmg,#fgsvg .gvetline,#fgsvg .gedge{transition:opacity .28s}
   #fgsvg .glab{paint-order:stroke;stroke:#0d1a1f;stroke-width:2.6px;stroke-linejoin:round}
@@ -1710,6 +1710,7 @@ function gAlertFill(){
   if(btn){ btn.innerHTML='🚨 ต้องดู '+fmt(list.length); btn.style.fontWeight='800';
     btn.style.color=list.length?'#ff9b93':''; btn.style.borderColor=list.length?'rgba(255,120,100,.55)':''; }
   if(box){
+    const hd=document.querySelector('#gCard > div'); if(hd) box.style.top=(hd.offsetHeight+8)+'px'; // วางใต้หัวกราฟเสมอ (หัวพับหลายแถวก็ไม่ทับปุ่ม)
     box.innerHTML=list.length?('<div style="font-weight:800;color:#ffb4a6;font-size:12.5px;margin-bottom:5px">🚨 จุดต้องดูวันนี้ ('+fmt(list.length)+') <span style="float:right;cursor:pointer;opacity:.7" onclick="gAlertToggle()">✕</span></div>'
       +list.slice(0,14).map((a,i)=>'<div onclick="gAlertGo('+i+')" style="padding:7px 8px;cursor:pointer;font-size:12px;color:#e6d9d2;border-bottom:1px solid rgba(255,146,120,.12)">'+a.ic+' '+escA(a.msg)+' <span style="opacity:.5">›</span></div>').join('')
       +(list.length>14?'<div style="margin-top:6px;font-size:11px;color:#9a8a84">+'+fmt(list.length-14)+' รายการ</div>':''))
@@ -1904,6 +1905,33 @@ async function presenceFetch(){ // รายชื่อคนที่ออน
     return await r.json();
   }catch(e){ return null; }
 }
+/* ── 🧲 รอบเกลี่ยตำแหน่งหลังวาด: คู่จุดเล้าที่ชิดกว่า 70px (ป้ายตัวเลขทับกัน) → ดันออกจากกันอัตโนมัติ
+   ครอบคลุมทุกกรณีรวมรอยต่อระหว่างกลุ่มหมอ/ฟาร์ม ที่สูตรมุมจัดไม่ถึง ── */
+function gMoveHouse(id,p){
+  const c=document.getElementById('gn_h_'+id); if(!c) return;
+  const g=c.closest('.ghouse'); if(g) g.setAttribute('transform','translate('+p[0].toFixed(1)+' '+p[1].toFixed(1)+')');
+  document.querySelectorAll('#fgsvg .gvetline[data-house="'+id+'"]').forEach(l=>{ l.setAttribute('x2',p[0].toFixed(1)); l.setAttribute('y2',p[1].toFixed(1)); });
+}
+function gRelaxLabels(){
+  const pos=window._gHousePos||{}, ids=Object.keys(pos), MIN=70;
+  const touched={};
+  for(let iter=0;iter<4;iter++){
+    let moved=false;
+    for(let a=0;a<ids.length;a++){ const p=pos[ids[a]];
+      for(let b=a+1;b<ids.length;b++){ const q=pos[ids[b]];
+        let dx=q[0]-p[0], dy=q[1]-p[1];
+        if(dx>MIN||dx<-MIN||dy>MIN||dy<-MIN) continue;
+        const d=Math.hypot(dx,dy);
+        if(d>=MIN) continue;
+        if(d<1){ dx=1; dy=0; } // ซ้อนพอดี — ดันแนวนอน
+        const k=((MIN-Math.max(d,1))/2)/Math.max(d,1);
+        p[0]-=dx*k; p[1]-=dy*k; q[0]+=dx*k; q[1]+=dy*k;
+        touched[ids[a]]=1; touched[ids[b]]=1; moved=true;
+      } }
+    if(!moved) break;
+  }
+  Object.keys(touched).forEach(id=>gMoveHouse(id,pos[id]));
+}
 function gOrbitSVG(cx,cy,HH,botPad){ // วาดดาวหาง 1 ดวง/คน — ทุกวงอยู่ "นอกเขตเล้า" เสมอ (ไม่วิ่งทับจุด/ตัวเลขใต้เล้า และไม่ทับแถวหมอด้านล่าง)
   const users=(_gpUsers&&_gpUsers.length)?_gpUsers:[{name:(typeof whoNow==='function'?whoNow():'ฉัน'),role:ROLE||'owner'}];
   const COL={owner:'#ffd166',admin:'#6fc6f2',clerk:'#7ae2b8',vet:'#f3a7e0',formula:'#c9b3ff'};
@@ -2005,7 +2033,7 @@ function renderFarmGraph(){
   const fnames=Object.keys(byFarm).sort();
   const vets={}; hs.forEach(h=>{ const vn=(h.vet||'').trim(); if(vn){ (vets[vn]=vets[vn]||[]).push(h); } }); // ทุกหลังที่มีชื่อหมอ (รวมเล้าว่าง — เห็นพื้นที่รับผิดชอบครบ)
   // ── โครงต้นไม้ 4 ชั้น: SJF → ฟาร์ม → หมอ → เล้าที่หมอรับผิดชอบ (เล้าไม่มีชื่อหมอ = ต่อกับฟาร์มตรง) ──
-  const ringGap=58, minArc=46, Rh0=112, Dv=165;
+  const ringGap=80, minArc=68, Rh0=120, Dv=165; // ระยะ: เผื่อป้ายตัวเลข 3 บรรทัดใต้จุด (คงเหลือ/รับเข้า + ต ค ข) ไม่ทับกันทั้งแนวโค้งและแนววงลึก
   const esc1=s=>escA(String(s));
   const totalH=Math.max(1,hs.length);
   const farmGroups=fnames.map(f=>{
@@ -2025,7 +2053,7 @@ function renderFarmGraph(){
       g.rings=[]; let rem=n,k=0;
       while(rem>0){ const rad=Rh0+k*ringGap;
         // พัดของวงนี้: ไม่เกินเขตมุมของหมอเมื่อมองจากฟาร์ม (วงนอกยิ่งต้องแคบ) — กันเล้าข้ามไปทับกลุ่มข้างเคียง
-        const sp=Math.min(Math.PI*0.9, .6+n*.22, g.gw*(dv+rad)/rad*0.78); // 0.78 = เผื่อขอบกันพัดข้างเคียงชนกัน
+        const sp=Math.min(Math.PI*0.9, .6+n*.22, g.gw*(dv+rad)/rad*0.74); // 0.74 = เผื่อขอบกันพัดข้างเคียงชนกัน (กันป้ายตัวเลขคู่ชายขอบทับกัน)
         const cap=Math.max(1,Math.floor(sp*rad/minArc)); // เขตมุมแคบ = วงละ 1 เล้า เรียงเป็นสายออกไป (ห่างแน่นอน ไม่ยัดจนทับ)
         const take=Math.min(rem,cap); g.rings.push({rad,take,sp}); rem-=take; k++; }
       maxExt=Math.max(maxExt,dv+g.rings[g.rings.length-1].rad);
@@ -2199,7 +2227,7 @@ function renderFarmGraph(){
         <button class="btn sm ghost" style="padding:6px 12px" onclick="gReset()">⟲ รีเซ็ต</button>
         <button class="btn sm ghost" id="gFullBtn" style="padding:6px 12px" onclick="gFull()">⛶ เต็มจอ</button>
       </div>
-      <div id="gAlertBox" style="display:none;position:absolute;top:56px;right:10px;z-index:55;background:rgba(13,26,31,.96);border:1px solid rgba(255,146,120,.4);border-radius:12px;padding:10px 12px;max-width:335px;max-height:44vh;overflow:auto;box-shadow:0 12px 34px rgba(0,0,0,.45)"></div>
+      <div id="gAlertBox" style="display:none;position:absolute;top:60px;left:10px;z-index:55;background:rgba(13,26,31,.86);backdrop-filter:blur(5px);border:1px solid rgba(255,146,120,.4);border-radius:12px;padding:10px 12px;max-width:320px;max-height:34vh;overflow:auto;box-shadow:0 12px 34px rgba(0,0,0,.45)"></div>
       <svg id="fgsvg" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:min(72vh,640px);cursor:grab;touch-action:none"
         onpointerdown="gDown(event)" onpointermove="gMove(event)" onpointerup="gUp(event)" onpointercancel="gUp(event)" onwheel="gWheel(event)">
         <defs>
@@ -2238,6 +2266,7 @@ function renderFarmGraph(){
   _gv={x:0,y:0,w:W,h:H}; gSetVB();
   window._gSegs=gSegs; window._gFarms=gFarmsArr; window._gHousePos=gHPos; window._gW=W; window._gHH=HH; window._gBotPad=botPad; window._gCenter=[cx,cy];
   window._gpKey=''; gUsersRefresh(); gUsersPollStart();   // ☄️ ดาวหางคนออนไลน์ (อัปเดตทุก 30 วิ ระหว่างเปิดหน้านี้)
+  gRelaxLabels();                 // 🧲 เกลี่ยคู่จุดที่ป้ายตัวเลขทับกันออกจากกัน
   window._gVetPos=vetPos; window._gBuyPos=buyPos;
   // ดัชนีค้นหา: หลัง + หมอ + ฟาร์ม + ผู้ซื้อ (label โชว์ · s ไว้เทียบคำค้น)
   window._gIndex=hs.filter(h=>gHPos[h.id]).map(h=>({t:'h',k:String(h.id),label:'🏠 '+(h.code||'')+' · '+(h.farm||'')+((h.pigs||0)>0?' · '+fmt(h.pigs)+' ตัว':' · ว่าง'),s:((h.code||'')+' '+(h.farm||'')).toLowerCase(),x:gHPos[h.id][0],y:gHPos[h.id][1]}))
