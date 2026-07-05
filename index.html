@@ -3856,13 +3856,24 @@ function priceForWeight(w,type){ w=Number(w)||0; let best=null;
   return best?((type==='dead'?best.dead:best.cull)||0):0; }
 let _autoP={cull:'',dead:''}; // ราคาที่เติมอัตโนมัติล่าสุด (ใช้เช็คว่าผู้ใช้แก้เองหรือยัง)
 // เก็บ/คืนค่า "ตัวเลือกฟอร์มเสมียน" ทั้งหมด (เพื่อบันทึกถาวร + ซิงก์ข้ามเครื่อง)
-function snapOpts(){return {death:DEATH_TYPES,cull:CULL_TYPES,cust:CUSTOMERS,source:SOURCE_OPTIONS,price:PRICE_TABLE};}
+// 👤 ทะเบียนลูกค้าแท่นขาย — ตารางราคาตามน้ำหนักแยกรายเจ้า (เจ้าของแก้ได้ผู้เดียว · แทนตารางกลางเดิมในจัดการเล้า)
+let SB_CUST=[];
+function custRateForWeight(custName,w,type){ // ราคา/กก. จากทะเบียนลูกค้า (null = เจ้านี้ไม่ได้ตั้ง/ไม่พบชื่อ)
+  const nm=gNrm(custName); if(!nm) return null;
+  const c=SB_CUST.find(x=>gNrm(x.name)===nm); if(!c||!Array.isArray(c.bands)||!c.bands.length) return null;
+  w=Number(w)||0;
+  const bd=c.bands.find(b=>w>=b.a&&w<=b.b)||c.bands[c.bands.length-1];
+  const r=(type==='dead')?bd.dead:bd.cull;
+  return (r===''||r==null)?null:Number(r);
+}
+function snapOpts(){return {death:DEATH_TYPES,cull:CULL_TYPES,cust:CUSTOMERS,source:SOURCE_OPTIONS,price:PRICE_TABLE,scust:SB_CUST};}
 function applyOpts(o){ if(!o) return;
   if(Array.isArray(o.death)) DEATH_TYPES=o.death;
   if(Array.isArray(o.cull))  CULL_TYPES=o.cull;
   if(Array.isArray(o.cust))  CUSTOMERS=o.cust;
   if(Array.isArray(o.source))SOURCE_OPTIONS=o.source;
-  if(Array.isArray(o.price)) PRICE_TABLE=o.price; // 💰 ตารางราคาตามน้ำหนัก
+  if(Array.isArray(o.price)) PRICE_TABLE=o.price; // 💰 ตารางราคากลางเดิม (คงไว้เป็นตัวสำรองตอนไม่ระบุลูกค้า)
+  if(Array.isArray(o.scust)) SB_CUST=o.scust;     // 👤 ทะเบียนลูกค้าแท่นขาย + ราคารายเจ้า
 }
 let entryTab='daily';
 let editIdx=-1; // index in dailyLog being edited, -1 = new entry
@@ -4245,7 +4256,7 @@ function dailyHTML(h){
         ${noSale?'':`
         <div class="frow"><label>ราคากิโลละ${opts?' <span class="hint">(อัตโนมัติ·แก้ได้)</span>':''}</label><div class="unit"><input class="cin tl" id="d_${key}P" placeholder="0" oninput="calcDaily()"><span class="u">บาท/กก.</span></div></div>
         <div class="frow"><label>มูลค่ารวม <span class="hint">(อัตโนมัติ)</span></label><div class="unit"><input class="cin tl" id="d_${key}Val" value="0" readonly style="background:var(--soft);font-weight:700"><span class="u">บาท</span></div></div>
-        <div class="frow"><label>ชื่อลูกค้า</label><input class="cin tl" id="d_${key}Cust" list="custList" placeholder="เลือก/พิมพ์ชื่อ"></div>
+        <div class="frow"><label>ชื่อลูกค้า${key!=='sold'?' <span class="hint">(เลือกแล้วราคาเด้งตามเจ้า)</span>':''}</label><input class="cin tl" id="d_${key}Cust" list="custList" placeholder="เลือก/พิมพ์ชื่อ" oninput="calcDaily()"></div>
         <div class="frow"><label>เลขที่บิล</label><input class="cin tl" id="d_${key}Bill" placeholder="เช่น BL-0042"></div>`}
       </div>
     </div>`;
@@ -4260,7 +4271,7 @@ function dailyHTML(h){
         <div class="sub" id="remainHint" style="margin-top:4px;font-size:13px"></div></div>
     </div>
 
-    <datalist id="custList">${CUSTOMERS.filter(c=>c&&c.trim()).map(c=>`<option>${escA(c)}</option>`).join("")}</datalist>
+    <datalist id="custList">${[...new Set(SB_CUST.map(c=>c.name).concat(CUSTOMERS))].filter(c=>c&&String(c).trim()).map(c=>`<option>${escA(c)}</option>`).join("")}</datalist>
     ${block('dead','⚰️ ตาย','var(--bad)','ประเภทการตาย',DEATH_TYPES,false,false)}
     ${block('cull','🔪 คัดขาย','var(--warn)','ประเภทคัดขาย',CULL_TYPES,false)}
     ${block('sold','💰 ขายขุน','var(--ok)',null,null,true)}
@@ -4395,8 +4406,17 @@ function calcDaily(){
   // 💰 เติมราคา/กก. อัตโนมัติตามน้ำหนัก สำหรับ คัดขาย/ตาย (ใช้ นน.เฉลี่ย/ตัว = นน.รวม÷จำนวน · เว้นไว้ถ้าผู้ใช้พิมพ์ราคาเอง)
   ['cull','dead'].forEach(k=>{ const wEl=document.getElementById('d_'+k+'W'), nEl=document.getElementById('d_'+k+'N'), pEl=document.getElementById('d_'+k+'P'); if(!pEl||!wEl) return;
     const w=Number(wEl.value)||0, n=Number(nEl&&nEl.value)||0; if(w<=0) return;
-    const auto=priceForWeight(n>0?w/n:w, k), cur=pEl.value;
+    // 👤 เลือกชื่อลูกค้าของหมวดนั้น → ใช้เรทของเจ้านั้นจากทะเบียนลูกค้าแท่นขายก่อน (หมวดตายว่าง = ยืมชื่อจากช่องคัดขาย เพราะขายเจ้าเดียวกันทั้งรอบ)
+    const cust=(document.getElementById('d_'+k+'Cust')||{}).value||(document.getElementById('d_cullCust')||{}).value||'';
+    const avgW=n>0?w/n:w, custR=custRateForWeight(cust,avgW,k);
+    const auto=(custR!=null?custR:priceForWeight(avgW,k)), cur=pEl.value;
     if(cur===''||Number(cur)===Number(_autoP[k])){ pEl.value=auto; _autoP[k]=auto; } });
+  // 💰 ขายขุน: เลือกชื่อลูกค้าแล้วดึง "ราคาหมูขุน" ของเจ้านั้นจากทะเบียน (ถ้าตั้งไว้ · แก้ทับได้)
+  (function(){ const pEl=document.getElementById('d_soldP'); if(!pEl) return;
+    const reg=SB_CUST.find(c=>gNrm(c.name)===gNrm((document.getElementById('d_soldCust')||{}).value||''));
+    if(!reg||reg.fatP===''||reg.fatP==null) return;
+    const cur=pEl.value;
+    if(cur===''||Number(cur)===Number(_autoP.sold)){ pEl.value=reg.fatP; _autoP.sold=reg.fatP; } })();
   const x=dailyVals();
   const setV=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v;};
   setV('d_deadVal',fmt(Math.round(x.deadVal)));
@@ -4761,7 +4781,7 @@ function bfGridTableHTML(){ bfEnsureRows();
   const otherCodes=HOUSES.filter(x=>x.code&&x.code!==bfHouse).slice().sort(byCode).map(x=>x.code);
   const hasDetail=r=>!!(r.dType||r.cType||r.cCust||r.cBill||r.sCust||r.sBill||bfNum(r.mN)||bfNum(r.dW));
   return `${exN?'<div class="sub" style="margin:0 0 8px"><span style="background:#e6f4ea;color:#1e7e4f;padding:1px 7px;border-radius:6px;font-weight:700">✔ บันทึกแล้ว</span> = วันที่มีข้อมูลเดิมอยู่แล้ว ('+exN+' วัน) — แก้ตัวเลขในแถวได้ ระบบจะอัปเดตให้</div>':''}
-  <datalist id="bfCustList">${CUSTOMERS.filter(c=>c&&c.trim()).map(c=>`<option>${escA(c)}</option>`).join('')}</datalist>
+  <datalist id="bfCustList">${[...new Set(SB_CUST.map(c=>c.name).concat(CUSTOMERS))].filter(c=>c&&String(c).trim()).map(c=>`<option>${escA(c)}</option>`).join('')}</datalist>
   <div style="overflow-x:auto"><table>
     <thead><tr><th></th><th>วันที่</th><th class="num">ตาย</th><th class="num">ตาย นน.</th><th class="num">฿ซาก/กก.</th><th class="num">คัด(ตัว)</th><th class="num">คัด นน.</th><th class="num">คัด ฿/กก.</th><th class="num">ขาย(ตัว)</th><th class="num">ขาย นน.</th><th class="num">ขาย ฿/กก.</th><th class="num">คงเหลือ</th><th></th></tr></thead>
     <tbody>${bfRows.map((r,i)=>{const ex=r.existing;
@@ -6454,7 +6474,7 @@ function renderAdmin(){
     </div>
 
     ${cfgCardHTML()}
-    ${priceTableCardHTML()}
+    <div class="banner info">💰 <div><b>ตารางราคาตามน้ำหนักย้ายแล้ว</b> — ตอนนี้ตั้งราคา<b>แยกรายลูกค้า</b>ได้ที่ ⚖️ แท่นขายหมู → 👤 รายชื่อลูกค้า (เจ้าของแก้ได้ผู้เดียว) · ราคาจะเติมอัตโนมัติทั้งในบิลแท่นขายและบันทึกรายวันตามชื่อลูกค้าที่พิมพ์</div></div>
     ${adminEditLogHTML()}
   `;
 }
@@ -6787,7 +6807,7 @@ function renderSaleStand(){
     return `<div class="fieldrow" style="cursor:pointer" onclick="sbEdit('${b.id}')">
       <div class="fmeta"><div class="fn">${K.ico} <b>${sbThaiDate(b.dateISO)}</b> · ${escA(b.farm||'-')} → ${escA(b.buyer||'ไม่ระบุผู้ซื้อ')}${ref}</div>
       <div class="sub" style="margin:3px 0 0">${fmt(c.n)} ตัว · ${fmt(Math.round(c.totW))} กก.${c.n?` · เฉลี่ย ${(c.avg).toFixed(1)} กก./ตัว`:''}${diff}${b.truck?` · 🚚 ${escA(b.truck)}`:''} · ✍️ ${escA(b.by||'-')}</div></div>
-      <div style="text-align:right;white-space:nowrap;display:flex;align-items:center;gap:8px">${money}${posted}<button class="btn ghost sm" title="ดูบิล / พิมพ์ A4" style="padding:6px 10px" onclick="event.stopPropagation();sbPrint('${b.id}')">🖨</button><button class="btn ghost sm" title="ส่งออก Excel บิลนี้" style="padding:6px 10px" onclick="event.stopPropagation();sbExportXls('${b.id}')">📊</button></div></div>`;
+      <div style="text-align:right;white-space:nowrap;display:flex;align-items:center;gap:8px">${money}${posted}${sbCanWrite()?`<button class="btn ghost sm" title="คัดลอกเป็นบิลใหม่วันนี้ (คงผู้ซื้อ/ราคา)" style="padding:6px 10px" onclick="event.stopPropagation();sbDuplicate('${b.id}')">⧉</button>`:''}<button class="btn ghost sm" title="ดูบิล / พิมพ์ A4" style="padding:6px 10px" onclick="event.stopPropagation();sbPrint('${b.id}')">🖨</button><button class="btn ghost sm" title="ส่งออก Excel บิลนี้" style="padding:6px 10px" onclick="event.stopPropagation();sbExportXls('${b.id}')">📊</button></div></div>`;
   }).join('');
   $("#view").innerHTML=`
     <h2 class="page">⚖️ แท่นขายหมู</h2>
@@ -6801,6 +6821,9 @@ function renderSaleStand(){
         <button class="btn ghost sm" onclick="sbNew('breeder')">🐷 แม่/พ่อพันธุ์</button>
       </div>
       <div class="sub" style="margin-top:8px">💡 มีบิลกระดาษ? ถ่ายรูปส่งให้ผู้ดูแลระบบสแกนลงให้ได้เช่นกัน</div></div>`:''}
+    <div class="card"><h3>👤 รายชื่อลูกค้า + ราคาประจำเจ้า <span class="more">${fmt(SB_CUST.length)} เจ้า</span></h3>
+      <div class="sub" style="margin-top:-2px">ตารางราคาตามน้ำหนักแยกรายลูกค้า — พิมพ์ชื่อในบิลแล้วราคาเติมเอง · ${ROLE==='owner'?'แก้ราคาได้ (เฉพาะเจ้าของ)':'เจ้าของเป็นผู้ตั้งราคา'}</div>
+      <button class="btn ghost sm" style="margin-top:8px" onclick="renderSbCustomers()">เปิดทะเบียนลูกค้า ›</button></div>
     <div class="card">
       <h3>📚 บิลทั้งหมด <span class="more">${fmt(bills.length)} บิล</span></h3>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
@@ -6910,7 +6933,7 @@ function renderSaleBillForm(){
   if(!SB_D){ renderSaleStand(); return; }
   histPush('salebillform',renderSaleBillForm);
   const K=SB_KIND[SB_D.kind]||SB_KIND.fatten, isDC=SB_D.kind==='deadcull';
-  const buyers=[...new Set(SALE_BILLS.map(b=>b.buyer).filter(Boolean).concat(CUSTOMERS))];
+  const buyers=[...new Set(SB_CUST.map(c=>c.name).concat(SALE_BILLS.map(b=>b.buyer).filter(Boolean)).concat(CUSTOMERS))];
   const farmOpts=FARMS.map(f=>`<option ${f===SB_D.farm?'selected':''}>${escA(f)}</option>`).join('')+(SB_D.farm&&!FARMS.includes(SB_D.farm)?`<option selected>${escA(SB_D.farm)}</option>`:'');
   $("#view").innerHTML=`
     <h2 class="page">${K.ico} ${SB_ISNEW?'บันทึก':'แก้ไข'}${K.t} <span class="more">${sbThaiDate(SB_D.dateISO)}</span></h2>
@@ -6920,7 +6943,7 @@ function renderSaleBillForm(){
       <div class="fgrid">
         <div class="frow"><label>วันที่ขาย</label><input type="date" class="cin" value="${escA(SB_D.dateISO)}" onchange="sbF('dateISO',this.value)"></div>
         <div class="frow"><label>ฟาร์ม</label><select class="cin tl" onchange="sbF('farm',this.value);renderSaleBillForm()">${farmOpts}</select></div>
-        <div class="frow"><label>ผู้ซื้อ</label><input class="cin" list="sbBuyerDL" placeholder="เช่น บ.ราชบุรีค้าสุกร / เฮียมลชัย" value="${escA(SB_D.buyer)}" oninput="SB_D.buyer=this.value"><datalist id="sbBuyerDL">${buyers.map(x=>`<option value="${escA(x)}">`).join('')}</datalist></div>
+        <div class="frow"><label>ผู้ซื้อ</label><input class="cin" list="sbBuyerDL" placeholder="เช่น บ.ราชบุรีค้าสุกร / เฮียมลชัย" value="${escA(SB_D.buyer)}" oninput="SB_D.buyer=this.value" onchange="sbBuyerPrefill()"><datalist id="sbBuyerDL">${buyers.map(x=>`<option value="${escA(x)}">`).join('')}</datalist></div>
         <div class="frow"><label>ทะเบียนรถ</label><input class="cin" placeholder="เช่น 83-6009" value="${escA(SB_D.truck)}" oninput="SB_D.truck=this.value"></div>
         <div class="frow"><label>บิลกระดาษ เล่มที่</label><input class="cin" placeholder="เช่น 074" value="${escA(SB_D.billBook)}" oninput="SB_D.billBook=this.value"></div>
         <div class="frow"><label>เลขที่</label><input class="cin" placeholder="เช่น 18" value="${escA(SB_D.billNo)}" oninput="SB_D.billNo=this.value"></div>
@@ -6943,7 +6966,7 @@ function renderSaleBillForm(){
         <textarea id="sbWPaste" class="cin" rows="3" style="margin-top:8px" placeholder="วางตัวเลขคั่นด้วยช่องว่างหรือขึ้นบรรทัดใหม่ เช่น  104 122 111 99 129"></textarea>
         <button class="btn sm" style="margin-top:8px" onclick="sbWPasteApply()">เพิ่มทั้งหมด</button></details>
       <div class="fgrid" style="margin-top:12px">
-        <div class="frow"><label>ราคา/กก. (บาท) — เว้นว่างได้</label><input type="number" step="0.25" class="cin" placeholder="⏳ ให้เจ้าของเติมทีหลังได้" value="${escA(SB_D.pricePerKg)}" oninput="sbF('pricePerKg',this.value)"></div>
+        <div class="frow"><label>ราคา/กก. (บาท) — เว้นว่างได้</label><input id="sbPriceIn" type="number" step="0.25" class="cin" placeholder="⏳ ให้เจ้าของเติมทีหลังได้" value="${escA(SB_D.pricePerKg)}" oninput="sbF('pricePerKg',this.value)"></div>
         <div class="frow"><label>อดอาหารในเล้า (ชม.)</label><input type="number" step="0.5" class="cin" value="${escA(SB_D.fastPen)}" oninput="SB_D.fastPen=this.value"></div>
         <div class="frow"><label>อดอาหารที่แท่น (ชม.)</label><input type="number" step="0.5" class="cin" value="${escA(SB_D.fastStand)}" oninput="SB_D.fastStand=this.value"></div>
       </div></div>`}
@@ -6958,11 +6981,150 @@ function renderSaleBillForm(){
       <button class="btn sm" style="font-size:16px;padding:13px 30px" onclick="sbSave()">💾 บันทึกบิล</button>
       <button class="btn sm" style="font-size:15px;padding:13px 22px;background:linear-gradient(135deg,#2a7fb8,#1f5f8b)" onclick="sbSaveAndPost()">💾+⬇️ บันทึก แล้วลงเข้าหลังเลย</button>
       <button class="btn ghost sm" onclick="renderSaleStand()">ยกเลิก</button>
+      ${!SB_ISNEW?`<button class="btn ghost sm" onclick="sbDuplicate('${SB_D.id}')">⧉ คัดลอกเป็นบิลใหม่</button>`:''}
       <button class="btn ghost sm" onclick="sbPrintObj(SB_D)">🖨 ดูบิล / พิมพ์ A4</button>
       <button class="btn ghost sm" onclick="sbExportXlsObj(SB_D)">📊 Excel บิลนี้</button>
       ${!SB_ISNEW&&['owner','admin'].includes(ROLE)?`<button class="btn ghost sm" style="color:var(--bad);margin-left:auto" onclick="sbDelete('${SB_D.id}')">🗑 ลบบิลนี้ (เจ้าของ/ผู้ดูแล)</button>`:''}
     </div>`;
   setTimeout(()=>{ const el=$("#sbWIn"); if(el&&SB_ISNEW&&!isDC) el.focus(); },60);
+}
+/* ---------- 👤 รายชื่อลูกค้าแท่นขาย + ตารางราคารายเจ้า (เจ้าของแก้ได้ผู้เดียว) ---------- */
+function scCanEdit(){ return ROLE==='owner'; }
+function scNewBands(){ return SB_BANDS_DEF.map(x=>({a:x[0],b:x[1],cull:'',dead:''})); }
+function scAdd(){
+  if(!scCanEdit()){ toast('เพิ่ม/แก้ราคาลูกค้าได้เฉพาะบัญชีเจ้าของ'); return; }
+  const el=document.getElementById('scNewName'), nm=gNrm(el&&el.value);
+  if(!nm){ toast('พิมพ์ชื่อลูกค้าก่อน'); return; }
+  if(SB_CUST.some(c=>gNrm(c.name)===nm)){ toast('มีชื่อ "'+nm+'" อยู่แล้ว'); return; }
+  SB_CUST.push({name:nm, fatP:'', bands:scNewBands()});
+  syncConfig(); logAudit('ลูกค้าแท่นขาย', nm, 'เพิ่มลูกค้า', null, '');
+  scSel=SB_CUST.length-1; renderSbCustomers();   // เปิดตารางของเจ้าใหม่ให้เลย
+  toast('เพิ่มลูกค้า "'+nm+'" แล้ว — ตั้งราคาได้เลย');
+}
+function scDel(i){
+  if(!scCanEdit()) return; const c=SB_CUST[i]; if(!c) return;
+  if(!confirm('ลบลูกค้า "'+c.name+'" พร้อมตารางราคา?')) return;
+  SB_CUST.splice(i,1); scSel=null; syncConfig(); logAudit('ลูกค้าแท่นขาย', c.name, 'ลบลูกค้า', null, '');
+  renderSbCustomers(); toast('ลบแล้ว');
+}
+function scSet(i,bi,f,v){
+  if(!scCanEdit()) return; const c=SB_CUST[i]; if(!c) return;
+  if(bi<0) c[f]=v; else if(c.bands[bi]) c.bands[bi][f]=v;
+  syncConfig();
+}
+function scCopyFrom(i){ // คัดลอกราคาจากเจ้าอื่นมาเป็นตัวตั้งต้น
+  if(!scCanEdit()) return; const c=SB_CUST[i]; if(!c) return;
+  const others=SB_CUST.filter((x,xi)=>xi!==i&&(x.bands||[]).some(b=>b.cull!==''||b.dead!==''));
+  if(!others.length){ toast('ยังไม่มีเจ้าอื่นที่ตั้งราคาไว้'); return; }
+  const nm=prompt('คัดลอกราคาจากเจ้าไหน?\n'+others.map(o=>'· '+o.name).join('\n'), others[0].name);
+  const src=nm&&others.find(o=>gNrm(o.name)===gNrm(nm)); if(!src){ toast('ไม่พบชื่อนั้น'); return; }
+  c.bands=JSON.parse(JSON.stringify(src.bands)); if(src.fatP!==''&&src.fatP!=null) c.fatP=src.fatP;
+  syncConfig(); renderSbCustomers(); toast('คัดลอกราคาจาก '+src.name+' แล้ว — แก้ต่อได้');
+}
+let scSel=null; // เจ้าที่กำลังเปิดตารางราคา (null = หน้ารายชื่อทั้งหมด)
+function scOpen(i){ scSel=i; renderSbCustomers(); }
+function scBack(){ scSel=null; renderSbCustomers(); }
+function scSummary(c){ // ป้ายสรุปบนการ์ดชื่อ: ตั้งราคาแล้วกี่ช่วง + ราคาขุน
+  const n=(c.bands||[]).filter(b=>(b.cull!==''&&b.cull!=null)||(b.dead!==''&&b.dead!=null)).length;
+  const p=[]; if(n) p.push('ช่วงราคา '+fmt(n)+'/'+(c.bands||[]).length); if(c.fatP!==''&&c.fatP!=null) p.push('ขุน '+c.fatP+' ฿');
+  return p.length?p.join(' · '):'ยังไม่ได้ตั้งราคา';
+}
+function renderSbCustomers(){
+  histPush('sbcust',renderSbCustomers);
+  const canE=scCanEdit();
+  if(scSel!=null&&!SB_CUST[scSel]) scSel=null;
+  const head=`
+    <h2 class="page">👤 รายชื่อลูกค้าแท่นขาย</h2>
+    <div class="sub">ตารางราคาตามน้ำหนัก <b>แยกรายเจ้า</b> · ราคาเติมอัตโนมัติทั้งในบิลแท่นขายและบันทึกรายวัน เมื่อพิมพ์ชื่อลูกค้าตรงกัน</div>
+    ${effRole()==='clerk'?clerkNav('sale'):''}
+    ${canE?'<div class="banner ok">🔑 <div><b>บัญชีเจ้าของ</b> — แก้ราคาได้ · การแก้ซิงก์ถึงทุกเครื่องอัตโนมัติ</div></div>'
+      :'<div class="banner info">🔒 <div>ดูอย่างเดียว — <b>เจ้าของเท่านั้น</b>ที่เพิ่ม/แก้ราคาลูกค้าได้ (กติกากันโกงราคา)</div></div>'}`;
+  // ── ชั้นที่ 2: ตารางราคาของเจ้าเดียว ──
+  if(scSel!=null){
+    const i=scSel, c=SB_CUST[i];
+    const rows=(c.bands||[]).map((bd,bi)=>{
+      const hasR=(bd.cull!==''&&bd.cull!=null)||(bd.dead!==''&&bd.dead!=null);
+      return `<tr style="${hasR?'':'opacity:.55'}">
+      <td><b>${bd.a}–${bd.b}</b></td>
+      <td>${canE?`<input class="cin" type="number" step="0.5" style="max-width:95px;padding:5px 8px" placeholder="฿/กก." value="${escA(bd.cull)}" onchange="scSet(${i},${bi},'cull',this.value)">`:`<b>${bd.cull!==''&&bd.cull!=null?escA(bd.cull):'-'}</b>`}</td>
+      <td>${canE?`<input class="cin" type="number" step="0.5" style="max-width:95px;padding:5px 8px" placeholder="฿/กก." value="${escA(bd.dead)}" onchange="scSet(${i},${bi},'dead',this.value)">`:`<b>${bd.dead!==''&&bd.dead!=null?escA(bd.dead):'-'}</b>`}</td></tr>`;
+    }).join('');
+    $("#view").innerHTML=head+`
+    <div class="card">
+      <h3><button class="btn ghost sm" onclick="scBack()">‹ รายชื่อทั้งหมด</button> <span style="margin-left:6px">👤 ${escA(c.name)}</span>
+        ${canE?`<button class="btn ghost sm" style="margin-left:8px" onclick="scCopyFrom(${i})">⧉ คัดลอกราคาจากเจ้าอื่น</button><button class="btn ghost sm" style="color:var(--bad);float:right" onclick="scDel(${i})">🗑 ลบเจ้านี้</button>`:''}</h3>
+      <div class="frow" style="max-width:340px;margin-bottom:10px"><label>🐖 ราคาหมูขุน (฿/กก.) — เว้นว่างได้</label>
+        ${canE?`<input class="cin" type="number" step="0.25" placeholder="เช่น 74" value="${escA(c.fatP==null?'':c.fatP)}" onchange="scSet(${i},-1,'fatP',this.value)">`:`<div style="font-weight:800;padding:4px 0">${(c.fatP!==''&&c.fatP!=null)?escA(c.fatP)+' บาท':'—'}</div>`}</div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>ช่วง นน. (กก.)</th><th>ราคาคัดขาย (฿/กก.)</th><th>ราคาตาย (฿/กก.)</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+    </div>`;
+    return;
+  }
+  // ── ชั้นที่ 1: รายชื่อทั้งหมด (การ์ดกดได้ — ไม่ต้องเลื่อนยาว) ──
+  const bill30=(function(){ try{ const m={}; sbGraphBuyers().list.forEach(o=>m[gNrm(o.name)]=o); return m; }catch(e){ return {}; } })();
+  const chips=SB_CUST.map((c,i)=>{
+    const b=bill30[gNrm(c.name)];
+    return `<div class="mrow" style="cursor:pointer" onclick="scOpen(${i})">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:15.5px">👤 ${escA(c.name)}</div>
+        <div class="sub" style="margin:3px 0 0">${escA(scSummary(c))}${b?' · ซื้อ 30 วัน '+fmt(b.total)+' ฿ ('+fmt(b.bills)+' บิล)':''}</div>
+      </div>
+      <span style="font-weight:800;color:var(--brand);white-space:nowrap">เปิดตาราง ›</span>
+    </div>`;
+  }).join('');
+  $("#view").innerHTML=head+`
+    <div class="card"><h3>⚖️ กลับหน้าแท่นขาย <button class="btn ghost sm" style="margin-left:8px" onclick="renderSaleStand()">‹ รายการบิล</button></h3>
+      ${canE?`<div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:4px">
+        <input id="scNewName" class="cin" list="sbBuyerDL" placeholder="ชื่อลูกค้าใหม่ เช่น เฮียมลชัย" style="max-width:260px" onkeydown="if(event.key==='Enter'){event.preventDefault();scAdd();}">
+        <button class="btn sm" onclick="scAdd()">＋ เพิ่มลูกค้า</button>
+        <datalist id="sbBuyerDL">${[...new Set(SALE_BILLS.map(b=>b.buyer).filter(Boolean).concat(CUSTOMERS))].map(x=>`<option value="${escA(x)}">`).join('')}</datalist>
+      </div>`:''}
+    </div>
+    <div class="card">
+      <h3>👥 ลูกค้าทั้งหมด <span class="more">${fmt(SB_CUST.length)} เจ้า · กดชื่อเพื่อเปิดตารางราคา</span></h3>
+      <div class="homelist">${chips||'<div class="sub">— ยังไม่มีลูกค้าในทะเบียน '+(canE?'— เพิ่มเจ้าแรกด้านบนได้เลย':'')+' —</div>'}</div>
+    </div>`;
+}
+/* ---------- 💡 จำราคาผู้ซื้อรายเดิม + ⧉ คัดลอกบิล (ตัวช่วยเสมียนขายเจ้าเดิมทุกวัน) ---------- */
+function sbBuyerPrefill(){ // พิมพ์ชื่อผู้ซื้อแล้ว → เติมราคาให้เอง: ①ทะเบียนลูกค้า (เจ้าของตั้ง) ②บิลล่าสุดของเจ้านั้น (เฉพาะช่องว่าง — แก้ทับได้เสมอ)
+  if(!SB_D) return; const name=gNrm(SB_D.buyer); if(!name) return;
+  const reg=SB_CUST.find(c=>gNrm(c.name)===name);
+  const past=SALE_BILLS.filter(b=>b.id!==SB_D.id&&gNrm(b.buyer)===name&&b.kind===SB_D.kind)
+    .sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||'')));
+  if(SB_D.kind==='deadcull'){
+    let filled=0, srcLabel='';
+    const fillFrom=(bands,label)=>{ if(!Array.isArray(bands)) return;
+      (SB_D.bands||[]).forEach(bd=>{ const s=bands.find(x=>x&&x.a===bd.a); if(!s) return;
+        if((bd.cull===''||bd.cull==null)&&s.cull!==''&&s.cull!=null){ bd.cull=s.cull; filled++; srcLabel=srcLabel||label; }
+        if((bd.dead===''||bd.dead==null)&&s.dead!==''&&s.dead!=null){ bd.dead=s.dead; filled++; srcLabel=srcLabel||label; } }); };
+    if(reg) fillFrom(reg.bands,'ทะเบียนลูกค้า');
+    const srcBill=past.find(b=>(b.bands||[]).some(x=>x&&((x.cull!==''&&x.cull!=null)||(x.dead!==''&&x.dead!=null))));
+    if(srcBill) fillFrom(srcBill.bands,'บิลล่าสุด');
+    if(filled){ sbRefresh(); toast('💡 เติมราคาของ '+name+' จาก'+srcLabel+' ('+filled+' ช่อง) — แก้ทับได้'); }
+  } else {
+    if(SB_D.pricePerKg!==''&&SB_D.pricePerKg!=null) return;
+    let price=null, label='';
+    if(reg&&reg.fatP!==''&&reg.fatP!=null){ price=reg.fatP; label='ทะเบียนลูกค้า'; }
+    else { const src=past.find(b=>b.pricePerKg!==''&&b.pricePerKg!=null); if(src){ price=src.pricePerKg; label='บิล '+sbThaiDate(src.dateISO); } }
+    if(price==null) return;
+    SB_D.pricePerKg=price;
+    const el=document.getElementById('sbPriceIn'); if(el) el.value=price;
+    sbRefresh(); toast('💡 เติมราคา/กก. ของ '+name+' ('+price+' บาท จาก'+label+') — แก้ทับได้');
+  }
+}
+function sbDuplicate(id){ // คัดลอกบิลเดิม → บิลใหม่วันนี้ (คงผู้ซื้อ/รถ/ฟาร์ม/หลัง/ราคา · ล้างน้ำหนัก-ตาชั่ง-เลขที่ ให้กรอกของวันนี้)
+  if(blockIfReadonly())return; if(!sbCanWrite()){ toast('บัญชีนี้สร้างบิลไม่ได้'); return; }
+  const src=SALE_BILLS.find(x=>x.id===id); if(!src){ toast('ไม่พบบิลต้นฉบับ'); return; }
+  const b=JSON.parse(JSON.stringify(src));
+  b.id=sbNewId(); b.dateISO=todayISO(); b.time=''; b.billNo='';
+  b.weights=[]; b.items=(b.kind==='deadcull'?[{house:'',type:'dead',w:''}]:[]);
+  b.scaleIn=''; b.scaleOut=''; b.deducts=[]; b.note=''; b.editLog=[];
+  b.by=whoNow(); b.createdAt=Date.now();
+  delete b.postedAt; delete b.postedHouses; delete b.postedBy; delete b._synced;
+  if(b.kind!=='deadcull') b.houses=(src.houses||[]).map(h=>({code:h.code,n:''})); // คงรายชื่อหลัง แต่จำนวนตัวกรอกใหม่
+  SB_D=b; SB_ISNEW=true; renderSaleBillForm();
+  toast('⧉ คัดลอกบิล '+(src.buyer||'-')+' แล้ว — ราคาเดิมติดมาให้ กรอกน้ำหนักของวันนี้ได้เลย');
 }
 function sbSave(){
   if(blockIfReadonly())return; if(!sbCanWrite()){toast('บัญชีนี้บันทึกบิลขายไม่ได้');return;}
