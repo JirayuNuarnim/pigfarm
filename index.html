@@ -2184,11 +2184,19 @@ function renderFarmGraph(){
       });
     });
     const fpigs=byFarm[f].reduce((s,x)=>s+(x.pigs||0),0);
+    const vetN=fg.groups.filter(g=>g.vn).length; // จำนวนหมอที่ดูแลเล้าในฟาร์มนี้จริง (เล้าที่ไม่ได้ระบุหมอไม่นับ)
     gFarmsArr.push({f,fx,fy,ext:fExt});
+    // 🩺 ตราจำนวนหมอ — วงชมพูล้อมขอบบน-ขวาของจุดฟาร์ม (สีเดียวกับจุดหมอ) · แตะดูรายละเอียดฟาร์มได้
+    const vetBadge=vetN?`<g style="cursor:pointer" onclick="gSelect('f','${esc1(f)}')">
+        <circle cx="15" cy="-15" r="10" fill="#c95ab0" stroke="#f3b7e3" stroke-width="1.4"><title>ฟาร์ม ${esc1(f)} มีหมอดูแล ${vetN} คน</title></circle>
+        <text x="15" y="-11.2" text-anchor="middle" style="font-size:11.5px;font-weight:800;fill:#fff;pointer-events:none">${vetN}</text>
+        <text x="15" y="-26.5" text-anchor="middle" style="font-size:10px;pointer-events:none">🩺</text></g>`:'';
     nodes+=`<g class="gfarmg" transform="translate(${fx} ${fy})"><g class="gfloat" style="animation-duration:${(7+i*0.9).toFixed(1)}s;animation-delay:-${(i*1.7).toFixed(1)}s">
-      <circle id="gn_f_${esc1(f)}" class="gnode" r="16" fill="#1f7d6e" stroke="#54ead2" stroke-width="1.6" onclick="gSelect('f','${esc1(f)}')"><title>${esc1(f)} · ${fmt(fpigs)} ตัว</title></circle>
+      <circle id="gn_f_${esc1(f)}" class="gnode" r="16" fill="#1f7d6e" stroke="#54ead2" stroke-width="1.6" onclick="gSelect('f','${esc1(f)}')"><title>${esc1(f)} · ${fmt(fpigs)} ตัว · หมอ ${vetN} คน</title></circle>
       <text x="0" y="-24" class="glab gfarm">${esc1(f)}</text>
-      <text x="0" y="33" class="glab gnum">${fmt(fpigs)} ตัว</text></g></g>`;
+      <text x="0" y="33" class="glab gnum">${fmt(fpigs)} ตัว</text>
+      ${vetN?`<text x="0" y="49" class="glab" style="fill:#e79ad0;font-size:11.5px;font-weight:700;paint-order:stroke;stroke:rgba(10,20,24,.85);stroke-width:3px">🩺 หมอ ${vetN} คน</text>`:''}
+      ${vetBadge}</g></g>`;
   });
   // ── ⛩ ชั้นผู้ซื้อ (บิลแท่นขาย 30 วันล่าสุด) — ป้ายทองสไตล์ไซเบอร์-ญี่ปุ่น + เส้นเงินไหล ฟาร์ม→ผู้ซื้อ ──
   if(hasBuy){
