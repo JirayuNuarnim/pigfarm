@@ -2399,14 +2399,17 @@ function renderClerkFarm(keepScroll){
     if(cfStatus) hs=hs.filter(h=>cfStatusOf(h)===cfStatus);
     const rows=hs.map(h=>{
       const a=dailyAgg(h), age=gAgeDaysH(h), recv=h.received||0;
-      return {h,a,age,recv,
+      const lossN=(a.deadN||0)+(a.cullN||0);
+      return {h,a,age,recv,lossN,
+        lossPct:recv?lossN/recv*100:null,
+        dToday:h.deadToday||0, cToday:h.cullToday||0,
         deadPct:recv?a.deadN/recv*100:null,
         val:Math.round((a.cullVal||0)+(a.soldVal||0)),
         med:recv?medTotal(h)/recv:null,
         last:(h.dailyLog&&h.dailyLog[0]&&h.dailyLog[0].date)||'',
         st:cfStatusOf(h)};
     });
-    const S={pigs:r=>r.h.pigs||0, age:r=>r.age==null?-1:r.age, dead:r=>r.deadPct==null?-1:r.deadPct, med:r=>r.med==null?-1:r.med, val:r=>r.val};
+    const S={pigs:r=>r.h.pigs||0, age:r=>r.age==null?-1:r.age, dead:r=>r.deadPct==null?-1:r.deadPct, loss:r=>r.lossPct==null?-1:r.lossPct, med:r=>r.med==null?-1:r.med, val:r=>r.val};
     if(cfSort==='code') rows.sort((x,y)=>byCode(x.h,y.h)); else rows.sort((x,y)=>S[cfSort](y)-S[cfSort](x));
     rowsOf[f]=rows;
   });
@@ -2415,7 +2418,8 @@ function renderClerkFarm(keepScroll){
   const cards=farms.map((f,fi)=>{
     const all=list.filter(h=>farmOf(h)===f), rows=rowsOf[f];
     const pigs=all.reduce((s,h)=>s+(h.pigs||0),0);
-    const agF=all.reduce((o,h)=>{const d=dailyAgg(h);o.dead+=d.deadN;o.sold+=d.soldN;o.cull+=d.cullN;o.val+=(d.cullVal||0)+(d.soldVal||0);return o;},{dead:0,sold:0,cull:0,val:0});
+    const agF=all.reduce((o,h)=>{const d=dailyAgg(h);o.dead+=d.deadN;o.sold+=d.soldN;o.cull+=d.cullN;o.val+=(d.cullVal||0)+(d.soldVal||0);o.recv+=(h.received||0);o.dT+=(h.deadToday||0);o.cT+=(h.cullToday||0);return o;},{dead:0,sold:0,cull:0,val:0,recv:0,dT:0,cT:0});
+    const lossF=agF.dead+agF.cull, lossFP=agF.recv?(lossF/agF.recv*100):0;
     const raising=all.filter(h=>houseStatus(h)==='กำลังเลี้ยง').length, closing=all.filter(needsClose).length;
     const wait=all.filter(h=>(h.pigs||0)>0&&!h.filled).length;
     const vets=[...new Set(all.map(h=>h.vet).filter(Boolean))];
@@ -2427,9 +2431,11 @@ function renderClerkFarm(keepScroll){
         <td style="max-width:92px;overflow:hidden;text-overflow:ellipsis">${escA(h.vet||'-')}</td>
         <td class="num"><b>${fmt(h.pigs||0)}</b><span style="opacity:.55">/${fmt(r.recv)}</span></td>
         <td class="num">${r.age!=null?fmt(r.age):'-'}</td>
+        <td class="num">${(r.dToday||r.cToday)?`<span style="color:var(--bad);font-weight:700">${fmt(r.dToday)}</span><span style="opacity:.5">·</span><span style="color:#b7791f;font-weight:700">${fmt(r.cToday)}</span>`:'-'}</td>
         <td class="num">${r.a.deadN?`<span style="color:var(--bad)">${fmt(r.a.deadN)}</span><span style="opacity:.6;font-size:10px"> ${r.deadPct!=null?r.deadPct.toFixed(1)+'%':''}</span>`:'-'}</td>
         <td class="num">${r.a.cullN?fmt(r.a.cullN):'-'}</td>
         <td class="num">${r.a.soldN?fmt(r.a.soldN):'-'}</td>
+        <td class="num">${r.lossN?`<b>${fmt(r.lossN)}</b><span style="opacity:.6;font-size:10px"> ${r.lossPct!=null?r.lossPct.toFixed(1)+'%':''}</span>`:'-'}</td>
         <td class="num">${r.val?fmt(r.val):'-'}</td>
         <td class="num">${r.med!=null&&r.med>0?fmt(Math.round(r.med)):'-'}</td>
         <td>${(h.pigs||0)>0?(h.filled?'<span style="color:var(--ok);font-weight:800">✓</span>':'<span style="color:#b7791f;font-weight:800">⏳</span>'):''}</td>
@@ -2437,9 +2443,9 @@ function renderClerkFarm(keepScroll){
         <td class="num"><span class="sub" style="font-size:11px">เปิด ›</span></td></tr>`;
     }).join('');
     return `<div class="card" id="cfF${fi}" style="scroll-margin-top:64px">
-      <h3>🏭 ${escA(f)} <span class="more">${fmt(rows.length)}${rows.length!==all.length?'/'+fmt(all.length):''} หลัง · หมู ${fmt(pigs)} · เลี้ยง ${raising}${wait?' · <b style="color:#b7791f">รอกรอก '+wait+'</b>':''}${closing?' · <b style="color:var(--bad)">รอปิด '+closing+'</b>':''} · ตายสะสม ${fmt(agF.dead)} · ขาย+คัด ${fmt(agF.sold+agF.cull)} ตัว (${fmt(Math.round(agF.val))} ฿) · 🩺 ${vets.map(escA).join(', ')||'-'}</span></h3>
+      <h3>🏭 ${escA(f)} <span class="more">${fmt(rows.length)}${rows.length!==all.length?'/'+fmt(all.length):''} หลัง · หมู ${fmt(pigs)} · เลี้ยง ${raising}${wait?' · <b style="color:#b7791f">รอกรอก '+wait+'</b>':''}${closing?' · <b style="color:var(--bad)">รอปิด '+closing+'</b>':''} · วันนี้ ตาย ${fmt(agF.dT)}·คัด ${fmt(agF.cT)} · ตายสะสม ${fmt(agF.dead)} · คัดสะสม ${fmt(agF.cull)} · 💥เสียหายรวม <b>${fmt(lossF)}</b> (${lossFP.toFixed(1)}%) · ขายขุน ${fmt(agF.sold)} ตัว (${fmt(Math.round(agF.val))} ฿) · 🩺 ${vets.map(escA).join(', ')||'-'}</span></h3>
       ${rows.length?`<div class="densewrap"><table class="densetbl">
-        <thead><tr><th>หลัง</th><th>สถานะ</th><th>หมอ</th><th class="num">เหลือ/รับ</th><th class="num">อายุ(วัน)</th><th class="num">ตาย·%</th><th class="num">คัด</th><th class="num">ขาย</th><th class="num">฿ขาย+คัด</th><th class="num">ยา฿/ตัว</th><th>วันนี้</th><th>บันทึกล่าสุด</th><th></th></tr></thead>
+        <thead><tr><th>หลัง</th><th>สถานะ</th><th>หมอ</th><th class="num">เหลือ/รับ</th><th class="num">อายุ(วัน)</th><th class="num" title="ตาย·คัดขาย ของวันนี้">วันนี้ ต·ค</th><th class="num">ตายสะสม·%</th><th class="num">คัดสะสม</th><th class="num">ขาย</th><th class="num" title="ความเสียหายรวม = ตาย+คัดขาย">💥เสียหาย·%</th><th class="num">฿ขาย+คัด</th><th class="num">ยา฿/ตัว</th><th>กรอก</th><th>บันทึกล่าสุด</th><th></th></tr></thead>
         <tbody>${trs}</tbody></table></div>`:'<div class="sub">— ไม่มีหลังตรงตามตัวกรอง —</div>'}
     </div>`;
   }).join('');
@@ -2453,7 +2459,7 @@ function renderClerkFarm(keepScroll){
         <input id="cfSearch" class="cin" value="${escA(cfQ)}" placeholder="🔍 ค้นหา หลัง / หมอ" style="max-width:190px;padding:7px 11px" oninput="cfSetQ(this.value)">
         ${stChip('','ทั้งหมด')}${stChip('raise','🟢 เลี้ยง')}${stChip('close','🔔 รอปิด')}${stChip('clean','🧹 ล้าง')}${stChip('empty','⬜ ว่าง')}
         <select class="cin tl" style="max-width:210px;padding:7px 11px" onchange="cfSetSort(this.value)">
-          ${[['code','เรียง: รหัสหลัง'],['pigs','เรียง: คงเหลือมาก→น้อย'],['age','เรียง: อายุมาก→น้อย'],['dead','เรียง: %ตายมาก→น้อย'],['val','เรียง: มูลค่าขายมาก→น้อย'],['med','เรียง: ค่ายา/ตัวมาก→น้อย']].map(o=>`<option value="${o[0]}"${cfSort===o[0]?' selected':''}>${o[1]}</option>`).join('')}
+          ${[['code','เรียง: รหัสหลัง'],['pigs','เรียง: คงเหลือมาก→น้อย'],['age','เรียง: อายุมาก→น้อย'],['dead','เรียง: %ตายมาก→น้อย'],['loss','เรียง: %เสียหายรวมมาก→น้อย'],['val','เรียง: มูลค่าขายมาก→น้อย'],['med','เรียง: ค่ายา/ตัวมาก→น้อย']].map(o=>`<option value="${o[0]}"${cfSort===o[0]?' selected':''}>${o[1]}</option>`).join('')}
         </select>
         <span class="sub" style="margin:0">💡 ${fmt(list.length)} หลัง · หมูรวม ${fmt(totPigs)} · เลี้ยง ${fmt(totRaise)}${waitToday?' · <b style="color:#b7791f">รอกรอกวันนี้ '+fmt(waitToday)+'</b>':''}</span>
       </div>
@@ -3126,13 +3132,21 @@ function renderPerf(){
 
     <div class="card">
       <h3>🏭 ประสิทธิภาพรายฟาร์ม</h3>
-      <div style="overflow-x:auto"><table>
-        <thead><tr><th>ฟาร์ม</th><th class="num">หลัง</th><th class="num">หมูรวม</th><th class="num">FCR เฉลี่ย</th><th class="num">ตาย%เฉลี่ย</th><th class="num">คะแนน</th></tr></thead>
-        <tbody>${farms.map(f=>{const hs=HOUSES.filter(h=>h.farm===f);return `<tr>
+      <div style="overflow-x:auto"><table class="densetbl">
+        <thead><tr><th>ฟาร์ม</th><th class="num">หลัง</th><th class="num">หมูรวม</th><th class="num" title="ตาย·คัดขาย ของวันนี้">วันนี้ ต·ค</th><th class="num">ตายสะสม·%</th><th class="num">คัดสะสม·%</th><th class="num" title="ความเสียหายรวม = ตาย+คัดขาย เทียบรับเข้า">💥เสียหายรวม·%</th><th class="num">FCR เฉลี่ย</th><th class="num">คะแนน</th></tr></thead>
+        <tbody>${farms.map(f=>{const hs=HOUSES.filter(h=>h.farm===f);
+          const ag=hs.reduce((o,h)=>{const d=dailyAgg(h);o.dead+=d.deadN;o.cull+=d.cullN;o.recv+=(h.received||0);o.dT+=(h.deadToday||0);o.cT+=(h.cullToday||0);return o;},{dead:0,cull:0,recv:0,dT:0,cT:0});
+          const loss=ag.dead+ag.cull, pc=n=>ag.recv?(n/ag.recv*100).toFixed(1)+'%':'-';
+          return `<tr>
           <td><b>${escA(f)}</b></td><td class="num">${hs.length}</td><td class="num">${fmt(sumF(hs,'pigs'))}</td>
-          <td class="num">${avgF(hs,'fcr').toFixed(2)}</td><td class="num">${avgF(hs,'mortality').toFixed(1)}%</td>
+          <td class="num">${(ag.dT||ag.cT)?`<span style="color:var(--bad);font-weight:700">${fmt(ag.dT)}</span><span style="opacity:.5">·</span><span style="color:#b7791f;font-weight:700">${fmt(ag.cT)}</span>`:'-'}</td>
+          <td class="num"><span style="color:var(--bad)">${fmt(ag.dead)}</span> <span style="opacity:.65;font-size:11px">${pc(ag.dead)}</span></td>
+          <td class="num">${fmt(ag.cull)} <span style="opacity:.65;font-size:11px">${pc(ag.cull)}</span></td>
+          <td class="num"><b>${fmt(loss)}</b> <span style="opacity:.65;font-size:11px">${pc(loss)}</span></td>
+          <td class="num">${avgF(hs,'fcr').toFixed(2)}</td>
           <td class="num">${sc(avgScore(hs))}</td></tr>`;}).join("")}</tbody>
       </table></div>
+      <div class="sub" style="margin-top:7px">💥 ความเสียหายรวม = ตายสะสม + คัดขายสะสม · % เทียบจำนวนรับเข้า</div>
     </div>
 
     <div class="card">
@@ -3143,15 +3157,23 @@ function renderPerf(){
         if(!fvets.length) return '';
         return `<div class="farmgroup">
           <div class="farmhead">🏭 ${escA(f)}<span class="fcount">${fvets.length} หมอ</span></div>
-          <div style="overflow-x:auto"><table>
-            <thead><tr><th>หมอ</th><th class="num">หลังที่ดูแล</th><th class="num">หมูรวม</th><th class="num">ตายวันนี้</th><th class="num">🔪 คัดขายวันนี้</th><th class="num">💰 ขายขุนวันนี้</th><th class="num">ต้นทุนยาเบิก</th><th class="num">การรักษา</th><th class="num">คะแนน</th></tr></thead>
+          <div style="overflow-x:auto"><table class="densetbl">
+            <thead><tr><th>หมอ</th><th class="num">หลังที่ดูแล</th><th class="num">หมูรวม</th><th class="num" title="ตาย·คัดขาย ของวันนี้">วันนี้ ต·ค</th><th class="num">💰 ขายขุนวันนี้</th><th class="num">ตายสะสม·%</th><th class="num">คัดสะสม·%</th><th class="num" title="ตาย+คัดขาย เทียบรับเข้า">💥เสียหายรวม·%</th><th class="num">ต้นทุนยาเบิก</th><th class="num">การรักษา</th><th class="num">คะแนน</th></tr></thead>
             <tbody>${fvets.map(vt=>{
               const hs=fhs.filter(h=>h.vet===vt);
               const medCost=hs.reduce((s,h)=>s+medTotal(h),0); // ต้นทุนยาของหมอ = รวมยาเบิกของหลังที่หมอคนนี้ดูแล (ตรงกับ medTotal ที่หน้าต้นทุนยา/ปิดชุดใช้) ไม่กรองด้วย m.vet ที่อาจค้างหลังเปลี่ยนหมอ
               const treat=hs.flatMap(h=>h.vetLog||[]).filter(e=>e.type==='treat'&&e.by===vt).length;
+              const agV=hs.reduce((o,h)=>{const d=dailyAgg(h);o.dead+=d.deadN;o.cull+=d.cullN;o.recv+=(h.received||0);return o;},{dead:0,cull:0,recv:0});
+              const lossV=agV.dead+agV.cull, pcV=n=>agV.recv?(n/agV.recv*100).toFixed(1)+'%':'-';
+              const dT=sumF(hs,'deadToday'), cT=sumF(hs,'cullToday');
               return `<tr class="clk" onclick="renderVetHouses(decodeURIComponent('${encodeURIComponent(vt)}'))">
                 <td><b>${escA(vt)}</b> <span class="sub">›</span></td><td class="num">${hs.length}</td><td class="num">${fmt(sumF(hs,'pigs'))}</td>
-                <td class="num">${sumF(hs,'deadToday')}</td><td class="num">${sumF(hs,'cullToday')}</td><td class="num">${sumF(hs,'soldToday')}</td><td class="num">${fmt(medCost)}</td><td class="num">${treat}</td>
+                <td class="num">${(dT||cT)?`<span style="color:var(--bad);font-weight:700">${fmt(dT)}</span><span style="opacity:.5">·</span><span style="color:#b7791f;font-weight:700">${fmt(cT)}</span>`:'-'}</td>
+                <td class="num">${fmt(sumF(hs,'soldToday'))}</td>
+                <td class="num"><span style="color:var(--bad)">${fmt(agV.dead)}</span> <span style="opacity:.65;font-size:11px">${pcV(agV.dead)}</span></td>
+                <td class="num">${fmt(agV.cull)} <span style="opacity:.65;font-size:11px">${pcV(agV.cull)}</span></td>
+                <td class="num"><b>${fmt(lossV)}</b> <span style="opacity:.65;font-size:11px">${pcV(lossV)}</span></td>
+                <td class="num">${fmt(medCost)}</td><td class="num">${treat}</td>
                 <td class="num">${sc(avgScore(hs))}</td></tr>`;}).join("")}</tbody>
           </table></div>
         </div>`;
