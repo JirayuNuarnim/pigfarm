@@ -141,6 +141,7 @@
   .homelist{display:flex;flex-direction:column;gap:10px}
   @media(min-width:1100px){
     #sbar{display:flex;flex-direction:column;gap:2px;position:sticky;top:58px;align-self:flex-start;width:206px;flex:0 0 206px;height:calc(100vh - 58px);overflow-y:auto;padding:9px 6px 14px;background:rgba(255,255,255,.72);backdrop-filter:blur(8px);border-right:1px solid var(--line)}
+    .seg.pagenav{display:none} /* จอกว้างมีเมนูข้างซ้ายแล้ว — ซ่อนแถบหัวข้อบนหน้า กันเมนูซ้ำสองชั้น */
     .content{flex:1;min-width:0;padding:16px 26px 70px;max-width:none}
     .homelist{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
   }
@@ -2333,7 +2334,8 @@ function vetNav(active){
   </div>`;
 }
 function clerkNav(active){
-  return `<div class="seg">
+  // จอกว้าง ≥1100px มีเมนูข้างซ้ายอยู่แล้ว → แถบหัวข้อบนนี้ถูกซ่อน (คลาส pagenav) กันเมนูซ้ำซ้อน
+  return `<div class="seg pagenav">
     <button class="${active==='rec'?'on':''}" onclick="renderHouseList()">📝 กรอกข้อมูลรายวัน</button>
     <button class="${active==='backfill'?'on':''}" onclick="renderBackfill()">📆 กรอกย้อนหลัง</button>
     <button class="${active==='sale'?'on':''}" onclick="renderSaleStand()">⚖️ แท่นขายหมู</button>
@@ -3743,7 +3745,7 @@ function renderHouseList(){
     <div class="sub">เลือกเล้าที่ต้องการบันทึกข้อมูล · วันที่ ${DEMO_DATE_SHORT}</div>
     ${scopeNoteHTML()}
     ${effRole()==='vet'?vetNav('rec'):''}
-    ${effRole()==='clerk'?clerkNav('rec'):''}
+    ${clerkNav('rec')}
     ${effRole()==='clerk'?incomingAlertBannerHTML():''}
     ${effRole()==='clerk'?closeAlertBannerHTML():''}
     ${pendingFillBannerHTML()}
@@ -4242,6 +4244,7 @@ function intakeSummaryHTML(h,showEdit){
 
 /* ---- DAILY entry ---- */
 function dailyHTML(h){
+  _autoP={cull:'',dead:'',sold:''}; // รีเซ็ตตัวจำ "ราคาที่เติมอัตโนมัติ" ทุกครั้งที่เปิดฟอร์ม — กันค่าเก่าจากหลังก่อนหน้าไปทับราคาที่โหลดมาแก้ไข
   // record block: [type select] จำนวน / น้ำหนัก / [นน.เฉลี่ย] / ราคากิโลละ / มูลค่ารวม(auto) / ลูกค้า / เลขที่บิล
   const otherCodes=HOUSES.filter(x=>x.id!==h.id&&x.code).slice().sort(byCode).map(x=>x.code); // หลังปลายทางสำหรับย้ายออก
   const block=(key,title,color,typeLabel,opts,withAvg,noSale)=>`
@@ -5664,7 +5667,7 @@ function renderStock(){
   const cats=stockCats(); if(!stockInCat||cats.indexOf(stockInCat)<0) stockInCat=cats[0]||'';
   if(!stkTfCat||cats.indexOf(stkTfCat)<0) stkTfCat=cats[0]||'';
   const v=$("#view"), canEdit=stockCanEdit();
-  if(!stockFarm){ v.innerHTML=`<h2 class="page">📦 คลังยา/อุปกรณ์</h2>${effRole()==='clerk'?clerkNav('stock'):''}<div class="card"><div class="sub">ยังไม่มีฟาร์มที่ดูแล</div></div>`; return; }
+  if(!stockFarm){ v.innerHTML=`<h2 class="page">📦 คลังยา/อุปกรณ์</h2>${clerkNav('stock')}<div class="card"><div class="sub">ยังไม่มีฟาร์มที่ดูแล</div></div>`; return; }
   const farm=stockFarm, allRows=stockRowsOf(farm);
   const sum=stockAlertSummary([farm]);
   const totalValue=sum.value, lowN=sum.low, outN=sum.out;
@@ -5674,7 +5677,7 @@ function renderStock(){
   v.innerHTML=`
     <h2 class="page">📦 คลังยา/อุปกรณ์</h2>
     <div class="sub">คลังกลางของแต่ละฟาร์ม · หมอเบิก = ตัดสต็อกฟาร์มอัตโนมัติ · ${canEdit?'รับเข้า/ปรับยอดได้':'ดูอย่างเดียว (เฉพาะเสมียน/ผู้ดูแลรับเข้าได้)'}</div>
-    ${effRole()==='clerk'?clerkNav('stock'):''}
+    ${clerkNav('stock')}
     <div class="card">
       <div class="frow" style="margin-bottom:0"><label>เลือกฟาร์ม</label>
         <select class="cin tl" onchange="stockFarm=this.value;renderStock()">${farms.map(f=>`<option ${f===stockFarm?'selected':''}>${escA(f)}</option>`).join('')}</select></div>
@@ -5903,7 +5906,7 @@ function renderStockMoves(){
   v.innerHTML=`
     <h2 class="page">🔁 ประวัติเคลื่อนไหวคลัง</h2>
     <div class="sub">${smFarm?'ฟาร์ม '+escA(smFarm):'ทุกฟาร์มที่ดูแล'} · เข้า/ออก/ปรับยอด · แสดง ${fmt(moves.length)} รายการ${smDateLabel()?' · '+escA(smDateLabel()):''}</div>
-    ${effRole()==='clerk'?clerkNav('stock'):''}
+    ${clerkNav('stock')}
     <div class="card">
       <h3>🔎 ตัวกรอง</h3>
       <div class="grid2">
@@ -6812,7 +6815,7 @@ function renderSaleStand(){
   $("#view").innerHTML=`
     <h2 class="page">⚖️ แท่นขายหมู</h2>
     <div class="sub">บิลขายรายคันรถ/รายรอบ · น้ำหนักรายตัว · เทียบตาชั่งรถอัตโนมัติ · ${sbCanWrite()?'ราคาใส่ทีหลังได้ (ขึ้นป้ายรอเจ้าของเติม)':'ดูอย่างเดียว'}</div>
-    ${effRole()==='clerk'?clerkNav('sale'):''}
+    ${clerkNav('sale')}
     ${pend?`<div class="banner info">⏳ <div><b>${pend} บิล</b> ยังไม่ใส่ราคา — เปิดบิลแล้วเติมราคา/กก. หรือช่วงราคาได้เลย</div></div>`:''}
     ${sbCanWrite()?`<div class="card"><h3>＋ บันทึกการขายใหม่</h3>
       <div style="display:flex;gap:9px;flex-wrap:wrap">
@@ -7009,8 +7012,22 @@ function scDel(i){
 }
 function scSet(i,bi,f,v){
   if(!scCanEdit()) return; const c=SB_CUST[i]; if(!c) return;
+  if(f!=='name'){ // ช่องราคา: เว้นว่างได้ · ตัวเลขเท่านั้น · ห้ามติดลบ (กันเผลอพิมพ์ค่าประหลาดแล้วไหลไปทั้งระบบ)
+    v=String(v==null?'':v).trim();
+    if(v!==''){ const n=parseFloat(v); v=(isFinite(n)&&n>=0)?String(n):''; }
+  }
   if(bi<0) c[f]=v; else if(c.bands[bi]) c.bands[bi][f]=v;
   syncConfig();
+}
+function scRename(i){ // ✏️ เปลี่ยนชื่อลูกค้า — ตารางราคาอยู่ครบ (บิลเก่ายังใช้ชื่อเดิม · บิลใหม่พิมพ์ชื่อใหม่แล้วราคาตามปกติ)
+  if(!scCanEdit()){ toast('เปลี่ยนชื่อได้เฉพาะบัญชีเจ้าของ'); return; }
+  const c=SB_CUST[i]; if(!c) return;
+  const nm=gNrm(prompt('เปลี่ยนชื่อลูกค้า "'+c.name+'" เป็น:', c.name)||'');
+  if(!nm||nm===c.name) return;
+  if(SB_CUST.some((x,xi)=>xi!==i&&gNrm(x.name)===nm)){ toast('มีชื่อ "'+nm+'" อยู่แล้ว'); return; }
+  const old=c.name; c.name=nm; syncConfig();
+  logAudit('ลูกค้าแท่นขาย', nm, 'เปลี่ยนชื่อลูกค้า', [{label:'ชื่อ',from:old,to:nm}], '');
+  renderSbCustomers(); toast('เปลี่ยนชื่อเป็น "'+nm+'" แล้ว — ตารางราคาอยู่ครบ');
 }
 function scCopyFrom(i){ // คัดลอกราคาจากเจ้าอื่นมาเป็นตัวตั้งต้น
   if(!scCanEdit()) return; const c=SB_CUST[i]; if(!c) return;
@@ -7036,7 +7053,7 @@ function renderSbCustomers(){
   const head=`
     <h2 class="page">👤 รายชื่อลูกค้าแท่นขาย</h2>
     <div class="sub">ตารางราคาตามน้ำหนัก <b>แยกรายเจ้า</b> · ราคาเติมอัตโนมัติทั้งในบิลแท่นขายและบันทึกรายวัน เมื่อพิมพ์ชื่อลูกค้าตรงกัน</div>
-    ${effRole()==='clerk'?clerkNav('sale'):''}
+    ${clerkNav('sale')}
     ${canE?'<div class="banner ok">🔑 <div><b>บัญชีเจ้าของ</b> — แก้ราคาได้ · การแก้ซิงก์ถึงทุกเครื่องอัตโนมัติ</div></div>'
       :'<div class="banner info">🔒 <div>ดูอย่างเดียว — <b>เจ้าของเท่านั้น</b>ที่เพิ่ม/แก้ราคาลูกค้าได้ (กติกากันโกงราคา)</div></div>'}`;
   // ── ชั้นที่ 2: ตารางราคาของเจ้าเดียว ──
@@ -7052,7 +7069,7 @@ function renderSbCustomers(){
     $("#view").innerHTML=head+`
     <div class="card">
       <h3><button class="btn ghost sm" onclick="scBack()">‹ รายชื่อทั้งหมด</button> <span style="margin-left:6px">👤 ${escA(c.name)}</span>
-        ${canE?`<button class="btn ghost sm" style="margin-left:8px" onclick="scCopyFrom(${i})">⧉ คัดลอกราคาจากเจ้าอื่น</button><button class="btn ghost sm" style="color:var(--bad);float:right" onclick="scDel(${i})">🗑 ลบเจ้านี้</button>`:''}</h3>
+        ${canE?`<button class="btn ghost sm" style="margin-left:8px" onclick="scRename(${i})">✏️ เปลี่ยนชื่อ</button><button class="btn ghost sm" style="margin-left:4px" onclick="scCopyFrom(${i})">⧉ คัดลอกราคาจากเจ้าอื่น</button><button class="btn ghost sm" style="color:var(--bad);float:right" onclick="scDel(${i})">🗑 ลบเจ้านี้</button>`:''}</h3>
       <div class="frow" style="max-width:340px;margin-bottom:10px"><label>🐖 ราคาหมูขุน (฿/กก.) — เว้นว่างได้</label>
         ${canE?`<input class="cin" type="number" step="0.25" placeholder="เช่น 74" value="${escA(c.fatP==null?'':c.fatP)}" onchange="scSet(${i},-1,'fatP',this.value)">`:`<div style="font-weight:800;padding:4px 0">${(c.fatP!==''&&c.fatP!=null)?escA(c.fatP)+' บาท':'—'}</div>`}</div>
       <div style="overflow-x:auto"><table>
