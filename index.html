@@ -389,6 +389,17 @@
 #gCard .cin{background:rgba(13,26,31,.82);border:1px solid rgba(83,234,210,.3);color:#dff3ee}
 #gCard .cin::placeholder{color:#6f918a}
 #gCard .cin:focus{border-color:rgba(83,234,210,.65);outline:none}
+/* ── (CF) ข้อมูลประจำฟาร์มแบบแน่น: ตารางหนาแน่น + หัวติดบน + เลื่อนในกรอบ (ไม่ต้องไถทั้งหน้า) ── */
+.densewrap{max-height:64vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.densetbl{font-size:12px;border-collapse:collapse;width:100%}
+.densetbl th{position:sticky;top:0;z-index:2;font-size:10.5px;padding:6px 8px;background:#e8efec;white-space:nowrap;cursor:default}
+.densetbl td{padding:3px 8px;white-space:nowrap;border-bottom:1px solid #eef2f0}
+.densetbl tr.clk{cursor:pointer}
+.densetbl tr.clk:hover td{background:rgba(31,125,110,.07)}
+body.theme-dark .densetbl th{background:#26304e}
+body.theme-dark .densetbl td{border-bottom-color:#2b3554}
+.cfchip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;background:var(--panel,#fff);color:var(--ink-2)}
+.cfchip.on{background:var(--brand);border-color:var(--brand);color:#fff}
 /* ── (SS) แผนผังฟาร์ม: ชั้นผู้ซื้อสไตล์ญี่ปุ่น (เส้นเงินไหล ฟาร์ม→ผู้ซื้อ) ── */
 .gsale{transition:opacity .25s,stroke-width .25s}
 .gflowline{stroke-dasharray:8 10;animation:gsflow 1.5s linear infinite}
@@ -2346,63 +2357,96 @@ function clerkNav(active){
     <button class="${active==='exp'?'on':''}" onclick="renderClerkExport()">📤 การดึงข้อมูลรวม</button>
   </div>`;
 }
-// หน้า "ข้อมูลประจำฟาร์ม" (เสมียน) — สรุปแต่ละฟาร์มที่ดูแล: จำนวนหลัง/สถานะ/หมูคงเหลือ/ทีมงาน + ตารางหลัง
-function renderClerkFarm(){
+// หน้า "ข้อมูลประจำฟาร์ม" (เสมียน) — โหมดแน่น: ตารางรายหลังข้อมูลครบ 13 คอลัมน์ + หัวติดบน + เลื่อนในกรอบ + ค้นหา/กรอง/เรียง (จอเว็บหลังเยอะไม่ต้องไถยาว)
+let cfQ='', cfStatus='', cfSort='code';
+function cfSetQ(v){ cfQ=v; renderClerkFarm(true);
+  const el=document.getElementById('cfSearch'); if(el){ el.focus(); const n=el.value.length; try{ el.setSelectionRange(n,n); }catch(e){} } }
+function cfSetStatus(v){ cfStatus=v; renderClerkFarm(true); }
+function cfSetSort(v){ cfSort=v; renderClerkFarm(true); }
+function cfStatusOf(h){ return needsClose(h)?'close':(houseStatus(h)==='กำลังเลี้ยง'?'raise':(houseStatus(h)==='กำลังล้างคอก'?'clean':'empty')); }
+function renderClerkFarm(keepScroll){
+  const sy=keepScroll?window.scrollY:0;
   histPush('clerkFarm',renderClerkFarm);
   const v=$("#view");
-  const list=myHouses();
-  const farmOf=h=>h.farm||'ไม่ระบุฟาร์ม';
+  const list=myHouses(), farmOf=h=>h.farm||'ไม่ระบุฟาร์ม';
   const known=FARMS.filter(f=>list.some(h=>farmOf(h)===f));
   const farms=[...known,...[...new Set(list.map(farmOf))].filter(f=>!FARMS.includes(f))];
-  const totCap=list.reduce((s,h)=>s+(h.cap||0),0), totPigs=list.reduce((s,h)=>s+(h.pigs||0),0);
+  const totPigs=list.reduce((s,h)=>s+(h.pigs||0),0);
   const totRaise=list.filter(h=>houseStatus(h)==='กำลังเลี้ยง').length;
-  const cards=farms.map(f=>{
-    const hs=list.filter(h=>farmOf(h)===f).slice().sort(byCode);
-    if(!hs.length) return '';
-    const cap=hs.reduce((s,h)=>s+(h.cap||0),0), pigs=hs.reduce((s,h)=>s+(h.pigs||0),0);
-    const raising=hs.filter(h=>houseStatus(h)==='กำลังเลี้ยง').length;
-    const cleaning=hs.filter(h=>houseStatus(h)==='กำลังล้างคอก').length;
-    const closing=hs.filter(needsClose).length;
-    const empty=Math.max(0,hs.length-raising-cleaning-closing);
-    const zones=[...new Set(hs.map(h=>h.zone).filter(Boolean))];
-    const vets=[...new Set(hs.map(h=>h.vet).filter(Boolean))];
-    const workers=[...new Set(hs.map(h=>h.worker).filter(Boolean))];
-    const assts=[...new Set(hs.map(h=>h.assistant).filter(Boolean))];
-    const ag=hs.reduce((a,h)=>{const d=dailyAgg(h);a.dead+=d.deadN;a.cull+=d.cullN;a.sold+=d.soldN;return a;},{dead:0,cull:0,sold:0});
-    const occ=cap?Math.round(pigs/cap*100):0;
-    return `<div class="card">
-      <h3>🏭 ${escA(f)} <span class="more">${hs.length} หลัง · ${zones.length} โซน</span></h3>
-      <div class="kpis" style="margin-bottom:12px">
-        <div class="kpi"><div class="lab"><span class="logo-ico"></span> หมูคงเหลือ</div><div class="val">${fmt(pigs)}</div><div class="delta">จากความจุ ${fmt(cap)} ตัว (${occ}%)</div></div>
-        <div class="kpi"><div class="lab">🟢 กำลังเลี้ยง</div><div class="val">${raising}</div><div class="delta">จาก ${hs.length} หลัง</div></div>
-        <div class="kpi"><div class="lab">⚰️ ตายสะสม</div><div class="val">${fmt(ag.dead)}</div></div>
-        <div class="kpi"><div class="lab">💰 ขายขุนสะสม</div><div class="val">${fmt(ag.sold)}</div></div>
-      </div>
-      <div class="sub" style="margin:-2px 0 9px">สถานะเล้า — 🟢 กำลังเลี้ยง <b>${raising}</b> · 🧹 ล้างคอก <b>${cleaning}</b> · 🔔 รอปิดชุด <b>${closing}</b> · ⬜ ว่าง <b>${empty}</b></div>
-      <div class="sub" style="margin:0 0 12px">🩺 หมอ: <b>${vets.map(escA).join(' · ')||'-'}</b> &nbsp;·&nbsp; 🧑‍🔧 ผู้ช่วย: <b>${assts.map(escA).join(' · ')||'-'}</b> &nbsp;·&nbsp; 👷 พนักงาน: <b>${workers.map(escA).join(' · ')||'-'}</b></div>
-      <div style="overflow-x:auto"><table>
-        <thead><tr><th>หลัง</th><th>สถานะเล้า</th><th>โซน</th><th class="num">หมูคงเหลือ</th><th class="num">ความจุ</th><th class="num">ตายสะสม</th><th></th></tr></thead>
-        <tbody>${hs.map(h=>{const d=dailyAgg(h);return `<tr class="clk" onclick="openForm(${h.id})">
-          <td><b>${escA(h.code)}</b></td><td>${needsClose(h)?'<span class="tag bad">🔔 รอปิดชุด</span>':penStatus(h)}</td><td>${escA(h.zone||'-')}</td>
-          <td class="num"><b>${fmt(h.pigs)}</b></td><td class="num">${fmt(h.cap)}</td><td class="num">${fmt(d.deadN)}</td>
-          <td class="num"><span class="sub">กรอก ›</span></td></tr>`;}).join('')}</tbody>
-      </table></div>
+  const q=gNrm(cfQ).toLowerCase();
+  const STL={raise:['🟢','เลี้ยง'],clean:['🧹','ล้าง'],close:['🔔','รอปิด'],empty:['⬜','ว่าง']};
+  const rowsOf={}; let waitToday=0;
+  farms.forEach(f=>{
+    let hs=list.filter(h=>farmOf(h)===f);
+    hs.forEach(h=>{ if((h.pigs||0)>0&&!h.filled) waitToday++; });
+    if(q) hs=hs.filter(h=>String(h.code||'').toLowerCase().includes(q)||gNrm(h.vet).toLowerCase().includes(q));
+    if(cfStatus) hs=hs.filter(h=>cfStatusOf(h)===cfStatus);
+    const rows=hs.map(h=>{
+      const a=dailyAgg(h), age=gAgeDaysH(h), recv=h.received||0;
+      return {h,a,age,recv,
+        deadPct:recv?a.deadN/recv*100:null,
+        val:Math.round((a.cullVal||0)+(a.soldVal||0)),
+        med:recv?medTotal(h)/recv:null,
+        last:(h.dailyLog&&h.dailyLog[0]&&h.dailyLog[0].date)||'',
+        st:cfStatusOf(h)};
+    });
+    const S={pigs:r=>r.h.pigs||0, age:r=>r.age==null?-1:r.age, dead:r=>r.deadPct==null?-1:r.deadPct, med:r=>r.med==null?-1:r.med, val:r=>r.val};
+    if(cfSort==='code') rows.sort((x,y)=>byCode(x.h,y.h)); else rows.sort((x,y)=>S[cfSort](y)-S[cfSort](x));
+    rowsOf[f]=rows;
+  });
+  const jump=farms.map((f,i)=>`<span class="cfchip" onclick="var e=document.getElementById('cfF${i}');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})">${escA(f)} <span style="opacity:.65">(${rowsOf[f].length})</span></span>`).join(' ');
+  const stChip=(k,lab)=>`<span class="cfchip${cfStatus===k?' on':''}" onclick="cfSetStatus('${k}')">${lab}</span>`;
+  const cards=farms.map((f,fi)=>{
+    const all=list.filter(h=>farmOf(h)===f), rows=rowsOf[f];
+    const pigs=all.reduce((s,h)=>s+(h.pigs||0),0);
+    const agF=all.reduce((o,h)=>{const d=dailyAgg(h);o.dead+=d.deadN;o.sold+=d.soldN;o.cull+=d.cullN;o.val+=(d.cullVal||0)+(d.soldVal||0);return o;},{dead:0,sold:0,cull:0,val:0});
+    const raising=all.filter(h=>houseStatus(h)==='กำลังเลี้ยง').length, closing=all.filter(needsClose).length;
+    const wait=all.filter(h=>(h.pigs||0)>0&&!h.filled).length;
+    const vets=[...new Set(all.map(h=>h.vet).filter(Boolean))];
+    const trs=rows.map(r=>{
+      const h=r.h, st=STL[r.st];
+      return `<tr class="clk" onclick="openForm(${h.id})">
+        <td><b>${escA(h.code)}</b></td>
+        <td title="${escA(houseStatus(h)||'')}">${st[0]}<span style="opacity:.75;font-size:10px"> ${st[1]}</span></td>
+        <td style="max-width:92px;overflow:hidden;text-overflow:ellipsis">${escA(h.vet||'-')}</td>
+        <td class="num"><b>${fmt(h.pigs||0)}</b><span style="opacity:.55">/${fmt(r.recv)}</span></td>
+        <td class="num">${r.age!=null?fmt(r.age):'-'}</td>
+        <td class="num">${r.a.deadN?`<span style="color:var(--bad)">${fmt(r.a.deadN)}</span><span style="opacity:.6;font-size:10px"> ${r.deadPct!=null?r.deadPct.toFixed(1)+'%':''}</span>`:'-'}</td>
+        <td class="num">${r.a.cullN?fmt(r.a.cullN):'-'}</td>
+        <td class="num">${r.a.soldN?fmt(r.a.soldN):'-'}</td>
+        <td class="num">${r.val?fmt(r.val):'-'}</td>
+        <td class="num">${r.med!=null&&r.med>0?fmt(Math.round(r.med)):'-'}</td>
+        <td>${(h.pigs||0)>0?(h.filled?'<span style="color:var(--ok);font-weight:800">✓</span>':'<span style="color:#b7791f;font-weight:800">⏳</span>'):''}</td>
+        <td style="opacity:.75">${escA(r.last||'-')}</td>
+        <td class="num"><span class="sub" style="font-size:11px">เปิด ›</span></td></tr>`;
+    }).join('');
+    return `<div class="card" id="cfF${fi}" style="scroll-margin-top:64px">
+      <h3>🏭 ${escA(f)} <span class="more">${fmt(rows.length)}${rows.length!==all.length?'/'+fmt(all.length):''} หลัง · หมู ${fmt(pigs)} · เลี้ยง ${raising}${wait?' · <b style="color:#b7791f">รอกรอก '+wait+'</b>':''}${closing?' · <b style="color:var(--bad)">รอปิด '+closing+'</b>':''} · ตายสะสม ${fmt(agF.dead)} · ขาย+คัด ${fmt(agF.sold+agF.cull)} ตัว (${fmt(Math.round(agF.val))} ฿) · 🩺 ${vets.map(escA).join(', ')||'-'}</span></h3>
+      ${rows.length?`<div class="densewrap"><table class="densetbl">
+        <thead><tr><th>หลัง</th><th>สถานะ</th><th>หมอ</th><th class="num">เหลือ/รับ</th><th class="num">อายุ(วัน)</th><th class="num">ตาย·%</th><th class="num">คัด</th><th class="num">ขาย</th><th class="num">฿ขาย+คัด</th><th class="num">ยา฿/ตัว</th><th>วันนี้</th><th>บันทึกล่าสุด</th><th></th></tr></thead>
+        <tbody>${trs}</tbody></table></div>`:'<div class="sub">— ไม่มีหลังตรงตามตัวกรอง —</div>'}
     </div>`;
   }).join('');
   v.innerHTML=`
     <h2 class="page">🏭 ข้อมูลประจำฟาร์ม</h2>
-    <div class="sub">ภาพรวมแต่ละฟาร์มที่คุณดูแล · วันที่ ${DEMO_DATE_SHORT}</div>
+    <div class="sub">โหมดข้อมูลแน่น — เลื่อนดูในกรอบของแต่ละฟาร์ม (หัวตารางล็อกอยู่บน) · แตะแถวเพื่อเปิดหลัง · วันที่ ${DEMO_DATE_SHORT}</div>
     ${scopeNoteHTML()}
     ${clerkNav('farm')}
-    <div class="kpis">
-      <div class="kpi"><div class="lab">🏭 ฟาร์มที่ดูแล</div><div class="val">${known.length}</div></div>
-      <div class="kpi"><div class="lab">🏚️ หลังทั้งหมด</div><div class="val">${list.length}</div></div>
-      <div class="kpi"><div class="lab"><span class="logo-ico"></span> หมูคงเหลือรวม</div><div class="val">${fmt(totPigs)}</div></div>
-      <div class="kpi"><div class="lab">🟢 กำลังเลี้ยง</div><div class="val">${totRaise}</div></div>
+    <div class="card" style="padding:12px 14px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="cfSearch" class="cin" value="${escA(cfQ)}" placeholder="🔍 ค้นหา หลัง / หมอ" style="max-width:190px;padding:7px 11px" oninput="cfSetQ(this.value)">
+        ${stChip('','ทั้งหมด')}${stChip('raise','🟢 เลี้ยง')}${stChip('close','🔔 รอปิด')}${stChip('clean','🧹 ล้าง')}${stChip('empty','⬜ ว่าง')}
+        <select class="cin tl" style="max-width:210px;padding:7px 11px" onchange="cfSetSort(this.value)">
+          ${[['code','เรียง: รหัสหลัง'],['pigs','เรียง: คงเหลือมาก→น้อย'],['age','เรียง: อายุมาก→น้อย'],['dead','เรียง: %ตายมาก→น้อย'],['val','เรียง: มูลค่าขายมาก→น้อย'],['med','เรียง: ค่ายา/ตัวมาก→น้อย']].map(o=>`<option value="${o[0]}"${cfSort===o[0]?' selected':''}>${o[1]}</option>`).join('')}
+        </select>
+        <span class="sub" style="margin:0">💡 ${fmt(list.length)} หลัง · หมูรวม ${fmt(totPigs)} · เลี้ยง ${fmt(totRaise)}${waitToday?' · <b style="color:#b7791f">รอกรอกวันนี้ '+fmt(waitToday)+'</b>':''}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">${jump}</div>
     </div>
     ${cards||'<div class="sub">ไม่มีฟาร์มในความดูแล</div>'}
-    ${closedBatchesByFarmHTML()}
+    <details style="margin-top:14px"><summary style="cursor:pointer;font-weight:800;color:var(--brand);padding:6px 2px">📦 ชุดที่ปิดแล้ว (กดเพื่อเปิดดู)</summary>${closedBatchesByFarmHTML()}</details>
   `;
+  if(keepScroll) window.scrollTo(0,sy);
 }
 // รายการเบิกยา/อุปกรณ์ที่หมอเบิก แยกตามฟาร์ม → วัน → หมอ (สำหรับเสมียน)
 let crFarm='', crHouse='', crVet='', crDate='', crDateMode='day', crDateFrom='', crDateTo='', crFarmDaysBack={};
@@ -3948,10 +3992,10 @@ function medListHTML(h,withEdit){
     : `<button class="btn ghost sm" style="color:var(--info)" onclick="startMedEdit(${h.id},'${m._id}')">✏️</button>`}</td>`;
   const row=m=>isEd(m)
     ? `<tr><td>${inp(m._id,'date',m.date)}</td><td>${catSel(m._id,m.cat)}</td><td>${inp(m._id,'name',m.name)}</td><td class="num">${inp(m._id,'qty',m.qty,'num')}</td><td class="num">${inp(m._id,'price',m.price,'num')}</td><td class="num"><b>${fmt((Number(m.qty)||0)*(Number(m.price)||0))}</b></td>${act(m)}</tr>`
-    : `<tr><td>${escA(m.date)}</td><td><span class="tag ${m.cat==='วัคซีน'?'ok':m.cat==='ยาไม่มีทะเบียน'?'warn':'wait'}">${escA(m.cat)}</span></td><td>${escA(m.name)}${m.dose?'<div class="sub">โดส: '+escA(m.dose)+'</div>':''}${m.note?'<div class="sub">📝 '+escA(m.note)+'</div>':''}</td><td class="num">${m.qty}</td><td class="num">${fmt(m.price)}</td><td class="num"><b>${fmt(m.total)}</b></td>${act(m)}</tr>`;
+    : `<tr><td>${escA(m.date)}</td><td><span class="tag ${m.cat==='วัคซีน'?'ok':m.cat==='ยาไม่มีทะเบียน'?'warn':'wait'}">${escA(m.cat)}</span></td><td style="white-space:normal;min-width:160px;max-width:300px">${escA(m.name)}${m.dose?'<div class="sub">โดส: '+escA(m.dose)+'</div>':''}${m.note?'<div class="sub">📝 '+escA(m.note)+'</div>':''}</td><td class="num">${m.qty}</td><td class="num">${fmt(m.price)}</td><td class="num"><b>${fmt(m.total)}</b></td>${act(m)}</tr>`;
   const colspan=withEdit?7:6;
   return `<div class="card"><h3>💊 รายการเบิกยา / เวชภัณฑ์ <span class="more">${fmt(meds.length)} รายการ · รวม ${fmt(medTotal(h))} บาท</span></h3>
-    <div style="overflow-x:auto"><table>
+    <div class="densewrap" style="max-height:48vh"><table class="densetbl">
       <thead><tr><th>วันที่</th><th>ประเภท</th><th>ชื่อยา</th><th class="num">จำนวน</th><th class="num">ราคา</th><th class="num">รวม</th>${ehCol}</tr></thead>
       <tbody>
         ${meds.length? meds.map(row).join("") : `<tr><td colspan="${colspan}" class="sub">ยังไม่มีรายการเบิกยา</td></tr>`}
@@ -6207,28 +6251,28 @@ function vetLogHTML(h,withEdit){
   const ehCol=withEdit?'<th class="num">จัดการ</th>':'';
   const treatRow=e=>isEd(e)
     ? `<tr><td><b>${e.date}</b></td><td>${area(e._id,'symptoms',e.symptoms)}</td><td>${inp(e._id,'formula',e.formula)}</td><td>${inp(e._id,'inject',e.inject)}</td><td>${area(e._id,'note',e.note)}</td><td>${e.by||'-'}</td>${act(e)}</tr>`
-    : `<tr><td><b>${e.date}</b></td><td>${escA(e.symptoms||'-')}</td><td>${escA(e.formula||'-')}</td><td>${escA(e.inject||'-')}</td><td>${escA(e.note||'-')}</td><td>${escA(e.by||'-')}</td>${act(e)}</tr>`;
+    : `<tr><td><b>${e.date}</b></td><td style="white-space:normal;min-width:150px;max-width:260px">${escA(e.symptoms||'-')}</td><td>${escA(e.formula||'-')}</td><td>${escA(e.inject||'-')}</td><td style="white-space:normal;min-width:120px;max-width:220px">${escA(e.note||'-')}</td><td>${escA(e.by||'-')}</td>${act(e)}</tr>`;
   const feedRow=e=>isEd(e)
     ? `<tr><td><b>${e.date}</b></td><td>${inp(e._id,'feedSrc',e.feedSrc)}</td><td>${inp(e._id,'feedNo',e.feedNo)}</td><td>${area(e._id,'feedMed',e.feedMed)}</td><td class="num">${inpNum(e._id,'feedKg',e.feedKg)}</td><td>${inp(e._id,'feedBill',e.feedBill)}</td><td>${e.by||'-'}</td>${act(e)}</tr>`
-    : `<tr><td><b>${e.date}</b></td><td>${escA(e.feedSrc||'-')}</td><td>${escA(e.feedNo||'-')}</td><td>${escA(e.feedMed||'-').replace(/\n/g,'<br>')}</td><td class="num">${e.feedKg?fmt(e.feedKg):'-'}</td><td>${escA(e.feedBill||'-')}</td><td>${escA(e.by||'-')}</td>${act(e)}</tr>`;
+    : `<tr><td><b>${e.date}</b></td><td>${escA(e.feedSrc||'-')}</td><td>${escA(e.feedNo||'-')}</td><td style="white-space:normal;min-width:140px;max-width:260px">${escA(e.feedMed||'-').replace(/\n/g,'<br>')}</td><td class="num">${e.feedKg?fmt(e.feedKg):'-'}</td><td>${escA(e.feedBill||'-')}</td><td>${escA(e.by||'-')}</td>${act(e)}</tr>`;
   const intakeRow=e=>{const kg=Number(e.eatKg)||0,rate=h.pigs>0?(kg/h.pigs):0;return isEd(e)
     ? `<tr><td><b>${e.date}</b></td><td>${inp(e._id,'eatNo',e.eatNo)}</td><td class="num">${inpNum(e._id,'eatKg',e.eatKg)}</td><td class="num">${fmt(h.pigs)}</td><td class="num">—</td><td>${e.by||'-'}</td>${act(e)}</tr>`
     : `<tr><td><b>${e.date}</b></td><td>${escA(e.eatNo||'-')}</td><td class="num">${kg?fmt(kg):'-'}</td><td class="num">${fmt(h.pigs)}</td><td class="num"><b>${h.pigs>0&&kg?rate.toFixed(2):'-'}</b></td><td>${escA(e.by||'-')}</td>${act(e)}</tr>`;};
   return `
   <div class="card"><h3>🩺 ประวัติการรักษา <span class="more">${treat.length} ครั้ง</span></h3>
-    <div style="overflow-x:auto"><table>
+    <div class="densewrap" style="max-height:44vh"><table class="densetbl">
       <thead><tr><th>วันที่</th><th>อาการ</th><th>ยาสูตร</th><th>ยาฉีด</th><th>หมายเหตุ</th><th>หมอ</th>${ehCol}</tr></thead>
       <tbody>${treat.length? treat.map(treatRow).join("") : `<tr><td colspan="${withEdit?7:6}" class="sub">ยังไม่มีบันทึกการรักษา</td></tr>`}</tbody>
     </table></div>
   </div>
-  <div class="card"><h3>🌾 ประวัติการรับอาหาร <span class="more">${feed.length} ครั้ง</span></h3>
-    <div style="overflow-x:auto"><table>
+  <div class="card"><h3>🌾 ประวัติการรับอาหาร <span class="more">${feed.length} ครั้ง · รวม ${fmt(Math.round(feed.reduce((s,e)=>s+(Number(e.feedKg)||0),0)))} กก.</span></h3>
+    <div class="densewrap" style="max-height:44vh"><table class="densetbl">
       <thead><tr><th>วันที่</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th>ยาผสม</th><th class="num">ปริมาณ(กก.)</th><th>เลขที่บิล</th><th>หมอ</th>${ehCol}</tr></thead>
       <tbody>${feed.length? feed.map(feedRow).join("") : `<tr><td colspan="${withEdit?8:7}" class="sub">ยังไม่มีบันทึกการรับอาหาร</td></tr>`}</tbody>
     </table></div>
   </div>
-  <div class="card"><h3>🍽️ ประวัติการกินได้ต่อวัน <span class="more">${intake.length} ครั้ง</span></h3>
-    <div style="overflow-x:auto"><table>
+  <div class="card"><h3>🍽️ ประวัติการกินได้ต่อวัน <span class="more">${intake.length} ครั้ง${(intake.length&&h.pigs>0&&Number(intake[0].eatKg))?' · ล่าสุด '+(Number(intake[0].eatKg)/h.pigs).toFixed(2)+' กก./ตัว/วัน':''}</span></h3>
+    <div class="densewrap" style="max-height:44vh"><table class="densetbl">
       <thead><tr><th>วันที่</th><th>อาหารเบอร์</th><th class="num">น้ำหนักที่กิน(กก.)</th><th class="num">คงเหลือ(ตัว)</th><th class="num">กิน/ตัว/วัน(กก.)</th><th>หมอ</th>${ehCol}</tr></thead>
       <tbody>${intake.length? intake.map(intakeRow).join("") : `<tr><td colspan="${withEdit?7:6}" class="sub">ยังไม่มีบันทึกการกินได้</td></tr>`}</tbody>
     </table></div>
