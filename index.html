@@ -8446,9 +8446,20 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
     +'<td style="'+BD+';font-size:13px;padding:4px 9px;text-align:center">รถหนัก: <b>'+(sbNum(b.scaleOut)?fmt(sbNum(b.scaleOut)):'-')+'</b></td>'
     +'<td style="'+BD+';font-size:13px;padding:4px 9px;text-align:center">สุทธิ: <b>'+(c.scaleNet!=null?fmt(c.scaleNet):'-')+'</b> กก.</td></tr></table>';
   // ── ลายเซ็น ──
-  h+='<table style="width:100%;margin-top:30px;border-collapse:collapse"><tr>'
+  h+='<table style="width:100%;margin-top:24px;border-collapse:collapse"><tr>'
     +'<td style="text-align:center;font-size:13px;padding:6px">ผู้รับของ ...............................................</td>'
     +'<td style="text-align:center;font-size:13px;padding:6px">ผู้ส่งของ ..........'+escA(b.by||'')+'..........</td></tr></table>';
+  // ── ช่องเซ็นรับรองท้ายบิล: พนักงาน / พยาน / เจ้าของฟาร์ม ──
+  const sig=(role,name)=>'<td style="width:33.33%;text-align:center;font-size:13px;padding:16px 6px 4px;vertical-align:bottom">'
+    +'ลงชื่อ ................................................<br>'
+    +'( '+(name?escA(name):'..............................................')+' )<br>'
+    +'<b>'+role+'</b><br><span style="font-size:11.5px;color:#555">วันที่ ........./........./.........</span></td>';
+  h+='<table style="width:100%;margin-top:14px;border-collapse:collapse;border-top:1px dashed #999"><tr>'
+    +'<td colspan="3" style="font-size:12px;font-weight:800;padding:8px 2px 0;color:#333">การเซ็นรับรองบิล</td></tr><tr>'
+    +sig('พนักงาน', b.by||'')
+    +sig('พยาน','')
+    +sig('เจ้าของฟาร์ม','')
+    +'</tr></table>';
   return h;
 }
 /* ---------- หน้าดูบิลในเว็บ + พิมพ์ A4 / PDF ---------- */
