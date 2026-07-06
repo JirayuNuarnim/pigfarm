@@ -1138,6 +1138,7 @@ async function cloudLoadV2(){
     }
     HOUSES=rows.map(mergeHouse);
     try{ await sbCloudLoad(); }catch(e){}   // บิลแท่นขาย (ถ้าหลังบ้านยังไม่มีตาราง → ใช้ข้อมูลในเครื่องไปก่อน)
+    try{ await lgCloudLoad(); }catch(e){}   // 📒 บัญชีลูกค้า/ลูกหนี้ (โหลดไม่ได้ = ใช้ข้อมูลในเครื่องไปก่อน)
     return true;
   }catch(e){ console.warn('cloudLoadV2',e); return false; }
 }
@@ -1163,6 +1164,7 @@ async function flushSyncV2(){
   if(cfg){ let ok=false; try{ ok=await saveConfigAll(); }catch(e){ console.warn('sync cfg',e); } if(!ok){ _dirtyCfg=true; requeue=true; } }
   for(const b of bills){ let r=false; try{ r=await saveSaleBillRemote(b); }catch(e){ console.warn('sync salebill',e); }
     if(r===false){ if(!_dirtySB[b.id]) _dirtySB[b.id]=b; requeue=true; } }   // r==='conflict' = มีกล่องถามผู้ใช้แล้ว ไม่ต้องคิวซ้ำ
+  try{ if(!(await lgFlushQ())) requeue=true; }catch(e){ console.warn('sync ledger',e); requeue=true; }   // 📒 คิวบัญชีลูกค้า
   if(requeue) setTimeout(()=>{ scheduleSyncV2(); }, 5000);
   try{ rtBaseline(); }catch(e){}   // absorb ของที่เราเพิ่งเขียนเข้าเส้นฐาน → poll จะไม่เตือน "ข้อมูลใหม่" จากการแก้ของตัวเอง
 }
@@ -1438,6 +1440,7 @@ const HOME_MENU = {
     {icon:'💊', t:'ต้นทุนยา',           d:'ค่ายา/เวชภัณฑ์ รายฟาร์ม · รายหลัง',        fn:'renderMedDash'},
     {icon:'⚖️', t:'แท่นขายหมู',         d:'บิลขายรายคันรถ ทุกฟาร์ม · เติมราคาที่ค้าง',   fn:'renderSaleStand'},
     {icon:'📺', t:'มอนิเตอร์แท่นขาย',    d:'ดูสดทุกแท่นพร้อมกัน — ใครกำลังกรอกบิลไหน กี่ตัว กี่ กก. · เด้งเองทุก 5 วิ', fn:'renderStandMonitor'},
+    {icon:'📒', t:'บัญชีลูกค้า / ลูกหนี้', d:'ยอดค้างรายลูกค้า · รับเงิน+ใบรับเงิน · เงินสดค้างเก็บแยกคนรับผิดชอบ', fn:'renderLedger'},
     {icon:'📦', t:'คลังยา/อุปกรณ์',       d:'ยอดคงเหลือ · มูลค่า · ของใกล้หมด ทุกฟาร์ม', fn:'renderStock'},
     {icon:'👥', t:'จัดการผู้ใช้',        d:'เปิด/แก้/ปิด บัญชีทีม + ตั้งรหัสผ่าน',      fn:'renderUsers'},
     {icon:'🔒', t:'ประวัติการแก้ (กันโกง)', d:'บันทึกจากเซิร์ฟเวอร์ · ใครแก้อะไร เมื่อไหร่ · ลบ/แก้ไม่ได้', fn:'renderAuditLog'},
@@ -1446,6 +1449,7 @@ const HOME_MENU = {
     {icon:'📝', t:'กรอกข้อมูลรายวัน',    d:'ตาย/คัด/ขาย/ย้าย + ปิดชุด รายหลัง',       fn:'renderHouseList'},
     {icon:'📆', t:'กรอกข้อมูลย้อนหลัง',   d:'ลงข้อมูลจากกระดาษ หลายวันรวดเดียว (ตอนเริ่มใช้)', fn:'renderBackfill'},
     {icon:'⚖️', t:'แท่นขายหมู',          d:'บิลขายรายคันรถ · น้ำหนักรายตัว · ตาย/คัดขาย · ราคาเว้นได้', fn:'renderSaleStand'},
+    {icon:'📒', t:'บัญชีลูกค้า / ลูกหนี้', d:'ยอดค้างรายลูกค้า · รับเงิน+ใบรับเงิน · หักหน้าบิล', fn:'renderLedger'},
     {icon:'🏭', t:'ข้อมูลประจำฟาร์ม',    d:'ภาพรวมหลังในแต่ละฟาร์ม',                fn:'renderClerkFarm'},
     {icon:'💉', t:'รายการเบิกยา',        d:'ดูรายการเบิกยา/เวชภัณฑ์ของหมอ',          fn:'renderClerkReq'},
     {icon:'🌾', t:'รายการเบิกอาหาร',     d:'ดูใบเบิกอาหารของหมอ',                   fn:'renderClerkFeedReq'},
@@ -1460,6 +1464,7 @@ const HOME_MENU = {
   ],
   admin:   [ {icon:'🏠', t:'จัดการเล้า',        d:'เพิ่ม/แก้/ลบ หลัง + ตั้งค่าฟอร์ม',      fn:'renderAdmin'},
              {icon:'📺', t:'มอนิเตอร์แท่นขาย',  d:'ดูสดทุกแท่น — ใครกำลังกรอกบิลไหน · เด้งเองทุก 5 วิ', fn:'renderStandMonitor'},
+             {icon:'📒', t:'บัญชีลูกค้า / ลูกหนี้', d:'ยอดค้างรายลูกค้า · รับเงิน+ใบรับเงิน · เงินสดค้างเก็บ', fn:'renderLedger'},
              {icon:'👥', t:'จัดการผู้ใช้',      d:'เปิด/แก้/ปิด บัญชีทีม + ตั้งรหัสผ่าน',   fn:'renderUsers'},
              {icon:'🔒', t:'ประวัติการแก้ (กันโกง)', d:'บันทึกจากเซิร์ฟเวอร์ · แก้/ลบไม่ได้', fn:'renderAuditLog'} ],
   formula: [ {icon:'🧪', t:'สูตรยา / แคทาล็อก', d:'จัดการสูตรยาผสมอาหาร + รายการยา',     fn:'renderFormulas'} ],
@@ -2403,6 +2408,7 @@ function clerkNav(active){
     <button class="${active==='rec'?'on':''}" onclick="renderHouseList()">📝 กรอกข้อมูลรายวัน</button>
     <button class="${active==='backfill'?'on':''}" onclick="renderBackfill()">📆 กรอกย้อนหลัง</button>
     <button class="${active==='sale'?'on':''}" onclick="renderSaleStand()">⚖️ แท่นขายหมู</button>
+    <button class="${active==='ledger'?'on':''}" onclick="renderLedger()">📒 บัญชีลูกค้า</button>
     <button class="${active==='farm'?'on':''}" onclick="renderClerkFarm()">🏭 ข้อมูลประจำฟาร์ม</button>
     <button class="${active==='req'?'on':''}" onclick="renderClerkReq()">💉 รายการเบิกยา</button>
     <button class="${active==='freq'?'on':''}" onclick="renderClerkFeedReq()">🌾 รายการเบิกอาหาร</button>
@@ -7282,7 +7288,7 @@ function sbBlank(kind){
   return {id:sbNewId(), kind:kind, farm:(myFarms()!=='*'&&myFarms().length?myFarms()[0]:(FARMS[0]||'')), dateISO:todayISO(), time:'',
     buyer:'', truck:'', billBook:'', billNo:'', houses:[{code:'',n:''}], weights:[], items:[{house:'',type:'dead',w:''}],
     bands:SB_BANDS_DEF.map(x=>({a:x[0],b:x[1],cull:'',dead:''})), scaleIn:'', scaleOut:'', timeStart:'', timeEnd:'', fastPen:'', fastStand:'',
-    pricePerKg:'', deducts:[], note:'', by:whoNow(), createdAt:Date.now(), editLog:[]};
+    pricePerKg:'', deducts:[], note:'', payMode:'credit', payResp:'', by:whoNow(), createdAt:Date.now(), editLog:[]};
 }
 function sbNew(kind){ if(blockIfReadonly())return; if(!sbCanWrite()){toast('บัญชีนี้บันทึกบิลขายไม่ได้');return;} if(!sbDraftGuard()) return; SB_D=sbBlank(kind); SB_ISNEW=true; renderSaleBillForm(); }
 function sbEdit(id){
@@ -7596,6 +7602,7 @@ function renderSaleBillForm(){
         <div class="frow"><label>บิลกระดาษ เล่มที่</label><input class="cin" placeholder="เช่น 074" value="${escA(SB_D.billBook)}" oninput="SB_D.billBook=this.value;sbRefresh()"></div>
         <div class="frow"><label>เลขที่</label><input class="cin" placeholder="เช่น 18" value="${escA(SB_D.billNo)}" oninput="SB_D.billNo=this.value;sbRefresh()"></div>
       </div></div>
+    ${lgPayCardHTML()}
     ${isDC?`
     <div class="card"><h3>🐷 รายการหมู (ทีละตัว)</h3><datalist id="sbHouseDL">${[...new Set(HOUSES.filter(h=>!SB_D.farm||(h.farm||'')===SB_D.farm).slice().sort(byCode).map(h=>h.code))].map(c=>`<option value="${escA(c)}">`).join('')}</datalist>
       <div id="sbItemsBox">${sbItemsHTML()}</div></div>
@@ -7849,6 +7856,7 @@ function sbSave(){
   syncSaleBill(SB_D);
   logAudit('บิลขาย', SB_D.id, SB_ISNEW?'สร้างบิลขาย':'แก้ไขบิลขาย', changes.length?changes:null, (SB_D.farm||'')+' · '+(SB_KIND[SB_D.kind]||{}).t+' · '+(SB_D.buyer||'-')+' · '+fmt(c.n)+' ตัว '+fmt(Math.round(c.totW))+' กก.'+(c.net!=null?' · '+fmt(c.net)+' บาท':' · รอใส่ราคา'));
   sbDraftDrop(); sbLiveClear();
+  try{ lgOnBillSaved(SB_D); }catch(e){ console.warn('ledger',e); }  // 📒 ยอดบิลไหลเข้าบัญชีลูกค้าอัตโนมัติ (เมื่อราคาครบ)
   toast('บันทึกบิลแล้ว ✓'+(c.pending?' — ติดป้ายรอใส่ราคาให้เจ้าของ':''));
   SB_D=null; renderSaleStand();
 }
@@ -7860,6 +7868,7 @@ function sbDelete(id){
   SALE_BILLS=SALE_BILLS.filter(x=>x.id!==id); delete _dirtySB[id]; sbPersist(); // เอาออกจากคิวซิงก์ด้วย — กันบิลที่เพิ่งลบถูกดันกลับขึ้นคลาวด์
   if(CONFIG.supabase.enabled&&CONFIG.supabase.backend==='v2'){ supaFetch('/rest/v1/rpc/delete_sale_bill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_id:id})}); }
   logAudit('บิลขาย', id, 'ลบบิลขาย', null, (b.farm||'')+' · '+(b.buyer||'-'));
+  try{ lgOnBillDeleted(b); }catch(e){}  // 📒 เคลียร์ยอดบิลนี้ในบัญชีลูกค้า (เหลือ 0 พร้อมหมายเหตุ ไม่ลบประวัติ)
   toast('ลบบิลแล้ว'); SB_D=null; renderSaleStand();
 }
 /* ---------- ✅ ตรวจ + ล็อกบิล (เจ้าของ/ผู้ดูแล) — บิลที่ตรวจแล้วเสมียนแก้ไม่ได้ · ทุกการล็อก/ปลดลง audit ---------- */
@@ -7996,6 +8005,326 @@ function sbPostToHouses(id){
   const top=navHist[navHist.length-1]; if(top&&top.fn) top.fn();
 }
 function sbSaveAndPost(){ const id=SB_D&&SB_D.id; sbSave(); if(id&&SB_D===null&&SALE_BILLS.some(x=>x.id===id)) sbPostToHouses(id); } // SB_D===null = บันทึกผ่านแล้วจริง (กันลงข้อมูลเก่าเมื่อ validation ไม่ผ่าน)
+/* ============================================================
+   (LG) ระบบบัญชีการขายหมู เฟส 1+2 — บัญชีเดินสะพัดลูกค้า (Customer Ledger)
+   หลักเดียว: บิล = หนี้เพิ่ม (+) · รับเงิน/หักหน้าบิล = หนี้ลด (−) · ยอดค้าง = ผลรวม
+   · บิลแท่นขายที่ราคาครบ ไหลเข้าบัญชีอัตโนมัติ (idempotent ต่อบิล — แก้บิลยอดตาม ลบบิลยอดเป็น 0)
+   · เคสการเงิน 4 แบบ: ขายเชื่อ / โอนทันที(+ใบรับเงินอัตโนมัติ) / หักหน้าบิลข้ามรอบ / เก็บเงินสดทีหลัง(+เอกสารมอบหมาย)
+   · ใบรับเงิน RC / เอกสารมอบหมาย RP เลขที่ทางการออกจากเซิร์ฟเวอร์ (ออฟไลน์ = เลขชั่วคราว แล้วได้เลขจริงตอนซิงก์)
+   · append-only: ผิดให้ "ยกเลิกรายการ" (เจ้าของ/ผู้ดูแล) ไม่แก้/ไม่ลบของเดิม · ทุกอย่างลง audit ฝั่งเซิร์ฟเวอร์
+   · local-first: เก็บเครื่องก่อน + คิวส่ง (idempotent ด้วย id ฝั่งเครื่อง) — เน็ตหลุดข้อมูลไม่หาย
+============================================================ */
+let LG={customers:[],entries:[],docs:[]};
+try{ const _lg0=JSON.parse(localStorage.getItem('sjfLedger')||'null'); if(_lg0&&Array.isArray(_lg0.entries)) LG=_lg0; }catch(e){}
+let _lgQ=[]; try{ const _q0=JSON.parse(localStorage.getItem('sjfLedgerQ')||'[]'); if(Array.isArray(_q0)) _lgQ=_q0; }catch(e){}
+let _lgLoadAt=0, lgTab='ar', lgCustSel=null;
+function lgPersist(){ try{ localStorage.setItem('sjfLedger', JSON.stringify(LG)); }catch(e){} }
+function lgQPersist(){ try{ localStorage.setItem('sjfLedgerQ', JSON.stringify(_lgQ)); }catch(e){} }
+function lgOn(){ return !!(CONFIG.supabase&&CONFIG.supabase.enabled&&CONFIG.supabase.backend==='v2'); }
+function lgCanUse(){ return ['owner','admin','clerk'].includes(ROLE); }
+function lgUid(p){ return (p||'lg')+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function lgMoney(v){ return fmt(Math.round(+v||0)); }
+async function lgRpc(fn,body){ const r=await supaFetch('/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}); if(!r||!r.ok) return null; try{ return await r.json(); }catch(e){ return null; } }
+function lgQueue(fn,body,dedupKey){ // dedupKey: แทนที่งานเดิมประเภทเดียวกันในคิว (เช่น sync บิลเดิมหลายรอบ เอารอบล่าสุดพอ)
+  if(dedupKey) _lgQ=_lgQ.filter(x=>x.k!==dedupKey);
+  _lgQ.push({fn:fn, body:body, k:dedupKey||null, t:Date.now()}); lgQPersist();
+  if(lgOn()) scheduleSyncV2();
+}
+async function lgFlushQ(){ // ส่งตามลำดับ ติดตรงไหนหยุดตรงนั้น (คงลำดับเหตุการณ์) · true = คิวหมด
+  if(!lgOn()||!_lgQ.length) return true;
+  while(_lgQ.length){
+    const it=_lgQ[0]; let res=null;
+    try{ res=await lgRpc(it.fn, it.body); }catch(e){ res=null; }
+    if(!res||res.ok!==true) return false;
+    try{ lgApplyResult(it,res); }catch(e){}
+    _lgQ.shift(); lgQPersist();
+  }
+  const now=Date.now(); if(now-_lgLoadAt>4000){ lgCloudLoad().then(()=>{ const top=navHist[navHist.length-1]; if(top&&(top.key==='ledger'||top.key==='lgcust')) top.fn(); }); }
+  return true;
+}
+function lgApplyResult(it,res){ // เซิร์ฟเวอร์ตอบ id ลูกค้าจริง/เลขเอกสารทางการ → อัปเดตของในเครื่องให้ตรง
+  const p=it.body&&(it.body.p||it.body);
+  if(it.fn==='ledger_add_entry'&&p&&p.id){
+    const e=LG.entries.find(x=>x.id===p.id);
+    if(e){ if(res.customer_id) e.customer_id=res.customer_id; if(res.receipt_id) e.receipt_id=res.receipt_id; }
+    if(res.doc_no){ const d=LG.docs.find(x=>x.id===('doc_'+p.id)); if(d){ d.doc_no=res.doc_no; d._temp=false; } }
+  }
+  if(it.fn==='ledger_issue_doc'&&p&&p.id&&res.doc_no){ const d=LG.docs.find(x=>x.id===p.id); if(d){ d.doc_no=res.doc_no; d._temp=false; } }
+  if(it.fn==='ledger_sync_invoice'&&res.customer_id&&it.body&&it.body.p_sale_id){
+    const e=LG.entries.find(x=>x.id==='inv_'+it.body.p_sale_id); if(e) e.customer_id=res.customer_id;
+  }
+  lgPersist();
+}
+async function lgCloudLoad(){ if(!lgOn()||!lgCanUse()) return false;
+  const res=await lgRpc('load_ledger',{}); if(!res||!Array.isArray(res.entries)) return false;
+  _lgLoadAt=Date.now();
+  // ของในเครื่องที่ยังไม่ถึงคลาวด์ (อยู่ในคิว) ต้องไม่หาย — ทับเฉพาะที่คลาวด์มี
+  const qids=new Set(); _lgQ.forEach(x=>{ const p=x.body&&(x.body.p||x.body); if(p&&p.id) qids.add(p.id); if(x.body&&x.body.p_sale_id) qids.add('inv_'+x.body.p_sale_id); });
+  const cloudIds=new Set(res.entries.map(e=>e.id));
+  const keepE=LG.entries.filter(e=>qids.has(e.id)&&!cloudIds.has(e.id));
+  const cloudDoc=new Set((res.documents||[]).map(d=>d.id));
+  const keepD=LG.docs.filter(d=>d._temp&&!cloudDoc.has(d.id));
+  LG={customers:res.customers||[], entries:keepE.concat(res.entries), docs:keepD.concat(res.documents||[])};
+  lgPersist(); return true;
+}
+function lgCustomerByName(name){
+  const nm=String(name||'').trim(); if(!nm) return null;
+  const norm=nm.toLowerCase().replace(/\s/g,'');
+  let c=LG.customers.find(x=>(x.norm_name||String(x.name||'').toLowerCase().replace(/\s/g,''))===norm);
+  if(!c){ c={id:lgUid('cu'), name:nm, norm_name:norm, buyer_type:'both', phone:'', note:'', _local:true}; LG.customers.push(c); lgPersist(); }
+  return c;
+}
+function lgBalance(custId){ return LG.entries.filter(e=>e.customer_id===custId&&!e.voided).reduce((s,e)=>s+(+e.amount||0),0); }
+function lgSaleOutstanding(saleId){ return LG.entries.filter(e=>e.sale_id===saleId&&!e.voided).reduce((s,e)=>s+(+e.amount||0),0); }
+/* ── ตะขอจากบิลแท่นขาย ── */
+function lgOnBillSaved(b){
+  if(!b||!lgCanUse()) return;
+  const nm=String(b.buyer||'').trim(); if(!nm) return;
+  const c=sbCalc(b); if(c.net==null) return; // ราคายังไม่ครบ — จะเข้าบัญชีตอนเติมราคาแล้วบันทึกอีกครั้ง
+  const cust=lgCustomerByName(nm), invId='inv_'+b.id;
+  const resp=(b.payMode==='cash_later')?String(b.payResp||'').trim():null;
+  let e=LG.entries.find(x=>x.id===invId);
+  const note=((SB_KIND[b.kind]||{}).t||'บิลขาย')+' · '+(b.farm||'')+(b.billNo?' · เลขที่ '+b.billBook+'/'+b.billNo:'');
+  if(!e){ e={id:invId, customer_id:cust.id, customer_name:nm, sale_id:b.id, entry_type:'invoice', method:null,
+            amount:c.net, entry_date:(b.dateISO||todayISO()), responsible:resp, clerk:whoNow(), note:note, voided:false, created_at:new Date().toISOString()};
+          LG.entries.unshift(e); }
+  else { e.customer_id=cust.id; e.customer_name=nm; e.amount=c.net; e.entry_date=(b.dateISO||todayISO()); if(resp) e.responsible=resp; e.note=note; }
+  lgPersist();
+  lgQueue('ledger_sync_invoice',{p_sale_id:b.id, p_customer_name:nm, p_amount:c.net, p_entry_date:(b.dateISO||todayISO()), p_responsible:resp, p_note:note}, 'inv:'+b.id);
+  if(b.payMode==='transfer' && !LG.entries.find(x=>x.id==='pay_'+b.id)){ // โอนแล้ววันนี้ → บันทึกรับเงิน + ใบรับเงินอัตโนมัติ (ครั้งเดียวต่อบิล)
+    lgAddEntryLocal({id:'pay_'+b.id, customer:cust, customer_name:nm, sale_id:b.id, entry_type:'payment', method:'transfer',
+      amount:c.net, entry_date:(b.dateISO||todayISO()), responsible:'', note:'รับโอนตอนขาย · บิล '+(b.billNo?b.billBook+'/'+b.billNo:sbThaiDate(b.dateISO))});
+  }
+  if(b.payMode==='cash_later' && resp && !LG.docs.find(d=>d.id==='resp_'+b.id)){ // เก็บสดทีหลัง → เอกสารมอบหมาย (ครั้งเดียวต่อบิล)
+    const doc={id:'resp_'+b.id, doc_type:'responsibility', doc_no:'(รอเลขทางการ)', sale_id:b.id, customer_id:cust.id, customer_name:nm,
+      amount:c.net, method:null, responsible:resp, issued_by:whoNow(), issued_at:new Date().toISOString(), _temp:true, data:{bill:(b.billBook||'')+'/'+(b.billNo||''), dateISO:b.dateISO}};
+    LG.docs.unshift(doc); lgPersist();
+    lgQueue('ledger_issue_doc',{p:{id:doc.id, sale_id:b.id, customer_name:nm, amount:c.net, responsible:resp, entry_date:(b.dateISO||todayISO()), doc_data:doc.data}});
+  }
+}
+function lgOnBillDeleted(b){
+  if(!b) return; const e=LG.entries.find(x=>x.id==='inv_'+b.id); if(!e) return;
+  e.amount=0; e.note=(e.note||'')+' · บิลถูกลบ'; lgPersist();
+  lgQueue('ledger_sync_invoice',{p_sale_id:b.id, p_customer_name:e.customer_name, p_amount:0, p_entry_date:e.entry_date, p_note:e.note}, 'inv:'+b.id);
+}
+function lgAddEntryLocal(o){ // สร้างรายการเงิน (payment/deduction/adjustment) ในเครื่อง + คิวขึ้นเซิร์ฟเวอร์ · payment แถมใบรับเงิน
+  const amt=(o.entry_type==='adjustment')?(+o.amount||0):-Math.abs(+o.amount||0);
+  const e={id:o.id||lgUid(o.entry_type==='payment'?'pay':'lg'), customer_id:o.customer.id, customer_name:o.customer_name,
+    sale_id:o.sale_id||null, entry_type:o.entry_type, method:o.method||null, amount:amt, entry_date:o.entry_date||todayISO(),
+    receipt_id:null, responsible:o.responsible||null, clerk:whoNow(), note:o.note||'', voided:false, created_at:new Date().toISOString()};
+  LG.entries.unshift(e);
+  let doc=null;
+  if(o.entry_type==='payment'){
+    doc={id:'doc_'+e.id, doc_type:'receipt', doc_no:'(รอเลขทางการ)', sale_id:e.sale_id, ledger_id:e.id, customer_id:e.customer_id,
+      customer_name:e.customer_name, amount:Math.abs(amt), method:e.method, responsible:e.responsible, issued_by:whoNow(),
+      issued_at:new Date().toISOString(), _temp:true, data:{note:e.note}};
+    e.receipt_id=doc.id; LG.docs.unshift(doc);
+  }
+  lgPersist();
+  lgQueue('ledger_add_entry',{p:{id:e.id, customer_name:e.customer_name, customer_id:e.customer_id, sale_id:e.sale_id,
+    entry_type:e.entry_type, method:e.method, amount:Math.abs(amt)*(o.entry_type==='adjustment'?Math.sign(amt)||1:1),
+    entry_date:e.entry_date, responsible:e.responsible, note:e.note, issue_receipt:o.entry_type==='payment'?'true':'false', doc_data:doc?doc.data:{}}});
+  if(lgOn()) lgFlushQ().then(()=>{ const top=navHist[navHist.length-1]; if(top&&(top.key==='ledger'||top.key==='lgcust')) top.fn(); });
+  return e;
+}
+function lgVoid(id){
+  if(!['owner','admin'].includes(ROLE)){ toast('ยกเลิกรายการได้เฉพาะเจ้าของ/ผู้ดูแล'); return; }
+  const e=LG.entries.find(x=>x.id===id); if(!e||e.voided) return;
+  if(e.entry_type==='invoice'){ toast('รายการบิลแก้ที่ตัวบิลในแท่นขาย — ยอดจะตามมาเอง'); return; }
+  const why=prompt('เหตุผลการยกเลิกรายการนี้ ('+lgMoney(e.amount)+' บาท ของ '+e.customer_name+')'); if(why==null) return;
+  e.voided=true; e.void_note=why; lgPersist();
+  lgQueue('ledger_void_entry',{p_id:id, p_note:why});
+  toast('ยกเลิกรายการแล้ว (เก็บประวัติไว้ตรวจย้อน)'); const top=navHist[navHist.length-1]; if(top&&top.fn) top.fn();
+}
+/* ── การ์ด "การเงินของบิลนี้" ในฟอร์มบิล ── */
+function lgPayCardHTML(){
+  const m=SB_D.payMode||'credit';
+  const hint=m==='transfer'?'บันทึกบิลแล้ว ระบบจะบันทึกรับเงินโอน + ออกใบรับเงินให้ทันที (เมื่อราคาครบ)'
+    :m==='cash_later'?'ระบบจะออก "เอกสารมอบหมายเก็บเงิน" ให้ · ยอดจะโชว์ในรายงานเงินสดค้างเก็บจนกว่าจะบันทึกรับเงิน'
+    :'ยอดบิลจะขึ้นเป็นลูกหนี้ค้างในหน้า 📒 บัญชีลูกค้า จนกว่าจะบันทึกรับเงิน';
+  return `<div class="card"><h3>💳 การเงินของบิลนี้</h3>
+    <div class="fgrid">
+      <div class="frow"><label>รูปแบบเก็บเงิน</label><select class="cin tl" onchange="SB_D.payMode=this.value;renderSaleBillForm()">
+        <option value="credit" ${m==='credit'?'selected':''}>🧾 ขายเชื่อ (เก็บทีหลัง/ตามรอบ)</option>
+        <option value="transfer" ${m==='transfer'?'selected':''}>✅ โอนแล้ว (ตัดหนี้ + ใบรับเงินอัตโนมัติ)</option>
+        <option value="cash_later" ${m==='cash_later'?'selected':''}>💵 เก็บเงินสดทีหลัง (ระบุผู้รับผิดชอบ)</option></select></div>
+      ${m==='cash_later'?`<div class="frow"><label>ผู้รับผิดชอบเก็บเงิน</label><input class="cin" value="${escA(SB_D.payResp||'')}" oninput="SB_D.payResp=this.value" placeholder="ชื่อคนที่ถือ/ตามเก็บเงินบิลนี้"></div>`:''}
+    </div><div class="sub" style="margin-top:6px">📒 ${hint}</div></div>`;
+}
+/* ── หน้า 📒 บัญชีลูกค้า / ลูกหนี้ ── */
+function renderLedger(){
+  histPush('ledger', renderLedger);
+  if(!lgCanUse()){ $("#view").innerHTML='<h2 class="page">📒 บัญชีลูกค้า</h2><div class="banner bad">⛔ หน้านี้เปิดได้เฉพาะ เจ้าของ / ผู้ดูแล / เสมียน</div>'; return; }
+  const bals=LG.customers.map(c=>({c:c, bal:lgBalance(c.id)}));
+  const debtors=bals.filter(x=>x.bal>0.5).sort((a,b)=>b.bal-a.bal);
+  const credits=bals.filter(x=>x.bal<-0.5).sort((a,b)=>a.bal-b.bal);
+  const totalAR=debtors.reduce((s,x)=>s+x.bal,0);
+  const cashInv=LG.entries.filter(e=>e.entry_type==='invoice'&&!e.voided&&e.responsible&&lgSaleOutstanding(e.sale_id)>0.5);
+  const totalCash=cashInv.reduce((s,e)=>s+lgSaleOutstanding(e.sale_id),0);
+  const tabs=[['ar','📒 ลูกหนี้คงค้าง'],['cash','💵 เงินสดค้างเก็บ'],['docs','🧾 เอกสาร']];
+  let body='';
+  if(lgTab==='ar'){
+    body=`<div class="card"><h3>ลูกหนี้คงค้าง <span class="more">${debtors.length} ราย · แตะรายชื่อเพื่อดูบัญชี/รับเงิน</span></h3>
+      ${debtors.length?debtors.map(x=>`<div class="fieldrow" style="cursor:pointer" onclick="lgCustSel='${x.c.id}';renderLgCust()">
+        <div class="fmeta"><div class="fn">👤 <b>${escA(x.c.name)}</b></div><div class="sub">${escA(x.c.phone||'')}</div></div>
+        <div style="text-align:right"><b style="color:var(--bad);font-size:17px">${lgMoney(x.bal)}</b> <span class="more">บาท</span></div></div>`).join('')
+      :'<div class="sub">— ไม่มีลูกหนี้ค้าง 🎉 —</div>'}</div>
+      ${credits.length?`<div class="card"><h3>เครดิตค้างใช้ (หักหน้าบิลรอบถัดไป) <span class="more">${credits.length} ราย</span></h3>
+      ${credits.map(x=>`<div class="fieldrow" style="cursor:pointer" onclick="lgCustSel='${x.c.id}';renderLgCust()">
+        <div class="fmeta"><div class="fn">👤 ${escA(x.c.name)}</div></div>
+        <div style="text-align:right"><b style="color:var(--ok)">${lgMoney(-x.bal)}</b> <span class="more">บาท (เครดิต)</span></div></div>`).join('')}</div>`:''}
+      <div class="card"><h3>ลูกค้าทั้งหมด <span class="more">${LG.customers.length} ราย</span></h3>
+        <div style="display:flex;flex-wrap:wrap;gap:7px">${LG.customers.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'th')).map(c=>`<a href="#" onclick="lgCustSel='${c.id}';renderLgCust();return false" style="background:var(--soft);border:1px solid var(--line);color:var(--ink);padding:5px 13px;border-radius:999px;font-weight:700;text-decoration:none">${escA(c.name)} ›</a>`).join('')||'<span class="sub">— ยังไม่มีลูกค้า (จะถูกสร้างอัตโนมัติจากบิลขาย) —</span>'}</div></div>`;
+  } else if(lgTab==='cash'){
+    const byResp={};
+    cashInv.forEach(e=>{ (byResp[e.responsible]=byResp[e.responsible]||[]).push(e); });
+    body=Object.keys(byResp).length?Object.keys(byResp).sort().map(rp=>{
+      const rows=byResp[rp], sum=rows.reduce((s,e)=>s+lgSaleOutstanding(e.sale_id),0);
+      return `<div class="card"><h3>🧍 ${escA(rp)} <span class="more">ถือความรับผิดชอบ ${lgMoney(sum)} บาท · ${rows.length} บิล</span></h3>
+        ${rows.map(e=>`<div class="fieldrow"><div class="fmeta"><div class="fn">${escA(e.customer_name)} · ${sbThaiDate(e.entry_date)}</div><div class="sub">${escA(e.note||'')}</div></div>
+          <div style="text-align:right;display:flex;gap:8px;align-items:center"><b style="color:var(--warn)">${lgMoney(lgSaleOutstanding(e.sale_id))} บาท</b>
+          <button class="btn sm" onclick="lgCustSel='${e.customer_id}';renderLgCust()">💸 รับเงิน ›</button></div></div>`).join('')}</div>`;
+    }).join('')
+    :'<div class="card"><div class="sub">— ไม่มีเงินสดค้างเก็บ 🎉 — บิลที่เลือก "เก็บเงินสดทีหลัง + ระบุผู้รับผิดชอบ" จะมาขึ้นที่นี่จนกว่าจะบันทึกรับเงิน —</div></div>';
+  } else {
+    const docs=LG.docs.slice(0,120);
+    body=`<div class="card"><h3>เอกสารล่าสุด <span class="more">ใบรับเงิน (RC) · เอกสารมอบหมายเก็บเงิน (RP)</span></h3>
+      ${docs.length?docs.map(d=>`<div class="fieldrow"><div class="fmeta"><div class="fn">${d.doc_type==='receipt'?'🧾':'🤝'} <b>${escA(d.doc_no)}</b>${d.voided?' <span style="color:var(--bad)">· ยกเลิกแล้ว</span>':''} · ${escA(d.customer_name||'-')}</div>
+        <div class="sub">${sbThaiDate(String(d.issued_at||'').slice(0,10))} · ${lgMoney(d.amount)} บาท${d.method?' · '+(d.method==='cash'?'เงินสด':'โอน'):''}${d.responsible?' · ผู้รับผิดชอบ '+escA(d.responsible):''} · ออกโดย ${escA(d.issued_by||'-')}</div></div>
+        <button class="btn ghost sm" onclick="lgPrintDoc('${d.id}')">🖨 พิมพ์</button></div>`).join('')
+      :'<div class="sub">— ยังไม่มีเอกสาร —</div>'}</div>`;
+  }
+  $("#view").innerHTML=`
+    <h2 class="page">📒 บัญชีลูกค้า / ลูกหนี้</h2>
+    <div class="sub">บิลขาย = หนี้เพิ่ม · รับเงิน/หักหน้าบิล = หนี้ลด · ทุกบาทตรวจย้อนได้ ไม่ลบของเดิม</div>
+    ${['clerk'].includes(ROLE)?clerkNav('ledger'):''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px">
+      <span class="sbchip bad">💰 ลูกหนี้รวม <b>${lgMoney(totalAR)}</b> บาท · ${debtors.length} ราย</span>
+      <span class="sbchip warn">💵 เงินสดค้างเก็บ <b>${lgMoney(totalCash)}</b> บาท</span>
+      ${_lgQ.length?`<span class="sbchip warn" title="จะส่งขึ้นระบบเองเมื่อออนไลน์">📡 รอส่ง ${_lgQ.length} รายการ</span>`:''}
+      <button class="btn ghost sm" onclick="lgCloudLoad().then(()=>renderLedger());toast('กำลังรีเฟรช…')">🔄 รีเฟรช</button>
+    </div>
+    <div class="seg" style="margin-bottom:12px">${tabs.map(t=>`<button class="${lgTab===t[0]?'on':''}" onclick="lgTab='${t[0]}';renderLedger()">${t[1]}</button>`).join('')}</div>
+    ${body}`;
+}
+/* ── หน้าบัญชีรายลูกค้า (statement) + ฟอร์มรับเงิน/หักหน้าบิล/ปรับปรุง ── */
+function renderLgCust(){
+  histPush('lgcust', renderLgCust);
+  const c=LG.customers.find(x=>x.id===lgCustSel);
+  if(!c){ renderLedger(); return; }
+  const rows=LG.entries.filter(e=>e.customer_id===c.id).sort((a,b)=>String(b.entry_date).localeCompare(String(a.entry_date))||String(b.created_at||'').localeCompare(String(a.created_at||'')));
+  const bal=lgBalance(c.id);
+  const TY={invoice:['🧾 บิลขาย','var(--bad)'],payment:['💸 รับเงิน','var(--ok)'],deduction:['➖ หักหน้าบิล','var(--info)'],adjustment:['✏️ ปรับปรุง','var(--warn)']};
+  const list=rows.length?rows.map(e=>{
+    const t=TY[e.entry_type]||['?',''];
+    const doc=e.receipt_id?LG.docs.find(d=>d.id===e.receipt_id):null;
+    return `<div class="fieldrow" style="${e.voided?'opacity:.45;text-decoration:line-through':''}">
+      <div class="fmeta"><div class="fn">${t[0]} · ${sbThaiDate(e.entry_date)}${e.method?' · '+(e.method==='cash'?'เงินสด':e.method==='transfer'?'โอน':'หักหน้าบิล'):''}</div>
+      <div class="sub">${escA(e.note||'')}${e.responsible?' · 🧍 '+escA(e.responsible):''}${doc?' · '+escA(doc.doc_no):''}${e.voided?' · ❌ ยกเลิก: '+escA(e.void_note||''):''} · ✍️ ${escA(e.clerk||'-')}</div></div>
+      <div style="text-align:right;display:flex;gap:7px;align-items:center;white-space:nowrap">
+        <b style="color:${(+e.amount)>=0?'var(--bad)':'var(--ok)'}">${(+e.amount)>=0?'+':'−'}${lgMoney(Math.abs(e.amount))}</b>
+        ${doc?`<button class="btn ghost sm" onclick="lgPrintDoc('${doc.id}')">🖨</button>`:''}
+        ${(!e.voided&&e.entry_type!=='invoice'&&['owner','admin'].includes(ROLE))?`<button class="btn ghost sm" style="color:var(--bad)" onclick="lgVoid('${e.id}')">✕</button>`:''}
+      </div></div>`;
+  }).join(''):'<div class="sub">— ยังไม่มีรายการ —</div>';
+  $("#view").innerHTML=`
+    <h2 class="page">👤 ${escA(c.name)} <span class="more">${escA(c.phone||'')}</span></h2>
+    <div class="sub"><a href="#" onclick="renderLedger();return false" style="color:var(--info)">‹ กลับหน้าบัญชีรวม</a></div>
+    <div style="margin:10px 0 14px"><span class="sbchip ${bal>0.5?'bad':bal<-0.5?'ok':''}" style="font-size:15px">ยอดค้างปัจจุบัน <b style="font-size:19px">${lgMoney(Math.abs(bal))}</b> บาท ${bal>0.5?'(ลูกค้าค้างจ่าย)':bal<-0.5?'(เครดิตของลูกค้า — จะหักบิลหน้า)':'(ไม่มีหนี้ค้าง ✓)'}</span></div>
+    <div class="card"><h3>💸 บันทึกรับเงิน <span class="more">ออกใบรับเงินให้อัตโนมัติ</span></h3>
+      <div class="fgrid">
+        <div class="frow"><label>จำนวนเงิน (บาท)</label><input id="lgPayAmt" type="number" step="1" class="cin" value="${bal>0.5?Math.round(bal):''}" placeholder="ยอดที่รับจริง"></div>
+        <div class="frow"><label>วิธีรับ</label><select id="lgPayMethod" class="cin tl"><option value="transfer">🏦 โอนเข้าบัญชี</option><option value="cash">💵 เงินสด</option></select></div>
+        <div class="frow"><label>วันที่รับ</label><input id="lgPayDate" type="date" class="cin" value="${todayISO()}"></div>
+        <div class="frow"><label>ผู้ส่งเงิน/คนเก็บมา (เงินสด)</label><input id="lgPayResp" class="cin" placeholder="เช่น ชื่อคนที่ถือเงินมาส่ง"></div>
+        <div class="frow" style="grid-column:1/-1"><label>หมายเหตุ</label><input id="lgPayNote" class="cin" placeholder="เช่น ชำระบิล 6 ก.ค. / โอน กสิกร"></div>
+      </div>
+      <div style="margin-top:10px"><button class="btn" onclick="lgDoPay('${c.id}')">💸 บันทึกรับเงิน + ออกใบรับเงิน</button></div></div>
+    <div class="card"><h3>➖ ตกลงหักหน้าบิล (เครดิตไว้หักรอบถัดไป)</h3>
+      <div class="fgrid">
+        <div class="frow"><label>จำนวนที่ตกลงหัก (บาท)</label><input id="lgDedAmt" type="number" step="1" class="cin" placeholder="เช่น 5000"></div>
+        <div class="frow" style="grid-column:2/-1"><label>เหตุผล/อ้างอิง</label><input id="lgDedNote" class="cin" placeholder="เช่น หมูตายระหว่างขนส่ง 2 ตัว บิล 6 ก.ค."></div>
+      </div>
+      <div class="sub" style="margin-top:6px">เครดิตจะไปลดยอดบิลรอบถัดไปอัตโนมัติ (อยู่ในยอดรวมบัญชีแล้ว ไม่ต้องจำนอกระบบ)</div>
+      <div style="margin-top:10px"><button class="btn ghost" onclick="lgDoDeduct('${c.id}')">➖ บันทึกเครดิตหักหน้าบิล</button></div></div>
+    ${['owner','admin'].includes(ROLE)?`<div class="card"><h3>✏️ ปรับปรุงยอด (เจ้าของ/ผู้ดูแล)</h3>
+      <div class="fgrid"><div class="frow"><label>จำนวน (+เพิ่มหนี้ / −ลดหนี้)</label><input id="lgAdjAmt" type="number" step="1" class="cin" placeholder="เช่น -150 หรือ 300"></div>
+      <div class="frow" style="grid-column:2/-1"><label>เหตุผล (บังคับ)</label><input id="lgAdjNote" class="cin" placeholder="เช่น ปัดเศษ/แก้ยอดบันทึกผิด"></div></div>
+      <div style="margin-top:10px"><button class="btn ghost" onclick="lgDoAdjust('${c.id}')">✏️ บันทึกปรับปรุง</button></div></div>`:''}
+    <div class="card"><h3>🧾 รายการเดินบัญชี <span class="more">${rows.length} รายการ · ใหม่→เก่า</span></h3>${list}</div>`;
+}
+function lgDoPay(custId){
+  const c=LG.customers.find(x=>x.id===custId); if(!c) return;
+  const amt=parseFloat(($("#lgPayAmt")||{}).value); if(!isFinite(amt)||amt<=0){ toast('ใส่จำนวนเงินก่อน'); return; }
+  const method=($("#lgPayMethod")||{}).value||'transfer';
+  const bal=lgBalance(custId);
+  if(amt>bal+0.5 && !confirm('จำนวนที่รับ ('+lgMoney(amt)+') มากกว่ายอดค้าง ('+lgMoney(bal)+')\nส่วนเกินจะกลายเป็นเครดิตของลูกค้า — ยืนยัน?')) return;
+  const e=lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'payment', method:method, amount:amt,
+    entry_date:($("#lgPayDate")||{}).value||todayISO(), responsible:String((($("#lgPayResp")||{}).value)||'').trim(), note:String((($("#lgPayNote")||{}).value)||'').trim()});
+  toast('บันทึกรับเงินแล้ว ✓ กำลังออกใบรับเงิน…');
+  renderLgCust();
+  setTimeout(()=>{ const d=LG.docs.find(x=>x.ledger_id===e.id||x.id==='doc_'+e.id); if(d) lgPrintDoc(d.id); }, 700);
+}
+function lgDoDeduct(custId){
+  const c=LG.customers.find(x=>x.id===custId); if(!c) return;
+  const amt=parseFloat(($("#lgDedAmt")||{}).value); if(!isFinite(amt)||amt<=0){ toast('ใส่จำนวนที่ตกลงหักก่อน'); return; }
+  const note=String((($("#lgDedNote")||{}).value)||'').trim(); if(!note){ toast('ใส่เหตุผล/อ้างอิงด้วย — สำคัญตอนตรวจย้อน'); return; }
+  lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'deduction', method:'carry_forward', amount:amt, note:note});
+  toast('บันทึกเครดิตหักหน้าบิลแล้ว ✓'); renderLgCust();
+}
+function lgDoAdjust(custId){
+  const c=LG.customers.find(x=>x.id===custId); if(!c) return;
+  const amt=parseFloat(($("#lgAdjAmt")||{}).value); if(!isFinite(amt)||amt===0){ toast('ใส่จำนวน (+/−) ก่อน'); return; }
+  const note=String((($("#lgAdjNote")||{}).value)||'').trim(); if(!note){ toast('ใส่เหตุผลด้วย (บังคับ)'); return; }
+  lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'adjustment', amount:amt, note:note});
+  toast('บันทึกปรับปรุงแล้ว ✓'); renderLgCust();
+}
+/* ── ใบรับเงิน / เอกสารมอบหมาย — กระดาษพิมพ์ (ใช้ overlay เดียวกับบิล) ── */
+function lgDocPaperHTML(d){
+  const line=v=>'<span style="border-bottom:1px dotted #666;padding:0 12px;font-weight:800">'+escA(v==null||v===''?'-':v)+'</span>';
+  const isRC=d.doc_type==='receipt';
+  const title=isRC?'ใบรับเงิน / RECEIPT':'เอกสารมอบหมายการเก็บเงิน';
+  const dt=sbThaiDate(String(d.issued_at||'').slice(0,10));
+  const saleRef=d.sale_id?(function(){ const b=SALE_BILLS.find(x=>x.id===d.sale_id); return b?('บิลขายวันที่ '+sbThaiDate(b.dateISO)+(b.billNo?' เล่ม '+(b.billBook||'-')+' เลขที่ '+b.billNo:'')):d.sale_id; })():'-';
+  let body='';
+  if(isRC){
+    body='<table style="width:100%;border-collapse:collapse;font-size:15px;line-height:2.1">'
+      +'<tr><td style="width:150px">ได้รับเงินจาก</td><td>'+line(d.customer_name)+'</td></tr>'
+      +'<tr><td>จำนวนเงิน</td><td>'+line(lgMoney(d.amount)+' บาท')+'</td></tr>'
+      +'<tr><td>ชำระโดย</td><td>'+line(d.method==='cash'?'เงินสด':'โอนเข้าบัญชี')+'</td></tr>'
+      +'<tr><td>อ้างอิง</td><td>'+line(saleRef!=='-'?saleRef:(d.data&&d.data.note)||'ชำระยอดค้างในบัญชี')+'</td></tr>'
+      +(d.responsible?'<tr><td>ผู้นำส่ง/คนเก็บ</td><td>'+line(d.responsible)+'</td></tr>':'')
+      +'</table>';
+  }else{
+    body='<table style="width:100%;border-collapse:collapse;font-size:15px;line-height:2.1">'
+      +'<tr><td style="width:170px">มอบหมายให้</td><td>'+line(d.responsible||'-')+'</td></tr>'
+      +'<tr><td>เก็บเงินจากลูกค้า</td><td>'+line(d.customer_name)+'</td></tr>'
+      +'<tr><td>จำนวนเงิน</td><td>'+line(lgMoney(d.amount)+' บาท')+'</td></tr>'
+      +'<tr><td>อ้างอิง</td><td>'+line(saleRef)+'</td></tr>'
+      +'</table>'
+      +'<div style="font-size:13px;margin-top:8px;color:#333">ผู้รับมอบหมายถือความรับผิดชอบยอดเงินนี้ จนกว่าจะนำส่งและมีการออกใบรับเงินในระบบ</div>';
+  }
+  return '<div style="max-width:640px;margin:0 auto;background:#fff;color:#111;padding:26px 30px;font-family:inherit">'
+    +'<table style="width:100%;border-collapse:collapse;margin-bottom:6px"><tr>'
+    +'<td style="width:90px;text-align:center;border:1px solid #444;padding:4px"><div style="font-size:24px;line-height:1">🐷</div><div style="font-size:10px;font-weight:800">SJF FARM</div></td>'
+    +'<td style="text-align:center;font-size:20px;font-weight:800">'+title+'</td>'
+    +'<td style="width:170px;font-size:13.5px;text-align:right;vertical-align:top">เลขที่ <b>'+escA(d.doc_no||'-')+'</b><br>วันที่ '+escA(dt)+(d._temp?'<br><span style="color:#b06000;font-size:11px">เลขทางการจะออกเมื่อออนไลน์</span>':'')+'</td></tr></table>'
+    +(d.voided?'<div style="color:#c0392b;font-weight:800;border:2px solid #c0392b;display:inline-block;padding:2px 12px;transform:rotate(-4deg);margin:4px 0">ยกเลิกแล้ว</div>':'')
+    +body
+    +'<table style="width:100%;margin-top:34px;font-size:13.5px;text-align:center"><tr>'
+    +'<td style="width:50%">ลงชื่อ ______________________<br>'+(isRC?'ผู้รับเงิน':'ผู้มอบหมาย')+' ('+escA(d.issued_by||'-')+')</td>'
+    +'<td>ลงชื่อ ______________________<br>'+(isRC?'ผู้จ่ายเงิน':'ผู้รับมอบหมาย ('+escA(d.responsible||'')+')')+'</td></tr></table></div>';
+}
+function lgPrintDoc(id){
+  const d=LG.docs.find(x=>x.id===id); if(!d){ toast('ไม่พบเอกสาร'); return; }
+  let ov=document.getElementById('sbPrintOverlay'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='sbPrintOverlay';
+  ov.innerHTML='<div class="sbp-tools"><button class="btn sm" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF</button>'
+    +'<button class="btn ghost sm" onclick="sbPrintClose()">✕ ปิด</button></div>'
+    +'<div id="sbPrintPage">'+lgDocPaperHTML(d)+'</div>';
+  ov.addEventListener('click',function(e){ if(e.target===ov) sbPrintClose(); });
+  document.body.appendChild(ov);
+}
 /* ---------- แบบฟอร์มบิลกระดาษ (ใช้ทั้งหน้าดูบิลในเว็บ / พิมพ์ A4 / ชีตแรกใน Excel) ---------- */
 function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอร์ม (ไฮไลต์ตัวเลขล่าสุดที่คีย์)
   const c=sbCalc(b), BD='border:1px solid #444';
