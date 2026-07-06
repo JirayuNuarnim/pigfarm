@@ -1041,7 +1041,7 @@ async function cloudLoad(){
    อ่านผ่าน RPC load_houses · เขียนผ่าน RPC save_house_section · ตั้งค่าผ่านตาราง app_config
    ทำงานเมื่อ CONFIG.supabase.backend==='v2' (กฎสิทธิ์ตามบทบาท/ฟาร์มบังคับที่เซิร์ฟเวอร์)
    ============================================================ */
-const VET_KEYS=['vetLog','meds','feedReqs']; // "งานหมอ"
+const VET_KEYS=['vetLog','meds','feedReqs','vaccineLog']; // "งานหมอ" (vaccineLog = ประวัติการทำวัคซีนรายครั้ง)
 const CORE_KEYS=['code','farm','zone','cap','area','fanTotal','fanNo','fanSh','breed','vet','worker','assistant','source','status','cleanStart','closedDate','sick','mortality','fcr','note','pigletHistory','vaccineHistory','originVet','originAsst','originWorker']; // "ข้อมูลหลัง"
 function _pick(o,keys){const r={};keys.forEach(k=>{if(o[k]!==undefined)r[k]=o[k];});return r;}
 function houseCoreData(h){ return _pick(h,CORE_KEYS); }
@@ -3456,6 +3456,8 @@ function showClosedBatch(code,ts){
         <tbody>${(b.meds||[]).length?(b.meds).map(m=>`<tr><td>${escA(m.date||'-')}</td><td><span class="sub">${escA(m.cat||'-')}</span></td><td>${escA(m.name||'-')}${m.dose?'<div class="sub">โดส: '+escA(m.dose)+'</div>':''}${m.note?'<div class="sub">📝 '+escA(m.note)+'</div>':''}</td><td class="num">${fmt(m.qty||0)}</td><td class="num">${fmt(m.price||0)}</td><td class="num"><b>${fmt(m.total||0)}</b></td></tr>`).join(''):'<tr><td colspan="6" class="sub">ไม่มีการเบิกยาในรุ่นนี้</td></tr>'}</tbody>
       </table></div>
     </div>
+    <div class="card"><h3>🧫 ประวัติการทำวัคซีน <span class="more">${(b.vaccineLog||[]).length} ครั้ง</span></h3>
+      ${vaxTableHTML(b,(b.vaccineLog||[]).slice(),false)}</div>
 
     ${vetLogHTML({vetLog:b.vetLog||[], pigs:b.inN||0, id:'closed_'+(b.ts||0)}, false)}
 
@@ -4331,7 +4333,7 @@ function intakeSummaryHTML(h,showEdit){
     <h3>📥 ข้อมูลการรับเข้า <span class="more">รุ่นปัจจุบัน</span></h3>
     <div class="banner info">📝 <div>หลังนี้ยังไม่มี<b>ข้อมูลการรับเข้า</b> (เช่น เล้าที่กรอกยอดย้อนหลังจากกระดาษ) — กรอก แหล่ง/วันที่/ราคาลูกหมู ได้เลย ระบบจะใช้คิดต้นทุนตอนปิดชุด · <b>จำนวนหมูคงเหลือจะไม่เปลี่ยน</b>ถ้าจำนวนรับเข้าตรงกับยอดตั้งต้นเดิม (${fmt(h.received||h.pigs||0)} ตัว)</div></div>
     ${showEdit?`<div class="sub" style="margin-top:10px"><a href="#" onclick="editIntake();return false" style="color:var(--info);font-weight:600">✏️ กรอกข้อมูลการรับเข้า</a></div>`:''}
-  </div>`;
+  </div>`+vaxLogCardHTML(h,showEdit);
   const BR=[['Duroc','breedDurocN','breedDuroc'],['แม่สองสาย','breedCross2N','breedCross2'],['พันธุ์แท้ L','breedPureLN','breedPureL'],['พันธุ์แท้ Y','breedPureYN','breedPureY']];
   const breeds=BR.map(function(x){return {label:x[0],n:it[x[1]]||0,p:it[x[2]]||0,amt:(it[x[1]]||0)*(it[x[2]]||0)};}).filter(function(b){return b.amt>0;});
   const extra=it.extra||[], extraN=extra.reduce((s,e)=>s+(e.n||0),0), baseN=(it.inN||0)-extraN;
@@ -4372,9 +4374,109 @@ function intakeSummaryHTML(h,showEdit){
       <a href="#" onclick="editIntake();return false" style="color:var(--info)">✏️ แก้ไขข้อมูลการรับเข้า</a>
       <a href="#" onclick="openExtraIntake();return false" style="color:var(--ok);font-weight:600">➕ รับเข้าหมูเพิ่มเติม</a>
     </div>`):''}
-  </div>`;
+  </div>`+vaxLogCardHTML(h,showEdit);
 }
 
+/* ========== 🧫 ประวัติการทำวัคซีน (รายครั้ง) — ในหน้าข้อมูลรับเข้าประจำหลัง + ยกเข้าปิดชุด ==========
+   เก็บใน h.vaccineLog (ฝั่งหมอ · VET_KEYS) · ทำต่อได้ระหว่างเลี้ยง · สิทธิ์เขียน = เจ้าของ/ผู้ดูแล/หมอ
+   entry = {rowId, dateISO, name, bottles(ขวด), pigsN(ตัวที่ทำ), dose(เข็มที่), by(ผู้ทำ), value(บาท), note, _ts} */
+let vaxForm=null; // {houseId, idx} · idx=-1 = เพิ่มใหม่
+function vaxCanEdit(){ return ROLE==='owner'||ROLE==='admin'||ROLE==='vet'; } // วัคซีน = ข้อมูลหมอ (เซิร์ฟเวอร์ RLS บังคับซ้ำ)
+function vaxAgeDays(h,dateISO){ // อายุหมู (วัน) = วันรับเข้า → วันที่ทำวัคซีน
+  const din=h&&h.intake&&h.intake.dateIn; if(!din||!dateISO) return null;
+  const inISO=/^\d{4}-\d{2}-\d{2}/.test(din)?String(din).slice(0,10):(thaiDayToISO(din)||'');
+  if(!inISO) return null; const d=Math.round((new Date(dateISO)-new Date(inISO))/86400000); return d>=0?d:null;
+}
+function vaxRerender(){ try{ const top=navHist[navHist.length-1]; if(top&&top.fn){ top.fn(); return; } }catch(e){} if(typeof currentHouse!=='undefined'&&currentHouse) clerkForm(); }
+function vaxVaccineNames(){ return ((REQ_DATA&&REQ_DATA['วัคซีน'])||[]).map(x=>x.name); }
+function vaxTableHTML(h,rows,canEdit){
+  if(!rows.length) return '<div class="sub">— ยังไม่มีบันทึกการทำวัคซีน —</div>';
+  const head=['วันที่','ชื่อวัคซีน','ขวด','ตัวที่ทำ','อายุ(วัน)','เข็มที่','ผู้ทำ','มูลค่า ฿','หมายเหตุ'].map(x=>`<th style="white-space:nowrap">${x}</th>`).join('');
+  const body=rows.map((r,i)=>{ const age=vaxAgeDays(h,r.dateISO);
+    return `<tr>
+      <td style="white-space:nowrap">${escA(isoToThaiDay(r.dateISO))}</td>
+      <td style="white-space:normal;min-width:130px"><b>${escA(r.name||'-')}</b></td>
+      <td class="num">${r.bottles!=null&&r.bottles!==''?fmt(r.bottles):'-'}</td>
+      <td class="num">${r.pigsN!=null&&r.pigsN!==''?fmt(r.pigsN):'-'}</td>
+      <td class="num">${age!=null?fmt(age):'-'}</td>
+      <td>${escA(r.dose||'-')}</td>
+      <td style="white-space:nowrap">${escA(r.by||'-')}</td>
+      <td class="num">${r.value?fmt(r.value):'-'}</td>
+      <td style="white-space:normal;min-width:120px">${escA(r.note||'')}</td>
+      ${canEdit?`<td style="white-space:nowrap"><button class="btn ghost sm" style="padding:4px 8px" onclick="vaxOpenForm(${h.id},${i})">✏️</button> <button class="btn ghost sm" style="padding:4px 8px;color:var(--bad)" onclick="vaxDelRow(${h.id},${i})">🗑</button></td>`:''}
+    </tr>`; }).join('');
+  const tot=rows.reduce((s,r)=>({b:s.b+(parseFloat(r.bottles)||0),v:s.v+(parseFloat(r.value)||0)}),{b:0,v:0});
+  const foot=`<tr style="font-weight:800;background:var(--soft)"><td>รวม ${rows.length} ครั้ง</td><td></td><td class="num">${fmt(tot.b)}</td><td colspan="4"></td><td class="num">${fmt(tot.v)}</td><td></td>${canEdit?'<td></td>':''}</tr>`;
+  return `<div style="overflow-x:auto"><table class="densetbl" style="min-width:640px"><thead><tr>${head}${canEdit?'<th></th>':''}</tr></thead><tbody>${body}${foot}</tbody></table></div>`;
+}
+function vaxFormHTML(h){
+  const isNew=(vaxForm.idx<0), r=isNew?{}:((h.vaccineLog||[])[vaxForm.idx]||{});
+  const names=vaxVaccineNames();
+  return `<div style="margin-top:12px;padding:13px;border:1px dashed var(--brand);border-radius:12px;background:var(--soft)">
+    <div style="font-weight:800;margin-bottom:9px;color:var(--brand-d,#18655a)">${isNew?'➕ เพิ่มการทำวัคซีน':'✏️ แก้ไขการทำวัคซีน'}</div>
+    <div class="fgrid">
+      <div class="frow"><label>📅 วันที่ทำ</label><input id="vx_date" type="date" class="cin" max="${todayISO()}" value="${escA(r.dateISO||todayISO())}" onchange="vaxSuggestVal()"></div>
+      <div class="frow fspan"><label>ชื่อวัคซีน</label><input id="vx_name" class="cin" list="vxNameDL" placeholder="เช่น FMD (ไทป์ OA)" value="${escA(r.name||'')}" oninput="vaxSuggestVal()"><datalist id="vxNameDL">${names.map(n=>`<option value="${escA(n)}">`).join('')}</datalist></div>
+      <div class="frow"><label>จำนวนขวด</label><input id="vx_bottles" type="number" min="0" step="0.5" class="cin" placeholder="0" value="${escA(r.bottles)}" oninput="vaxSuggestVal()"></div>
+      <div class="frow"><label>จำนวนตัวที่ทำ</label><input id="vx_pigsN" type="number" min="0" class="cin" placeholder="0" value="${escA(r.pigsN)}"></div>
+      <div class="frow"><label>เข็มที่/ครั้งที่ <span class="hint">(ถ้ามี)</span></label><input id="vx_dose" class="cin" placeholder="เช่น เข็ม 1 / บูสเตอร์" value="${escA(r.dose||'')}"></div>
+      <div class="frow"><label>ผู้ทำ</label><input id="vx_by" class="cin" placeholder="ชื่อผู้ทำ" value="${escA(r.by||h.vet||whoNow()||'')}"></div>
+      <div class="frow"><label>มูลค่า (บาท) <span class="hint" id="vx_valHint"></span></label><input id="vx_value" type="number" min="0" class="cin" placeholder="0" value="${escA(r.value)}"></div>
+      <div class="frow fspan"><label>หมายเหตุ <span class="hint">(ถ้ามี)</span></label><input id="vx_note" class="cin" placeholder="เช่น ล็อต ABC · หมดอายุ ..." value="${escA(r.note||'')}"></div>
+    </div>
+    <div id="vx_err" style="color:var(--bad);font-size:12.5px;margin-top:7px;display:none"></div>
+    <div class="actions" style="margin-top:11px"><button class="btn ghost" onclick="vaxCancelForm()">ยกเลิก</button><button class="btn" onclick="vaxSaveForm()">💾 บันทึก</button></div>
+  </div>`;
+}
+function vaxLogCardHTML(h,showEdit){
+  const rows=(h.vaccineLog||[]).slice(); const canEdit=!!showEdit&&vaxCanEdit();
+  const formOpen=vaxForm&&vaxForm.houseId===h.id;
+  return `<div class="card">
+    <h3>🧫 ประวัติการทำวัคซีน <span class="more">${fmt(rows.length)} ครั้ง</span></h3>
+    <div class="sub" style="margin-top:-2px">บันทึกการทำวัคซีนรายครั้งของรุ่นนี้ — ทำต่อได้เรื่อยๆ ระหว่างเลี้ยง · ยกเข้าข้อมูลปิดชุดอัตโนมัติ</div>
+    ${(!canEdit&&showEdit)?'<div class="banner info" style="margin:9px 0">🔒 <div>วัคซีนเป็น<b>ข้อมูลฝั่งหมอ</b> — เพิ่ม/แก้ได้ด้วยบัญชี <b>เจ้าของ/ผู้ดูแล/หมอ</b> (เสมียนดูอย่างเดียว)</div></div>':''}
+    <div style="margin-top:10px">${vaxTableHTML(h,rows,canEdit)}</div>
+    ${canEdit&&!formOpen?`<button class="btn sm" style="margin-top:11px" onclick="vaxOpenForm(${h.id},-1)">➕ เพิ่มการทำวัคซีน</button>`:''}
+    ${formOpen?vaxFormHTML(h):''}
+  </div>`;
+}
+function vaxSuggestVal(){ const nm=$("#vx_name"), bt=$("#vx_bottles"), vl=$("#vx_value"), hint=$("#vx_valHint"); if(!nm||!bt||!vl) return;
+  const price=catalogPriceOf('วัคซีน',nm.value), b=parseFloat(bt.value)||0, sug=(price>0&&b>0)?Math.round(price*b):0;
+  if(hint) hint.textContent=price>0?('· แคทาล็อก '+fmt(price)+'/ขวด'+(sug?' = '+fmt(sug):'')):'';
+  if(sug>0 && (vl.value===''||vl.value===String(vl.dataset.auto||''))){ vl.value=sug; vl.dataset.auto=sug; } // เติมอัตโนมัติเฉพาะตอนยังไม่พิมพ์เอง
+}
+function vaxOpenForm(houseId,idx){ if(!vaxCanEdit()){ toast('เพิ่ม/แก้วัคซีนได้เฉพาะเจ้าของ/ผู้ดูแล/หมอ'); return; } if(blockIfReadonly())return; vaxForm={houseId,idx}; vaxRerender(); setTimeout(()=>{ const e=$("#vx_name"); if(e) e.scrollIntoView({block:'center'}); },50); }
+function vaxCancelForm(){ vaxForm=null; vaxRerender(); }
+function vaxSaveForm(){
+  if(!vaxForm) return; if(!vaxCanEdit()){ toast('ไม่มีสิทธิ์'); return; }
+  const h=HOUSES.find(x=>x.id===vaxForm.houseId); if(!h) return;
+  const g=id=>{const e=$("#"+id);return e?e.value.trim():'';}, gn=id=>{const e=$("#"+id);return e&&e.value!==''?Number(e.value):'';};
+  const err=m=>{const e=$("#vx_err"); if(e){e.textContent=m;e.style.display='block';}};
+  const dateISO=g('vx_date'), name=g('vx_name');
+  if(!dateISO){ err('กรุณาเลือกวันที่'); return; }
+  if(dateISO>todayISO()){ err('เลือกวันที่ล่วงหน้าไม่ได้'); return; }
+  if(!name){ err('กรุณาใส่ชื่อวัคซีน'); return; }
+  const entry={rowId:(vaxForm.idx>=0&&(h.vaccineLog||[])[vaxForm.idx]&&h.vaccineLog[vaxForm.idx].rowId)||('vx'+Date.now()+'_'+Math.round(Math.random()*1e6)),
+    dateISO, name, bottles:gn('vx_bottles'), pigsN:gn('vx_pigsN'), dose:g('vx_dose'), by:g('vx_by')||whoNow(), value:gn('vx_value'), note:g('vx_note'), _ts:Date.now()};
+  h.vaccineLog=h.vaccineLog||[];
+  const isNew=vaxForm.idx<0;
+  if(isNew) h.vaccineLog.push(entry); else h.vaccineLog[vaxForm.idx]=entry;
+  h.vaccineLog.sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||''))); // ใหม่→เก่า
+  logHouseEdit(h,[{label:'วัคซีน',from:isNew?'(เพิ่ม)':'(แก้)',to:name+' · '+isoToThaiDay(dateISO)+(entry.bottles?' · '+entry.bottles+' ขวด':'')}],(isNew?'เพิ่ม':'แก้ไข')+'การทำวัคซีน '+name);
+  try{ logAudit('วัคซีน',h.id,isNew?'เพิ่มการทำวัคซีน':'แก้ไขการทำวัคซีน',[{label:'วัคซีน',from:'',to:name},{label:'วันที่',from:'',to:isoToThaiDay(dateISO)},{label:'ขวด',from:'',to:String(entry.bottles||'-')}],(h.farm||'')+' · '+h.code); }catch(e){}
+  syncHouseVet(h);
+  vaxForm=null; toast('บันทึกการทำวัคซีนแล้ว ✓'); vaxRerender();
+}
+function vaxDelRow(houseId,idx){
+  if(!vaxCanEdit()){ toast('ลบได้เฉพาะเจ้าของ/ผู้ดูแล/หมอ'); return; } if(blockIfReadonly())return;
+  const h=HOUSES.find(x=>x.id===houseId); if(!h||!(h.vaccineLog||[])[idx]) return;
+  const r=h.vaccineLog[idx];
+  if(!confirm('ลบบันทึกวัคซีน "'+(r.name||'')+'" วันที่ '+isoToThaiDay(r.dateISO)+' ?')) return;
+  h.vaccineLog.splice(idx,1);
+  logHouseEdit(h,[{label:'วัคซีน',from:(r.name||'')+' · '+isoToThaiDay(r.dateISO),to:'(ลบ)'}],'ลบการทำวัคซีน '+(r.name||''));
+  try{ logAudit('วัคซีน',h.id,'ลบการทำวัคซีน',null,(h.farm||'')+' · '+h.code+' · '+(r.name||'')); }catch(e){}
+  syncHouseVet(h); toast('ลบแล้ว'); vaxRerender();
+}
 /* ---- DAILY entry ---- */
 function dailyHTML(h){
   _autoP={cull:'',dead:'',sold:''}; // รีเซ็ตตัวจำ "ราคาที่เติมอัตโนมัติ" ทุกครั้งที่เปิดฟอร์ม — กันค่าเก่าจากหลังก่อนหน้าไปทับราคาที่โหลดมาแก้ไข
@@ -5580,6 +5682,7 @@ function batchSummary(h){
     deadN:(m.deadN!=null?m.deadN:a.deadN), cullN:(m.cullN!=null?m.cullN:a.cullN), soldN:(m.outN!=null?m.outN:a.soldN), breedTotal:it.breedTotal||0, // จำนวนตรงกับเลขที่ใช้คิดเงิน (ฟอร์มปิดชุด) ไม่ใช่ dailyAgg ที่อาจต่างเมื่อแก้
     vet:h.vet, worker:h.worker, assistant:h.assistant, source:it.source||h.source||'',
     intake: it, dailyLog:(h.dailyLog||[]).slice(), vetLog:(h.vetLog||[]).slice(), meds:(h.meds||[]).slice(),
+    vaccineLog:(h.vaccineLog||[]).slice(),   // สแนปช็อตประวัติการทำวัคซีน ณ วันปิดชุด
     editLog:(h.editLog||[]).slice(), pigletHistory:h.pigletHistory||'', vaccineHistory:h.vaccineHistory||'',
     extraCosts: bxList(),   // ค่าใช้จ่ายอื่นๆ ที่เพิ่มเอง (เก็บไว้แสดงในสรุป/Excel)
     medCost: medTotal(h)
@@ -5595,7 +5698,7 @@ function finalizeBatch(){
   h.closedBatches.unshift(rec);
   // ♻️ รีเซ็ตข้อมูลประจำหลัง "ทั้งหมด" → หลังพร้อมลงข้อมูลรุ่นถัดไป
   //   เก็บไว้เฉพาะ: ตัวตนหลัง (รหัส/ฟาร์ม/โซน/ความจุ/พัดลม), ทีมงานประจำหลัง, และประวัติปิดชุด
-  h.intake=null; h.dailyLog=[]; h.vetLog=[]; h.meds=[]; h.batch=null; h.batchLog=[]; h.editLog=[];
+  h.intake=null; h.dailyLog=[]; h.vetLog=[]; h.meds=[]; h.vaccineLog=[]; h.batch=null; h.batchLog=[]; h.editLog=[];
   h.received=0; h.pigs=0; h.dailyAnchor=null; h.closedDate=null;   // รีเซ็ต anchor ด้วย — ไม่งั้นรุ่นถัดไปที่เริ่มด้วยหมูย้ายเข้าจะใช้ anchor ค้างจากรุ่นก่อน → คงเหลือพองเกินจริง
   h.cleanStart=todayISO(); h.status='กำลังล้างคอก'; // เริ่มสถานะ "กำลังล้างคอก" ต่อเนื่อง 3 วันนับจากวันกดยืนยันปิดชุด
   h.deadToday=0; h.cullToday=0; h.soldToday=0; h.sick=0; h.filled=false;
@@ -5689,6 +5792,20 @@ function buildBatchSheets(rec){
     ['วันที่','หมวด','ชื่อรายการ','โดสการใช้','จำนวน','ราคา/หน่วย','มูลค่ารวม'],[92,150,230,170,80,100,110],
     meds.map(m=>[{v:m.date},{v:m.cat},{v:m.name},{v:m.dose||'-'},{v:m.qty,t:'n'},{v:m.price,t:'n'},{v:m.total,t:'n'}]),
     '— ยังไม่มีการเบิก —')+'</table>';
+  // ⑥.๑ ประวัติการทำวัคซีน (รายครั้ง)
+  const vax=rec.vaccineLog||[], vaxSum=vax.reduce((s,r)=>({b:s.b+(parseFloat(r.bottles)||0),v:s.v+(parseFloat(r.value)||0)}),{b:0,v:0});
+  let tVax=T+logTable('🧫 ประวัติการทำวัคซีน — '+vax.length+' ครั้ง · '+fm(vaxSum.b)+' ขวด · '+fm(vaxSum.v)+' บาท',9,
+    ['วันที่','ชื่อวัคซีน','จำนวนขวด','จำนวนตัวที่ทำ','อายุหมู (วัน)','เข็มที่/ครั้งที่','ผู้ทำ','มูลค่า (บาท)','หมายเหตุ'],
+    [96,230,90,110,100,130,130,110,230],
+    vax.map(r=>{ const age=vaxAgeDays(rec,r.dateISO);
+      return [{v:isoToThaiDay(r.dateISO)},{v:r.name||'-'},
+        (r.bottles!==''&&r.bottles!=null?{v:r.bottles,t:'n'}:{v:'-'}),
+        (r.pigsN!==''&&r.pigsN!=null?{v:r.pigsN,t:'n'}:{v:'-'}),
+        (age!=null?{v:age,t:'n'}:{v:'-'}),
+        {v:r.dose||'-'},{v:r.by||'-'},
+        (r.value!==''&&r.value!=null?{v:r.value,t:'n'}:{v:'-'}),
+        {v:r.note||'-'}]; }),
+    '— ยังไม่มีการทำวัคซีน —')+'</table>';
   // ⑦ ประวัติการรักษา
   let t7=T+logTable('⑦ ประวัติการรักษา — '+treat.length+' ครั้ง',6,['วันที่','อาการ','ยาสูตร','ยาฉีด','หมายเหตุ','หมอ'],[92,210,120,150,230,120],
     treat.map(e=>[{v:e.date},{v:e.symptoms||'-'},{v:e.formula||'-'},{v:e.inject||'-'},{v:e.note||'-'},{v:e.by||'-'}]),'— ไม่มี —')+'</table>';
@@ -5702,7 +5819,7 @@ function buildBatchSheets(rec){
   let t10=T+logTable('⑩ ประวัติการแก้ไขข้อมูลหลัง — '+el.length+' ครั้ง',4,['เวลา','โดย','รายการที่แก้ไข','หมายเหตุ'],[160,150,360,200],
     el.map(e=>[{v:e.time||'-'},{v:e.by||'-'},{v:((e.changes||[]).map(c=>c.label+': '+c.from+' → '+c.to).join('  /  ')||'-')},{v:e.note||'-'}]),'— ไม่มีการแก้ไข —')+'</table>';
   const gap='<table><tr><td style="height:12px;border:0"></td></tr></table>';
-  const s2=[t4,t5,t6,t7,t8,t9,t10].join(gap);
+  const s2=[t4,t5,t6,tVax,t7,t8,t9,t10].join(gap);
   return [{name:'สรุปปิดชุด',html:s1},{name:'ประวัติประจำหลัง',html:s2}];
 }
 // รวมทุกชีตเป็น HTML เดียว (สำหรับพรีวิวบนจอ)
@@ -6892,7 +7009,7 @@ function makeHouse(opts){
     sick:0, fcr:"2.40", mortality:"1.0",
     vet:"", assistant:"", worker:"",
     source:"", pigletHistory:"", vaccineHistory:"",
-    originVet:"", originAsst:"", originWorker:"", note:"", meds:[], dailyLog:[], vetLog:[]
+    originVet:"", originAsst:"", originWorker:"", note:"", meds:[], dailyLog:[], vetLog:[], vaccineLog:[]
   }, opts||{});
 }
 let editHouseId=null;
