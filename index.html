@@ -561,10 +561,22 @@ function houseDays(h){
 }
 // เรียงตามรหัสหลัง A→Z (ตัวอักษรก่อน แล้วตามด้วยตัวเลข)
 function byCode(a,b){
-  const pa=String(a.code||'').match(/^([A-Za-z]*)(\d*)/), pb=String(b.code||'').match(/^([A-Za-z]*)(\d*)/);
-  const la=(pa[1]||'').toUpperCase(), lb=(pb[1]||'').toUpperCase();
-  if(la!==lb) return la<lb?-1:1;
-  return (parseInt(pa[2])||0)-(parseInt(pb[2])||0);
+  // เรียงแบบ natural sort รองรับทุกภาษา (อังกฤษ+ไทย): จัดกลุ่มตามตัวอักษรขึ้นต้น แล้วเรียงเลขในกลุ่ม
+  // แยกรหัสเป็นท่อน สลับ "ตัวเลข/ไม่ใช่ตัวเลข" แล้วเทียบทีละท่อน (เลข=ตามค่า, ตัวอักษร=ตามพจนานุกรมไทย)
+  // เดิม regex จับเฉพาะ A-Za-z → รหัสไทย (อ9, ส1, "เบิกไพร U1ค1") ยุบเป็นค่าเดียวกองมั่วหัวตาราง
+  const ca=String(a.code||'').trim(), cb=String(b.code||'').trim();
+  // หลังใช้งานจริง (รหัสขึ้นต้นอังกฤษ เช่น P2, A1, E10, J40) ขึ้นก่อนหลังอ้างอิง/แหล่ง (รหัสไทย อ/ส/เบิกไพร...)
+  const ea=/^[A-Za-z]/.test(ca)?0:1, eb=/^[A-Za-z]/.test(cb)?0:1;
+  if(ea!==eb) return ea-eb;
+  const ra=ca.match(/\d+|\D+/g)||[], rb=cb.match(/\d+|\D+/g)||[];
+  const n=Math.min(ra.length,rb.length);
+  for(let i=0;i<n;i++){
+    const xa=ra[i], xb=rb[i], da=/^\d/.test(xa), db=/^\d/.test(xb);
+    if(da&&db){ const d=(parseInt(xa,10)||0)-(parseInt(xb,10)||0); if(d) return d; }
+    else if(da!==db){ return da?-1:1; }       // ท่อนตัวเลขมาก่อนท่อนตัวอักษรในตำแหน่งเดียวกัน
+    else { const c=xa.localeCompare(xb,'th'); if(c) return c; }
+  }
+  return ra.length-rb.length;                  // ท่อนน้อยกว่า (สั้นกว่า) มาก่อน เช่น A ก่อน A1
 }
 // generate sample houses (representing 500; show ~24 in grid)
 function seedHouses(){
