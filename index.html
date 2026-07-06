@@ -1449,7 +1449,7 @@ const HOME_MENU = {
     {icon:'📝', t:'กรอกข้อมูลรายวัน',    d:'ตาย/คัด/ขาย/ย้าย + ปิดชุด รายหลัง',       fn:'renderHouseList'},
     {icon:'📆', t:'กรอกข้อมูลย้อนหลัง',   d:'ลงข้อมูลจากกระดาษ หลายวันรวดเดียว (ตอนเริ่มใช้)', fn:'renderBackfill'},
     {icon:'⚖️', t:'แท่นขายหมู',          d:'บิลขายรายคันรถ · น้ำหนักรายตัว · ตาย/คัดขาย · ราคาเว้นได้', fn:'renderSaleStand'},
-    {icon:'📒', t:'บัญชีลูกค้า / ลูกหนี้', d:'ยอดค้างรายลูกค้า · รับเงิน+ใบรับเงิน · หักหน้าบิล', fn:'renderLedger'},
+    {icon:'📒', t:'บันทึกรับเงิน / ใบรับเงิน', d:'รับเงินลูกค้า+ออกใบรับเงิน · เงินสดค้างเก็บ · พิมพ์เอกสารซ้ำ', fn:'renderLedger'},
     {icon:'🏭', t:'ข้อมูลประจำฟาร์ม',    d:'ภาพรวมหลังในแต่ละฟาร์ม',                fn:'renderClerkFarm'},
     {icon:'💉', t:'รายการเบิกยา',        d:'ดูรายการเบิกยา/เวชภัณฑ์ของหมอ',          fn:'renderClerkReq'},
     {icon:'🌾', t:'รายการเบิกอาหาร',     d:'ดูใบเบิกอาหารของหมอ',                   fn:'renderClerkFeedReq'},
@@ -8022,6 +8022,7 @@ function lgPersist(){ try{ localStorage.setItem('sjfLedger', JSON.stringify(LG))
 function lgQPersist(){ try{ localStorage.setItem('sjfLedgerQ', JSON.stringify(_lgQ)); }catch(e){} }
 function lgOn(){ return !!(CONFIG.supabase&&CONFIG.supabase.enabled&&CONFIG.supabase.backend==='v2'); }
 function lgCanUse(){ return ['owner','admin','clerk'].includes(ROLE); }
+function lgFinView(){ return ['owner','admin'].includes(ROLE); } // เห็นยอดลูกหนี้/ยอดค้าง = เจ้าของ/ผู้ดูแลเท่านั้น (เสมียนบันทึกรับเงินได้ แต่ไม่เห็นยอดหนี้รวมของลูกค้า)
 function lgUid(p){ return (p||'lg')+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 function lgMoney(v){ return fmt(Math.round(+v||0)); }
 async function lgRpc(fn,body){ const r=await supaFetch('/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}); if(!r||!r.ok) return null; try{ return await r.json(); }catch(e){ return null; } }
@@ -8161,9 +8162,11 @@ function renderLedger(){
   const totalAR=debtors.reduce((s,x)=>s+x.bal,0);
   const cashInv=LG.entries.filter(e=>e.entry_type==='invoice'&&!e.voided&&e.responsible&&lgSaleOutstanding(e.sale_id)>0.5);
   const totalCash=cashInv.reduce((s,e)=>s+lgSaleOutstanding(e.sale_id),0);
-  const tabs=[['ar','📒 ลูกหนี้คงค้าง'],['cash','💵 เงินสดค้างเก็บ'],['docs','🧾 เอกสาร']];
+  const fin=lgFinView();
+  const tabs=(fin?[['ar','📒 ลูกหนี้คงค้าง']]:[]).concat([['cash','💵 เงินสดค้างเก็บ'],['docs','🧾 เอกสาร']]);
+  if(!fin&&lgTab==='ar') lgTab='cash'; // เสมียนไม่เห็นหน้าลูกหนี้คงค้าง
   let body='';
-  if(lgTab==='ar'){
+  if(lgTab==='ar'&&fin){
     body=`<div class="card"><h3>ลูกหนี้คงค้าง <span class="more">${debtors.length} ราย · แตะรายชื่อเพื่อดูบัญชี/รับเงิน</span></h3>
       ${debtors.length?debtors.map(x=>`<div class="fieldrow" style="cursor:pointer" onclick="lgCustSel='${x.c.id}';renderLgCust()">
         <div class="fmeta"><div class="fn">👤 <b>${escA(x.c.name)}</b></div><div class="sub">${escA(x.c.phone||'')}</div></div>
@@ -8178,14 +8181,16 @@ function renderLedger(){
   } else if(lgTab==='cash'){
     const byResp={};
     cashInv.forEach(e=>{ (byResp[e.responsible]=byResp[e.responsible]||[]).push(e); });
-    body=Object.keys(byResp).length?Object.keys(byResp).sort().map(rp=>{
+    const pickCust=fin?'':`<div class="card"><h3>💸 บันทึกรับเงิน — เลือกลูกค้า</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">${LG.customers.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),'th')).map(c=>`<a href="#" onclick="lgCustSel='${c.id}';renderLgCust();return false" style="background:var(--soft);border:1px solid var(--line);color:var(--ink);padding:5px 13px;border-radius:999px;font-weight:700;text-decoration:none">${escA(c.name)} ›</a>`).join('')||'<span class="sub">— ยังไม่มีลูกค้า (จะถูกสร้างอัตโนมัติจากบิลขาย) —</span>'}</div></div>`;
+    body=pickCust+(Object.keys(byResp).length?Object.keys(byResp).sort().map(rp=>{
       const rows=byResp[rp], sum=rows.reduce((s,e)=>s+lgSaleOutstanding(e.sale_id),0);
       return `<div class="card"><h3>🧍 ${escA(rp)} <span class="more">ถือความรับผิดชอบ ${lgMoney(sum)} บาท · ${rows.length} บิล</span></h3>
         ${rows.map(e=>`<div class="fieldrow"><div class="fmeta"><div class="fn">${escA(e.customer_name)} · ${sbThaiDate(e.entry_date)}</div><div class="sub">${escA(e.note||'')}</div></div>
           <div style="text-align:right;display:flex;gap:8px;align-items:center"><b style="color:var(--warn)">${lgMoney(lgSaleOutstanding(e.sale_id))} บาท</b>
           <button class="btn sm" onclick="lgCustSel='${e.customer_id}';renderLgCust()">💸 รับเงิน ›</button></div></div>`).join('')}</div>`;
     }).join('')
-    :'<div class="card"><div class="sub">— ไม่มีเงินสดค้างเก็บ 🎉 — บิลที่เลือก "เก็บเงินสดทีหลัง + ระบุผู้รับผิดชอบ" จะมาขึ้นที่นี่จนกว่าจะบันทึกรับเงิน —</div></div>';
+    :'<div class="card"><div class="sub">— ไม่มีเงินสดค้างเก็บ 🎉 — บิลที่เลือก "เก็บเงินสดทีหลัง + ระบุผู้รับผิดชอบ" จะมาขึ้นที่นี่จนกว่าจะบันทึกรับเงิน —</div></div>');
   } else {
     const docs=LG.docs.slice(0,120);
     body=`<div class="card"><h3>เอกสารล่าสุด <span class="more">ใบรับเงิน (RC) · เอกสารมอบหมายเก็บเงิน (RP)</span></h3>
@@ -8199,7 +8204,7 @@ function renderLedger(){
     <div class="sub">บิลขาย = หนี้เพิ่ม · รับเงิน/หักหน้าบิล = หนี้ลด · ทุกบาทตรวจย้อนได้ ไม่ลบของเดิม</div>
     ${['clerk'].includes(ROLE)?clerkNav('ledger'):''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px">
-      <span class="sbchip bad">💰 ลูกหนี้รวม <b>${lgMoney(totalAR)}</b> บาท · ${debtors.length} ราย</span>
+      ${fin?`<span class="sbchip bad">💰 ลูกหนี้รวม <b>${lgMoney(totalAR)}</b> บาท · ${debtors.length} ราย</span>`:''}
       <span class="sbchip warn">💵 เงินสดค้างเก็บ <b>${lgMoney(totalCash)}</b> บาท</span>
       ${_lgQ.length?`<span class="sbchip warn" title="จะส่งขึ้นระบบเองเมื่อออนไลน์">📡 รอส่ง ${_lgQ.length} รายการ</span>`:''}
       <button class="btn ghost sm" onclick="lgCloudLoad().then(()=>renderLedger());toast('กำลังรีเฟรช…')">🔄 รีเฟรช</button>
@@ -8215,6 +8220,7 @@ function renderLgCust(){
   const rows=LG.entries.filter(e=>e.customer_id===c.id).sort((a,b)=>String(b.entry_date).localeCompare(String(a.entry_date))||String(b.created_at||'').localeCompare(String(a.created_at||'')));
   const bal=lgBalance(c.id);
   const TY={invoice:['🧾 บิลขาย','var(--bad)'],payment:['💸 รับเงิน','var(--ok)'],deduction:['➖ หักหน้าบิล','var(--info)'],adjustment:['✏️ ปรับปรุง','var(--warn)']};
+  const fin=lgFinView();
   const list=rows.length?rows.map(e=>{
     const t=TY[e.entry_type]||['?',''];
     const doc=e.receipt_id?LG.docs.find(d=>d.id===e.receipt_id):null;
@@ -8230,10 +8236,10 @@ function renderLgCust(){
   $("#view").innerHTML=`
     <h2 class="page">👤 ${escA(c.name)} <span class="more">${escA(c.phone||'')}</span></h2>
     <div class="sub"><a href="#" onclick="renderLedger();return false" style="color:var(--info)">‹ กลับหน้าบัญชีรวม</a></div>
-    <div style="margin:10px 0 14px"><span class="sbchip ${bal>0.5?'bad':bal<-0.5?'ok':''}" style="font-size:15px">ยอดค้างปัจจุบัน <b style="font-size:19px">${lgMoney(Math.abs(bal))}</b> บาท ${bal>0.5?'(ลูกค้าค้างจ่าย)':bal<-0.5?'(เครดิตของลูกค้า — จะหักบิลหน้า)':'(ไม่มีหนี้ค้าง ✓)'}</span></div>
+    ${fin?`<div style="margin:10px 0 14px"><span class="sbchip ${bal>0.5?'bad':bal<-0.5?'ok':''}" style="font-size:15px">ยอดค้างปัจจุบัน <b style="font-size:19px">${lgMoney(Math.abs(bal))}</b> บาท ${bal>0.5?'(ลูกค้าค้างจ่าย)':bal<-0.5?'(เครดิตของลูกค้า — จะหักบิลหน้า)':'(ไม่มีหนี้ค้าง ✓)'}</span></div>`:''}
     <div class="card"><h3>💸 บันทึกรับเงิน <span class="more">ออกใบรับเงินให้อัตโนมัติ</span></h3>
       <div class="fgrid">
-        <div class="frow"><label>จำนวนเงิน (บาท)</label><input id="lgPayAmt" type="number" step="1" class="cin" value="${bal>0.5?Math.round(bal):''}" placeholder="ยอดที่รับจริง"></div>
+        <div class="frow"><label>จำนวนเงิน (บาท)</label><input id="lgPayAmt" type="number" step="1" class="cin" value="${fin&&bal>0.5?Math.round(bal):''}" placeholder="ยอดที่รับจริง"></div>
         <div class="frow"><label>วิธีรับ</label><select id="lgPayMethod" class="cin tl"><option value="transfer">🏦 โอนเข้าบัญชี</option><option value="cash">💵 เงินสด</option></select></div>
         <div class="frow"><label>วันที่รับ</label><input id="lgPayDate" type="date" class="cin" value="${todayISO()}"></div>
         <div class="frow"><label>ผู้ส่งเงิน/คนเก็บมา (เงินสด)</label><input id="lgPayResp" class="cin" placeholder="เช่น ชื่อคนที่ถือเงินมาส่ง"></div>
@@ -8251,14 +8257,15 @@ function renderLgCust(){
       <div class="fgrid"><div class="frow"><label>จำนวน (+เพิ่มหนี้ / −ลดหนี้)</label><input id="lgAdjAmt" type="number" step="1" class="cin" placeholder="เช่น -150 หรือ 300"></div>
       <div class="frow" style="grid-column:2/-1"><label>เหตุผล (บังคับ)</label><input id="lgAdjNote" class="cin" placeholder="เช่น ปัดเศษ/แก้ยอดบันทึกผิด"></div></div>
       <div style="margin-top:10px"><button class="btn ghost" onclick="lgDoAdjust('${c.id}')">✏️ บันทึกปรับปรุง</button></div></div>`:''}
-    <div class="card"><h3>🧾 รายการเดินบัญชี <span class="more">${rows.length} รายการ · ใหม่→เก่า</span></h3>${list}</div>`;
+    ${fin?`<div class="card"><h3>🧾 รายการเดินบัญชี <span class="more">${rows.length} รายการ · ใหม่→เก่า</span></h3>${list}</div>`
+      :`<div class="card"><h3>🧾 ใบรับเงินล่าสุดของลูกค้ารายนี้</h3>${LG.docs.filter(d=>d.customer_id===c.id&&d.doc_type==='receipt').slice(0,10).map(d=>`<div class="fieldrow"><div class="fmeta"><div class="fn">${escA(d.doc_no)} · ${sbThaiDate(String(d.issued_at||'').slice(0,10))}</div><div class="sub">${lgMoney(d.amount)} บาท · ${d.method==='cash'?'เงินสด':'โอน'}</div></div><button class="btn ghost sm" onclick="lgPrintDoc('${d.id}')">🖨</button></div>`).join('')||'<div class="sub">— ยังไม่มี —</div>'}<div class="sub" style="margin-top:8px">🔒 ยอดค้างและรายการเดินบัญชีดูได้เฉพาะเจ้าของ/ผู้ดูแล</div></div>`}`;
 }
 function lgDoPay(custId){
   const c=LG.customers.find(x=>x.id===custId); if(!c) return;
   const amt=parseFloat(($("#lgPayAmt")||{}).value); if(!isFinite(amt)||amt<=0){ toast('ใส่จำนวนเงินก่อน'); return; }
   const method=($("#lgPayMethod")||{}).value||'transfer';
   const bal=lgBalance(custId);
-  if(amt>bal+0.5 && !confirm('จำนวนที่รับ ('+lgMoney(amt)+') มากกว่ายอดค้าง ('+lgMoney(bal)+')\nส่วนเกินจะกลายเป็นเครดิตของลูกค้า — ยืนยัน?')) return;
+  if(lgFinView() && amt>bal+0.5 && !confirm('จำนวนที่รับ ('+lgMoney(amt)+') มากกว่ายอดค้าง ('+lgMoney(bal)+')\nส่วนเกินจะกลายเป็นเครดิตของลูกค้า — ยืนยัน?')) return;
   const e=lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'payment', method:method, amount:amt,
     entry_date:($("#lgPayDate")||{}).value||todayISO(), responsible:String((($("#lgPayResp")||{}).value)||'').trim(), note:String((($("#lgPayNote")||{}).value)||'').trim()});
   toast('บันทึกรับเงินแล้ว ✓ กำลังออกใบรับเงิน…');
