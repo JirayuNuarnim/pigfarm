@@ -2917,7 +2917,7 @@ function expNameSfx(){ return (expFarm?'_'+expFarm:'')+(expHouse?'_'+expHouse:''
 function expDailyTableHTML(){
   const rows=expDailyRows();
   const tot={dead:0,deadW:0,deadVal:0,cull:0,cullW:0,cullVal:0,sold:0,soldW:0,soldVal:0,move:0,movein:0};
-  const data=rows.map(r=>{const e=r.e, deadVal=(e.deadW||0)*(e.deadP||0), cullVal=(e.cullW||0)*(e.cullP||0), soldVal=(e.soldW||0)*(e.soldP||0);
+  const data=rows.map(r=>{const e=r.e, deadVal=(e.deadVal!=null?+e.deadVal:(e.deadW||0)*(e.deadP||0)), cullVal=(e.cullVal!=null?+e.cullVal:(e.cullW||0)*(e.cullP||0)), soldVal=(e.soldVal!=null?+e.soldVal:(e.soldW||0)*(e.soldP||0));
     tot.dead+=e.deadN||0;tot.deadW+=e.deadW||0;tot.deadVal+=deadVal;tot.cull+=e.cullN||0;tot.cullW+=e.cullW||0;tot.cullVal+=cullVal;tot.sold+=e.soldN||0;tot.soldW+=e.soldW||0;tot.soldVal+=soldVal;tot.move+=e.moveN||0;tot.movein+=e.moveInN||0;
     return [e.date,r.farm,r.house,e.deadN||0,e.deadW||0,deadVal,e.cullN||0,e.cullW||0,cullVal,e.soldN||0,e.soldW||0,soldVal,e.moveN||0,e.moveInN||0,(e.soldCust||e.cullCust||e.deadCust||'-'),(e.soldBill||e.cullBill||e.deadBill||'-'),(e.remain!=null?e.remain:'-')];
   });
@@ -2963,9 +2963,9 @@ function expSummaryRows(){
   return expHouses().map(h=>{
     const t={deadN:0,deadW:0,deadVal:0,cullN:0,cullW:0,cullVal:0,soldN:0,soldW:0,soldVal:0,moveN:0,moveInN:0,days:0};
     (h.dailyLog||[]).forEach(e=>{ if(!expInRange(parseThaiDate(e.date))) return; t.days++;
-      t.deadN+=e.deadN||0; t.deadW+=e.deadW||0; t.deadVal+=(e.deadW||0)*(e.deadP||0);
-      t.cullN+=e.cullN||0; t.cullW+=e.cullW||0; t.cullVal+=(e.cullW||0)*(e.cullP||0);
-      t.soldN+=e.soldN||0; t.soldW+=e.soldW||0; t.soldVal+=(e.soldW||0)*(e.soldP||0);
+      t.deadN+=e.deadN||0; t.deadW+=e.deadW||0; t.deadVal+=(e.deadVal!=null?+e.deadVal:(e.deadW||0)*(e.deadP||0));
+      t.cullN+=e.cullN||0; t.cullW+=e.cullW||0; t.cullVal+=(e.cullVal!=null?+e.cullVal:(e.cullW||0)*(e.cullP||0));
+      t.soldN+=e.soldN||0; t.soldW+=e.soldW||0; t.soldVal+=(e.soldVal!=null?+e.soldVal:(e.soldW||0)*(e.soldP||0));
       t.moveN+=e.moveN||0; t.moveInN+=e.moveInN||0;
     });
     return {h:h, t:t};
@@ -4696,7 +4696,7 @@ function recalcDailyRemains(h){
     log[k].remain=running;
   }
   h.pigs=Math.max(0,log[0].remain);
-  const tRow=log.find(e=>e&&e.date===DEMO_DATE_DAY), mv0=tRow&&(tRow.moveInN||0)>0; // ตัวนับ "วันนี้" จากแถวของวันนี้จริง (ไม่มีแถววันนี้ = 0) · กันบันทึกย้อนหลังมาโชว์เป็นยอดวันนี้
+  const tRow=log.find(e=>e&&e.date===DEMO_DATE_DAY&&!e._bfSum), mv0=tRow&&(tRow.moveInN||0)>0; // ตัวนับ "วันนี้" จากแถวของวันนี้จริง (ไม่นับแถวยอดสรุปย้อนหลัง _bfSum · ไม่มีแถววันนี้ = 0) · กันบันทึกย้อนหลังมาโชว์เป็นยอดวันนี้
   h.deadToday=tRow?(mv0?0:(tRow.deadN||0)):0; h.cullToday=tRow?(mv0?0:(tRow.cullN||0)):0; h.soldToday=tRow?(mv0?0:(tRow.soldN||0)):0; h.moveToday=tRow?(mv0?0:(tRow.moveN||0)):0;
 }
 /* ========== กรอกข้อมูลย้อนหลังหลายวัน (เสมียน) — ลงข้อมูลจากกระดาษตอนเริ่มใช้งาน ========== */
@@ -4966,6 +4966,8 @@ function renderBackfill(){
     <h2 class="page">📆 กรอกข้อมูลย้อนหลัง</h2>
     <div class="sub">ลงบันทึกรายวันจากกระดาษ <b>ทีละหลายวันรวดเดียว</b> · ระบบคำนวณคงเหลือสะสมให้อัตโนมัติ · เหมาะตอนเริ่มใช้งานครั้งแรก</div>
     ${clerkNav('backfill')}
+    <div class="seg" style="margin:2px 0 4px"><button class="on">📆 ลงทีละวัน (ละเอียด)</button><button onclick="renderBackfillFast()">⚡ ลงยอดรวม (เร็ว · หลายหลัง)</button></div>
+    <div class="banner info" style="margin-bottom:10px">⚡ <div>หลังเยอะ? ใช้ <b>"ลงยอดรวม (เร็ว)"</b> — กรอกยอดสะสมทั้งรุ่น (ตาย/คัด/ขาย + เงินรวม) ของหลายหลังในตารางเดียว เร็วกว่ามาก</div></div>
     ${!houses.length?'<div class="card"><div class="sub">ยังไม่มีหลังที่ดูแล</div></div>':`
     <div class="card">
       <div class="grid2">
@@ -5001,6 +5003,125 @@ function renderBackfill(){
       <div id="bfMedBox">${bfMedTableHTML()}</div>
     </div>`}`;
   setTimeout(bfRecalcPreview,30);
+}
+/* ========== ⚡ ลงยอดรวมย้อนหลัง (เร็ว) — ตารางหลายหลังในหน้าเดียว ==========
+   ลงยอดสะสมทั้งรุ่น (ตาย/คัด/ขาย จำนวน + เงินบาทรวม) ต่อหลัง แล้วเชื่อมเข้าหลังให้คงเหลือเป็นปัจจุบัน ทำงานรายวันต่อได้
+   เก็บเป็น dailyLog แถวเดียวติดธง _bfSum (มูลค่าเก็บเป็น deadVal/cullVal/soldVal ตรงๆ) → dailyAgg/รายงาน/ปิดชุด/ต้นทุนยา รวมให้อัตโนมัติ */
+let bfsDate='', bfsFarm='', bfsRows={}, bfsShowAll=false, _bfsList=[];
+function bfsYesterdayISO(){ return expISO(new Date(DEMO_DATE.getTime()-86400000)); }
+function bfsHasRealData(h){ return (h.dailyLog||[]).some(e=>e&&!e._bfSum); } // มีบันทึกรายวัน "จริง" (ไม่นับแถวยอดสรุป)
+function bfsAllHouses(){ return myHouses().slice().sort(byCode); }
+function bfsFarms(){ return [...new Set(bfsAllHouses().map(h=>h.farm||'').filter(Boolean))]; }
+function bfsList(){
+  let hs=bfsAllHouses();
+  if(bfsFarm) hs=hs.filter(h=>(h.farm||'')===bfsFarm);
+  if(!bfsShowAll) hs=hs.filter(h=>!bfsHasRealData(h)); // ตั้งต้น: เฉพาะหลังที่ยังไม่มีบันทึกรายวันจริง (กันยอดรวมไปซ้อนหลังที่ใช้อยู่)
+  return hs;
+}
+function bfsBlank(h){ return {recv:((h&&(h.received||(h.intake&&h.intake.inN)))||'')+'',dead:'',deadVal:'',cull:'',cullVal:'',sold:'',soldVal:'',move:'',medVal:''}; }
+function bfsRow(h){ if(!bfsRows[h.id]) bfsRows[h.id]=bfsBlank(h); return bfsRows[h.id]; }
+function bfsSet(id,f,v){ if(!bfsRows[id]) bfsRows[id]=bfsBlank(HOUSES.find(x=>x.id===id)); bfsRows[id][f]=v; bfsRemainUpd(id); }
+function bfsRemainN(r){ return bfNum(r.recv)-bfNum(r.dead)-bfNum(r.cull)-bfNum(r.sold)-bfNum(r.move); }
+function bfsRemainUpd(id){ const r=bfsRows[id], el=document.getElementById('bfsRem_'+id); if(!el||!r) return;
+  const rem=bfsRemainN(r); el.textContent=fmt(rem); el.style.color=rem<0?'var(--bad)':(bfNum(r.recv)>0?'var(--ok)':'var(--muted)'); }
+function bfsInp(h,f,w){ const r=bfsRow(h); return `<input class="cin" type="number" inputmode="numeric" min="0" style="width:${w||78}px;padding:6px 7px;text-align:right" value="${escA(r[f])}" oninput="bfsSet(${h.id},'${f}',this.value)">`; }
+function bfsTableHTML(){
+  const list=bfsList(); _bfsList=list;
+  if(!list.length) return '<div class="sub">— ไม่มีหลังให้ลง (ลองเปลี่ยนฟาร์ม หรือเปิด "แสดงทุกหลัง") —</div>';
+  const head=['หลัง','รับเข้า<br>(ตัว)','ตาย<br>(ตัว)','มูลค่าตาย<br>฿ รวม','คัด<br>(ตัว)','มูลค่าคัด<br>฿ รวม','ขาย<br>(ตัว)','มูลค่าขาย<br>฿ รวม','ย้ายออก<br>(ตัว)','ค่ายารวม<br>฿','คงเหลือ','สถานะ'].map(h=>`<th style="white-space:nowrap;font-size:11.5px">${h}</th>`).join('');
+  const rows=list.map(h=>{ const r=bfsRow(h), rem=bfsRemainN(r), has=bfsHasRealData(h);
+    return `<tr>
+      <td style="white-space:nowrap"><b>${escA(h.code)}</b>${bfsFarm?'':`<div class="sub" style="margin:0;font-size:10.5px">${escA(h.farm||'')}</div>`}</td>
+      <td>${bfsInp(h,'recv',84)}</td>
+      <td>${bfsInp(h,'dead')}</td><td>${bfsInp(h,'deadVal',94)}</td>
+      <td>${bfsInp(h,'cull')}</td><td>${bfsInp(h,'cullVal',94)}</td>
+      <td>${bfsInp(h,'sold')}</td><td>${bfsInp(h,'soldVal',94)}</td>
+      <td>${bfsInp(h,'move')}</td>
+      <td>${bfsInp(h,'medVal',94)}</td>
+      <td class="num"><b id="bfsRem_${h.id}" style="color:${rem<0?'var(--bad)':(bfNum(r.recv)>0?'var(--ok)':'var(--muted)')}">${fmt(rem)}</b></td>
+      <td>${has?'<span class="more" style="color:#b7791f">มีข้อมูลแล้ว</span>':'<span class="more">ว่าง</span>'}</td>
+    </tr>`; }).join('');
+  return `<table class="densetbl" style="min-width:940px"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderBackfillFast(){
+  histPush('backfillfast',renderBackfillFast);
+  if(!bfsDate) bfsDate=bfsYesterdayISO();
+  const farms=bfsFarms(), list=bfsList();
+  $("#view").innerHTML=`
+    <h2 class="page">⚡ ลงยอดรวมย้อนหลัง (เร็ว)</h2>
+    <div class="sub">ลงยอดสะสม<b>ทั้งรุ่น</b>ของหลายหลังในตารางเดียว — ตาย/คัด/ขาย (จำนวน + เงินบาทรวม) · ระบบตั้งคงเหลือให้เป็นปัจจุบัน พร้อมลงรายวันต่อได้ทันที</div>
+    ${clerkNav('backfill')}
+    <div class="seg" style="margin:2px 0 4px"><button onclick="renderBackfill()">📆 ลงทีละวัน (ละเอียด)</button><button class="on">⚡ ลงยอดรวม (เร็ว · หลายหลัง)</button></div>
+    <div class="card">
+      <div class="grid2">
+        <div class="frow" style="margin-bottom:8px"><label>ฟาร์ม</label><select class="cin tl" onchange="bfsFarm=this.value;renderBackfillFast()"><option value="">— ทุกฟาร์มที่ดูแล —</option>${farms.map(f=>`<option ${f===bfsFarm?'selected':''}>${escA(f)}</option>`).join('')}</select></div>
+        <div class="frow" style="margin-bottom:8px"><label>ยอด ณ วันที่ (คงเหลือถึงวันไหน)</label><input type="date" class="cin" max="${todayISO()}" value="${bfsDate}" onchange="bfsDate=this.value"></div>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:4px;cursor:pointer"><input type="checkbox" ${bfsShowAll?'checked':''} onchange="bfsShowAll=this.checked;renderBackfillFast()"><span class="sub" style="margin:0">แสดงทุกหลัง (รวมหลังที่มีข้อมูลรายวันแล้ว — ระวังยอดซ้อน)</span></label>
+    </div>
+    <div class="banner info">ℹ️ <div>กรอกเฉพาะช่องที่มี — เว้นว่าง = 0 · <b>มูลค่าตาย/คัด/ขาย = เงินบาทรวมทั้งรุ่น</b> (ตามสรุปในกระดาษ/Excel) · <b>คงเหลือ</b> = รับเข้า − ตาย − คัด − ขาย − ย้ายออก คำนวณสด · <span style="color:var(--bad);font-weight:700">แดง</span> = ยอดออกเกินรับเข้า (แก้ก่อนบันทึก)</div></div>
+    <div class="card">
+      <h3>ตารางลงยอดรวม <span class="more">${fmt(list.length)} หลัง</span></h3>
+      <div style="overflow-x:auto"><div id="bfsGrid">${bfsTableHTML()}</div></div>
+      <button class="btn" style="margin-top:14px;font-size:16px;padding:13px 26px" onclick="bfsSubmit()">💾 บันทึกทั้งหมด แล้วเชื่อมเข้าหลัง</button>
+      <div class="sub" style="margin-top:8px">💡 บันทึกแล้วแต่ละหลังพร้อมลงข้อมูลรายวันต่อจากวันนี้ได้ทันที · ยอดเข้ารายงาน/ปิดชุด/ต้นทุนยาให้อัตโนมัติ · กดซ้ำได้ (ยอดรวมเดิมถูกแทนที่ ไม่บวกซ้อน)</div>
+    </div>`;
+}
+function bfsSubmit(){
+  if(blockIfReadonly())return;
+  if(!bfsVetOK()){ if(!confirm('⚠️ บัญชีนี้เป็นเสมียน — ช่อง "ค่ายารวม" เป็นข้อมูลฝั่งหมอ ระบบจะไม่บันทึกค่ายาให้ (ตามสิทธิ์)\nบันทึกยอด ตาย/คัด/ขาย ต่อหรือไม่?')) return; }
+  const asOfISO=bfsDate||bfsYesterdayISO();
+  if(asOfISO>todayISO()){ toast('วันที่ยอดคงเหลือเลือกล่วงหน้าไม่ได้'); return; }
+  const asOfThai=isoToThaiDay(asOfISO);
+  const list=_bfsList.length?_bfsList:bfsList();
+  let done=0, skip=0; const neg=[], touched=[];
+  list.forEach(h=>{ const r=bfsRows[h.id]; if(!r) return;
+    const recv=bfNum(r.recv), dead=bfNum(r.dead), cull=bfNum(r.cull), sold=bfNum(r.sold), move=bfNum(r.move);
+    const any=recv||dead||cull||sold||move||bfNum(r.deadVal)||bfNum(r.cullVal)||bfNum(r.soldVal)||bfNum(r.medVal);
+    if(!any) return;                       // แถวว่าง — ข้าม
+    if(recv<=0){ skip++; return; }          // ต้องมี "รับเข้า"
+    if(recv-dead-cull-sold-move<0){ neg.push(h.code); return; }
+    applyFastSummary(h,{recv,dead,cull,sold,move,asOfThai,
+      deadVal:bfNum(r.deadVal),cullVal:bfNum(r.cullVal),soldVal:bfNum(r.soldVal),medVal:bfsVetOK()?bfNum(r.medVal):0});
+    touched.push(h); done++;
+  });
+  if(neg.length) toast('⚠️ หลัง '+neg.slice(0,6).join(', ')+(neg.length>6?'…':'')+' คงเหลือติดลบ (ยอดออกเกินรับเข้า) — ยังไม่บันทึกหลังเหล่านี้');
+  if(!done){ if(!neg.length&&!skip) toast('ยังไม่มีหลังที่กรอก'); else if(skip) toast('ทุกแถวที่กรอกยังไม่ได้ใส่ "รับเข้า"'); return; }
+  touched.forEach(h=>{ delete bfsRows[h.id]; }); // ล้างค่าในตารางของหลังที่บันทึกแล้ว
+  try{ flushSyncV2(); }catch(e){}
+  toast('✅ บันทึก '+done+' หลังแล้ว — คงเหลือเป็นปัจจุบัน พร้อมลงรายวันต่อได้'+(neg.length?' · ข้าม '+neg.length+' หลังยอดติดลบ':'')+(skip?' · ข้าม '+skip+' หลังไม่มีรับเข้า':''));
+  renderBackfillFast();
+}
+function bfsVetOK(){ return ROLE==='owner'||ROLE==='admin'||ROLE==='vet'; } // ใครเขียนข้อมูลฝั่งหมอ (ค่ายา) ได้
+// เชื่อมยอดรวมเข้าหลัง → คงเหลือปัจจุบัน + เข้ารายงาน/ปิดชุด · แทนยอดรวมเดิม (_bfSum) ถ้ากดซ้ำ ไม่บวกซ้อน
+function applyFastSummary(h,x){
+  const oldPigs=h.pigs||0, oldRecv=h.received||0;
+  // 1) ข้อมูลรับเข้า (จำนวน + ยอดรวมรับเข้า)
+  h.intake=h.intake||{source:h.source||'',inN:0,totalW:0,dateIn:x.asOfThai};
+  h.intake.inN=x.recv; h.received=x.recv;
+  if(!h.intake.dateIn) h.intake.dateIn=x.asOfThai;
+  // 2) แถวยอดสรุป (มูลค่าเก็บตรงเป็นบาท) — ลบยอดสรุปเดิมก่อน (กดซ้ำ = แทนที่)
+  h.dailyLog=(h.dailyLog||[]).filter(e=>!e._bfSum);
+  const entry={rowId:'bfs'+Date.now()+'_'+Math.round(Math.random()*1e6), date:x.asOfThai, by:whoNow(), _bfSum:true, remain:0,
+    deadN:x.dead, deadW:0, deadP:0, deadVal:x.deadVal||0, deadType:x.dead?'ยอดสรุป':'',
+    cullN:x.cull, cullW:0, cullP:0, cullVal:x.cullVal||0, cullType:x.cull?'ยอดสรุป':'',
+    soldN:x.sold, soldW:0, soldP:0, soldVal:x.soldVal||0,
+    moveN:x.move, moveW:0, moveDest:'',
+    note:'ยอดสรุปย้อนหลังทั้งรุ่น ณ '+x.asOfThai};
+  h.dailyLog.push(entry);
+  h.dailyLog.sort((a,b)=>(parseThaiDate(b.date)||0)-(parseThaiDate(a.date)||0)); // เรียงใหม่→เก่า (แถวรายวันในอนาคตจะต่อยอดถูก)
+  h.dailyAnchor=x.recv;                    // ต้นทาง = รับเข้าเต็ม ก่อนหักยอดสูญเสีย → อนุรักษ์ยอด
+  recalcDailyRemains(h);                   // คงเหลือ + pigs + ตัวนับวันนี้ (แถว _bfSum ไม่ถูกนับเป็นยอดวันนี้)
+  if(h.pigs>0){ h.status='กำลังเลี้ยง'; h.cleanStart=null; }
+  // 3) ค่ายา/เวชภัณฑ์รวม (ถ้ากรอก + มีสิทธิ์) — แทนของเดิม
+  if(x.medVal>0){ h.meds=(h.meds||[]).filter(m=>!m._bfSum);
+    h.meds.push({date:x.asOfThai,cat:'รวมย้อนหลัง',name:'ยา/เวชภัณฑ์รวมทั้งรุ่น',qty:1,price:x.medVal,total:x.medVal,vet:h.vet||'',_bfSum:true}); }
+  // 4) ประวัติ (กันโกง) + ซิงก์เข้าคลาวด์
+  logHouseEdit(h,[{label:'จำนวนรับเข้า',from:fmt(oldRecv),to:fmt(x.recv)},{label:'หมูคงเหลือ',from:fmt(oldPigs),to:fmt(h.pigs)}],
+    'ลงยอดรวมย้อนหลัง · ตาย '+fmt(x.dead)+' คัด '+fmt(x.cull)+' ขาย '+fmt(x.sold)+' ตัว · คงเหลือ '+fmt(h.pigs));
+  try{ logAudit('หลัง',h.id,'ลงยอดรวมย้อนหลัง',[{label:'รับเข้า',from:fmt(oldRecv),to:fmt(x.recv)},{label:'ตาย',from:'',to:fmt(x.dead)+' ตัว'},{label:'คัด',from:'',to:fmt(x.cull)+' ตัว'},{label:'ขาย',from:'',to:fmt(x.sold)+' ตัว'}],(h.farm||'')+' · '+h.code+' · คงเหลือ '+fmt(h.pigs)); }catch(e){}
+  syncHouseClerk(h);
+  if(x.medVal>0) syncHouseVet(h);
 }
 // ---- หมูระหว่างทาง / ย้ายเข้า (ฝั่งหลังปลายทาง) ----
 function incomingHTML(h){
@@ -5162,9 +5283,10 @@ function batchLogHTML(h){
 function dailyAgg(h){
   let deadN=0,deadW=0,deadVal=0,cullN=0,cullW=0,cullVal=0,soldN=0,soldW=0,soldVal=0,moveN=0,moveW=0,moveInN=0,moveInW=0;
   (h.dailyLog||[]).forEach(e=>{
-    deadN+=e.deadN||0; deadW+=e.deadW||0; deadVal+=(e.deadW||0)*(e.deadP||0); // ขายซาก (ถ้ามีราคา)
-    cullN+=e.cullN||0; cullW+=e.cullW||0; cullVal+=(e.cullW||0)*(e.cullP||0);
-    soldN+=e.soldN||0; soldW+=e.soldW||0; soldVal+=(e.soldW||0)*(e.soldP||0);
+    // มูลค่า: ปกติคิดจาก นน.×ราคา/กก. · แต่แถว "ยอดสรุปย้อนหลัง" กรอกมูลค่ารวมเป็นบาทตรงๆ (e.*Val) → ใช้ค่านั้นเลย
+    deadN+=e.deadN||0; deadW+=e.deadW||0; deadVal+=(e.deadVal!=null?+e.deadVal:(e.deadW||0)*(e.deadP||0)); // ขายซาก (ถ้ามีราคา)
+    cullN+=e.cullN||0; cullW+=e.cullW||0; cullVal+=(e.cullVal!=null?+e.cullVal:(e.cullW||0)*(e.cullP||0));
+    soldN+=e.soldN||0; soldW+=e.soldW||0; soldVal+=(e.soldVal!=null?+e.soldVal:(e.soldW||0)*(e.soldP||0));
     moveN+=e.moveN||0; moveW+=e.moveW||0; moveInN+=e.moveInN||0; moveInW+=e.moveInW||0;
   });
   return {deadN,deadW,deadVal,cullN,cullW,cullVal,soldN,soldW,soldVal,moveN,moveW,moveInN,moveInW,
