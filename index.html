@@ -7180,6 +7180,11 @@ function sbHouseInfo(code,farm){
   return parts.join(' · ');
 }
 function sbNormCode(c){ return String(c==null?'':c).trim().toUpperCase().replace(/[.\s]/g,''); } // "j.40 " → "J40" (รหัสในระบบไม่มีจุด/ช่องว่าง — พิมพ์เพี้ยนเล็กน้อยยังจับคู่ถูก)
+function sbUpCode(el){ // พิมพ์รหัสหลัง → แปลงตัวอักษรอังกฤษเป็นตัวใหญ่อัตโนมัติทันที (j1→J1) · คงตำแหน่งเคอร์เซอร์ · ไทยไม่เปลี่ยน
+  const p=el.selectionStart, up=el.value.toUpperCase();
+  if(up!==el.value){ el.value=up; try{ el.setSelectionRange(p,p); }catch(e){} }
+  return up;
+}
 function sbHouseRemain(code,farm){ // ยอดหมูคงเหลือปัจจุบันของหลัง (null = หาหลังไม่เจอ/ไม่มีข้อมูล) — บิลระบุฟาร์ม = จับคู่เฉพาะฟาร์มนั้น (เหมือน sbFindHouse ตอนลงเข้าหลังจริง กันเทียบยอดผิดฟาร์ม)
   const n0=sbNormCode(code); if(!n0) return null;
   const h=farm ? HOUSES.find(x=>sbNormCode(x.code)===n0&&(x.farm||'')===farm)
@@ -7318,7 +7323,7 @@ function sbHousesHTML(){
   const codes=[...new Set(HOUSES.filter(h=>!SB_D.farm||(h.farm||'')===SB_D.farm).slice().sort(byCode).map(h=>h.code))];
   return `<datalist id="sbHouseDL">${codes.map(c=>`<option value="${escA(c)}">`).join('')}</datalist>`+
     hs.map((r,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap">
-      <input class="cin" list="sbHouseDL" placeholder="หลัง เช่น P2 / J40" style="max-width:150px" value="${escA(r.code)}" oninput="SB_D.houses[${i}].code=this.value;sbRefresh()">
+      <input class="cin" list="sbHouseDL" placeholder="หลัง เช่น P2 / J40" style="max-width:150px" value="${escA(r.code)}" oninput="SB_D.houses[${i}].code=sbUpCode(this);sbRefresh()">
       <input class="cin" type="number" min="0" placeholder="กี่ตัว" style="max-width:110px" value="${escA(r.n)}" oninput="SB_D.houses[${i}].n=this.value;sbRefresh()">
       <span class="sub" id="sbHInfo${i}" style="flex:1;min-width:120px">${r.code?sbHInfoHTML(r.code):''}</span>
       <button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.houses.splice(${i},1);renderSaleBillForm()">✕</button>
@@ -7349,7 +7354,7 @@ function sbWPasteApply(){ const t=$("#sbWPaste"); if(!t) return; const nums=(t.v
 function sbItemsHTML(){
   const its=SB_D.items||[];
   return its.map((r,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap">
-      <input class="cin" list="sbHouseDL" placeholder="หลัง" style="max-width:130px" value="${escA(r.house)}" oninput="SB_D.items[${i}].house=this.value;sbRefresh()">
+      <input class="cin" list="sbHouseDL" placeholder="หลัง เช่น J1" style="max-width:130px" value="${escA(r.house)}" oninput="SB_D.items[${i}].house=sbUpCode(this);sbRefresh()">
       <select class="cin tl" style="max-width:150px" onchange="sbSetItemType(${i},this.value)">
         <option value="ตาย" ${r.type!=='cull'&&(r.dtype||'ตาย')==='ตาย'?'selected':''}>⚰️ ตาย</option>
         <option value="ตายใหญ่" ${r.type!=='cull'&&r.dtype==='ตายใหญ่'?'selected':''}>⚰️ ตายใหญ่</option>
@@ -7847,6 +7852,13 @@ function sbSave(){
     if(odd.length&&!confirm('⚠️ พบน้ำหนักที่ดูผิดปกติ: '+odd.join(', ')+' กก.\nบันทึกต่อหรือไม่?')) return;
   }
   else if(!(SB_D.weights||[]).length){ toast('ยังไม่ได้กรอกน้ำหนักรายตัว'); return; }
+  { // 🛡️ ตรวจรหัสหลังทุกอันว่ามีอยู่จริงในฟาร์มนี้ (กันพิมพ์ผิด/หลังไม่มีจริง → ข้อมูลไม่ถูกลงเข้าหลัง) · จับคู่แบบไม่สนพิมพ์เล็ก/ใหญ่
+    const codes=SB_D.kind==='deadcull'
+      ? [...new Set((SB_D.items||[]).map(x=>String(x.house||'').trim()).filter(Boolean))]
+      : [...new Set((SB_D.houses||[]).map(x=>String(x.code||'').trim()).filter(Boolean))];
+    const bad=codes.filter(c0=>!sbFindHouse(c0,SB_D.farm));
+    if(bad.length && !confirm('⛔ ไม่พบรหัสหลังนี้ในฟาร์ม "'+SB_D.farm+'":\n\n   '+bad.join(' , ')+'\n\nเช็ครหัสให้ตรงกับหลังจริง (พิมพ์เล็ก/ใหญ่ระบบปรับให้แล้ว · แตะช่องแล้วเลือกจากรายการก็ได้)\n\nถ้ากด "ตกลง" บันทึกต่อ ข้อมูลของหลังที่ไม่พบจะ "ไม่ถูกลงเข้าหลัง"')) return;
+  }
   if(SB_ISNEW){ // 🛡️ เตือนบิลซ้ำ: วันเดียวกัน+ผู้ซื้อเดียวกัน+ (เลขที่ตรง หรือ ตัว/น้ำหนักแทบเท่ากัน)
     const dup=SALE_BILLS.find(x=>x.id!==SB_D.id&&x.kind===SB_D.kind&&(x.farm||'')===(SB_D.farm||'')&&gNrm(x.buyer)===gNrm(SB_D.buyer)&&(x.dateISO||'')===(SB_D.dateISO||'')
       &&((SB_D.billNo&&x.billNo===SB_D.billNo)||(function(){const oc=sbCalc(x);return oc.n===c.n&&Math.abs(oc.totW-c.totW)<1;})()));
