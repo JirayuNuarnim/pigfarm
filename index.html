@@ -7607,7 +7607,10 @@ function renderSaleBillForm(){
   const stored=SALE_BILLS.find(x=>x.id===SB_D.id), locked=!!(stored&&stored.locked);
   const canFix=['owner','admin'].includes(ROLE);
   const buyers=[...new Set(SB_CUST.map(c=>c.name).concat(SALE_BILLS.map(b=>b.buyer).filter(Boolean)).concat(CUSTOMERS))];
-  const farmOpts=FARMS.map(f=>`<option ${f===SB_D.farm?'selected':''}>${escA(f)}</option>`).join('')+(SB_D.farm&&!FARMS.includes(SB_D.farm)?`<option selected>${escA(SB_D.farm)}</option>`:'');
+  // ฟาร์มในบิล = เฉพาะฟาร์มที่มีหลังจริง (ในสิทธิ์ที่ดูแล) — กันเลือกฟาร์มว่าง/ชื่อซ้ำแล้ว dropdown หลังไม่ขึ้น
+  const scopeH=myHouses(), sellFarms=[...new Set(scopeH.map(h=>h.farm||'').filter(Boolean))];
+  const farmList=FARMS.filter(f=>sellFarms.includes(f)).concat(sellFarms.filter(f=>!FARMS.includes(f)));
+  const farmOpts=farmList.map(f=>`<option ${f===SB_D.farm?'selected':''}>${escA(f)}</option>`).join('')+(SB_D.farm&&!farmList.includes(SB_D.farm)?`<option selected>${escA(SB_D.farm)}</option>`:'');
   $("#view").innerHTML=`
     <h2 class="page">${K.ico} ${SB_ISNEW?'บันทึก':'แก้ไข'}${K.t} <span class="more">${sbThaiDate(SB_D.dateISO)}</span></h2>
     <div class="sub">${isDC?'ลงหมูทีละตัว (หลัง/ประเภท/น้ำหนัก) · ราคาตามช่วงน้ำหนัก แยกคัดขาย-ตาย':'กรอกน้ำหนักรายตัวเหมือนบิลกระดาษ · ระบบรวม/เฉลี่ย/เทียบตาชั่งรถให้เอง'} · ร่างถูกเก็บอัตโนมัติทุกการพิมพ์</div>
