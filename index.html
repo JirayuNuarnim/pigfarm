@@ -8027,17 +8027,23 @@ function sbPostToHouses(id){
     logHouseEdit(h,[{label:'จากบิลแท่นขาย '+sbBillRef(b),from:'มีบันทึก',to:'ถอนออก (หลังนี้ไม่อยู่ในบิลแล้ว)'}],'ถอนบันทึกจากบิล '+sbBillRef(b));
     syncHouseClerk(h); });
   const done=[], fail=[];
-  prep.rows.forEach(r=>{
-    const h=r.H;
-    const merged=(h.dailyLog||[]).filter(e=>!(e&&e._fromBill===b.id)).concat([r.e]).sort((a,bb)=>(parseThaiDate(bb.date)||0)-(parseThaiDate(a.date)||0));
+  // 🛡️ รวมแถวตาม "หลัง" ก่อนลง — หลังเดียวอาจมีหลายแถว (ตาย/ตายใหญ่/ตายเน่า/คัดขาย) ต้องลงพร้อมกัน
+  // (เดิมวนทีละแถว แล้ว filter(_fromBill===b.id) ในแต่ละรอบ ลบแถวก่อนหน้าของหลังเดียวกันทิ้ง → เหลือแค่แถวสุดท้าย)
+  const byHouse={};
+  prep.rows.forEach(r=>{ const k=r.H.id; (byHouse[k]=byHouse[k]||{H:r.H,code:r.code,es:[]}).es.push(r.e); });
+  Object.keys(byHouse).forEach(k=>{
+    const g=byHouse[k], h=g.H;
+    const base=(h.dailyLog||[]).filter(e=>!(e&&e._fromBill===b.id));   // ถอนแถวเก่าของบิลนี้ "ครั้งเดียว" ต่อหลัง
+    const merged=base.concat(g.es).sort((a,bb)=>(parseThaiDate(bb.date)||0)-(parseThaiDate(a.date)||0));
     const rems=chainRemains(h,merged); let bad=false;
-    for(let k=0;k<rems.length;k++){ if(rems[k]<0){ bad=true; break; } }
-    if(bad){ fail.push(r.code+' (คงเหลือไม่พอ — ตรวจยอดหลังนี้ · บันทึกเดิมของหลังนี้ยังอยู่ครบ)'); return; }
+    for(let kk=0;kk<rems.length;kk++){ if(rems[kk]<0){ bad=true; break; } }
+    if(bad){ fail.push(g.code+' (คงเหลือไม่พอ — ตรวจยอดหลังนี้ · บันทึกเดิมของหลังนี้ยังอยู่ครบ)'); return; }
     h.dailyLog=merged; recalcDailyRemains(h);
-    const p=[]; if(r.e.soldN)p.push('ขาย '+r.e.soldN); if(r.e.deadN)p.push('ตาย '+r.e.deadN); if(r.e.cullN)p.push('คัด '+r.e.cullN);
+    const t=g.es.reduce((o,e)=>{o.dead+=e.deadN||0;o.cull+=e.cullN||0;o.sold+=e.soldN||0;return o;},{dead:0,cull:0,sold:0});
+    const p=[]; if(t.sold)p.push('ขาย '+t.sold); if(t.dead)p.push('ตาย '+t.dead); if(t.cull)p.push('คัด '+t.cull);
     logHouseEdit(h,[{label:'จากบิลแท่นขาย '+sbBillRef(b),from:'-',to:p.join(' · ')}],'ลงจากบิลแท่นขาย '+sbBillRef(b)+' · '+(b.buyer||'-'));
     syncHouseClerk(h);
-    done.push(r.code);
+    done.push(g.code);
   });
   // สถานะ "ลงหลังแล้ว" ให้ตรงความจริงเสมอ: นับจากแถวที่มีอยู่จริงในเล้า (สำเร็จใหม่ + ของเดิมของหลังที่ fail)
   const still=HOUSES.filter(h=>(h.dailyLog||[]).some(e=>e&&e._fromBill===b.id)).map(h=>h.code);
