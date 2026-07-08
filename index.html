@@ -2751,9 +2751,9 @@ function renderClerkFeedReq(){
           return `<div style="margin-top:14px">
             <div style="font-weight:700;font-size:14px;margin-bottom:6px">📅 ${escA(d)} <span class="sub" style="font-weight:400">· ${dItems.length} รายการ</span></div>
             <div style="overflow-x:auto"><table>
-              <thead><tr><th>หลัง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th><th>หมอ</th></tr></thead>
+              <thead><tr><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th><th>หมอ</th></tr></thead>
               <tbody>${dItems.map(r=>`<tr>
-                <td><b>${escA(r.house)}</b></td><td><b>${escA(r.feedNo||'-')}</b></td>
+                <td><b>${escA(r.house)}</b></td><td>${r.feedSrc?'<b>'+escA(r.feedSrc)+'</b>':'-'}</td><td><b>${escA(r.feedNo||'-')}</b></td>
                 <td class="num">${fmt(Number(r.qty)||0)}</td><td><span class="sub">${escA(r.unit||'-')}</span></td>
                 <td>${r.formula?'<b>'+escA(r.formula)+'</b>':'-'}</td><td>${escA(r.note||'-')}</td><td><span class="sub">${escA(r.by||'-')}</span></td>
               </tr>`).join("")}</tbody>
@@ -2767,11 +2767,11 @@ function exportClerkFeedReq(){
   const rows=clerkFeedReqFiltered();
   if(!rows.length){toast('ไม่มีรายการเบิกอาหารให้ส่งออก');return;}
   let qty=0;
-  const data=rows.map(r=>{ qty+=Number(r.qty)||0; return [r.date,r.farm,r.house,r.feedNo||'',r.qty||0,r.unit||'',r.formula||'',r.note||'',r.by||'']; });
+  const data=rows.map(r=>{ qty+=Number(r.qty)||0; return [r.date,r.farm,r.house,r.feedSrc||'',r.feedNo||'',r.qty||0,r.unit||'',r.formula||'',r.note||'',r.by||'']; });
   const html=xlsSheet({ title:'รายการเบิกอาหาร',
     meta:[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'ขอบเขต',v:cfrFarm?('ฟาร์ม '+cfrFarm):'ทุกฟาร์มที่ดูแล'},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออกรายงาน',v:(CURRENT_USER&&CURRENT_USER.name)||'-'}],
-    columns:[{label:'วันที่',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'เบอร์อาหาร',type:'text',w:100},{label:'จำนวน',type:'num',w:70},{label:'หน่วย',type:'text',w:70},{label:'ยาสูตร',type:'text',w:120},{label:'หมายเหตุ',type:'text',w:150},{label:'หมอ',type:'text',w:120}],
-    rows:data, totals:['รวม '+rows.length+' รายการ','','','',qty,'','','',''] });
+    columns:[{label:'วันที่',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'แหล่ง',type:'text',w:80},{label:'เบอร์อาหาร',type:'text',w:100},{label:'จำนวน',type:'num',w:70},{label:'หน่วย',type:'text',w:70},{label:'ยาสูตร',type:'text',w:120},{label:'หมายเหตุ',type:'text',w:150},{label:'หมอ',type:'text',w:120}],
+    rows:data, totals:['รวม '+rows.length+' รายการ','','','','',qty,'','','',''] });
   downloadXls('รายการเบิกอาหาร'+(cfrFarm?'_'+cfrFarm:'')+'.xls', html);
   toast('ส่งออกรายการเบิกอาหาร '+rows.length+' รายการ ✓');
 }
@@ -6505,15 +6505,18 @@ function renderFeedRequest(){
     <div class="card">
       <h3>🌾 เบิกอาหารจากคลัง</h3>
       <div class="grid2">
+        <div class="frow" style="margin-bottom:0"><label>แหล่งที่เบิกอาหาร <span class="hint">(เลือก/พิมพ์ได้ · VCF / SJF / JBF)</span></label>
+          <input id="fr_src" class="cin tl" list="feedSrcList2" placeholder="เช่น VCF / SJF / JBF">
+          <datalist id="feedSrcList2">${VET_FEEDSRC.map(s=>`<option>${escA(s)}</option>`).join('')}</datalist></div>
         <div class="frow" style="margin-bottom:0"><label>เบอร์อาหาร <span class="req">*</span> <span class="hint">(เลือก/พิมพ์ได้)</span></label>
           <input id="fr_no" class="cin tl" list="feedNoList2" placeholder="เช่น 108">
           <datalist id="feedNoList2">${VET_FEEDNO.map(n=>`<option>${escA(n)}</option>`).join('')}</datalist></div>
-        <div class="frow" style="margin-bottom:0"><label>จำนวนที่เบิก <span class="req">*</span></label>
-          <div style="display:flex;gap:8px">
-            <input id="fr_qty" class="cin tl" type="number" placeholder="0" style="flex:1">
-            <select id="fr_unit" class="cin tl" style="max-width:110px">${FEED_REQ_UNITS.map(u=>`<option>${escA(u)}</option>`).join('')}</select>
-          </div></div>
       </div>
+      <div class="frow" style="margin-top:10px;margin-bottom:0"><label>จำนวนที่เบิก <span class="req">*</span></label>
+        <div style="display:flex;gap:8px;max-width:340px">
+          <input id="fr_qty" class="cin tl" type="number" placeholder="0" style="flex:1">
+          <select id="fr_unit" class="cin tl" style="max-width:110px">${FEED_REQ_UNITS.map(u=>`<option>${escA(u)}</option>`).join('')}</select>
+        </div></div>
       <div class="frow" style="margin-top:10px;margin-bottom:0"><label>ยาสูตรที่ผสม <span class="hint">(เลือกจากยาสูตร · ถ้ามี)</span></label>
         <select id="fr_formula" class="cin tl"><option value="">— ไม่ผสมยาสูตร —</option>${MEDFORMULAS.filter(f=>f.items.length).map(f=>`<option value="${f.code}">${f.code} — ${escA(formulaHint(f))}</option>`).join("")}</select></div>
       <div class="frow" style="margin-top:10px;margin-bottom:0"><label>หมายเหตุ <span class="hint">(ถ้ามี)</span></label><input id="fr_note" class="cin tl" placeholder="เช่น เบิกล่วงหน้า 3 วัน"></div>
@@ -6531,13 +6534,13 @@ function feedHistHTML(){
   const canEdit=(effRole()==='vet') && canEditView();
   return `<div style="font-weight:700;font-size:14px;margin-bottom:8px">🧾 ประวัติการเบิกอาหาร · หลัง ${escA(reqHouseCode)} <span class="sub" style="font-weight:400">(${log.length} รายการ)</span></div>
     <div style="overflow-x:auto"><table>
-      <thead><tr><th>วันที่</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th>${canEdit?'<th></th>':''}</tr></thead>
+      <thead><tr><th>วันที่</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th>${canEdit?'<th></th>':''}</tr></thead>
       <tbody>${log.length? log.map((e,i)=>`<tr>
-        <td>${escA(e.date)}</td><td><b>${escA(e.feedNo||'-')}</b></td>
+        <td>${escA(e.date)}</td><td>${e.feedSrc?'<b>'+escA(e.feedSrc)+'</b>':'-'}</td><td><b>${escA(e.feedNo||'-')}</b></td>
         <td class="num">${fmt(Number(e.qty)||0)}</td><td><span class="sub">${escA(e.unit||'-')}</span></td>
         <td>${e.formula?'<b>'+escA(e.formula)+'</b>':'-'}</td><td>${escA(e.note||'-')}</td>
         ${canEdit?`<td class="num"><button class="btn ghost sm" style="color:var(--bad)" onclick="delFeedReq(${i})">ลบ</button></td>`:''}
-      </tr>`).join("") : `<tr><td colspan="${canEdit?7:6}" class="sub">ยังไม่มีการเบิกอาหารของหลังนี้</td></tr>`}</tbody>
+      </tr>`).join("") : `<tr><td colspan="${canEdit?8:7}" class="sub">ยังไม่มีการเบิกอาหารของหลังนี้</td></tr>`}</tbody>
     </table></div>`;
 }
 function updateFeedHist(){const el=$("#feedHist");if(el)el.innerHTML=feedHistHTML();}
@@ -6548,14 +6551,14 @@ function submitFeedReq(){ if(blockIfReadonly())return;
   if(!h){toast('ไม่พบรหัสหลัง '+code);return;}
   if(!canSeeFarm(h.farm||'ไม่ระบุฟาร์ม')){toast('❌ ไม่มีสิทธิ์เบิกอาหารในฟาร์มนี้');return;}   // กันเบิกข้ามฟาร์มที่ไม่ได้ดูแล
   const val=id=>{const e=$("#"+id);return e?String(e.value).trim():'';};
-  const fNo=val('fr_no'), qty=Number(val('fr_qty'))||0, unit=val('fr_unit')||FEED_REQ_UNITS[0], formula=val('fr_formula'), note=val('fr_note');
+  const fSrc=val('fr_src'), fNo=val('fr_no'), qty=Number(val('fr_qty'))||0, unit=val('fr_unit')||FEED_REQ_UNITS[0], formula=val('fr_formula'), note=val('fr_note');
   if(!fNo){toast('กรุณาระบุเบอร์อาหาร');return;}
   if(qty<=0){toast('กรุณาระบุจำนวนที่เบิก');return;}
   h.feedReqs=h.feedReqs||[];
-  h.feedReqs.unshift({date:DEMO_DATE_DAY,feedNo:fNo,qty,unit,formula,note,by:h.vet||'หมอ'});
+  h.feedReqs.unshift({date:DEMO_DATE_DAY,feedSrc:fSrc,feedNo:fNo,qty,unit,formula,note,by:h.vet||'หมอ'});
   syncHouseVet(h);
-  toast('เบิกอาหาร เบอร์ '+fNo+' '+fmt(qty)+' '+unit+(formula?' · '+formula:'')+' → หลัง '+h.code+' ✓');
-  ['fr_no','fr_qty','fr_formula','fr_note'].forEach(id=>{const e=$("#"+id);if(e)e.value='';});
+  toast('เบิกอาหาร'+(fSrc?' '+fSrc:'')+' เบอร์ '+fNo+' '+fmt(qty)+' '+unit+(formula?' · '+formula:'')+' → หลัง '+h.code+' ✓');
+  ['fr_src','fr_no','fr_qty','fr_formula','fr_note'].forEach(id=>{const e=$("#"+id);if(e)e.value='';});
   updateFeedHist();
 }
 function delFeedReq(i){ if(blockIfReadonly())return;
