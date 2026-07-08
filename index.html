@@ -4829,7 +4829,7 @@ function recalcDailyRemains(h){
   h.deadToday=sumT('deadN'); h.cullToday=sumT('cullN'); h.soldToday=sumT('soldN'); h.moveToday=sumT('moveN');
 }
 /* ========== กรอกข้อมูลย้อนหลังหลายวัน (เสมียน) — ลงข้อมูลจากกระดาษตอนเริ่มใช้งาน ========== */
-let bfHouse='', bfRows=[], bfLoadedFor=null;
+let bfHouse='', bfRows=[], bfLoadedFor=null, bfFarm='';
 function bfNum(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
 // แปลงรายการบันทึกเดิม → แถวในตารางย้อนหลัง (ติดธง existing + rowId ไว้อัปเดตในที่เดิม)
 function bfRowFromEntry(e){ if(!e.rowId) e.rowId='bfx'+Math.round(Math.random()*1e9); return { date:thaiDayToISO(e.date)||'',
@@ -4925,6 +4925,17 @@ function bfMedSubmit(){
   bfMedRows=[]; renderBfMed();
 }
 function bfHousesForUser(){ return myHouses().slice().sort(byCode); }
+function bfFarms(){ return [...new Set(bfHousesForUser().map(h=>h.farm||'').filter(Boolean))]; } // ฟาร์มที่ผู้ใช้ดูแล (สำหรับตัวกรอง)
+function bfHousesInScope(){ let hs=bfHousesForUser(); if(bfFarm) hs=hs.filter(h=>(h.farm||'')===bfFarm); return hs; } // หลังในฟาร์มที่กรอง (ว่าง=ทุกฟาร์ม)
+function bfSetFarm(f){ bfFarm=f||''; const hs=bfHousesInScope(); if(!hs.some(x=>x.code===bfHouse)){ bfHouse=hs.length?hs[0].code:''; bfLoadedFor=null; } renderBackfill(); }
+function bfPickHouse(v){ v=(v||'').trim(); if(!v) return; // พิมพ์รหัสหลัง → หา (ตรงตัว → ไม่สนพิมพ์เล็ก/ใหญ่)
+  const all=bfHousesForUser();
+  const hit=all.find(x=>x.code===v)||all.find(x=>String(x.code||'').toLowerCase()===v.toLowerCase());
+  if(!hit){ toast('ไม่พบหลัง "'+v+'" ในฟาร์มที่ดูแล — เลือกจากรายการหรือเช็ครหัส'); return; }
+  bfHouse=hit.code;
+  if(bfFarm && (hit.farm||'')!==bfFarm) bfFarm=hit.farm||''; // เลือกข้ามฟาร์ม → ปรับตัวกรองฟาร์มตามหลังที่เลือก
+  bfLoadedFor=null; renderBackfill();
+}
 function bfEnsureRows(){ if(!Array.isArray(bfRows)) bfRows=[]; }
 function bfNextISO(){ bfEnsureRows();
   if(bfRows.length){ const last=bfRows[bfRows.length-1].date; if(last){ const p=last.split('-'); return expISO(new Date(+p[0],+p[1]-1,+p[2]+1)); } }
@@ -5087,8 +5098,10 @@ function renderBackfillGrid(){ const el=$("#bfGrid"); if(el){ el.innerHTML=bfGri
 function renderBackfill(){
   histPush('backfill',renderBackfill);
   const houses=bfHousesForUser();
-  if(!bfHouse || !houses.some(x=>x.code===bfHouse)) bfHouse=houses.length?houses[0].code:'';
+  const scope=bfHousesInScope();
+  if(!bfHouse || !houses.some(x=>x.code===bfHouse)) bfHouse=scope.length?scope[0].code:(houses.length?houses[0].code:'');
   if(bfHouse && bfLoadedFor!==bfHouse) bfLoadExisting();   // เปิดหลังใหม่ → ดึงบันทึกเดิมมาแสดงอัตโนมัติ
+  const bfFarmList=bfFarms();
   const h=HOUSES.find(x=>x.code===bfHouse), existN=h?(h.dailyLog||[]).length:0;
   const v=$("#view");
   v.innerHTML=`
@@ -5099,9 +5112,15 @@ function renderBackfill(){
     <div class="banner info" style="margin-bottom:10px">⚡ <div>หลังเยอะ? ใช้ <b>"ลงยอดรวม (เร็ว)"</b> — กรอกยอดสะสมทั้งรุ่น (ตาย/คัด/ขาย + เงินรวม) ของหลายหลังในตารางเดียว เร็วกว่ามาก</div></div>
     ${!houses.length?'<div class="card"><div class="sub">ยังไม่มีหลังที่ดูแล</div></div>':`
     <div class="card">
+      ${bfFarmList.length>=2?`<div class="frow" style="margin-bottom:8px"><label>ฟาร์ม <span class="hint">(กรองหลังให้เลือกง่ายขึ้น)</span></label>
+        <select class="cin tl" onchange="bfSetFarm(this.value)">
+          <option value="" ${!bfFarm?'selected':''}>— ทุกฟาร์ม —</option>
+          ${bfFarmList.map(f=>`<option ${f===bfFarm?'selected':''}>${escA(f)}</option>`).join('')}
+        </select></div>`:''}
       <div class="grid2">
-        <div class="frow" style="margin-bottom:8px"><label>เลือกหลัง</label>
-          <select class="cin tl" onchange="bfHouse=this.value;bfLoadedFor=null;renderBackfill()">${houses.map(x=>`<option ${x.code===bfHouse?'selected':''}>${escA(x.code)} · ${escA(x.farm||'')}</option>`).join('')}</select></div>
+        <div class="frow" style="margin-bottom:8px"><label>เลือกหลัง <span class="hint">(พิมพ์รหัสค้นหา หรือเลือกจากรายการ)</span></label>
+          <input class="cin tl" list="bfHouseDL" value="${escA(bfHouse)}" placeholder="พิมพ์รหัสหลัง เช่น A1 / P2 / ${escA((scope[0]&&scope[0].code)||'A1')}" onchange="bfPickHouse(this.value)">
+          <datalist id="bfHouseDL">${scope.map(x=>`<option value="${escA(x.code)}">${escA(x.farm||'')}</option>`).join('')}</datalist></div>
         <div class="frow" style="margin-bottom:8px"><label>จำนวนหมูรับเข้า (ตั้งต้น)</label><input id="bf_recv" type="number" class="cin" value="${h?(h.received||''):''}" placeholder="เช่น 450" oninput="bfRecalcPreview()"></div>
       </div>
       <div class="sub">${existN?('⚠️ หลังนี้มีบันทึกอยู่แล้ว <b>'+existN+' วัน</b> — ระบบจะ<b>ข้ามวันที่ซ้ำ</b> และคำนวณคงเหลือใหม่ทั้งสาย'):'หลังนี้ยังไม่มีบันทึกรายวัน — เริ่มกรอกย้อนหลังได้เลย'}</div>
@@ -6875,6 +6894,7 @@ function renderAdmin(){
       <div style="margin-top:16px">${adminHousesByFarmHTML()}</div>
     </div>
 
+    ${vetReassignCardHTML()}
     ${cfgCardHTML()}
     <div class="banner info">💰 <div><b>ตารางราคาตามน้ำหนักย้ายแล้ว</b> — ตอนนี้ตั้งราคา<b>แยกรายลูกค้า</b>ได้ที่ ⚖️ แท่นขายหมู → 👤 รายชื่อลูกค้า (เจ้าของแก้ได้ผู้เดียว) · ราคาจะเติมอัตโนมัติทั้งในบิลแท่นขายและบันทึกรายวันตามชื่อลูกค้าที่พิมพ์</div></div>
     ${adminEditLogHTML()}
@@ -6922,6 +6942,109 @@ function cascadeHouseRename(oldCode,newCode){
     if(ch) touched.add(h);
   });
   return {count:n,houses:[...touched]};
+}
+/* ============================================================
+   เปลี่ยนหมอประจำหลัง (กรณีหมอลาออก/สับเปลี่ยน) — กวาดแก้ชื่อหมอเดิม → หมอใหม่ "ทุกที่"
+   ตามที่ Peter เลือก: ประวัติเก่าเปลี่ยนเป็นหมอใหม่ทั้งหมด (รวมผลงาน/incentive)
+   จับคู่ชื่อด้วย gNrm (ตัดช่องว่างเกิน) · แก้เฉพาะช่อง "ผู้รับผิดชอบงานหมอ" (attribution)
+   คงช่อง "โดย" ในประวัติแก้ไข/สต็อก (audit author) ไว้เป็นหลักฐานว่าใครบันทึกตอนนั้น
+   ============================================================ */
+function cascadeVetRename(oldVet,newVet,dryRun){
+  const O=gNrm(oldVet), N=gNrm(newVet);
+  const R={houses:0,hist:0,batches:0,moves:0,houseObjs:[],houseCodes:[]};
+  if(!O) return R;
+  const set=(o,f)=>{ if(o&&gNrm(o[f])===O){ if(!dryRun)o[f]=N; return 1; } return 0; };
+  const arrBy=(arr,fields)=>{ let n=0; (arr||[]).forEach(e=>fields.forEach(f=>{ n+=set(e,f); })); return n; };
+  const histOf=(x)=>arrBy(x.meds,['vet'])+arrBy(x.vetLog,['by','vet'])+arrBy(x.feedReqs,['by','vet'])+arrBy(x.vaccineLog,['by','vet']);
+  HOUSES.forEach(h=>{ let t=0;
+    t+=set(h,'vet'); t+=set(h,'originVet');
+    if(h.intake) t+=set(h.intake,'vet');
+    const hh=histOf(h); R.hist+=hh; t+=hh;
+    (h.closedBatches||[]).forEach(b=>{ let bt=0;
+      bt+=set(b,'vet'); bt+=set(b,'originVet');
+      if(b.intake) bt+=set(b.intake,'vet');
+      const bh=histOf(b); R.hist+=bh; bt+=bh; // นับบันทึกยา/รักษาในชุดปิดเข้า hist ด้วย
+      if(bt){ R.batches++; }
+      t+=bt;
+    });
+    if(t){ R.houses++; R.houseObjs.push(h); R.houseCodes.push(h.code); }
+  });
+  // สต็อกยา: ช่อง vet = หมอที่เบิก (attribution) → เปลี่ยนตาม · ช่อง by (คนบันทึก) คงไว้
+  if(typeof STOCK==='object'&&STOCK) Object.keys(STOCK).forEach(f=>{ ((STOCK[f]||{}).moves||[]).forEach(mv=>{ R.moves+=set(mv,'vet'); }); });
+  return R;
+}
+function vetsInUse(){ // รายชื่อหมอที่มีอยู่จริงในระบบ (จากหลัง+ชุดปิด) + VETS master
+  const s=new Set();
+  HOUSES.forEach(h=>{ if(gNrm(h.vet))s.add(gNrm(h.vet)); (h.closedBatches||[]).forEach(b=>{ if(gNrm(b.vet))s.add(gNrm(b.vet)); }); });
+  if(typeof VETS!=='undefined'&&Array.isArray(VETS)) VETS.forEach(v=>{ if(gNrm(v))s.add(gNrm(v)); });
+  return [...s].sort((a,b)=>a.localeCompare(b,'th'));
+}
+function vetReassignCardHTML(){
+  const vets=vetsInUse();
+  const opts='<option value="">— เลือกหมอที่ลาออก/ต้องเปลี่ยน —</option>'+vets.map(v=>`<option value="${escA(v)}">${escA(v)}</option>`).join('');
+  return `<div class="card">
+    <h3>🔄 เปลี่ยนหมอประจำหลัง <span class="more">กรณีลาออก/สับเปลี่ยน</span></h3>
+    <div class="banner info">ℹ️ <div>เมื่อหมอลาออกและมีหมอใหม่มารับช่วง — เปลี่ยนที่นี่ครั้งเดียว ระบบจะแก้ชื่อหมอ<b>ทุกที่</b>ที่เชื่อมโยง (หลังที่รับผิดชอบ · บันทึกยา/รักษา/วัคซีน · ชุดที่ปิดแล้ว · สต็อกยา) ให้เป็นหมอใหม่ทั้งหมด</div></div>
+    <div class="grid2">
+      <div class="frow" style="margin-bottom:0"><label>หมอเดิม (ที่ลาออก)</label>
+        <select id="vrOld" class="cin tl" onchange="vetReassignPreview()">${opts}</select></div>
+      <div class="frow" style="margin-bottom:0"><label>หมอใหม่ (มารับช่วง) <span class="hint">เลือกจากรายชื่อ หรือพิมพ์ชื่อใหม่</span></label>
+        <input id="vrNew" class="cin tl" list="vrNewDL" placeholder="🩺 ชื่อหมอใหม่" oninput="vetReassignPreview()">
+        <datalist id="vrNewDL">${vets.map(v=>`<option value="${escA(v)}"></option>`).join('')}</datalist></div>
+    </div>
+    <div id="vrPreview" class="sub" style="margin-top:10px"></div>
+    <div style="margin-top:12px"><button class="btn sm" onclick="doVetReassign()">🔄 เปลี่ยนหมอทั้งหมด</button></div>
+  </div>`;
+}
+function vetReassignPreview(){
+  const el=$('#vrPreview'); if(!el) return;
+  const oldVet=gNrm(($('#vrOld')||{}).value||''), newVet=gNrm(($('#vrNew')||{}).value||'');
+  if(!oldVet){ el.innerHTML=''; return; }
+  const pv=cascadeVetRename(oldVet,newVet||'(หมอใหม่)',true);
+  if(!pv.houses&&!pv.moves){ el.innerHTML='<span style="color:var(--warn,#b06000)">ไม่พบข้อมูลของหมอ "'+escA(oldVet)+'" ในระบบ</span>'; return; }
+  const codes=pv.houseCodes.slice(0,14).join(', ')+(pv.houseCodes.length>14?' …':'');
+  el.innerHTML='จะแก้: <b>'+pv.houses+'</b> หลัง'+(codes?' <span style="color:var(--muted,#888)">('+escA(codes)+')</span>':'')
+    +' · บันทึกยา/รักษา/วัคซีน <b>'+pv.hist+'</b> รายการ · ชุดปิดแล้ว <b>'+pv.batches+'</b> ชุด · สต็อกยา <b>'+pv.moves+'</b> รายการ'
+    +(newVet?'  →  เปลี่ยนเป็น <b style="color:var(--brand)">'+escA(newVet)+'</b>':'');
+}
+function doVetReassign(){ if(typeof blockIfReadonly==='function'&&blockIfReadonly())return;
+  const oldVet=gNrm(($('#vrOld')||{}).value||''), newVet=gNrm(($('#vrNew')||{}).value||'');
+  if(!oldVet){ alert('เลือกหมอเดิม (ที่ลาออก) ก่อน'); return; }
+  if(!newVet){ alert('พิมพ์/เลือกชื่อหมอใหม่ที่มารับช่วง'); return; }
+  if(oldVet===newVet){ alert('ชื่อหมอใหม่ซ้ำกับหมอเดิม — ไม่มีอะไรต้องเปลี่ยน'); return; }
+  const pv=cascadeVetRename(oldVet,newVet,true);
+  if(!pv.houses&&!pv.moves){ alert('ไม่พบข้อมูลของหมอ "'+oldVet+'" ในระบบ'); return; }
+  const codes=pv.houseCodes.slice(0,12).join(', ')+(pv.houseCodes.length>12?' …':'');
+  const msg='ยืนยันเปลี่ยนหมอ:\n\n   '+oldVet+'   →   '+newVet+'\n\n'
+    +'จะแก้ทุกที่ที่อ้างถึงหมอเดิม:\n'
+    +'  • หลังที่รับผิดชอบ '+pv.houses+' หลัง'+(codes?' ('+codes+')':'')+'\n'
+    +'  • บันทึกยา/รักษา/วัคซีน '+pv.hist+' รายการ\n'
+    +'  • ชุดที่ปิดแล้ว '+pv.batches+' ชุด\n'
+    +'  • รายการสต็อกยา '+pv.moves+' รายการ\n\n'
+    +'⚠️ ประวัติเก่าจะเปลี่ยนเป็นชื่อหมอใหม่ทั้งหมด (รวมผลงาน/incentive)\n'
+    +'   ช่อง "โดย" ในประวัติการแก้ไข/สต็อก ยังคงชื่อเดิมไว้เป็นหลักฐาน\n\nดำเนินการต่อ?';
+  if(!confirm(msg)) return;
+  const res=cascadeVetRename(oldVet,newVet,false);
+  // VETS master: แทนชื่อเดิม → ใหม่ (กันซ้ำ)
+  if(typeof VETS!=='undefined'&&Array.isArray(VETS)){
+    const i=VETS.findIndex(v=>gNrm(v)===oldVet), hasNew=VETS.some(v=>gNrm(v)===newVet);
+    if(i>=0){ if(hasNew) VETS.splice(i,1); else VETS[i]=newVet; }
+    else if(!hasNew) VETS.push(newVet);
+  }
+  // ประวัติการแก้ไข + ซิงก์ทุกหลังที่โดนแก้ (core+clerk = h.vet/intake/closedBatches · vet = vetLog/meds)
+  res.houseObjs.forEach(h=>{ h.editLog=h.editLog||[];
+    h.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'ผู้ดูแล',
+      changes:[{label:'เปลี่ยนหมอประจำหลัง (ลาออก/สับเปลี่ยน)',from:oldVet,to:newVet}],note:'กวาดแก้ชื่อหมอทั้งระบบ'});
+    if(typeof syncHouseClerk==='function') syncHouseClerk(h);
+    if(typeof syncHouseVet==='function') syncHouseVet(h);
+  });
+  if(typeof syncConfig==='function') syncConfig(); else queueSave(); // VETS + STOCK ขึ้น config/localStorage
+  toast('เปลี่ยนหมอ '+oldVet+' → '+newVet+' แล้ว · '+res.houses+' หลัง / '+res.hist+' รายการ');
+  alert('✅ เปลี่ยนหมอเรียบร้อย:  '+oldVet+'  →  '+newVet+'\n\n'
+    +'แก้แล้ว: '+res.houses+' หลัง · '+res.hist+' บันทึก · '+res.batches+' ชุดปิด · '+res.moves+' สต็อก\n\n'
+    +'📌 อย่าลืม: ปิดบัญชีเข้าระบบของหมอเดิม และเปิด/แก้บัญชีของหมอใหม่ ที่หน้า "👥 จัดการผู้ใช้"\n'
+    +'   (บัญชีล็อกอินเป็นคนละส่วน ระบบไม่เปลี่ยนให้อัตโนมัติ)');
+  renderAdmin();
 }
 function cfgSet(key,i,val){ const arr=cfgArr(key), oldVal=arr[i]; val=(val||'').trim(); arr[i]=val;
   const res=cascadeOptionRename(key,oldVal,val); syncConfig();
