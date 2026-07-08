@@ -3101,9 +3101,13 @@ function vmDays(h){ const d=h&&h.intake&&h.intake.dateIn; if(!d) return ''; cons
 function renderVetMe(){
   histPush('vetme',renderVetMe);
   const me=(CURRENT_USER&&CURRENT_USER.name)||'';
-  const mine=HOUSES.filter(h=>h.vet===me);
+  let mine=HOUSES.filter(h=>h.vet===me);
+  // หมอที่ผูก "รายฟาร์ม" แต่ยังไม่ได้เป็นหมอประจำหลังไหน (เช่น หมอผู้ดูภาพรวม/มาใหม่) → แสดงภาพรวมฟาร์มที่ดูแลแทนหน้าว่าง
+  const vmFarmView = (!mine.length && !seesAllFarms() && (myFarms()||[]).length>0);
+  if(vmFarmView) mine=myHouses().slice();
   const active=mine.filter(h=>(h.pigs||0)>0).slice().sort(byCode);
-  const closed=HOUSES.flatMap(h=>(h.closedBatches||[])).filter(b=>b.vet===me).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const closed=(vmFarmView ? mine.flatMap(h=>(h.closedBatches||[]))
+                           : HOUSES.flatMap(h=>(h.closedBatches||[])).filter(b=>b.vet===me)).sort((a,b)=>(b.ts||0)-(a.ts||0));
   const pigs=active.reduce((s,h)=>s+(h.pigs||0),0);
   const medCost=mine.reduce((s,h)=>s+medTotal(h),0);
   const avg=(arr,f)=>arr.length?(arr.reduce((s,x)=>s+(parseFloat(f(x))||0),0)/arr.length):0;
@@ -3116,8 +3120,8 @@ function renderVetMe(){
   const sc=p=>`<span style="color:${p>=85?'var(--ok)':p>=70?'var(--warn)':'var(--bad)'};font-weight:700">${p}%</span>`;
   const v=$("#view");
   v.innerHTML=`
-    <h2 class="page">📊 ประสิทธิภาพของฉัน</h2>
-    <div class="sub">${escA(me)} · สรุปผลงานทั้งหมดของคุณ — หลังที่กำลังเลี้ยง + รุ่นที่ปิดชุดไปแล้ว + ประวัติที่บันทึก</div>
+    <h2 class="page">📊 ${vmFarmView?'ภาพรวมฟาร์มที่ดูแล':'ประสิทธิภาพของฉัน'}</h2>
+    <div class="sub">${vmFarmView?('🩺 '+escA(me)+' · แสดง<b>ภาพรวมฟาร์มที่ดูแล</b> ('+escA((myFarms()||[]).join(' · '))+') — ยังไม่มีหลังที่ตั้งคุณเป็นหมอประจำ'):(escA(me)+' · สรุปผลงานทั้งหมดของคุณ — หลังที่กำลังเลี้ยง + รุ่นที่ปิดชุดไปแล้ว + ประวัติที่บันทึก')}</div>
     <div class="kpis" style="margin-top:12px">
       <div class="kpi"><div class="lab">🟢 หลังที่กำลังเลี้ยง</div><div class="val">${fmt(active.length)}</div></div>
       <div class="kpi"><div class="lab"><span class="logo-ico"></span> หมูที่ดูแล</div><div class="val">${fmt(pigs)}</div></div>
