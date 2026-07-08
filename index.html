@@ -1257,21 +1257,39 @@ async function supaSignIn(username, password){
     return {ok:true, user:SUPA.user};
   }catch(e){ return {ok:false, error:"เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง"}; }
 }
+let _refreshInFlight=null;
 async function supaRefresh(){
   const c=CONFIG.supabase; if(!(SUPA&&SUPA.refresh_token)) return false;
-  try{
-    const r=await fetch(c.url+"/auth/v1/token?grant_type=refresh_token",{
-      method:"POST", headers:{apikey:c.anonKey,"Content-Type":"application/json"},
-      body:JSON.stringify({refresh_token:SUPA.refresh_token})
-    });
-    const j=await r.json();
-    if(!r.ok || !j.access_token){ clearSession(); return false; }
-    setSession(j); return true;
-  }catch(e){ return false; }
+  if(_refreshInFlight) return _refreshInFlight;   // single-flight: คำขอที่ต้องรีเฟรชพร้อมกัน ใช้ผลเดียวกัน (กันรีเฟรชรัว ๆ ตอนคนเยอะ)
+  const rtok=SUPA.refresh_token;
+  _refreshInFlight=(async()=>{
+    for(let attempt=0; attempt<3; attempt++){
+      try{
+        const r=await fetch(c.url+"/auth/v1/token?grant_type=refresh_token",{
+          method:"POST", headers:{apikey:c.anonKey,"Content-Type":"application/json"},
+          body:JSON.stringify({refresh_token:rtok})
+        });
+        if(r.ok){ const j=await r.json().catch(()=>null); if(j&&j.access_token){ setSession(j); return true; } }
+        else if(r.status===400||r.status===401){ clearSession(); return false; } // token ถูกเพิกถอนจริง → ออกจริง
+        // 429 / 5xx / อื่น ๆ = สะดุดชั่วคราว → ลองใหม่ (ไม่ล้าง session)
+      }catch(e){ /* เน็ตสะดุด → ลองใหม่ */ }
+      if(attempt<2) await new Promise(res=>setTimeout(res, 700*(attempt+1)));
+    }
+    return false; // สะดุดชั่วคราวจนครบ 3 ครั้ง — ไม่ล้าง session (เก็บไว้ให้ลองใหม่รอบหน้า กันเด้งเพราะเน็ต)
+  })();
+  try{ return await _refreshInFlight; } finally{ _refreshInFlight=null; }
 }
 async function supaToken(){ // คืน access token ที่ยังไม่หมดอายุ (รีเฟรชอัตโนมัติถ้าใกล้หมด)
   if(!SUPA) return null;
-  if(Date.now() > (SUPA.expires_at||0) - 60000){ const ok=await supaRefresh(); if(!ok) return null; }
+  if(Date.now() > (SUPA.expires_at||0) - 60000){
+    const ok=await supaRefresh();
+    if(!ok){
+      // รีเฟรชไม่ผ่าน · ถ้า supaRefresh ล้าง session แล้ว (token ถูกเพิกถอนจริง) SUPA=null → คืน null
+      // ถ้า SUPA ยังอยู่ = สะดุดชั่วคราว · access token เดิมยังไม่หมดจริง → ใช้ต่อไปก่อน (กันเด้งเพราะเน็ต)
+      if(SUPA && Date.now() < (SUPA.expires_at||0)) return SUPA.access_token;
+      return null;
+    }
+  }
   return SUPA.access_token;
 }
 async function supaSignOut(){
@@ -8745,14 +8763,19 @@ function sbExportXlsObj(b){
   }
   try{
     if(CONFIG.supabase.enabled && loadSession()){            // เคยล็อกอินไว้ → ตรวจ session แล้วเข้าต่อเลย (ไม่ต้องล็อกอินซ้ำ)
-      const t=await supaToken();                             // รีเฟรช token ถ้าใกล้หมดอายุ
+      let t=null; try{ t=await supaToken(); }catch(e){}      // รีเฟรช token ถ้าใกล้หมดอายุ (ทน error/retry ในตัว)
       if(t){
         const cl=await cloudLoad();
         if(cl==='stale') saveState();          // คลาวด์เป็นข้อมูลรุ่นเก่า → ใช้ตัวอย่างรุ่นใหม่ (ในหน่วยความจำ) แล้วดันขึ้นคลาวด์
         else if(!cl) loadState();               // โหลดคลาวด์ไม่ได้ → ใช้ข้อมูลในเครื่อง (ถ้ามี)
         if(SUPA) doLogin(appProfile(SUPA.user)); else loadState();
       }   // โหลดข้อมูลกลาง + เข้าแอป (ถ้า session ยังดี)
-      else { clearSession(); loadState(); }                  // session หมดอายุ/ใช้ไม่ได้ → กลับหน้าล็อกอิน
+      else if(SUPA && SUPA.access_token && SUPA.user){        // 🛡️ มี session อยู่ แต่รีเฟรชสะดุดชั่วคราว (เน็ต/เซิร์ฟเวอร์ตอนเปิดหน้าใหม่บนมือถือ)
+        // → เข้าต่อด้วยข้อมูลในเครื่อง ไม่เด้งกลับ login เงียบ ๆ · ระบบจะรีเฟรช token + โหลดข้อมูลกลางเองเมื่อเน็ตกลับมา
+        loadState(); doLogin(appProfile(SUPA.user));
+        setTimeout(function(){ try{ supaToken().then(function(tk){ if(tk) cloudLoad(); }); }catch(e){} }, 4000); // นัดโหลดข้อมูลกลางเมื่อ token กลับมาใช้ได้
+      }
+      else { clearSession(); loadState(); }                  // session ถูกเพิกถอนจริง (ไม่มี token/ถูก reject) → กลับหน้าล็อกอิน
     } else {
       loadState();                                           // ยังไม่ล็อกอิน → เตรียมข้อมูลในเครื่อง (ถ้ามี) · หน้าล็อกอินแสดงอยู่
     }
