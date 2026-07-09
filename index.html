@@ -1514,6 +1514,7 @@ const HOME_MENU = {
     {icon:'🩺', t:'บันทึกรายหลัง',       d:'รักษา · รับอาหาร · กินได้ รายหลัง',         fn:'renderHouseList'},
     {icon:'💉', t:'เบิกยา / อุปกรณ์',     d:'ใบเบิกยา/เวชภัณฑ์/อุปกรณ์',               fn:'renderRequest'},
     {icon:'🌾', t:'เบิกอาหาร',           d:'ใบเบิก/ขออาหารจากคลัง',                  fn:'renderFeedRequest'},
+    {icon:'🕸️', t:'แผนผังเล้าหมู',       d:'แผนผังเล้าที่ฉันดูแล · แตะจุดดูสถานะ/เข้าเล้า', fn:'renderFarmGraph'},
   ],
   admin:   [ {icon:'🏠', t:'จัดการเล้า',        d:'เพิ่ม/แก้/ลบ หลัง + ตั้งค่าฟอร์ม',      fn:'renderAdmin'},
              {icon:'📺', t:'มอนิเตอร์แท่นขาย',  d:'ดูสดทุกแท่น — ใครกำลังกรอกบิลไหน · เด้งเองทุก 5 วิ', fn:'renderStandMonitor'},
@@ -2319,10 +2320,11 @@ function renderFarmGraph(){
   const actArr=hs.filter(h=>(h.pigs||0)>0), filledN=actArr.filter(h=>h.filled).length;
   const deadT=hs.reduce((s,h)=>s+(h.deadToday||0),0), outT=hs.reduce((s,h)=>s+(h.soldToday||0)+(h.cullToday||0),0);
   const chip=(txt,col)=>`<span style="background:rgba(255,255,255,.07);border:1px solid rgba(83,234,210,.18);border-radius:999px;padding:3px 11px;font-size:12px;font-weight:700;color:${col||'#8fd8ca'}">${txt}</span>`;
+  const _gIsVet=effRole()==='vet', _gMyName=(CURRENT_USER&&CURRENT_USER.name)||'';
   const v=$("#view");
   v.innerHTML=`
-    <h2 class="page">🕸️ แผนผังฟาร์ม</h2>
-    <div class="sub">บริษัท → ฟาร์ม → 🩺 หมอ → เล้าที่หมอรับผิดชอบ · <b>แตะจุด</b>เพื่อดูข้อมูล (แตะหมอ = สปอตไลท์) · ลากเลื่อน/ซูมได้ · 🔄 อัปเดตสดอัตโนมัติ</div>
+    <h2 class="page">🕸️ ${_gIsVet?'แผนผังเล้าหมูของฉัน':'แผนผังฟาร์ม'}</h2>
+    <div class="sub">${_gIsVet?('🩺 <b>'+escA(_gMyName)+'</b> · ดูแล <b>'+fmt(hs.length)+'</b> เล้า · <b>แตะจุด</b>เพื่อดูข้อมูล/เข้าเล้า · ลากเลื่อน/ซูมได้'):'บริษัท → ฟาร์ม → 🩺 หมอ → เล้าที่หมอรับผิดชอบ · <b>แตะจุด</b>เพื่อดูข้อมูล (แตะหมอ = สปอตไลท์) · ลากเลื่อน/ซูมได้ · 🔄 อัปเดตสดอัตโนมัติ'}</div>
     <div class="card" id="gCard" style="position:relative;padding:0;overflow:hidden;background:radial-gradient(80% 70% at 50% 38%,#14262c 0%,#0d1a1f 100%);border-color:#23424a">
       <div style="display:flex;gap:7px;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(83,234,210,.18);flex-wrap:wrap">
         <span style="color:#8fd8ca;font-size:12.5px;font-weight:700">${fmt(fnames.length)} ฟาร์ม · ${fmt(hs.length)} หลัง · ${fmt(totPigs)} ตัว</span>
