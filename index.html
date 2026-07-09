@@ -959,7 +959,13 @@ function themeToggle(){ const dark=!document.body.classList.contains('theme-dark
 try{ themeApply(localStorage.getItem('farmTheme')==='dark'); }catch(e){}
 
 /* ---------- การมองเห็นตามฟาร์มที่ดูแล (farm-scoping) ---------- */
-function myFarms(){ return CURRENT_USER ? CURRENT_USER.farms : "*"; }       // '*' = ทุกฟาร์ม
+function myFarms(){
+  if(!CURRENT_USER) return "*";                                            // '*' = ทุกฟาร์ม
+  const f=CURRENT_USER.farms;
+  if(CURRENT_USER.role==='vet' && (!Array.isArray(f)||!f.length))
+    return [...new Set((HOUSES||[]).map(h=>h.farm).filter(Boolean))];      // หมอผูกชื่อ (ไม่ผูกฟาร์ม) → อนุมานฟาร์มจากหลังที่รับผิดชอบ (ให้สต็อก/เบิกยาทำงาน)
+  return f;
+}
 function seesAllFarms(){ return myFarms()==="*"; }
 function canSeeFarm(f){ const a=myFarms(); return a==="*" || (Array.isArray(a)&&a.includes(f)); }
 function myHouses(){ const a=myFarms(); return a==="*" ? HOUSES : HOUSES.filter(h=>a.includes(h.farm||"ไม่ระบุฟาร์ม")); }
@@ -6781,7 +6787,7 @@ function renderUsers(){
   v.innerHTML=`
     <button class="back" onclick="goHome()">‹ กลับ</button>
     <h2 class="page">👥 จัดการผู้ใช้</h2>
-    <div class="sub">เปิด/แก้/ปิด บัญชีทีม · บทบาทกำหนดสิทธิ์การเห็นข้อมูล (หมอเห็นเฉพาะฟาร์มที่ผูกไว้ · อื่นๆ เห็นทุกฟาร์ม)</div>
+    <div class="sub">เปิด/แก้/ปิด บัญชีทีม · <b>หมอ:</b> เว้นว่างฟาร์ม = เห็นเฉพาะหลังที่ระบุชื่อเค้าเป็นผู้รับผิดชอบ <b>อัตโนมัติ</b> (ผู้ดูแลเปลี่ยนหมอประจำหลังแล้วย้ายเอง) · เลือกฟาร์ม = หัวหน้า เห็นทั้งฟาร์ม · เจ้าของ/เสมียน/ผู้ดูแล = เห็นทุกฟาร์ม</div>
     <div class="card">
       <h3>➕ เพิ่มผู้ใช้ใหม่</h3>
       <div class="grid2">
@@ -6790,7 +6796,7 @@ function renderUsers(){
         <div class="frow"><label>รหัสผ่าน <span class="req">*</span><span class="hint"> ≥ 6 ตัว</span></label><input id="u_pass" type="text" placeholder="ตั้งรหัสให้พนักงาน"></div>
         <div class="frow"><label>บทบาท <span class="req">*</span></label><select id="u_role" onchange="userRoleChanged()">${roleOptsHTML('clerk')}</select></div>
       </div>
-      <div class="frow" id="u_farms_wrap" style="display:none"><label>🏭 ฟาร์มที่ดูแล (เฉพาะหมอ)</label><div>${farmChecksHTML('uf',[])}</div></div>
+      <div class="frow" id="u_farms_wrap" style="display:none"><label>🏭 ฟาร์มที่ดูแล (เฉพาะหมอ)<span class="hint"> — เว้นว่าง = เห็นเฉพาะหลังที่ระบุ "ชื่อ" นี้เป็นผู้รับผิดชอบ (แนะนำ) · เลือกฟาร์ม = หัวหน้า เห็นทั้งฟาร์ม</span></label><div>${farmChecksHTML('uf',[])}</div></div>
       <button class="btn" onclick="userCreate()"><span>➕</span> สร้างบัญชี</button>
     </div>
     <div class="card">
@@ -6811,7 +6817,7 @@ function renderUserList(){
   el.innerHTML=`<table><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ</th><th>บทบาท</th><th>ฟาร์ม</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>${
     _users.map(u=>{
       const rl=ROLE_LABEL[u.role]||u.role;
-      const fm=(u.role==='vet')?((Array.isArray(u.farms)&&u.farms.length)?escA(u.farms.join(', ')):'<span class="sub">— ยังไม่ผูก —</span>'):'<span class="sub">ทุกฟาร์ม</span>';
+      const fm=(u.role==='vet')?((Array.isArray(u.farms)&&u.farms.length)?('🏭 '+escA(u.farms.join(', '))):'<span class="sub">👤 ตามชื่อประจำหลัง (อัตโนมัติ)</span>'):'<span class="sub">ทุกฟาร์ม</span>';
       return `<tr>
         <td><b>${escA(u.username)}</b></td><td>${escA(u.name||'')}</td>
         <td><span class="tag wait">${ROLE_ICON[u.role]||''} ${escA(rl)}</span></td>
@@ -6864,7 +6870,7 @@ function userEdit(uid){
       <div class="frow"><label>ชื่อ</label><input id="ue_name" value="${escA(u.name||'')}"></div>
       <div class="frow"><label>บทบาท</label><select id="ue_role" onchange="ueRoleChanged()">${roleOptsHTML(u.role)}</select></div>
     </div>
-    <div class="frow" id="ue_farms_wrap" style="display:${u.role==='vet'?'':'none'}"><label>🏭 ฟาร์มที่ดูแล</label><div>${farmChecksHTML('uef',Array.isArray(u.farms)?u.farms:[])}</div></div>
+    <div class="frow" id="ue_farms_wrap" style="display:${u.role==='vet'?'':'none'}"><label>🏭 ฟาร์มที่ดูแล<span class="hint"> — เว้นว่าง = เห็นเฉพาะหลังที่ระบุชื่อนี้ (แนะนำ) · เลือกฟาร์ม = หัวหน้า เห็นทั้งฟาร์ม</span></label><div>${farmChecksHTML('uef',Array.isArray(u.farms)?u.farms:[])}</div></div>
     <div class="actions"><button class="btn ghost" onclick="$('#uEdit').innerHTML=''">ยกเลิก</button><button class="btn" onclick="userSaveEdit('${uid}')">บันทึก</button></div>
   </div>`;
   $("#uEdit").scrollIntoView({block:'center'});
