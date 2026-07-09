@@ -7520,7 +7520,7 @@ function renderSaleStand(){ if(vetGuard())return;
 }
 /* ---------- ฟอร์มบิล ---------- */
 function sbBlank(kind){
-  return {id:sbNewId(), kind:kind, farm:(myFarms()!=='*'&&myFarms().length?myFarms()[0]:(FARMS[0]||'')), dateISO:todayISO(), time:'',
+  return {id:sbNewId(), kind:kind, farm:'', dateISO:todayISO(), time:'',
     buyer:'', truck:'', billBook:'', billNo:'', houses:[{code:'',n:''}], weights:[], items:[{house:'',type:'dead',dtype:'ตาย',w:''}],
     bands:SB_BANDS_DEF.map(x=>({a:x[0],b:x[1],cull:'',dead:''})), scaleIn:'', scaleOut:'', timeStart:'', timeEnd:'', fastPen:'', fastStand:'',
     pricePerKg:'', deducts:[], note:'', payMode:'credit', payResp:'', by:whoNow(), createdAt:Date.now(), editLog:[]};
@@ -7540,7 +7540,7 @@ function sbFilterFarms(){ const s=((SB_D&&SB_D.farms)||[]).filter(Boolean); retu
 function sbToggleFarmFilter(f){ if(!SB_D)return; SB_D.farms=SB_D.farms||[]; const i=SB_D.farms.indexOf(f); if(i>=0)SB_D.farms.splice(i,1); else SB_D.farms.push(f); renderSaleBillForm(); }
 function sbHasHouse(code){ const n=sbNormCode(code); return (SB_D.houses||[]).some(x=>sbNormCode(x.code)===n); }
 function sbToggleHouse(code){ if(!SB_D)return; SB_D.houses=SB_D.houses||[]; const n=sbNormCode(code); const i=SB_D.houses.findIndex(x=>sbNormCode(x.code)===n); if(i>=0){ SB_D.houses.splice(i,1); } else { SB_D.houses.push({code:String(code).toUpperCase(),n:''}); } sbDeriveFarm(); renderSaleBillForm(); }
-function sbDeriveFarm(){ if(!SB_D)return; const codes=(SB_D.kind==='deadcull'?(SB_D.items||[]).map(x=>x&&x.house):(SB_D.houses||[]).map(x=>x&&x.code)); const fs=[...new Set(codes.map(c=>{const h=sbFindHouse(c); return h&&h.farm;}).filter(Boolean))]; if(fs.length) SB_D.farm=fs.join(' + '); }   // ฟาร์มของบิล = ฟาร์มจริงของหลังที่เลือก (รหัสไม่ซ้ำข้ามฟาร์ม จึงรู้แน่)
+function sbDeriveFarm(){ if(!SB_D)return; const raw=(SB_D.kind==='deadcull'?(SB_D.items||[]).map(x=>x&&x.house):(SB_D.houses||[]).map(x=>x&&x.code)).filter(Boolean); if(!raw.length){ SB_D.farm=''; return; } const fs=[...new Set(raw.map(c=>{const h=sbFindHouse(c); return h&&h.farm;}).filter(Boolean))]; if(fs.length) SB_D.farm=fs.join(' + '); }   // ไม่มีหลัง = ไม่มีฟาร์ม (เคลียร์ ไม่ค้างค่าเก่า) · มีหลังแต่ไม่ match = คงค่าเดิม (กันบิลเก่าโดนล้าง)   // ฟาร์มของบิล = ฟาร์มจริงของหลังที่เลือก (รหัสไม่ซ้ำข้ามฟาร์ม จึงรู้แน่)
 function sbHousePickHTML(){
   const farms=sbAllFarms(), sel=sbFilterFarms();
   const fchips=farms.map(f=>{ const on=((SB_D&&SB_D.farms)||[]).indexOf(f)>=0; return `<button class="sbfchip${on?' on':''}" onclick="sbToggleFarmFilter('${escA(f)}')">${on?'✓ ':''}${escA(f)}</button>`; }).join('');
