@@ -339,6 +339,12 @@
   body.bigmode .content .mrow .t{font-size:20px}
   body.bigmode .content .mrow .d{font-size:14.5px}
   body.bigmode .content .statchip .v{font-size:23px}
+  /* 🐷 แท่นขาย: chip เลือกฟาร์ม/หลัง (คลิกเลือก ไม่ต้องพิมพ์) */
+  .sbfchip,.sbhchip{display:inline-block;border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:9px;padding:6px 11px;margin:0 6px 6px 0;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+  .sbhchip{padding:8px 13px;min-width:42px;text-align:center}
+  .sbfchip.on,.sbhchip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  body.bigmode .content .sbhchip{font-size:18px;padding:12px 16px;min-width:52px}
+  body.bigmode .content .sbfchip{font-size:16px;padding:10px 14px}
   .cin:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft),0 0 12px rgba(31,125,110,.12)}
   .cin.tl{text-align:left}
   td.lab{font-size:13px;color:var(--ink);white-space:nowrap;font-weight:600}
@@ -7407,14 +7413,14 @@ function sbOverList(b){ // 🛡️ หลังไหนที่จำนวน
   if(b.kind==='deadcull'){ (b.items||[]).forEach(x=>{ const k=sbNormCode(x.house); if(!k) return; cnt[k]=(cnt[k]||0)+1; disp[k]=disp[k]||String(x.house).trim(); }); }
   else{ (b.houses||[]).forEach(x=>{ const k=sbNormCode(x.code); const n=Math.round(sbNum(x.n)); if(!k||!n) return; cnt[k]=(cnt[k]||0)+n; disp[k]=disp[k]||String(x.code).trim(); }); }
   const out=[];
-  Object.keys(cnt).forEach(k=>{ const remain=sbHouseRemain(k,b.farm); if(remain!=null && cnt[k]>remain) out.push({code:disp[k],key:k,n:cnt[k],remain:remain}); });
+  Object.keys(cnt).forEach(k=>{ const remain=sbHouseRemain(k); if(remain!=null && cnt[k]>remain) out.push({code:disp[k],key:k,n:cnt[k],remain:remain}); });
   return out;
 }
 function sbHInfoHTML(code){ // ป้ายข้างช่องกรอกหลัง: อายุ/หมอ/คงเหลือ + เตือนแดงทันทีถ้าลงเกินยอดเล้า / เตือนเหลืองถ้าพิมพ์รหัสที่ไม่มีในฟาร์ม
   if(!code) return '';
-  let s=sbHouseInfo(code,SB_D.farm);
-  if(sbHouseRemain(code,SB_D.farm)==null)
-    return (s?s+' ':'')+'<b style="color:var(--warn,#e8a13c)">⚠️ ไม่พบหลังนี้ในฟาร์ม'+(SB_D.farm?' '+escA(SB_D.farm):'')+' — เช็ครหัสหลัง</b>';
+  let s=sbHouseInfo(code);
+  if(sbHouseRemain(code)==null)
+    return (s?s+' ':'')+'<b style="color:var(--warn,#e8a13c)">⚠️ ไม่พบรหัสหลังนี้ — เช็ครหัส</b>';
   const ov=sbOverList(SB_D).find(o=>o.key===sbNormCode(code));
   if(ov) s+=' <b style="color:var(--bad)">⛔ เกินยอดเล้า! ลง '+fmt(ov.n)+' > เหลือ '+fmt(ov.remain)+' ตัว</b>';
   return s;
@@ -7529,17 +7535,34 @@ function sbEdit(id){
   SB_ISNEW=false; renderSaleBillForm();
 }
 function sbF(k,v){ if(!SB_D)return; SB_D[k]=v; sbRefresh(); }
+function sbAllFarms(){ return [...new Set(myHouses().map(h=>h.farm||'').filter(Boolean))].sort(); }   // ฟาร์มที่ผู้ใช้ขายได้ (sale roles เห็นทุกฟาร์ม)
+function sbFilterFarms(){ const s=((SB_D&&SB_D.farms)||[]).filter(Boolean); return s.length?s:sbAllFarms(); }   // ไม่เลือก = ทุกฟาร์ม
+function sbToggleFarmFilter(f){ if(!SB_D)return; SB_D.farms=SB_D.farms||[]; const i=SB_D.farms.indexOf(f); if(i>=0)SB_D.farms.splice(i,1); else SB_D.farms.push(f); renderSaleBillForm(); }
+function sbHasHouse(code){ const n=sbNormCode(code); return (SB_D.houses||[]).some(x=>sbNormCode(x.code)===n); }
+function sbToggleHouse(code){ if(!SB_D)return; SB_D.houses=SB_D.houses||[]; const n=sbNormCode(code); const i=SB_D.houses.findIndex(x=>sbNormCode(x.code)===n); if(i>=0){ SB_D.houses.splice(i,1); } else { SB_D.houses.push({code:String(code).toUpperCase(),n:''}); } sbDeriveFarm(); renderSaleBillForm(); }
+function sbDeriveFarm(){ if(!SB_D)return; const codes=(SB_D.kind==='deadcull'?(SB_D.items||[]).map(x=>x&&x.house):(SB_D.houses||[]).map(x=>x&&x.code)); const fs=[...new Set(codes.map(c=>{const h=sbFindHouse(c); return h&&h.farm;}).filter(Boolean))]; if(fs.length) SB_D.farm=fs.join(' + '); }   // ฟาร์มของบิล = ฟาร์มจริงของหลังที่เลือก (รหัสไม่ซ้ำข้ามฟาร์ม จึงรู้แน่)
+function sbHousePickHTML(){
+  const farms=sbAllFarms(), sel=sbFilterFarms();
+  const fchips=farms.map(f=>{ const on=((SB_D&&SB_D.farms)||[]).indexOf(f)>=0; return `<button class="sbfchip${on?' on':''}" onclick="sbToggleFarmFilter('${escA(f)}')">${on?'✓ ':''}${escA(f)}</button>`; }).join('');
+  const groups=sel.map(f=>{ const codes=HOUSES.filter(h=>(h.farm||'')===f).slice().sort(byCode).map(h=>h.code);
+    return `<div style="margin-bottom:8px"><div class="sub" style="margin:0 0 3px;font-weight:700">${escA(f)}</div>${codes.map(c=>`<button class="sbhchip${sbHasHouse(c)?' on':''}" onclick="sbToggleHouse('${escA(c)}')">${escA(c)}</button>`).join('')||'<span class="sub">— ไม่มีหลัง —</span>'}</div>`;
+  }).join('');
+  return `<div class="sub" style="margin:0 0 5px">กรองฟาร์ม (แตะได้หลายฟาร์ม · ไม่เลือก = ทุกฟาร์ม):</div><div style="margin-bottom:9px">${fchips}</div>
+    <div class="sub" style="margin:0 0 4px">แตะรหัสหลังที่ขายในคันนี้ (เลือกได้หลายหลัง/หลายฟาร์ม):</div>
+    <div style="max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:11px;padding:9px;margin-bottom:11px">${groups}</div>`;
+}
 function sbHousesHTML(){
   const hs=SB_D.houses||[];
-  const codes=[...new Set(HOUSES.filter(h=>!SB_D.farm||(h.farm||'')===SB_D.farm).slice().sort(byCode).map(h=>h.code))];
-  return `<datalist id="sbHouseDL">${codes.map(c=>`<option value="${escA(c)}">`).join('')}</datalist>`+
+  const codes=[...new Set(HOUSES.filter(h=>sbFilterFarms().indexOf(h.farm||'')>=0).slice().sort(byCode).map(h=>h.code))];
+  return sbHousePickHTML()+`<datalist id="sbHouseDL">${codes.map(c=>`<option value="${escA(c)}">`).join('')}</datalist>`+
+    (hs.length?`<div class="sub" style="margin:0 0 5px">หลังที่เลือก (${hs.length}) — ใส่จำนวนกี่ตัว:</div>`:'')+
     hs.map((r,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap">
-      <input class="cin" list="sbHouseDL" placeholder="หลัง เช่น P2 / J40" style="max-width:150px" value="${escA(r.code)}" oninput="SB_D.houses[${i}].code=sbUpCode(this);sbRefresh()">
+      <input class="cin" list="sbHouseDL" placeholder="หลัง" style="max-width:120px" value="${escA(r.code)}" oninput="SB_D.houses[${i}].code=sbUpCode(this);sbDeriveFarm();sbRefresh()">
       <input class="cin" type="number" min="0" placeholder="กี่ตัว" style="max-width:110px" value="${escA(r.n)}" oninput="SB_D.houses[${i}].n=this.value;sbRefresh()">
       <span class="sub" id="sbHInfo${i}" style="flex:1;min-width:120px">${r.code?sbHInfoHTML(r.code):''}</span>
       <button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.houses.splice(${i},1);renderSaleBillForm()">✕</button>
     </div>`).join('')+
-    `<button class="btn ghost sm" onclick="SB_D.houses.push({code:'',n:''});renderSaleBillForm()">＋ เพิ่มหลัง (คันเดียวหลายหลังได้)</button>`;
+    `<button class="btn ghost sm" onclick="SB_D.houses.push({code:'',n:''});renderSaleBillForm()">＋ เพิ่มหลังเอง (พิมพ์)</button>`;
 }
 function sbWChipsHTML(){
   const ws=SB_D.weights||[]; if(!ws.length) return '<div class="sub">— ยังไม่มีน้ำหนัก — พิมพ์เลขแล้วกด Enter รัว ๆ ได้เลย —</div>';
@@ -7824,6 +7847,7 @@ function renderSaleBillForm(){
   const canFix=['owner','admin'].includes(ROLE);
   const savedEdit=!SB_ISNEW && !!stored;                 // แก้บิลที่บันทึกแล้ว — เข้ม: เฉพาะเจ้าของ/ผู้ดูแล
   const roBill=(locked||savedEdit)&&!canFix;             // เสมียนดูอย่างเดียวสำหรับบิลที่บันทึก/ล็อกแล้ว
+  sbDeriveFarm();                                         // ฟาร์มบิล = ฟาร์มจริงของหลังที่เลือก (โชว์ในหัวบิล)
   const buyers=[...new Set(SB_CUST.map(c=>c.name).concat(SALE_BILLS.map(b=>b.buyer).filter(Boolean)).concat(CUSTOMERS))];
   // ฟาร์มในบิล = เฉพาะฟาร์มที่มีหลังจริง (ในสิทธิ์ที่ดูแล) — กันเลือกฟาร์มว่าง/ชื่อซ้ำแล้ว dropdown หลังไม่ขึ้น
   const scopeH=myHouses(), sellFarms=[...new Set(scopeH.map(h=>h.farm||'').filter(Boolean))];
@@ -7839,7 +7863,7 @@ function renderSaleBillForm(){
     <div class="card"><h3>🧾 หัวบิล</h3>
       <div class="fgrid">
         <div class="frow"><label>วันที่ขาย</label><input type="date" class="cin" value="${escA(SB_D.dateISO)}" onchange="sbF('dateISO',this.value)"></div>
-        <div class="frow"><label>ฟาร์ม</label><select class="cin tl" onchange="sbF('farm',this.value);renderSaleBillForm()">${farmOpts}</select></div>
+        <div class="frow"><label>ฟาร์ม <span class="more">(จากหลังที่เลือก)</span></label><div class="cin tl" style="background:var(--soft);min-height:44px;display:flex;align-items:center">${SB_D.farm?escA(SB_D.farm):'<span class="sub" style="margin:0">— แตะเลือกหลังด้านล่าง —</span>'}</div></div>
         <div class="frow"><label>ผู้ซื้อ</label><input class="cin" list="sbBuyerDL" placeholder="เช่น บ.ราชบุรีค้าสุกร / เฮียมลชัย" value="${escA(SB_D.buyer)}" oninput="SB_D.buyer=this.value;sbRefresh()" onchange="sbBuyerPrefill()"><datalist id="sbBuyerDL">${buyers.map(x=>`<option value="${escA(x)}">`).join('')}</datalist></div>
         <div class="frow"><label>ทะเบียนรถ</label><input class="cin" placeholder="เช่น 83-6009" value="${escA(SB_D.truck)}" oninput="SB_D.truck=this.value;sbRefresh()"></div>
         <div class="frow"><label>บิลกระดาษ เล่มที่</label><input class="cin" placeholder="เช่น 074" value="${escA(SB_D.billBook)}" oninput="SB_D.billBook=this.value;sbRefresh()"></div>
@@ -7847,7 +7871,7 @@ function renderSaleBillForm(){
       </div></div>
     ${lgPayCardHTML()}
     ${isDC?`
-    <div class="card"><h3>🐷 รายการหมู (ทีละตัว)</h3><datalist id="sbHouseDL">${[...new Set(HOUSES.filter(h=>!SB_D.farm||(h.farm||'')===SB_D.farm).slice().sort(byCode).map(h=>h.code))].map(c=>`<option value="${escA(c)}">`).join('')}</datalist>
+    <div class="card"><h3>🐷 รายการหมู (ทีละตัว)</h3><div class="sub" style="margin:0 0 6px">พิมพ์รหัสหลังในช่อง "หลัง" ได้ทุกฟาร์ม (รหัสไม่ซ้ำ ระบบรู้ฟาร์มเอง)</div><datalist id="sbHouseDL">${[...new Set(HOUSES.filter(h=>sbFilterFarms().indexOf(h.farm||'')>=0).slice().sort(byCode).map(h=>h.code))].map(c=>`<option value="${escA(c)}">`).join('')}</datalist>
       <div id="sbItemsBox">${sbItemsHTML()}</div></div>
     <div class="card"><h3>💵 ราคาตามช่วงน้ำหนัก</h3><div id="sbBandsBox">${sbBandsHTML()}</div></div>`
     :`
@@ -8056,7 +8080,7 @@ function sbSave(){
   if(!SB_D) return;
   const stored=SALE_BILLS.find(x=>x.id===SB_D.id);
   if(stored&&!['owner','admin'].includes(ROLE)){ toast(stored.locked?'🔒 บิลนี้ถูกตรวจ/ล็อกแล้ว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล':'🔒 แก้บิลที่บันทึกแล้วได้เฉพาะเจ้าของ/ผู้ดูแล — แจ้งเจ้าของให้แก้'); return; }   // เข้ม: เสมียนสร้างบิลใหม่ได้ แต่แก้บิลที่บันทึกแล้วไม่ได้
-  if(!SB_D.farm){ toast('เลือกฟาร์มก่อน'); return; }
+  sbDeriveFarm();   // ฟาร์มบิลคำนวณจากหลังที่เลือก (ไม่ต้องเลือกฟาร์มแยก)
   if((SB_D.dateISO||'')>todayISO() && !confirm('⚠️ วันที่ขายในบิลเป็นวันอนาคต ('+sbThaiDate(SB_D.dateISO)+')\nถ้าลงเข้าหลังด้วยวันที่อนาคต ยอดคงเหลือของหลังจะคำนวณเพี้ยน\n\nยืนยันใช้วันที่นี้ต่อหรือไม่?')) return;
   const c=sbCalc(SB_D);
   if(SB_D.kind==='deadcull'){
@@ -8070,8 +8094,8 @@ function sbSave(){
     const codes=SB_D.kind==='deadcull'
       ? [...new Set((SB_D.items||[]).map(x=>String(x.house||'').trim()).filter(Boolean))]
       : [...new Set((SB_D.houses||[]).map(x=>String(x.code||'').trim()).filter(Boolean))];
-    const bad=codes.filter(c0=>!sbFindHouse(c0,SB_D.farm));
-    if(bad.length && !confirm('⛔ ไม่พบรหัสหลังนี้ในฟาร์ม "'+SB_D.farm+'":\n\n   '+bad.join(' , ')+'\n\nเช็ครหัสให้ตรงกับหลังจริง (พิมพ์เล็ก/ใหญ่ระบบปรับให้แล้ว · แตะช่องแล้วเลือกจากรายการก็ได้)\n\nถ้ากด "ตกลง" บันทึกต่อ ข้อมูลของหลังที่ไม่พบจะ "ไม่ถูกลงเข้าหลัง"')) return;
+    const bad=codes.filter(c0=>!sbFindHouse(c0));
+    if(bad.length && !confirm('⛔ ไม่พบรหัสหลังนี้ในระบบ:\n\n   '+bad.join(' , ')+'\n\nเช็ครหัสให้ตรงกับหลังจริง (แตะเลือกรหัสจากรายการได้)\n\nถ้ากด "ตกลง" บันทึกต่อ ข้อมูลของหลังที่ไม่พบจะ "ไม่ถูกลงเข้าหลัง"')) return;
   }
   if(SB_ISNEW){ // 🛡️ เตือนบิลซ้ำ: วันเดียวกัน+ผู้ซื้อเดียวกัน+ (เลขที่ตรง หรือ ตัว/น้ำหนักแทบเท่ากัน)
     const dup=SALE_BILLS.find(x=>x.id!==SB_D.id&&x.kind===SB_D.kind&&(x.farm||'')===(SB_D.farm||'')&&gNrm(x.buyer)===gNrm(SB_D.buyer)&&(x.dateISO||'')===(SB_D.dateISO||'')
