@@ -7822,6 +7822,8 @@ function renderSaleBillForm(){
   const K=SB_KIND[SB_D.kind]||SB_KIND.fatten, isDC=SB_D.kind==='deadcull';
   const stored=SALE_BILLS.find(x=>x.id===SB_D.id), locked=!!(stored&&stored.locked);
   const canFix=['owner','admin'].includes(ROLE);
+  const savedEdit=!SB_ISNEW && !!stored;                 // แก้บิลที่บันทึกแล้ว — เข้ม: เฉพาะเจ้าของ/ผู้ดูแล
+  const roBill=(locked||savedEdit)&&!canFix;             // เสมียนดูอย่างเดียวสำหรับบิลที่บันทึก/ล็อกแล้ว
   const buyers=[...new Set(SB_CUST.map(c=>c.name).concat(SALE_BILLS.map(b=>b.buyer).filter(Boolean)).concat(CUSTOMERS))];
   // ฟาร์มในบิล = เฉพาะฟาร์มที่มีหลังจริง (ในสิทธิ์ที่ดูแล) — กันเลือกฟาร์มว่าง/ชื่อซ้ำแล้ว dropdown หลังไม่ขึ้น
   const scopeH=myHouses(), sellFarms=[...new Set(scopeH.map(h=>h.farm||'').filter(Boolean))];
@@ -7831,6 +7833,7 @@ function renderSaleBillForm(){
     <h2 class="page">${K.ico} ${SB_ISNEW?'บันทึก':'แก้ไข'}${K.t} <span class="more">${sbThaiDate(SB_D.dateISO)}</span></h2>
     <div class="sub">${isDC?'ลงหมูทีละตัว (หลัง/ประเภท/น้ำหนัก) · ราคาตามช่วงน้ำหนัก แยกคัดขาย-ตาย':'กรอกน้ำหนักรายตัวเหมือนบิลกระดาษ · ระบบรวม/เฉลี่ย/เทียบตาชั่งรถให้เอง'} · ร่างถูกเก็บอัตโนมัติทุกการพิมพ์</div>
     ${locked?`<div class="banner ${canFix?'info':'bad'}">🔒 <div><b>บิลนี้ถูกตรวจและล็อกแล้ว</b> โดย ${escA((stored&&stored.verifiedBy)||'-')} · ${escA((stored&&stored.verifiedAt)||'')} ${canFix?'— เจ้าของ/ผู้ดูแลยังแก้/ปลดล็อกได้':'— <b>ดูอย่างเดียว</b> (แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล)'}</div></div>`:''}
+    ${(savedEdit&&!locked&&roBill)?`<div class="banner bad">🔒 <div><b>บิลนี้บันทึกแล้ว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล</b> · ถ้ากรอกผิด แจ้งเจ้าของให้แก้ให้</div></div>`:''}
     ${!SB_ISNEW&&SB_D.postedAt&&!locked?`<div class="banner ok">⬇️ <div><b>บิลนี้ลงเข้าหลังแล้ว</b> (${escA((SB_D.postedHouses||[]).join(', '))}) — ถ้าแก้ตัวเลข/ราคา ให้กด "ลงเข้าหลัง" ซ้ำ ระบบจะแทนที่ของเดิมให้ ไม่ลงซ้อน <button class="btn ghost sm" style="margin-left:8px" onclick="var _id='${SB_D.id}';sbSave();if(SB_D===null)sbPostToHouses(_id)">⬇️ ลงเข้าหลังซ้ำ (อัปเดต)</button></div></div>`:''}
     <div id="sbSum" class="sbsticky">${sbSumHTML()}</div>
     <div class="card"><h3>🧾 หัวบิล</h3>
@@ -7879,7 +7882,7 @@ function renderSaleBillForm(){
       <textarea class="cin" rows="2" style="margin-top:10px" placeholder="หมายเหตุ เช่น ลดบิลรอบก่อน · เหตุการณ์พิเศษ" oninput="SB_D.note=this.value;sbRefresh()">${escA(SB_D.note)}</textarea></div>
     ${!SB_ISNEW?sbHistCard(SB_D.id):''}
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 30px;align-items:center">
-      ${(locked&&!canFix)?'<span class="sbchip bad">🔒 ดูอย่างเดียว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล</span>':`
+      ${roBill?'<span class="sbchip bad">🔒 ดูอย่างเดียว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล</span>':`
       <button class="btn sm" style="font-size:16px;padding:13px 30px" onclick="sbSave()">💾 บันทึกบิล</button>
       <button class="btn sm" style="font-size:15px;padding:13px 22px;background:linear-gradient(135deg,#2a7fb8,#1f5f8b)" onclick="sbSaveAndPost()">💾+⬇️ บันทึก แล้วลงเข้าหลังเลย</button>`}
       <button class="btn ghost sm" onclick="sbDraftDrop();sbLiveClear();SB_D=null;renderSaleStand()">ยกเลิก</button>
@@ -8052,7 +8055,7 @@ function sbSave(){
   if(blockIfReadonly())return; if(!sbCanWrite()){toast('บัญชีนี้บันทึกบิลขายไม่ได้');return;}
   if(!SB_D) return;
   const stored=SALE_BILLS.find(x=>x.id===SB_D.id);
-  if(stored&&stored.locked&&!['owner','admin'].includes(ROLE)){ toast('🔒 บิลนี้ถูกตรวจ/ล็อกแล้ว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล'); return; }
+  if(stored&&!['owner','admin'].includes(ROLE)){ toast(stored.locked?'🔒 บิลนี้ถูกตรวจ/ล็อกแล้ว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล':'🔒 แก้บิลที่บันทึกแล้วได้เฉพาะเจ้าของ/ผู้ดูแล — แจ้งเจ้าของให้แก้'); return; }   // เข้ม: เสมียนสร้างบิลใหม่ได้ แต่แก้บิลที่บันทึกแล้วไม่ได้
   if(!SB_D.farm){ toast('เลือกฟาร์มก่อน'); return; }
   if((SB_D.dateISO||'')>todayISO() && !confirm('⚠️ วันที่ขายในบิลเป็นวันอนาคต ('+sbThaiDate(SB_D.dateISO)+')\nถ้าลงเข้าหลังด้วยวันที่อนาคต ยอดคงเหลือของหลังจะคำนวณเพี้ยน\n\nยืนยันใช้วันที่นี้ต่อหรือไม่?')) return;
   const c=sbCalc(SB_D);
