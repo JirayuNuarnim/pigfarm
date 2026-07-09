@@ -2492,6 +2492,7 @@ function vetNav(active){
     <button class="${active==='feed'?'on':''}" onclick="renderFeedRequest()">🌾 เบิกอาหาร</button>
   </div>`;
 }
+function vetGuard(){ if(effRole()==='vet'){ const v=$("#view"); if(v) v.innerHTML='<button class="back" onclick="goHome()">‹ กลับหน้าหลัก</button><div class="banner bad" style="margin-top:12px">🔒 หน้านี้สำหรับเสมียน/เจ้าของ — หมอไม่มีสิทธิ์เข้าถึง</div>'; try{toast('🔒 หมอไม่มีสิทธิ์เข้าหน้านี้');}catch(e){} return true; } return false; }
 function clerkNav(active){
   // จอกว้าง ≥1100px มีเมนูข้างซ้ายอยู่แล้ว → แถบหัวข้อบนนี้ถูกซ่อน (คลาส pagenav) กันเมนูซ้ำซ้อน
   return `<div class="seg pagenav">
@@ -2513,7 +2514,7 @@ function cfSetQ(v){ cfQ=v; renderClerkFarm(true);
 function cfSetStatus(v){ cfStatus=v; renderClerkFarm(true); }
 function cfSetSort(v){ cfSort=v; renderClerkFarm(true); }
 function cfStatusOf(h){ return needsClose(h)?'close':(houseStatus(h)==='กำลังเลี้ยง'?'raise':(houseStatus(h)==='กำลังล้างคอก'?'clean':'empty')); }
-function renderClerkFarm(keepScroll){
+function renderClerkFarm(keepScroll){ if(vetGuard())return;
   const sy=keepScroll?window.scrollY:0;
   histPush('clerkFarm',renderClerkFarm);
   const v=$("#view");
@@ -2672,7 +2673,7 @@ function exportClerkReq(){
   downloadXls('รายการเบิกยา'+(crFarm?'_'+crFarm:'')+(crHouse?'_หลัง'+crHouse:'')+(crVet?'_'+crVet:'')+(dlab?'_'+dlab.replace(/ /g,''):'')+'.xls', html);
   toast('ส่งออกไฟล์ Excel แล้ว ('+rows.length+' รายการ) ✓');
 }
-function renderClerkReq(){
+function renderClerkReq(){ if(vetGuard())return;
   histPush('clerkReq',renderClerkReq);
   const allRaw=clerkReqAll();
   const dayNum=d=>{const x=String(d).match(/(\d+)/);return x?parseInt(x[1]):0;};
@@ -2772,7 +2773,7 @@ function cfrDateMatch(r){
 }
 function setCfrDateMode(m){cfrDateMode=m; if(m==='day'){cfrDateFrom='';cfrDateTo='';}else{cfrDate='';} renderClerkFeedReq();}
 function clerkFeedReqFiltered(){const vq=(cfrVet||'').trim().toLowerCase();return clerkFeedReqAll().filter(r=>(!cfrFarm||r.farm===cfrFarm)&&(!cfrHouse||r.house===cfrHouse)&&(!vq||(r.by||'').toLowerCase().includes(vq))&&cfrDateMatch(r));}
-function renderClerkFeedReq(){
+function renderClerkFeedReq(){ if(vetGuard())return;
   histPush('clerkFeedReq',renderClerkFeedReq);
   const dayNum=d=>{const x=String(d).match(/(\d+)/);return x?parseInt(x[1]):0;};
   const myFarmList=[...new Set(myHouses().map(h=>h.farm||'ไม่ระบุฟาร์ม'))];
@@ -2945,7 +2946,7 @@ function expCard(icon,title,desc,count,unit,fn){
     <button class="btn" style="margin-top:6px${dis?';opacity:.5;cursor:not-allowed':''}" ${dis?'disabled':'onclick="'+fn+'"'}>📊 ส่งออก Excel${dis?' — ไม่มีข้อมูล':''}</button>
   </div>`;
 }
-function renderClerkExport(){
+function renderClerkExport(){ if(vetGuard())return;
   histPush('clerkExport',renderClerkExport);
   const farmList=[...new Set(myHouses().map(h=>h.farm||'ไม่ระบุฟาร์ม'))];
   const orderedFarms=FARMS.filter(f=>farmList.includes(f)).concat(farmList.filter(f=>!FARMS.includes(f)));
@@ -3986,8 +3987,7 @@ function renderHouseList(){
     <h2 class="page">${title}</h2>
     <div class="sub">เลือกเล้าที่ต้องการบันทึกข้อมูล · วันที่ ${DEMO_DATE_SHORT}</div>
     ${scopeNoteHTML()}
-    ${effRole()==='vet'?vetNav('rec'):''}
-    ${clerkNav('rec')}
+    ${effRole()==='vet'?vetNav('rec'):clerkNav('rec')}
     ${effRole()==='clerk'?incomingAlertBannerHTML():''}
     ${effRole()==='clerk'?closeAlertBannerHTML():''}
     ${pendingFillBannerHTML()}
@@ -5177,7 +5177,7 @@ function bfGridTableHTML(){ bfEnsureRows();
   <div class="sub" style="margin-top:6px">▾ = กรอกรายละเอียดเพิ่ม (ประเภทตาย/คัด · ลูกค้า · เลขบิล · ย้ายออก) — เว้นว่างได้ ระบบใส่ค่ามาตรฐานให้ · <b>⧉ = เพิ่มรายการซ้อนวันเดียวกัน</b> เช่น ตาย 2 ล็อตคนละราคาซาก หรือขาย 3 เจ้าคนละราคา/น้ำหนัก (ระบบรวมยอดของวันให้อัตโนมัติ) · การ "ย้ายออกย้อนหลัง" บันทึกเป็นประวัติของหลังนี้ ให้ไปลงยอด "ย้ายเข้า/รับเข้าเพิ่ม" ที่หลังปลายทางเองด้วย</div>`;
 }
 function renderBackfillGrid(){ const el=$("#bfGrid"); if(el){ el.innerHTML=bfGridTableHTML(); bfRecalcPreview(); } }
-function renderBackfill(){
+function renderBackfill(){ if(vetGuard())return;
   histPush('backfill',renderBackfill);
   const houses=bfHousesForUser();
   const scope=bfHousesInScope();
@@ -5273,7 +5273,7 @@ function bfsTableHTML(){
     </tr>`; }).join('');
   return `<table class="densetbl" style="min-width:940px"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
 }
-function renderBackfillFast(){
+function renderBackfillFast(){ if(vetGuard())return;
   histPush('backfillfast',renderBackfillFast);
   if(!bfsDate) bfsDate=bfsYesterdayISO();
   const farms=bfsFarms(), list=bfsList();
@@ -6163,7 +6163,7 @@ function stockAddCatalogItem(){
   setTimeout(function(){ const s=$("#stkInName"); if(s){ s.value=name; const p=$("#stkInPrice"); const it=catalogItemOf(cat,name); if(p&&it) p.value=it.price||''; } const q=$("#stkInQty"); if(q) q.focus(); },0);
   toast('➕ เพิ่ม "'+name+'" เข้าหมวด '+cat+' แล้ว · รับเข้าได้เลย (ราคาให้เจ้าของตั้ง)');
 }
-function renderStock(){
+function renderStock(){ if(vetGuard())return;
   histPush('stock',renderStock);
   const farms=stockFarmsForUser();
   if(!stockFarm || farms.indexOf(stockFarm)<0) stockFarm=farms[0]||'';
@@ -7463,7 +7463,7 @@ function sbCanWrite(){ return ['owner','admin','clerk'].includes(ROLE); }
 function sbCanEditPrice(){ return ['owner','admin'].includes(ROLE); } // ตั้ง/แก้ราคา = เจ้าของ/ผู้ดูแลเท่านั้น · เสมียนกรอกบิลได้แต่แก้ราคาไม่ได้ (ราคาเติมจากทะเบียนลูกค้าที่เจ้าของตั้งไว้)
 /* ---------- หน้า "แท่นขายหมู" (รายการบิล) ---------- */
 let sbKindFilter='', sbFarmFilter='', SB_D=null, SB_ISNEW=false;
-function renderSaleStand(){
+function renderSaleStand(){ if(vetGuard())return;
   histPush('salestand',renderSaleStand);
   const bills=SALE_BILLS.slice().filter(b=>(!sbKindFilter||b.kind===sbKindFilter)&&(!sbFarmFilter||b.farm===sbFarmFilter))
     .sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||''))||((b.createdAt||0)-(a.createdAt||0)));
@@ -8415,7 +8415,7 @@ function lgPayCardHTML(){
     </div><div class="sub" style="margin-top:6px">📒 ${hint}</div></div>`;
 }
 /* ── หน้า 📒 บัญชีลูกค้า / ลูกหนี้ ── */
-function renderLedger(){
+function renderLedger(){ if(vetGuard())return;
   histPush('ledger', renderLedger);
   if(!lgCanUse()){ $("#view").innerHTML='<h2 class="page">📒 บัญชีลูกค้า</h2><div class="banner bad">⛔ หน้านี้เปิดได้เฉพาะ เจ้าของ / ผู้ดูแล / เสมียน</div>'; return; }
   const bals=LG.customers.map(c=>({c:c, bal:lgBalance(c.id)}));
