@@ -105,10 +105,10 @@
   .gbreathe.gtrouble{animation-duration:1.25s} /* มีตายวันนี้ = เต้นถี่ */
   @keyframes gflashk{0%{filter:none}20%{filter:drop-shadow(0 0 18px rgba(53,224,200,1)) brightness(1.6)}100%{filter:none}}
   .gflash{animation:gflashk 1.6s ease-out 3} /* วาบเมื่อมีข้อมูลใหม่เข้ามาสดๆ */
-  #gFeed{position:absolute;right:10px;bottom:12px;top:auto;width:240px;max-height:40%;overflow:hidden;display:none;flex-direction:column;justify-content:flex-end;gap:6px;z-index:5;pointer-events:none} /* ล่างขวา — พ้นป้ายผู้ซื้อ/เส้นทองกลางขวา และไม่ชนแผงต้องดู */
+  #gFeed{position:absolute;right:10px;bottom:12px;top:auto;width:225px;max-height:32%;overflow:hidden;display:none;flex-direction:column;justify-content:flex-end;gap:5px;z-index:5;pointer-events:none} /* ล่างขวา — เล็กกะทัดรัด ไม่บังแผนผัง */
   @media(min-width:900px){#gFeed{display:flex}}
   @keyframes gfin{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
-  .gfi{background:rgba(13,26,31,.74);border:1px solid rgba(83,234,210,.16);border-radius:10px;padding:7px 10px;color:#cfe0db;font-size:11.5px;line-height:1.45;backdrop-filter:blur(3px);animation:gfin .35s ease both;pointer-events:auto} /* การ์ดกดได้ (บินไปหาหลัง) · ช่องว่างระหว่างการ์ดยังลาก/ซูมแผนที่ทะลุได้ */
+  .gfi{background:rgba(13,26,31,.68);border:1px solid rgba(83,234,210,.14);border-radius:9px;padding:5px 8px;color:#cfe0db;font-size:11px;line-height:1.4;backdrop-filter:blur(3px);animation:gfin .35s ease both;pointer-events:auto} /* การ์ดกดได้ (บินไปหาหลัง) · ช่องว่างระหว่างการ์ดยังลาก/ซูมแผนที่ทะลุได้ */
   .gfi b{color:#8fd8ca}
   #fgsvg .ghouse,#fgsvg .gvetg,#fgsvg .gfarmg,#fgsvg .gvetline,#fgsvg .gedge{transition:opacity .28s}
   #fgsvg .glab{paint-order:stroke;stroke:#0d1a1f;stroke-width:2.6px;stroke-linejoin:round}
@@ -1948,14 +1948,22 @@ function gFull(){ const c=document.getElementById('gCard'), p=document.getElemen
 }
 /* ── เครื่องยนต์ "จอมอนิเตอร์สด" ── */
 function gSnapHouses(){ const m={}; (myHouses()||[]).forEach(h=>{ m[h.id]={f:!!h.filled,p:h.pigs||0,d:h.deadToday||0,e:(h.editLog&&h.editLog[0]&&h.editLog[0].ts)||0}; }); return m; }
-function gFeedFill(){ // ฟีดเหตุการณ์ล่าสุด (จากประวัติการแก้ไขของทุกเล้า)
+function gFeedFill(){ // ฟีดเหตุการณ์ล่าสุด — เหตุการณ์เดียวกันหลายเล้า (เช่น ลงจากบิลเดียวกัน) ยุบรวมการ์ดเดียว + ซ่อนได้ ไม่บังแผนผัง
   const el=document.getElementById('gFeed'); if(!el) return;
+  let hide=false; try{ hide=localStorage.getItem('gFeedHide')==='1'; }catch(e){}
+  if(hide){ el.innerHTML='<div class="gfi" style="align-self:flex-end;cursor:pointer;opacity:.72" onclick="gFeedToggle()" title="แสดงเหตุการณ์ล่าสุด">📋 เหตุการณ์ ▸</div>'; return; }
   const ev=[];
   (myHouses()||[]).forEach(h=>{ (h.editLog||[]).slice(0,6).forEach(e=>{ if(e&&e.ts) ev.push({ts:e.ts,time:e.time||'',by:e.by||'',code:h.code||'',id:h.id,note:e.note||''}); }); });
   ev.sort((a,b)=>b.ts-a.ts);
-  el.innerHTML=ev.slice(0,12).map((e,i)=>`<div class="gfi" style="animation-delay:${i*45}ms;cursor:pointer" title="แตะเพื่อบินไปหาหลังนี้" onclick="gFeedGo(${e.id})"><b>หลัง ${escA(e.code)}</b> · ${escA((e.note||'บันทึกข้อมูล').slice(0,60))}<br><span style="opacity:.62">${escA(e.by)} · ${escA(e.time)}</span></div>`).join('')
-    ||'<div class="gfi" style="opacity:.55">ยังไม่มีเหตุการณ์ล่าสุด</div>';
+  const groups=[], gk={};   // จัดกลุ่ม: note+ผู้ทำ+เวลา เดียวกัน = เหตุการณ์เดียว → การ์ดเดียว โชว์เล้าเป็น chip แตะบินได้
+  ev.slice(0,40).forEach(e=>{ const k=(e.note||'')+'|'+(e.by||'')+'|'+(e.time||''); let g=gk[k]; if(!g){ g={note:e.note,by:e.by,time:e.time,houses:[]}; gk[k]=g; groups.push(g); } if(!g.houses.some(x=>x.id===e.id)) g.houses.push({id:e.id,code:e.code}); });
+  el.innerHTML='<div style="text-align:right;pointer-events:auto"><span style="cursor:pointer;font-size:10px;color:#6fa79b;background:rgba(13,26,31,.6);border:1px solid rgba(83,234,210,.14);border-radius:7px;padding:2px 8px" onclick="gFeedToggle()" title="ซ่อนฟีดเหตุการณ์">ซ่อน ✕</span></div>'+
+    (groups.slice(0,5).map((g,i)=>{
+      const chips=g.houses.slice(0,8).map(h=>`<span onclick="event.stopPropagation();gFeedGo(${h.id})" title="แตะเพื่อบินไปหาหลังนี้" style="display:inline-block;background:rgba(83,234,210,.13);border-radius:6px;padding:0 6px;margin:2px 3px 0 0;cursor:pointer;color:#8fd8ca;font-weight:700">${escA(h.code)}</span>`).join('')+(g.houses.length>8?`<span style="opacity:.6;font-size:10px"> +${g.houses.length-8} เล้า</span>`:'');
+      return `<div class="gfi" style="animation-delay:${i*45}ms">${escA((g.note||'บันทึกข้อมูล').slice(0,52))}${(g.note||'').length>52?'…':''}<br>${chips}<div style="opacity:.55;font-size:10px;margin-top:1px">${escA(g.by)} · ${escA(g.time)}</div></div>`;
+    }).join('')||'<div class="gfi" style="opacity:.55">ยังไม่มีเหตุการณ์ล่าสุด</div>');
 }
+function gFeedToggle(){ try{ localStorage.setItem('gFeedHide', localStorage.getItem('gFeedHide')==='1'?'0':'1'); }catch(e){} gFeedFill(); }
 function gBurst(x,y){ // เม็ดแสงพุ่งจากเล้าที่มีข้อมูลใหม่ เข้าศูนย์กลาง SJF
   const s=document.getElementById('fgsvg'); if(!s) return;
   const el=document.createElementNS('http://www.w3.org/2000/svg','circle');
