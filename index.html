@@ -4921,9 +4921,9 @@ let bfHouse='', bfRows=[], bfLoadedFor=null, bfFarm='';
 function bfNum(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
 // แปลงรายการบันทึกเดิม → แถวในตารางย้อนหลัง (ติดธง existing + rowId ไว้อัปเดตในที่เดิม)
 function bfRowFromEntry(e){ if(!e.rowId) e.rowId='bfx'+Math.round(Math.random()*1e9); return { date:thaiDayToISO(e.date)||'',
-  dead:(e.deadN||'')+'', dW:(e.deadW||'')+'', dP:(e.deadP||'')+'', dType:e.deadType||'',
-  cN:(e.cullN||'')+'', cW:(e.cullW||'')+'', cP:(e.cullP||'')+'', cType:e.cullType||'', cCust:(e.cullCust&&e.cullCust!=='-')?e.cullCust:'', cBill:(e.cullBill&&e.cullBill!=='-')?e.cullBill:'',
-  sN:(e.soldN||'')+'', sW:(e.soldW||'')+'', sP:(e.soldP||'')+'', sCust:(e.soldCust&&e.soldCust!=='-')?e.soldCust:'', sBill:(e.soldBill&&e.soldBill!=='-')?e.soldBill:'',
+  dead:(e.deadN||'')+'', dW:(e.deadW||'')+'', dP:(e.deadP||'')+'', dV:(e.deadVal!=null?e.deadVal:'')+'', dType:e.deadType||'',
+  cN:(e.cullN||'')+'', cW:(e.cullW||'')+'', cP:(e.cullP||'')+'', cV:(e.cullVal!=null?e.cullVal:'')+'', cType:e.cullType||'', cCust:(e.cullCust&&e.cullCust!=='-')?e.cullCust:'', cBill:(e.cullBill&&e.cullBill!=='-')?e.cullBill:'',
+  sN:(e.soldN||'')+'', sW:(e.soldW||'')+'', sP:(e.soldP||'')+'', sV:(e.soldVal!=null?e.soldVal:'')+'', sCust:(e.soldCust&&e.soldCust!=='-')?e.soldCust:'', sBill:(e.soldBill&&e.soldBill!=='-')?e.soldBill:'',
   mN:(e.moveN||'')+'', mW:(e.moveW||'')+'', mDest:e.moveDest||'',
   existing:true, rowId:e.rowId, moveN:e.moveN||0, moveInN:e.moveInN||0, _open:false }; } // เขียน rowId กลับเข้า entry ต้นฉบับ (บันทึกเก่า/seed ไม่มี rowId) → bfSubmit จับคู่อัปเดตได้จริง
 // โหลดบันทึกเดิมทั้งหมดของหลังที่เลือกมาแสดง (เรียงเก่า→ใหม่)
@@ -5080,28 +5080,34 @@ function bfRecalcPreview(){ const p=bfPreview();
   if(sm) sm.innerHTML = p.rows? ('ตั้งต้น <b>'+fmt(p.recv)+'</b> ตัว · รวมตาย '+fmt(p.totDead)+' · คัด '+fmt(p.totCull)+' · ขาย '+fmt(p.totSold)+(p.totMove?' · ย้ายออก '+fmt(p.totMove):'')+' → คงเหลือสุดท้าย <b style="color:'+(p.final<0?'#c0392b':'#1e7e4f')+'">'+fmt(p.final)+'</b> ตัว'+(p.totVal?' · 💰 มูลค่ารวม (ซาก+คัด+ขาย) <b>'+fmt(Math.round(p.totVal))+'</b> บาท':'')+(p.firstNeg>=0?' · <b style="color:#c0392b">⚠️ มีบางวันคงเหลือติดลบ — ตรวจตัวเลข</b>':'')) : '<span class="sub">ยังไม่มีข้อมูล — สร้างแถวแล้วกรอกตัวเลข</span>';
 }
 function bfBuildEntry(h,r,dThai){
-  const deadN=bfNum(r.dead), deadW=bfNum(r.dW), deadP=bfNum(r.dP),
-    cullN=bfNum(r.cN), cullW=bfNum(r.cW), cullP=bfNum(r.cP),
-    soldN=bfNum(r.sN), soldW=bfNum(r.sW), soldP=bfNum(r.sP),
+  const deadN=bfNum(r.dead), deadW=bfNum(r.dW), deadP=bfNum(r.dP), dV=bfNum(r.dV),
+    cullN=bfNum(r.cN), cullW=bfNum(r.cW), cullP=bfNum(r.cP), cV=bfNum(r.cV),
+    soldN=bfNum(r.sN), soldW=bfNum(r.sW), soldP=bfNum(r.sP), sV=bfNum(r.sV),
     moveN=bfNum(r.mN), moveW=bfNum(r.mW);
-  return { rowId:'bf'+Date.now()+'_'+Math.round(Math.random()*1e6), date:dThai, by:(CURRENT_USER&&CURRENT_USER.name)||'เสมียน', remain:0,
+  const e={ rowId:'bf'+Date.now()+'_'+Math.round(Math.random()*1e6), date:dThai, by:(CURRENT_USER&&CURRENT_USER.name)||'เสมียน', remain:0,
     deadType:deadN?((r.dType||'').trim()||'ตาย'):'', deadN, deadW, deadP, deadCust:'-', deadBill:'-',
     cullType:cullN?((r.cType||'').trim()||'คัดขาย'):'', cullN, cullW, cullP, cullCust:(r.cCust||'').trim()||'-', cullBill:(r.cBill||'').trim()||'-',
     soldN, soldW, soldP, soldCust:(r.sCust||'').trim()||'-', soldBill:(r.sBill||'').trim()||'-',
     moveN, moveW, moveDest:moveN?(r.mDest||''):'', moveNote:moveN?'ย้ายออก (กรอกย้อนหลัง)':'',
-    dead:deadN, outN:soldN+cullN, avg:soldN?+(soldW/soldN).toFixed(1):0, value:(soldW*soldP)+(cullW*cullP)+(deadW*deadP),
+    dead:deadN, outN:soldN+cullN, avg:soldN?+(soldW/soldN).toFixed(1):0,
+    value:(sV||soldW*soldP)+(cV||cullW*cullP)+(dV||deadW*deadP),
     cust:'-', bill:'-', _backfill:true };
+  if(dV>0) e.deadVal=dV; if(cV>0) e.cullVal=cV; if(sV>0) e.soldVal=sV;   // มูลค่าบาทรวมกรอกตรง (มีในกระดาษ) → รายงานใช้ค่านี้ก่อน · ไม่กรอก = คิดจาก นน.×฿/กก. เหมือนเดิม
+  return e;
 }
 function bfApplyRowToEntry(c,r){ // เขียนค่าจากแถว → entry (ตาย/คัด/ขาย + ประเภท/ลูกค้า/บิล · คงการย้ายเข้า/ออกเดิมไว้)
-  const deadN=bfNum(r.dead), deadW=bfNum(r.dW), deadP=bfNum(r.dP),
-    cullN=bfNum(r.cN), cullW=bfNum(r.cW), cullP=bfNum(r.cP),
-    soldN=bfNum(r.sN), soldW=bfNum(r.sW), soldP=bfNum(r.sP);
+  const deadN=bfNum(r.dead), deadW=bfNum(r.dW), deadP=bfNum(r.dP), dV=bfNum(r.dV),
+    cullN=bfNum(r.cN), cullW=bfNum(r.cW), cullP=bfNum(r.cP), cV=bfNum(r.cV),
+    soldN=bfNum(r.sN), soldW=bfNum(r.sW), soldP=bfNum(r.sP), sV=bfNum(r.sV);
   c.deadN=deadN; c.deadType=deadN?((r.dType||'').trim()||c.deadType||'ตาย'):''; c.deadW=deadW; c.deadP=deadP; c.dead=deadN;
   c.cullN=cullN; c.cullType=cullN?((r.cType||'').trim()||c.cullType||'คัดขาย'):''; c.cullW=cullW; c.cullP=cullP;
   if((r.cCust||'').trim()) c.cullCust=r.cCust.trim(); if((r.cBill||'').trim()) c.cullBill=r.cBill.trim();
   c.soldN=soldN; c.soldW=soldW; c.soldP=soldP;
   if((r.sCust||'').trim()) c.soldCust=r.sCust.trim(); if((r.sBill||'').trim()) c.soldBill=r.sBill.trim();
-  c.outN=soldN+cullN; c.value=(soldW*soldP)+(cullW*cullP)+(deadW*deadP); c.avg=soldN?+(soldW/soldN).toFixed(1):0;
+  if(dV>0) c.deadVal=dV; else delete c.deadVal;   // ล้างช่อง ฿รวม = กลับไปคิดจาก นน.×฿/กก.
+  if(cV>0) c.cullVal=cV; else delete c.cullVal;
+  if(sV>0) c.soldVal=sV; else delete c.soldVal;
+  c.outN=soldN+cullN; c.value=(sV||soldW*soldP)+(cV||cullW*cullP)+(dV||deadW*deadP); c.avg=soldN?+(soldW/soldN).toFixed(1):0;
   return c;
 }
 function bfSubmit(){
@@ -5112,7 +5118,7 @@ function bfSubmit(){
   // อนุญาตหลายรายการในวันเดียวกัน (แยกล็อต/ราคา เช่น ตาย 2 ราคา · ขาย 3 เจ้า) — ระบบรวมยอดต่อวันให้อัตโนมัติทุกหน้า
   const updByRowId={}; const newEntries=[]; let updated=0;
   bfRows.forEach(r=>{
-    const hasData=bfNum(r.dead)||bfNum(r.cN)||bfNum(r.sN)||bfNum(r.cW)||bfNum(r.sW)||bfNum(r.dW)||bfNum(r.mN);
+    const hasData=bfNum(r.dead)||bfNum(r.cN)||bfNum(r.sN)||bfNum(r.cW)||bfNum(r.sW)||bfNum(r.dW)||bfNum(r.mN)||bfNum(r.dV)||bfNum(r.cV)||bfNum(r.sV);
     if(r.existing && r.rowId){ updByRowId[r.rowId]=r; updated++; return; }
     if(!r.date || !hasData) return;
     newEntries.push(bfBuildEntry(h,r,isoToThaiDay(r.date)));
@@ -5147,7 +5153,7 @@ function bfGridTableHTML(){ bfEnsureRows();
   return `${exN?'<div class="sub" style="margin:0 0 8px"><span style="background:#e6f4ea;color:#1e7e4f;padding:1px 7px;border-radius:6px;font-weight:700">✔ บันทึกแล้ว</span> = วันที่มีข้อมูลเดิมอยู่แล้ว ('+exN+' วัน) — แก้ตัวเลขในแถวได้ ระบบจะอัปเดตให้</div>':''}
   <datalist id="bfCustList">${[...new Set(SB_CUST.map(c=>c.name).concat(CUSTOMERS))].filter(c=>c&&String(c).trim()).map(c=>`<option>${escA(c)}</option>`).join('')}</datalist>
   <div style="overflow-x:auto"><table>
-    <thead><tr><th></th><th>วันที่</th><th class="num">ตาย</th><th class="num">ตาย นน.</th><th class="num">฿ซาก/กก.</th><th class="num">คัด(ตัว)</th><th class="num">คัด นน.</th><th class="num">คัด ฿/กก.</th><th class="num">ขาย(ตัว)</th><th class="num">ขาย นน.</th><th class="num">ขาย ฿/กก.</th><th class="num">คงเหลือ</th><th></th></tr></thead>
+    <thead><tr><th></th><th>วันที่</th><th class="num">ตาย</th><th class="num">ตาย นน.</th><th class="num">฿ซาก/กก.</th><th class="num">ตาย ฿รวม</th><th class="num">คัด(ตัว)</th><th class="num">คัด นน.</th><th class="num">คัด ฿/กก.</th><th class="num">คัด ฿รวม</th><th class="num">ขาย(ตัว)</th><th class="num">ขาย นน.</th><th class="num">ขาย ฿/กก.</th><th class="num">ขาย ฿รวม</th><th class="num">คงเหลือ</th><th></th></tr></thead>
     <tbody>${bfRows.map((r,i)=>{const ex=r.existing;
       const seq=(i>0&&r.date&&bfRows[i-1].date===r.date); // วันเดียวกับแถวก่อนหน้า = รายการซ้อน (แยกล็อต/ราคา)
       let html=`<tr${ex?` style="background:#f3f8f4${r._outside?';opacity:.72':''}"`:''}>
@@ -5156,16 +5162,19 @@ function bfGridTableHTML(){ bfEnsureRows();
       <td class="num">${inp(i,'dead',54,true)}</td>
       <td class="num">${inp(i,'dW',62,true)}</td>
       <td class="num">${inp(i,'dP',56,true)}</td>
+      <td class="num">${inp(i,'dV',72,false)}</td>
       <td class="num">${inp(i,'cN',54,true)}</td>
       <td class="num">${inp(i,'cW',62,false)}</td>
       <td class="num">${inp(i,'cP',56,false)}</td>
+      <td class="num">${inp(i,'cV',72,false)}</td>
       <td class="num">${inp(i,'sN',54,true)}</td>
       <td class="num">${inp(i,'sW',62,false)}</td>
       <td class="num">${inp(i,'sP',56,false)}</td>
+      <td class="num">${inp(i,'sV',72,false)}</td>
       <td class="num" id="bf_rem_${i}">${p.rem[i]!=null?('<b style="color:'+(p.rem[i]<0?'#c0392b':'#1e7e4f')+'">'+fmt(p.rem[i])+'</b>'):'<span class="sub">-</span>'}</td>
       <td style="white-space:nowrap"><button class="btn ghost sm" style="padding:4px 8px" title="เพิ่มรายการซ้อนวันเดียวกัน — แยกล็อต/ราคา (เช่น ตาย 2 ราคา · ขาย 3 เจ้า)" onclick="bfDupRow(${i})">⧉</button>${ex?'':`<button class="btn ghost sm" style="color:var(--bad);padding:4px 8px" onclick="bfDelRow(${i})">🗑</button>`}</td>
     </tr>`;
-      if(r._open){ html+=`<tr${ex?' style="background:#f3f8f4"':''}><td></td><td colspan="12" style="padding:8px 10px 12px">
+      if(r._open){ html+=`<tr${ex?' style="background:#f3f8f4"':''}><td></td><td colspan="15" style="padding:8px 10px 12px">
         <div style="display:flex;gap:8px 14px;flex-wrap:wrap;align-items:flex-end">
           <div><div class="sub" style="margin:0 0 3px;font-size:11.5px">ประเภทการตาย</div>${sel(i,'dType',DEATH_TYPES,130)}</div>
           <div><div class="sub" style="margin:0 0 3px;font-size:11.5px">ประเภทคัดขาย</div>${sel(i,'cType',CULL_TYPES,130)}</div>
