@@ -7541,14 +7541,18 @@ function sbToggleFarmFilter(f){ if(!SB_D)return; SB_D.farms=SB_D.farms||[]; cons
 function sbHasHouse(code){ const n=sbNormCode(code); return (SB_D.houses||[]).some(x=>sbNormCode(x.code)===n); }
 function sbToggleHouse(code){ if(!SB_D)return; SB_D.houses=SB_D.houses||[]; const n=sbNormCode(code); const i=SB_D.houses.findIndex(x=>sbNormCode(x.code)===n); if(i>=0){ SB_D.houses.splice(i,1); } else { SB_D.houses.push({code:String(code).toUpperCase(),n:''}); } sbDeriveFarm(); renderSaleBillForm(); }
 function sbDeriveFarm(){ if(!SB_D)return; const raw=(SB_D.kind==='deadcull'?(SB_D.items||[]).map(x=>x&&x.house):(SB_D.houses||[]).map(x=>x&&x.code)).filter(Boolean); if(!raw.length){ SB_D.farm=''; return; } const fs=[...new Set(raw.map(c=>{const h=sbFindHouse(c); return h&&h.farm;}).filter(Boolean))]; if(fs.length) SB_D.farm=fs.join(' + '); }   // ไม่มีหลัง = ไม่มีฟาร์ม (เคลียร์ ไม่ค้างค่าเก่า) · มีหลังแต่ไม่ match = คงค่าเดิม (กันบิลเก่าโดนล้าง)   // ฟาร์มของบิล = ฟาร์มจริงของหลังที่เลือก (รหัสไม่ซ้ำข้ามฟาร์ม จึงรู้แน่)
+function sbAddItemHouse(code){ if(!SB_D)return; SB_D.items=SB_D.items||[]; SB_D.items.push({house:String(code).toUpperCase(),type:'dead',dtype:'ตาย',w:''}); sbDeriveFarm(); renderSaleBillForm(); setTimeout(()=>{ const els=document.querySelectorAll('#sbItemsBox input[type=number]'); const last=els[els.length-1]; if(last){ last.focus(); last.scrollIntoView({block:'center'}); } },50); }   // deadcull: แตะรหัสหลัง = เพิ่มหมู 1 ตัวของหลังนั้น แล้วโฟกัสช่องน้ำหนัก
 function sbHousePickHTML(){
+  const isDC=SB_D.kind==='deadcull';
   const farms=sbAllFarms(), sel=sbFilterFarms();
   const fchips=farms.map(f=>{ const on=((SB_D&&SB_D.farms)||[]).indexOf(f)>=0; return `<button class="sbfchip${on?' on':''}" onclick="sbToggleFarmFilter('${escA(f)}')">${on?'✓ ':''}${escA(f)}</button>`; }).join('');
+  const has=c=>isDC?(SB_D.items||[]).some(x=>sbNormCode(x.house)===sbNormCode(c)):sbHasHouse(c);
+  const click=c=>isDC?`sbAddItemHouse('${escA(c)}')`:`sbToggleHouse('${escA(c)}')`;
   const groups=sel.map(f=>{ const codes=HOUSES.filter(h=>(h.farm||'')===f).slice().sort(byCode).map(h=>h.code);
-    return `<div style="margin-bottom:8px"><div class="sub" style="margin:0 0 3px;font-weight:700">${escA(f)}</div>${codes.map(c=>`<button class="sbhchip${sbHasHouse(c)?' on':''}" onclick="sbToggleHouse('${escA(c)}')">${escA(c)}</button>`).join('')||'<span class="sub">— ไม่มีหลัง —</span>'}</div>`;
+    return `<div style="margin-bottom:8px"><div class="sub" style="margin:0 0 3px;font-weight:700">${escA(f)}</div>${codes.map(c=>`<button class="sbhchip${has(c)?' on':''}" onclick="${click(c)}">${escA(c)}</button>`).join('')||'<span class="sub">— ไม่มีหลัง —</span>'}</div>`;
   }).join('');
   return `<div class="sub" style="margin:0 0 5px">กรองฟาร์ม (แตะได้หลายฟาร์ม · ไม่เลือก = ทุกฟาร์ม):</div><div style="margin-bottom:9px">${fchips}</div>
-    <div class="sub" style="margin:0 0 4px">แตะรหัสหลังที่ขายในคันนี้ (เลือกได้หลายหลัง/หลายฟาร์ม):</div>
+    <div class="sub" style="margin:0 0 4px">${isDC?'แตะรหัสหลัง → เพิ่มหมู 1 ตัวของหลังนั้น (แตะซ้ำ = เพิ่มอีกตัว)':'แตะรหัสหลังที่ขายในคันนี้ (เลือกได้หลายหลัง/หลายฟาร์ม):'}</div>
     <div style="max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:11px;padding:9px;margin-bottom:11px">${groups}</div>`;
 }
 function sbHousesHTML(){
@@ -7871,7 +7875,8 @@ function renderSaleBillForm(){
       </div></div>
     ${lgPayCardHTML()}
     ${isDC?`
-    <div class="card"><h3>🐷 รายการหมู (ทีละตัว)</h3><div class="sub" style="margin:0 0 6px">พิมพ์รหัสหลังในช่อง "หลัง" ได้ทุกฟาร์ม (รหัสไม่ซ้ำ ระบบรู้ฟาร์มเอง)</div><datalist id="sbHouseDL">${[...new Set(HOUSES.filter(h=>sbFilterFarms().indexOf(h.farm||'')>=0).slice().sort(byCode).map(h=>h.code))].map(c=>`<option value="${escA(c)}">`).join('')}</datalist>
+    <div class="card"><h3>🐷 รายการหมู (ทีละตัว)</h3><datalist id="sbHouseDL">${[...new Set(HOUSES.filter(h=>sbFilterFarms().indexOf(h.farm||'')>=0).slice().sort(byCode).map(h=>h.code))].map(c=>`<option value="${escA(c)}">`).join('')}</datalist>
+      ${sbHousePickHTML()}
       <div id="sbItemsBox">${sbItemsHTML()}</div></div>
     <div class="card"><h3>💵 ราคาตามช่วงน้ำหนัก</h3><div id="sbBandsBox">${sbBandsHTML()}</div></div>`
     :`
