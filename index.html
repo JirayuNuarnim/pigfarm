@@ -2681,14 +2681,22 @@ function exportClerkReq(){
   if(!rows.length){toast('ไม่มีข้อมูลให้ส่งออก');return;}
   const dlab=reqDateLabel();
   const scope=[crFarm?('ฟาร์ม '+crFarm):'',crHouse?('หลัง '+crHouse):'',crVet?('หมอ '+crVet):''].filter(Boolean).join(' · ')||'ทุกฟาร์ม/หลังที่ดูแล';
-  let qty=0, sum=0;
-  const data=rows.map(m=>{ qty+=Number(m.qty)||0; sum+=Number(m.total)||0; return [m.date,m.farm,m.house,m.cat,m.name,m.dose||'',m.qty||0,m.price||0,m.total||0,m.note||'',m.vet||'']; });
+  // จัดกลุ่มตามหมอ: หมอคนละช่วง + แถวรวมย่อยของแต่ละหมอ (ชื่อหมอไม่สลับซ้อนกัน อ่านง่าย)
+  const byVet={}; rows.forEach(m=>{ const k=(m.vet&&String(m.vet).trim())||'(ไม่ระบุหมอ)'; (byVet[k]=byVet[k]||[]).push(m); });
+  let qty=0, sum=0; const data=[];
+  Object.keys(byVet).sort((a,b)=>a.localeCompare(b,'th')).forEach(v=>{
+    let vq=0, vs=0;
+    byVet[v].slice().sort((a,b)=>reqDateKey(a.date)-reqDateKey(b.date)||String(a.name||'').localeCompare(String(b.name||''),'th'))
+      .forEach(m=>{ vq+=Number(m.qty)||0; vs+=Number(m.total)||0; data.push([v,m.date,m.farm,m.house,m.cat,m.name,m.dose||'',m.qty||0,m.price||0,m.total||0,m.note||'']); });
+    qty+=vq; sum+=vs;
+    data.push(['รวม — '+v+' ('+byVet[v].length+' รายการ)','','','','','','',vq,'',vs,'']);
+  });
   const meta=[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'ขอบเขต',v:scope}];
   if(dlab) meta.push({k:'วันที่',v:dlab});
   meta.push({k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออกรายงาน',v:(CURRENT_USER&&CURRENT_USER.name)||'-'});
-  const html=xlsSheet({ title:'รายการเบิกยา/อุปกรณ์', meta:meta,
-    columns:[{label:'วันที่',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'หมวด',type:'text',w:120},{label:'ชื่อ',type:'text',w:200},{label:'โดสการใช้',type:'text',w:130},{label:'จำนวน',type:'num',w:70},{label:'ราคา/หน่วย',type:'money',w:90},{label:'มูลค่า',type:'money',w:100},{label:'หมายเหตุ',type:'text',w:140},{label:'หมอ',type:'text',w:120}],
-    rows:data, totals:['รวม '+rows.length+' รายการ','','','','','',qty,'',sum,'',''] });
+  const html=xlsSheet({ title:'รายการเบิกยา/อุปกรณ์ (แยกตามหมอ)', meta:meta,
+    columns:[{label:'หมอ',type:'text',w:130},{label:'วันที่',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'หมวด',type:'text',w:120},{label:'ชื่อ',type:'text',w:200},{label:'โดสการใช้',type:'text',w:130},{label:'จำนวน',type:'num',w:70},{label:'ราคา/หน่วย',type:'money',w:90},{label:'มูลค่า',type:'money',w:100},{label:'หมายเหตุ',type:'text',w:140}],
+    rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','','','',qty,'',sum,''] });
   downloadXls('รายการเบิกยา'+(crFarm?'_'+crFarm:'')+(crHouse?'_หลัง'+crHouse:'')+(crVet?'_'+crVet:'')+(dlab?'_'+dlab.replace(/ /g,''):'')+'.xls', html);
   toast('ส่งออกไฟล์ Excel แล้ว ('+rows.length+' รายการ) ✓');
 }
@@ -2864,12 +2872,20 @@ function renderClerkFeedReq(){ if(vetGuard())return;
 function exportClerkFeedReq(){
   const rows=clerkFeedReqFiltered();
   if(!rows.length){toast('ไม่มีรายการเบิกอาหารให้ส่งออก');return;}
-  let qty=0;
-  const data=rows.map(r=>{ qty+=Number(r.qty)||0; return [r.date,r.farm,r.house,r.feedSrc||'',r.feedNo||'',r.qty||0,r.unit||'',r.formula||'',r.note||'',r.by||'']; });
-  const html=xlsSheet({ title:'รายการเบิกอาหาร',
+  // จัดกลุ่มตามหมอ (คนเบิก): หมอคนละช่วง + แถวรวมย่อย
+  const byVet={}; rows.forEach(r=>{ const k=(r.by&&String(r.by).trim())||'(ไม่ระบุหมอ)'; (byVet[k]=byVet[k]||[]).push(r); });
+  let qty=0; const data=[];
+  Object.keys(byVet).sort((a,b)=>a.localeCompare(b,'th')).forEach(v=>{
+    let vq=0;
+    byVet[v].slice().sort((a,b)=>reqDateKey(a.date)-reqDateKey(b.date)||String(a.feedNo||'').localeCompare(String(b.feedNo||''),'th'))
+      .forEach(r=>{ vq+=Number(r.qty)||0; data.push([v,r.date,r.farm,r.house,r.feedSrc||'',r.feedNo||'',r.qty||0,r.unit||'',r.formula||'',r.note||'']); });
+    qty+=vq;
+    data.push(['รวม — '+v+' ('+byVet[v].length+' รายการ)','','','','','',vq,'','','']);
+  });
+  const html=xlsSheet({ title:'รายการเบิกอาหาร (แยกตามหมอ)',
     meta:[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'ขอบเขต',v:cfrFarm?('ฟาร์ม '+cfrFarm):'ทุกฟาร์มที่ดูแล'},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออกรายงาน',v:(CURRENT_USER&&CURRENT_USER.name)||'-'}],
-    columns:[{label:'วันที่',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'แหล่ง',type:'text',w:80},{label:'เบอร์อาหาร',type:'text',w:100},{label:'จำนวน',type:'num',w:70},{label:'หน่วย',type:'text',w:70},{label:'ยาสูตร',type:'text',w:120},{label:'หมายเหตุ',type:'text',w:150},{label:'หมอ',type:'text',w:120}],
-    rows:data, totals:['รวม '+rows.length+' รายการ','','','','',qty,'','','',''] });
+    columns:[{label:'หมอ',type:'text',w:130},{label:'วันที่',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'แหล่ง',type:'text',w:80},{label:'เบอร์อาหาร',type:'text',w:100},{label:'จำนวน',type:'num',w:70},{label:'หน่วย',type:'text',w:70},{label:'ยาสูตร',type:'text',w:120},{label:'หมายเหตุ',type:'text',w:150}],
+    rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','','',qty,'','',''] });
   downloadXls('รายการเบิกอาหาร'+(cfrFarm?'_'+cfrFarm:'')+'.xls', html);
   toast('ส่งออกรายการเบิกอาหาร '+rows.length+' รายการ ✓');
 }
@@ -3058,13 +3074,21 @@ function expDailyTableHTML(){
 function exportExpDaily(){ if(!expDailyRows().length){toast('ไม่มีบันทึกรายวันตามตัวกรอง');return;} downloadXls('บันทึกรายวันรวม'+expNameSfx()+'.xls', expDailyTableHTML()); toast('ส่งออกบันทึกรายวันรวม '+expDailyRows().length+' รายการ ✓'); }
 function expReqTableHTML(){
   const rows=expReqRows();
-  let qty=0, sum=0;
-  const data=rows.map(m=>{ qty+=Number(m.qty)||0; sum+=Number(m.total)||0; return [m.date,m.farm,m.house,m.cat,m.name,m.dose||'',m.qty||0,m.price||0,m.total||0,m.note||'',m.vet||'']; });
+  // จัดกลุ่มตามหมอ (เหมือน export หน้ารายการเบิกยา) — ชื่อหมอไม่สลับซ้อนกัน
+  const byVet={}; rows.forEach(m=>{ const k=(m.vet&&String(m.vet).trim())||'(ไม่ระบุหมอ)'; (byVet[k]=byVet[k]||[]).push(m); });
+  let qty=0, sum=0; const data=[];
+  Object.keys(byVet).sort((a,b)=>a.localeCompare(b,'th')).forEach(v=>{
+    let vq=0, vs=0;
+    byVet[v].slice().sort((a,b)=>reqDateKey(a.date)-reqDateKey(b.date)||String(a.name||'').localeCompare(String(b.name||''),'th'))
+      .forEach(m=>{ vq+=Number(m.qty)||0; vs+=Number(m.total)||0; data.push([v,m.date,m.farm,m.house,m.cat,m.name,m.dose||'',m.qty||0,m.price||0,m.total||0,m.note||'']); });
+    qty+=vq; sum+=vs;
+    data.push(['รวม — '+v+' ('+byVet[v].length+' รายการ)','','','','','','',vq,'',vs,'']);
+  });
   return xlsSheet({
-    title:'รายการเบิกยา/อุปกรณ์รวมทุกหลัง', meta:xlsMetaExp(),
-    columns:[{label:'วันที่',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'หมวด',type:'text',w:120},{label:'ชื่อ',type:'text',w:200},{label:'โดสการใช้',type:'text',w:130},{label:'จำนวน',type:'num',w:70},{label:'ราคา/หน่วย',type:'money',w:90},{label:'มูลค่า',type:'money',w:100},{label:'หมายเหตุ',type:'text',w:140},{label:'หมอ',type:'text',w:120}],
+    title:'รายการเบิกยา/อุปกรณ์รวมทุกหลัง (แยกตามหมอ)', meta:xlsMetaExp(),
+    columns:[{label:'หมอ',type:'text',w:130},{label:'วันที่',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'หมวด',type:'text',w:120},{label:'ชื่อ',type:'text',w:200},{label:'โดสการใช้',type:'text',w:130},{label:'จำนวน',type:'num',w:70},{label:'ราคา/หน่วย',type:'money',w:90},{label:'มูลค่า',type:'money',w:100},{label:'หมายเหตุ',type:'text',w:140}],
     rows:data,
-    totals:['รวม '+rows.length+' รายการ','','','','','',qty,'',sum,'','']
+    totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','','','',qty,'',sum,'']
   });
 }
 function exportExpReq(){ if(!expReqRows().length){toast('ไม่มีรายการเบิกยาตามตัวกรอง');return;} downloadXls('เบิกยารวม'+expNameSfx()+'.xls', expReqTableHTML()); toast('ส่งออกรายการเบิกยารวม '+expReqRows().length+' รายการ ✓'); }
