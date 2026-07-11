@@ -1366,10 +1366,8 @@ function appProfile(u){
   // v2: ใช้โปรไฟล์จากตาราง app_users (บทบาท+ฟาร์ม) ที่ดึงมาตอน cloudLoad · เจ้าของ/ผู้ดูแล/เสมียน=เห็นทุกฟาร์ม("*") · หมอ=เฉพาะฟาร์มที่ถูกผูกไว้
   const p=_dbProfile;
   if(p && p.role){
-    const arr=Array.isArray(p.farms)?p.farms:[];
-    // owner/admin = ทุกฟาร์ม · เสมียน: เลือกฟาร์ม = เฉพาะฟาร์มนั้น / เว้นว่าง = ทุกฟาร์ม (บัญชีเดิมไม่กระทบ) · หมอ: ตาม name/farm-scope
-    const farms=(p.role==='owner'||p.role==='admin')?"*":(p.role==='clerk'?(arr.length?arr:"*"):arr);
-    return { username:p.username||u.username||'', name:p.name||u.name||'', role:p.role, farms:farms };
+    const seeAll=(p.role==='owner'||p.role==='admin'||p.role==='clerk');
+    return { username:p.username||u.username||'', name:p.name||u.name||'', role:p.role, farms: seeAll?"*":(Array.isArray(p.farms)?p.farms:[]) };
   }
   // fallback (v1 / ยังไม่มีโปรไฟล์): บัญชีที่ไม่มีใน USERS → ไม่เห็นฟาร์มใดเลย ([]) กันเห็นข้อมูลทั้งหมดโดยไม่ได้ตั้งใจ
   const base=USERS.find(x=>x.username===u.username) || USERS.find(x=>x.role===u.role) || {};
@@ -6848,8 +6846,8 @@ let _users=[];
 function roleOptsHTML(sel){ return ['owner','admin','clerk','vet','formula'].map(r=>`<option value="${r}"${r===sel?' selected':''}>${ROLE_ICON[r]||''} ${ROLE_LABEL[r]||r}</option>`).join(''); }
 function farmChecksHTML(pfx,selected){ return FARMS.map((f,i)=>`<label style="display:inline-flex;align-items:center;gap:6px;margin:3px 12px 3px 0;font-weight:500;font-size:13px"><input type="checkbox" id="${pfx}_${i}" value="${escA(f)}"${selected.includes(f)?' checked':''} style="width:auto"> ${escA(f)}</label>`).join(''); }
 function pickFarms(pfx){ const out=[]; FARMS.forEach((f,i)=>{ const c=$("#"+pfx+"_"+i); if(c&&c.checked) out.push(f); }); return out; }
-function userRoleChanged(){ const r=$("#u_role").value; $("#u_farms_wrap").style.display=(r==='vet'||r==='clerk')?'':'none'; }
-function ueRoleChanged(){ const r=$("#ue_role").value; $("#ue_farms_wrap").style.display=(r==='vet'||r==='clerk')?'':'none'; }
+function userRoleChanged(){ const r=$("#u_role").value; $("#u_farms_wrap").style.display=(r==='vet')?'':'none'; }
+function ueRoleChanged(){ const r=$("#ue_role").value; $("#ue_farms_wrap").style.display=(r==='vet')?'':'none'; }
 function renderUsers(){
   histPush('users',renderUsers);
   const v=$("#view");
@@ -6866,7 +6864,7 @@ function renderUsers(){
         <div class="frow"><label>รหัสผ่าน <span class="req">*</span><span class="hint"> ≥ 6 ตัว</span></label><input id="u_pass" type="text" placeholder="ตั้งรหัสให้พนักงาน"></div>
         <div class="frow"><label>บทบาท <span class="req">*</span></label><select id="u_role" onchange="userRoleChanged()">${roleOptsHTML('clerk')}</select></div>
       </div>
-      <div class="frow" id="u_farms_wrap" style="display:none"><label>🏭 ฟาร์มที่ดูแล<span class="hint"> — หมอ: เว้นว่าง = เห็นเฉพาะหลังที่ระบุ "ชื่อ" นี้ (แนะนำ) · เลือกฟาร์ม = หัวหน้าเห็นทั้งฟาร์ม | เสมียน: เว้นว่าง = ทุกฟาร์ม · เลือกฟาร์ม = เห็นเฉพาะฟาร์มนั้น</span></label><div>${farmChecksHTML('uf',[])}</div></div>
+      <div class="frow" id="u_farms_wrap" style="display:none"><label>🏭 ฟาร์มที่ดูแล (เฉพาะหมอ)<span class="hint"> — เว้นว่าง = เห็นเฉพาะหลังที่ระบุ "ชื่อ" นี้เป็นผู้รับผิดชอบ (แนะนำ) · เลือกฟาร์ม = หัวหน้า เห็นทั้งฟาร์ม</span></label><div>${farmChecksHTML('uf',[])}</div></div>
       <button class="btn" onclick="userCreate()"><span>➕</span> สร้างบัญชี</button>
     </div>
     <div class="card">
@@ -6887,9 +6885,7 @@ function renderUserList(){
   el.innerHTML=`<table><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ</th><th>บทบาท</th><th>ฟาร์ม</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>${
     _users.map(u=>{
       const rl=ROLE_LABEL[u.role]||u.role;
-      const fm=(u.role==='vet')?((Array.isArray(u.farms)&&u.farms.length)?('🏭 '+escA(u.farms.join(', '))):'<span class="sub">👤 ตามชื่อประจำหลัง (อัตโนมัติ)</span>')
-        :(u.role==='clerk'&&Array.isArray(u.farms)&&u.farms.length)?('🏭 '+escA(u.farms.join(', ')))
-        :'<span class="sub">ทุกฟาร์ม</span>';
+      const fm=(u.role==='vet')?((Array.isArray(u.farms)&&u.farms.length)?('🏭 '+escA(u.farms.join(', '))):'<span class="sub">👤 ตามชื่อประจำหลัง (อัตโนมัติ)</span>'):'<span class="sub">ทุกฟาร์ม</span>';
       return `<tr>
         <td><b>${escA(u.username)}</b></td><td>${escA(u.name||'')}</td>
         <td><span class="tag wait">${ROLE_ICON[u.role]||''} ${escA(rl)}</span></td>
@@ -6909,7 +6905,7 @@ async function userCreate(){
   const name=($("#u_name").value||'').trim();
   const password=$("#u_pass").value||'';
   const role=$("#u_role").value;
-  const farms=(role==='vet'||role==='clerk')?pickFarms('uf'):[];
+  const farms=role==='vet'?pickFarms('uf'):[];
   if(!username||!name||!password){ toast('กรอกชื่อผู้ใช้ ชื่อ และรหัสผ่านให้ครบ'); return; }
   if(password.length<6){ toast('รหัสผ่านอย่างน้อย 6 ตัว'); return; }
   try{
@@ -6942,7 +6938,7 @@ function userEdit(uid){
       <div class="frow"><label>ชื่อ</label><input id="ue_name" value="${escA(u.name||'')}"></div>
       <div class="frow"><label>บทบาท</label><select id="ue_role" onchange="ueRoleChanged()">${roleOptsHTML(u.role)}</select></div>
     </div>
-    <div class="frow" id="ue_farms_wrap" style="display:${(u.role==='vet'||u.role==='clerk')?'':'none'}"><label>🏭 ฟาร์มที่ดูแล<span class="hint"> — หมอ: เว้นว่าง = เห็นเฉพาะหลังชื่อนี้ · เลือก = ทั้งฟาร์ม | เสมียน: เว้นว่าง = ทุกฟาร์ม · เลือก = เฉพาะฟาร์มนั้น</span></label><div>${farmChecksHTML('uef',Array.isArray(u.farms)?u.farms:[])}</div></div>
+    <div class="frow" id="ue_farms_wrap" style="display:${u.role==='vet'?'':'none'}"><label>🏭 ฟาร์มที่ดูแล<span class="hint"> — เว้นว่าง = เห็นเฉพาะหลังที่ระบุชื่อนี้ (แนะนำ) · เลือกฟาร์ม = หัวหน้า เห็นทั้งฟาร์ม</span></label><div>${farmChecksHTML('uef',Array.isArray(u.farms)?u.farms:[])}</div></div>
     <div class="actions"><button class="btn ghost" onclick="$('#uEdit').innerHTML=''">ยกเลิก</button><button class="btn" onclick="userSaveEdit('${uid}')">บันทึก</button></div>
   </div>`;
   $("#uEdit").scrollIntoView({block:'center'});
@@ -6950,7 +6946,7 @@ function userEdit(uid){
 async function userSaveEdit(uid){
   const name=($("#ue_name").value||'').trim();
   const role=$("#ue_role").value;
-  const farms=(role==='vet'||role==='clerk')?pickFarms('uef'):[];
+  const farms=role==='vet'?pickFarms('uef'):[];
   try{ await adminUsersCall({action:'update',user_id:uid,name,role,farms}); toast('บันทึกแล้ว ✓'); $("#uEdit").innerHTML=''; await loadUsers(); }
   catch(e){ toast('ไม่สำเร็จ: '+e.message); }
 }
@@ -7498,10 +7494,9 @@ function sbCanWrite(){ return ['owner','admin','clerk'].includes(ROLE); }
 function sbCanEditPrice(){ return ['owner','admin'].includes(ROLE); } // ตั้ง/แก้ราคา = เจ้าของ/ผู้ดูแลเท่านั้น · เสมียนกรอกบิลได้แต่แก้ราคาไม่ได้ (ราคาเติมจากทะเบียนลูกค้าที่เจ้าของตั้งไว้)
 /* ---------- หน้า "แท่นขายหมู" (รายการบิล) ---------- */
 let sbKindFilter='', sbFarmFilter='', SB_D=null, SB_ISNEW=false;
-function canSeeBillFarm(f){ const a=myFarms(); if(a==='*') return true; if(!f) return true; return String(f).split(' + ').some(x=>a.includes(x.trim())); }   // เสมียนเฉพาะฟาร์ม → เห็นเฉพาะบิลฟาร์มตัวเอง (บิลหลายฟาร์มเห็นถ้ามีฟาร์มตัวเองร่วม)
 function renderSaleStand(){ if(vetGuard())return;
   histPush('salestand',renderSaleStand);
-  const bills=SALE_BILLS.slice().filter(b=>canSeeBillFarm(b.farm)&&(!sbKindFilter||b.kind===sbKindFilter)&&(!sbFarmFilter||b.farm===sbFarmFilter))
+  const bills=SALE_BILLS.slice().filter(b=>(!sbKindFilter||b.kind===sbKindFilter)&&(!sbFarmFilter||b.farm===sbFarmFilter))
     .sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||''))||((b.createdAt||0)-(a.createdAt||0)));
   const farms=[...new Set(SALE_BILLS.map(b=>b.farm).filter(Boolean))];
   const pend=SALE_BILLS.filter(sbPricePending).length;
