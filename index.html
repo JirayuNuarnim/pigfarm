@@ -5306,7 +5306,16 @@ function bfsList(){
   if(!bfsShowAll) hs=hs.filter(h=>!bfsHasRealData(h)); // ตั้งต้น: เฉพาะหลังที่ยังไม่มีบันทึกรายวันจริง (กันยอดรวมไปซ้อนหลังที่ใช้อยู่)
   return hs;
 }
-function bfsBlank(h){ return {recv:((h&&(h.received||(h.intake&&h.intake.inN)))||'')+'',dead:'',deadVal:'',cull:'',cullVal:'',sold:'',soldVal:'',move:'',medVal:''}; }
+function bfsBlank(h){ // เติม "ยอดสะสมปัจจุบัน" ของหลังให้เห็นเลย (รวมทุกแถวรายวัน+ยอดสรุป) — กดบันทึกซ้ำ = ตัวเลขเดิม ไม่ล้างเป็นศูนย์
+  const t={dead:0,deadVal:0,cull:0,cullVal:0,sold:0,soldVal:0,move:0};
+  ((h&&h.dailyLog)||[]).forEach(e=>{ if(!e) return;
+    t.dead+=Number(e.deadN)||0; t.cull+=Number(e.cullN)||0; t.sold+=Number(e.soldN)||0; t.move+=Number(e.moveN)||0;
+    t.deadVal+=Number(e.deadVal)||((Number(e.deadW)||0)*(Number(e.deadP)||0));
+    t.cullVal+=Number(e.cullVal)||((Number(e.cullW)||0)*(Number(e.cullP)||0));
+    t.soldVal+=Number(e.soldVal)||((Number(e.soldW)||0)*(Number(e.soldP)||0));
+  });
+  const s=v=>v?String(Math.round(v*100)/100):'';
+  return {recv:((h&&(h.received||(h.intake&&h.intake.inN)))||'')+'',dead:s(t.dead),deadVal:s(t.deadVal),cull:s(t.cull),cullVal:s(t.cullVal),sold:s(t.sold),soldVal:s(t.soldVal),move:s(t.move),medVal:''}; }
 function bfsRow(h){ if(!bfsRows[h.id]) bfsRows[h.id]=bfsBlank(h); return bfsRows[h.id]; }
 function bfsSet(id,f,v){ if(!bfsRows[id]) bfsRows[id]=bfsBlank(HOUSES.find(x=>x.id===id)); bfsRows[id][f]=v; bfsRows[id]._dirty=true; bfsRemainUpd(id); }   // _dirty = ผู้ใช้พิมพ์เอง — บันทึกเฉพาะแถวนี้ (กันแถว prefill ล้างยอดทั้งฟาร์มเป็น 0)
 function bfsRemainN(r){ return bfNum(r.recv)-bfNum(r.dead)-bfNum(r.cull)-bfNum(r.sold)-bfNum(r.move); }
@@ -5347,7 +5356,7 @@ function renderBackfillFast(){ if(vetGuard())return;
       </div>
       <label style="display:flex;gap:8px;align-items:center;margin-top:4px;cursor:pointer"><input type="checkbox" ${bfsShowAll?'checked':''} onchange="bfsShowAll=this.checked;renderBackfillFast()"><span class="sub" style="margin:0">แสดงทุกหลัง (รวมหลังที่มีข้อมูลรายวันแล้ว — ระวังยอดซ้อน)</span></label>
     </div>
-    <div class="banner info">ℹ️ <div>กรอกเฉพาะช่องที่มี — เว้นว่าง = 0 · <b>มูลค่าตาย/คัด/ขาย = เงินบาทรวมทั้งรุ่น</b> (ตามสรุปในกระดาษ/Excel) · <b>คงเหลือ</b> = รับเข้า − ตาย − คัด − ขาย − ย้ายออก คำนวณสด · <span style="color:var(--bad);font-weight:700">แดง</span> = ยอดออกเกินรับเข้า (แก้ก่อนบันทึก)</div></div>
+    <div class="banner info">ℹ️ <div>ตารางแสดง<b>ยอดสะสมปัจจุบัน</b>ของแต่ละหลัง — <b>แก้เฉพาะช่องที่ต้องการ</b> ระบบบันทึกเฉพาะแถวที่คุณแก้ (แถวที่ไม่แตะ ไม่ถูกเปลี่ยน) · <b>มูลค่าตาย/คัด/ขาย = เงินบาทรวมทั้งรุ่น</b> · <b>คงเหลือ</b> = รับเข้า − ตาย − คัด − ขาย − ย้ายออก คำนวณสด · <span style="color:var(--bad);font-weight:700">แดง</span> = ยอดออกเกินรับเข้า (แก้ก่อนบันทึก)</div></div>
     <div class="card">
       <h3>ตารางลงยอดรวม <span class="more">${fmt(list.length)} หลัง</span></h3>
       <div style="overflow-x:auto"><div id="bfsGrid">${bfsTableHTML()}</div></div>
