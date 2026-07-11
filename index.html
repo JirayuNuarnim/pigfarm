@@ -5278,7 +5278,7 @@ function bfsList(){
 }
 function bfsBlank(h){ return {recv:((h&&(h.received||(h.intake&&h.intake.inN)))||'')+'',dead:'',deadVal:'',cull:'',cullVal:'',sold:'',soldVal:'',move:'',medVal:''}; }
 function bfsRow(h){ if(!bfsRows[h.id]) bfsRows[h.id]=bfsBlank(h); return bfsRows[h.id]; }
-function bfsSet(id,f,v){ if(!bfsRows[id]) bfsRows[id]=bfsBlank(HOUSES.find(x=>x.id===id)); bfsRows[id][f]=v; bfsRemainUpd(id); }
+function bfsSet(id,f,v){ if(!bfsRows[id]) bfsRows[id]=bfsBlank(HOUSES.find(x=>x.id===id)); bfsRows[id][f]=v; bfsRows[id]._dirty=true; bfsRemainUpd(id); }   // _dirty = ผู้ใช้พิมพ์เอง — บันทึกเฉพาะแถวนี้ (กันแถว prefill ล้างยอดทั้งฟาร์มเป็น 0)
 function bfsRemainN(r){ return bfNum(r.recv)-bfNum(r.dead)-bfNum(r.cull)-bfNum(r.sold)-bfNum(r.move); }
 function bfsRemainUpd(id){ const r=bfsRows[id], el=document.getElementById('bfsRem_'+id); if(!el||!r) return;
   const rem=bfsRemainN(r); el.textContent=fmt(rem); el.style.color=rem<0?'var(--bad)':(bfNum(r.recv)>0?'var(--ok)':'var(--muted)'); }
@@ -5332,8 +5332,11 @@ function bfsSubmit(){
   if(asOfISO>todayISO()){ toast('วันที่ยอดคงเหลือเลือกล่วงหน้าไม่ได้'); return; }
   const asOfThai=isoToThaiDay(asOfISO);
   const list=_bfsList.length?_bfsList:bfsList();
+  const dirtyList=list.filter(h=>bfsRows[h.id]&&bfsRows[h.id]._dirty);   // เฉพาะแถวที่ผู้ใช้แก้จริง — แถวที่ระบบ prefill เฉยๆ ไม่ถูกบันทึก/ไม่ล้างของเดิม
+  if(!dirtyList.length){ toast('ยังไม่ได้กรอก/แก้แถวใดเลย — พิมพ์ตัวเลขในแถวที่ต้องการก่อน'); return; }
+  if(!confirm('จะบันทึกยอดรวมทับข้อมูลเดิมของ '+dirtyList.length+' หลัง:\n\n   '+dirtyList.map(h=>h.code).join(', ')+'\n\n⚠️ ยอดสรุปเดิมของหลังเหล่านี้จะถูกแทนที่ — ยืนยัน?')) return;
   let done=0, skip=0; const neg=[], touched=[];
-  list.forEach(h=>{ const r=bfsRows[h.id]; if(!r) return;
+  dirtyList.forEach(h=>{ const r=bfsRows[h.id]; if(!r) return;
     const recv=bfNum(r.recv), dead=bfNum(r.dead), cull=bfNum(r.cull), sold=bfNum(r.sold), move=bfNum(r.move);
     const any=recv||dead||cull||sold||move||bfNum(r.deadVal)||bfNum(r.cullVal)||bfNum(r.soldVal)||bfNum(r.medVal);
     if(!any) return;                       // แถวว่าง — ข้าม
