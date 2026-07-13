@@ -413,6 +413,11 @@
 #gCard .cin{background:rgba(13,26,31,.82);border:1px solid rgba(83,234,210,.3);color:#dff3ee}
 #gCard .cin::placeholder{color:#6f918a}
 #gCard .cin:focus{border-color:rgba(83,234,210,.65);outline:none}
+/* ── (SS) ช่องราคาเจ้าของ: ไม่มีลูกศรขึ้นลง (พิมพ์ตัวเลขอย่างเดียว) + ปุ่มบันทึกกะพริบตอน Enter จากช่องราคา ── */
+input.nospin::-webkit-outer-spin-button,input.nospin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input.nospin{-moz-appearance:textfield;appearance:textfield}
+@keyframes sbSavePulse{0%,100%{box-shadow:0 0 0 0 rgba(15,107,95,0)}50%{box-shadow:0 0 0 9px rgba(15,107,95,.38)}}
+.pulse-save{animation:sbSavePulse 1.1s ease 2}
 /* ── (SS) ฟอร์มบิลแท่นขาย: แถบสรุปสดลอยติดจอ ── */
 .sbsticky{position:sticky;top:52px;z-index:35;background:rgba(255,255,255,.92);backdrop-filter:blur(7px);border:1px solid var(--line);border-radius:13px;padding:9px 13px;margin-bottom:12px;box-shadow:0 4px 16px rgba(20,35,50,.08)}
 body.theme-dark .sbsticky{background:rgba(27,35,56,.92);border-color:var(--line)}
@@ -7710,6 +7715,15 @@ function sbWChipsHTML(){
   return out;
 }
 function sbWKey(e){ if(e.key==='Enter'){ e.preventDefault(); sbWAdd(); } }
+function sbPriceKey(e){ // เจ้าของใส่ราคาเสร็จกด Enter → พาไปที่ปุ่ม 💾 บันทึกบิล (ไม่บันทึกให้เอง — เจ้าของกดยืนยันเองอีกที)
+  if(e.key!=='Enter') return; e.preventDefault();
+  const btn=document.getElementById('sbSaveBtn'); if(!btn){ toast('บิลนี้ดูอย่างเดียว — ไม่มีปุ่มบันทึก'); return; }
+  try{ e.target.blur(); }catch(x){}
+  btn.scrollIntoView({behavior:'smooth',block:'center'});
+  btn.classList.remove('pulse-save'); void btn.offsetWidth; btn.classList.add('pulse-save');
+  setTimeout(()=>{ try{ btn.focus({preventScroll:true}); }catch(x){ try{btn.focus();}catch(y){} } },400); // โฟกัสหลังจอเลื่อนถึง — กด Enter ซ้ำ = ยืนยัน
+  setTimeout(()=>btn.classList.remove('pulse-save'),2400);
+}
 function sbWAdd(){ const el=$("#sbWIn"); if(!el) return; const v=parseFloat(el.value); if(!isFinite(v)||v<=0){ el.value=''; el.focus(); return; }
   if((v<20||v>300)&&!confirm('⚠️ น้ำหนัก '+v+' กก. ดูผิดปกติ (ปกติ 20–300 กก.)\nใส่ต่อหรือไม่?')){ el.select(); return; } // กันพิมพ์ตกหลัก/เกินหลัก
   SB_D.weights.push(v); el.value=''; el.focus(); sbRefresh(); }
@@ -7739,7 +7753,7 @@ function sbBandsHTML(){
   const c=sbCalc(SB_D);
   const canP=sbCanEditPrice();
   const pcell=(val,key,i)=> canP
-    ? `<input class="cin" type="number" step="0.5" style="max-width:90px;padding:5px 8px" placeholder="฿/กก." value="${escA(val)}" oninput="SB_D.bands[${i}].${key}=this.value;sbRefresh()">`
+    ? `<input class="cin nospin" type="number" step="0.5" inputmode="decimal" style="max-width:90px;padding:5px 8px" placeholder="฿/กก." value="${escA(val)}" oninput="SB_D.bands[${i}].${key}=this.value;sbRefresh()" onkeydown="sbPriceKey(event)">`
     : `<span style="display:inline-block;min-width:56px;text-align:center;font-weight:700">${val!==''&&val!=null?fmt(sbNum(val)):'<span style="color:#b06000;font-weight:400;font-size:11.5px">🔒 รอเจ้าของ</span>'}</span>`;
   const rows=(SB_D.bands||[]).map((bd,i)=>{
     const ag=c.bandAgg[i]||{cullW:0,deadW:0}; const has=ag.cullW>0||ag.deadW>0;
@@ -8017,7 +8031,7 @@ function renderSaleBillForm(){
         <button class="btn sm" onclick="sbWAdd()">＋ เพิ่ม</button>
         <button class="btn ghost sm" onclick="sbWUndo()">↩︎ ลบตัวล่าสุด</button>
         <div class="frow" style="margin:0 0 0 auto;max-width:200px"><label>ราคา/กก. ${sbCanEditPrice()?'— เว้นว่างได้':'<span style="color:#b06000">🔒 เจ้าของตั้ง</span>'}</label>${sbCanEditPrice()
-          ?`<input id="sbPriceIn" type="number" step="0.25" class="cin" placeholder="⏳ เจ้าของเติมได้" value="${escA(SB_D.pricePerKg)}" oninput="sbF('pricePerKg',this.value)">`
+          ?`<input id="sbPriceIn" type="number" step="0.25" inputmode="decimal" class="cin nospin" placeholder="⏳ เจ้าของเติมได้" value="${escA(SB_D.pricePerKg)}" oninput="sbF('pricePerKg',this.value)" onkeydown="sbPriceKey(event)">`
           :`<div class="cin" style="background:var(--soft);text-align:center;font-weight:700">${SB_D.pricePerKg!==''&&SB_D.pricePerKg!=null?fmt(sbNum(SB_D.pricePerKg))+' ฿/กก.':'<span style="color:#b06000;font-weight:400">🔒 รอเจ้าของใส่ราคา</span>'}</div>`}</div>
       </div>
       <div id="sbWChips" style="line-height:1.9">${sbWChipsHTML()}</div>
@@ -8042,7 +8056,7 @@ function renderSaleBillForm(){
     ${!SB_ISNEW?sbHistCard(SB_D.id):''}
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 30px;align-items:center">
       ${roBill?'<span class="sbchip bad">🔒 ดูอย่างเดียว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล</span>':`
-      <button class="btn sm" style="font-size:16px;padding:13px 30px" onclick="sbSave()">💾 บันทึกบิล</button>
+      <button id="sbSaveBtn" class="btn sm" style="font-size:16px;padding:13px 30px" onclick="sbSave()">💾 บันทึกบิล</button>
       <button class="btn sm" style="font-size:15px;padding:13px 22px;background:linear-gradient(135deg,#2a7fb8,#1f5f8b)" onclick="sbSaveAndPost()">💾+⬇️ บันทึก แล้วลงเข้าหลังเลย</button>`}
       <button class="btn ghost sm" onclick="sbDraftDrop();sbLiveClear();SB_D=null;renderSaleStand()">ยกเลิก</button>
       ${!SB_ISNEW?`<button class="btn ghost sm" onclick="sbDuplicate('${SB_D.id}')">⧉ คัดลอกเป็นบิลใหม่</button>`:''}
