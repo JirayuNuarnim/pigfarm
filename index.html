@@ -1177,13 +1177,30 @@ async function saveConfigAll(){
   const rs=[];
   rs.push(await saveConfigKey('formulas',MEDFORMULAS)); rs.push(await saveConfigKey('catalog',REQ_DATA));
   rs.push(await saveConfigKey('options',snapOpts())); rs.push(await saveConfigKey('farms',FARMS)); rs.push(await saveConfigKey('vets',VETS));
-  rs.push(await saveConfigKey('stock',STOCK));
+  // 🛡️ สต็อกห้ามเขียนทับทั้งก้อนเด็ดขาด — ต้องผ่าน merge ที่เซิร์ฟเวอร์เสมอ
+  // (บั๊กเดิม: เครื่องที่เปิดค้างมี STOCK เก่า → แก้ตั้งค่าอะไรก็ตาม → เซฟ 'stock' ทั้งก้อนทับของที่คนอื่นเพิ่งลง เช่น สต็อกยาปากท่อ 13 ก.ค. หายทั้งชุด)
+  { let ok=false; try{ const m=await saveStockMerged(STOCK); if(m===true){ ok=true; } else if(m&&typeof m==='object'){ STOCK=m; ok=true; } }catch(e){ console.warn('cfg stock merge',e); } rs.push(ok); }
   return rs.every(Boolean); // false = มีบางคีย์ส่งไม่ผ่าน → flushSyncV2 จะคิวส่งใหม่
 }
 async function loadConfigAll(){
   const r=await supaFetch('/rest/v1/app_config?select=key,value',{method:'GET'});
   if(!r||!r.ok) return null;
   const rows=await r.json(); const m={}; (rows||[]).forEach(x=>m[x.key]=x.value); return m;
+}
+function stockMergeInto(cloud){ // 🛡️ รับคลังจากคลาวด์แบบ "ผสาน" — รายการที่เพิ่งกดบันทึกแต่ยังส่งไม่ถึงเซิร์ฟเวอร์ต้องไม่หายจากจอ (เดิม: แทนที่ทั้งก้อน → รีเฟรชอัตโนมัติกลืนของที่เพิ่งพิมพ์)
+  if(!cloud||typeof cloud!=='object') return;
+  if(!_dirtyStock){ STOCK=cloud; return; }                          // ไม่มีของค้างส่ง → ใช้ของคลาวด์ตรงๆ (เร็วสุด)
+  const mvKey=v=>[v&&v.ts,v&&v.name,v&&v.delta,(v&&v.type)||'',(v&&v.house)||''].join('|'); // ts จาก Date.now() ตอนกด = เอกลักษณ์ต่อรายการ (เทียบ JSON ตรงๆ ไม่ได้ — คลาวด์เรียงคีย์ใหม่)
+  const out=JSON.parse(JSON.stringify(cloud));
+  Object.keys(STOCK||{}).forEach(bk=>{
+    const lb=STOCK[bk]||{}; const ob=out[bk]=out[bk]||{moves:[],min:{},exp:{}}; ob.moves=ob.moves||[];
+    const seen=new Set(ob.moves.map(mvKey));
+    (lb.moves||[]).forEach(v=>{ const k=mvKey(v); if(!seen.has(k)){ ob.moves.push(v); seen.add(k); } });
+    ob.moves.sort((a,b)=>((b&&b.ts)||0)-((a&&a.ts)||0));
+    ob.min=Object.assign({},ob.min||{},lb.min||{});
+    ob.exp=Object.assign({},ob.exp||{},lb.exp||{});
+  });
+  STOCK=out;
 }
 function applyConfigAll(m){
   if(!m) return;
@@ -1192,7 +1209,7 @@ function applyConfigAll(m){
   applyOpts(m.options);
   if(Array.isArray(m.farms)){ FARMS.length=0; m.farms.forEach(f=>FARMS.push(f)); }
   if(Array.isArray(m.vets)){ VETS.length=0; m.vets.forEach(v=>VETS.push(v)); }
-  if(m.stock&&typeof m.stock==='object') STOCK=m.stock;   // คืนคลัง/สต็อกต่อฟาร์ม (v2 config)
+  if(m.stock&&typeof m.stock==='object') stockMergeInto(m.stock);   // คืนคลัง/สต็อกต่อฟาร์ม (v2 config) — ผสาน ไม่ทับของที่ค้างส่ง
 }
 async function pushAllHousesV2(){ for(const h of HOUSES){ await saveHouseSection(h,'core'); await saveHouseSection(h,'clerk'); await saveHouseSection(h,'vet'); } }
 async function cloudLoadV2(){
@@ -6185,6 +6202,7 @@ let _stkRows=[];
 function stockFarmsForUser(){ const a=myFarms(); const inFarms=(a==='*')?FARMS.slice():FARMS.filter(f=>a.includes(f)); const extra=Object.keys(STOCK).filter(f=>inFarms.indexOf(f)<0 && !isStockBucket(f) && (a==='*'||(Array.isArray(a)&&a.includes(f)))); const raw=inFarms.concat(extra); const seen={},out=[]; raw.forEach(f=>{ const b=stockBucketOf(f); if(!seen[b]){ seen[b]=1; out.push(b); } }); return out; }  // ยุบฟาร์มในกลุ่ม → คลังรวมก้อนเดียว (ไม่ซ้ำ)
 function stockCanEdit(){ const r=effRole(); return (r==='clerk'||r==='admin'||r==='owner') && canEditView(); } // เบิก=หมอ · จัดการคลัง=เสมียน/ผู้ดูแล/เจ้าของ
 function canEditPrice(){ return effRole()==='owner' && canEditView(); } // ราคา/หน่วย (ฐานต้นทุน) = เจ้าของแก้คนเดียว — กันเสมียนแก้ตัวเลขต้นทุน
+function stockCanSetCount(){ return effRole()==='owner' && canEditView(); } // "ตั้งคงเหลือ" (ปรับยอดตรง) = เจ้าของคนเดียว — เสมียนใช้รับเข้า/หมอใช้เบิก ยอดขยับตามเอกสารเท่านั้น
 function stockNumBadge(qty,min){ const c=qty<=0?'#c0392b':(min>0&&qty<=min?'#b8860b':'var(--ink,#1a2b3c)'); return '<b style="color:'+c+'">'+fmt(qty)+'</b>'; }
 function stockStatusTag(qty,min){
   if(qty<=0) return min>0
@@ -6245,7 +6263,7 @@ function renderStock(){ if(vetGuard())return;
   if(!stockFarm || farms.indexOf(stockFarm)<0) stockFarm=farms[0]||'';
   const cats=stockCats(); if(!stockInCat||cats.indexOf(stockInCat)<0) stockInCat=cats[0]||'';
   if(!stkTfCat||cats.indexOf(stkTfCat)<0) stkTfCat=cats[0]||'';
-  const v=$("#view"), canEdit=stockCanEdit();
+  const v=$("#view"), canEdit=stockCanEdit(), canSet=stockCanSetCount();
   if(!stockFarm){ v.innerHTML=`<h2 class="page">📦 คลังยา/อุปกรณ์</h2>${clerkNav('stock')}<div class="card"><div class="sub">ยังไม่มีฟาร์มที่ดูแล</div></div>`; return; }
   const farm=stockFarm, allRows=stockRowsOf(farm);
   const sum=stockAlertSummary([farm]);
@@ -6317,7 +6335,7 @@ function renderStock(){ if(vetGuard())return;
         <button class="btn ghost sm" onclick="exportStockBalance()">📊 ส่งออก Excel</button>
       </div>
       <div style="overflow-x:auto"><table>
-        <thead><tr><th>ชื่อรายการ</th><th>หมวด</th><th class="num">คงเหลือ</th><th>สถานะ</th><th>วันหมดอายุ</th><th class="num">ขั้นต่ำ</th><th class="num">ราคา/หน่วย</th><th class="num">มูลค่า</th>${canEdit?'<th>ตั้งคงเหลือ</th>':''}</tr></thead>
+        <thead><tr><th>ชื่อรายการ</th><th>หมวด</th><th class="num">คงเหลือ</th><th>สถานะ</th><th>วันหมดอายุ</th><th class="num">ขั้นต่ำ</th><th class="num">ราคา/หน่วย</th><th class="num">มูลค่า</th>${canSet?'<th>ตั้งคงเหลือ 🔒</th>':''}</tr></thead>
         <tbody>${rows.length?rows.map((r,idx)=>`<tr>
           <td>${escA(r.name)}</td>
           <td><span class="sub">${REQ_ICON[r.cat]||''} ${escA(r.cat)}</span></td>
@@ -6327,10 +6345,10 @@ function renderStock(){ if(vetGuard())return;
           <td class="num">${canEdit?`<input class="cin" type="number" value="${r.min||''}" placeholder="0" style="width:62px" onchange="stockSetMinIdx(${idx},this.value)">`:fmt(r.min)}</td>
           <td class="num">${canEditPrice()?`<input class="cin" type="number" value="${r.price||''}" placeholder="0" style="width:74px" title="ราคา/หน่วย — ใช้คิดต้นทุนยาที่หมอเบิก (เจ้าของเท่านั้น)" onchange="stockSetPriceIdx(${idx},this.value)">`:(fmt(r.price)+(canEdit?' <span class="sub" title="ราคาแก้ได้เฉพาะเจ้าของ">🔒</span>':''))}</td>
           <td class="num">${fmt(r.value)}</td>
-          ${canEdit?`<td style="white-space:nowrap"><input id="stkset_${idx}" class="cin" type="number" placeholder="${fmt(r.qty)}" style="width:64px"><button class="btn ghost sm" style="color:var(--brand)" onclick="stockSetCountIdx(${idx})">ตั้ง</button></td>`:''}
-        </tr><tr id="lots_${idx}" style="display:none"><td colspan="${canEdit?9:8}" style="background:var(--soft,#f6f9fc);padding:8px 14px">${stockLotsDetailHTML(farm,r.cat,r.name)}</td></tr>`).join(''):`<tr><td colspan="${canEdit?9:8}" class="sub">ไม่พบรายการตามตัวกรอง</td></tr>`}</tbody>
+          ${canSet?`<td style="white-space:nowrap"><input id="stkset_${idx}" class="cin nospin" type="number" placeholder="${fmt(r.qty)}" style="width:64px"><button class="btn ghost sm" style="color:var(--brand)" onclick="stockSetCountIdx(${idx})">ตั้ง</button></td>`:''}
+        </tr><tr id="lots_${idx}" style="display:none"><td colspan="${canSet?9:8}" style="background:var(--soft,#f6f9fc);padding:8px 14px">${stockLotsDetailHTML(farm,r.cat,r.name)}</td></tr>`).join(''):`<tr><td colspan="${canSet?9:8}" class="sub">ไม่พบรายการตามตัวกรอง</td></tr>`}</tbody>
       </table></div>
-      <div class="sub" style="margin-top:8px">รวม ${fmt(rows.length)} รายการ · 🟢 พอ · 🟡 ใกล้หมด (≤ ขั้นต่ำ) · 🔴 หมด · ⏰ ใกล้หมดอายุ (≤ ${STOCK_EXP_NEAR_DAYS} วัน) · ⛔ หมดอายุ · "ตั้งคงเหลือ"=ปรับยอดให้ตรงของจริง</div>
+      <div class="sub" style="margin-top:8px">รวม ${fmt(rows.length)} รายการ · 🟢 พอ · 🟡 ใกล้หมด (≤ ขั้นต่ำ) · 🔴 หมด · ⏰ ใกล้หมดอายุ (≤ ${STOCK_EXP_NEAR_DAYS} วัน) · ⛔ หมดอายุ · "ตั้งคงเหลือ"=ปรับยอดให้ตรงของจริง 🔒 เจ้าของเท่านั้น (เสมียนใช้ "รับเข้า" · หมอใช้ "เบิก")</div>
     </div>`;
 }
 function stockReceiveSubmit(){
@@ -6349,7 +6367,7 @@ function stockReceiveSubmit(){
   renderStock();
 }
 function stockSetCountIdx(idx){
-  if(!stockCanEdit()){toast('เฉพาะเสมียน/ผู้ดูแล');return;}
+  if(!stockCanSetCount()){toast('🔒 ตั้งคงเหลือได้เฉพาะบัญชีเจ้าของ — เสมียนใช้ "รับเข้า" · หมอใช้ "เบิก"');return;}
   const r=_stkRows[idx]; if(!r) return;
   const el=$("#stkset_"+idx), nv=parseFloat(el&&el.value);
   if(isNaN(nv)||nv<0){toast('ใส่จำนวนคงเหลือใหม่');return;}
