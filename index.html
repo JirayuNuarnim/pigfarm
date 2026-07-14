@@ -6338,7 +6338,7 @@ function renderStock(){ if(vetGuard())return;
         <button class="btn ghost sm" onclick="exportStockBalance()">📊 ส่งออก Excel</button>
       </div>
       <div style="overflow-x:auto"><table>
-        <thead><tr><th>ชื่อรายการ</th><th>หมวด</th><th class="num">คงเหลือ</th><th>สถานะ</th><th>วันหมดอายุ</th><th class="num">ขั้นต่ำ</th><th class="num">ราคา/หน่วย</th><th class="num">มูลค่า</th>${canSet?'<th>ตั้งคงเหลือ 🔒</th>':''}</tr></thead>
+        <thead><tr><th>ชื่อรายการ</th><th>หมวด</th><th class="num">คงเหลือ</th><th>สถานะ</th><th>วันหมดอายุ</th><th class="num">ขั้นต่ำ</th><th class="num">ราคา/หน่วย</th><th class="num">มูลค่า</th>${canSet?'<th>ตั้งคงเหลือ</th>':''}</tr></thead>
         <tbody>${rows.length?rows.map((r,idx)=>`<tr>
           <td>${escA(r.name)}</td>
           <td><span class="sub">${REQ_ICON[r.cat]||''} ${escA(r.cat)}</span></td>
