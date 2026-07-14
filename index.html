@@ -413,6 +413,14 @@
 #gCard .cin{background:rgba(13,26,31,.82);border:1px solid rgba(83,234,210,.3);color:#dff3ee}
 #gCard .cin::placeholder{color:#6f918a}
 #gCard .cin:focus{border-color:rgba(83,234,210,.65);outline:none}
+/* ── 📱 กล่องเลือกแบบแตะ (แทน datalist ที่ iOS/Safari ไม่แสดงตัวเลือก) ── */
+.ddwrap{position:relative;display:flex;gap:6px;align-items:stretch}
+.ddwrap>input{flex:1;min-width:0}
+.ddbtn{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:10px;padding:0 13px;font-size:15px;font-weight:800;cursor:pointer}
+.ddpick{position:absolute;z-index:45;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.16);max-height:280px;overflow:auto}
+.ddpick-it{padding:11px 13px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px;line-height:1.45}
+.ddpick-it:last-child{border-bottom:0}
+.ddpick-it:active,.ddpick-it:hover{background:var(--soft,#f2f6f4)}
 /* ── (SS) ช่องราคาเจ้าของ: ไม่มีลูกศรขึ้นลง (พิมพ์ตัวเลขอย่างเดียว) + ปุ่มบันทึกกะพริบตอน Enter จากช่องราคา ── */
 input.nospin::-webkit-outer-spin-button,input.nospin::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 input.nospin{-moz-appearance:textfield;appearance:textfield}
@@ -6104,10 +6112,12 @@ function vetForm(){
         <textarea id="v_symptoms" rows="2" placeholder="เช่น พบหมูซึม ท้องเสีย 3 ตัว โซนหลัง"></textarea></div>
       <div class="grid2">
         <div class="frow" style="margin-bottom:0"><label>ยาสูตรที่ใช้ <span class="hint">(สูตร1–30)</span></label>
-          <input id="v_formula" class="cin tl" list="formulaList" placeholder="เลือกสูตรยา">
+          <div class="ddwrap"><input id="v_formula" class="cin tl" list="formulaList" placeholder="แตะ ▾ เลือก หรือพิมพ์เอง">
+          <button type="button" class="ddbtn" title="เปิดรายการสูตรยา" onclick="ddToggle('v_formula','formula')">▾</button></div>
           <datalist id="formulaList">${MEDFORMULAS.filter(f=>f.items.length).map(f=>`<option value="${f.code}">${f.code} — ${escA(formulaHint(f))}</option>`).join("")}</datalist></div>
         <div class="frow" style="margin-bottom:0"><label>ยาฉีดที่ใช้ <span class="hint">(เลือก/พิมพ์เพิ่มได้)</span></label>
-          <input id="v_inject" class="cin tl" list="injectList" placeholder="เลือกยาฉีด">
+          <div class="ddwrap"><input id="v_inject" class="cin tl" list="injectList" placeholder="แตะ ▾ เลือก หรือพิมพ์เอง">
+          <button type="button" class="ddbtn" title="เปิดรายการยาฉีด" onclick="ddToggle('v_inject','inject')">▾</button></div>
           <datalist id="injectList">${VET_INJECT_LIST.map(n=>`<option>${n}</option>`).join("")}</datalist></div>
       </div>
       <div class="frow" style="margin-top:12px;margin-bottom:0"><label>หมายเหตุ <span class="hint">(อธิบายเพิ่มเติมได้)</span></label>
@@ -6120,7 +6130,8 @@ function vetForm(){
         <div class="frow" style="margin-bottom:0"><label>แหล่งรับอาหาร</label>
           <select id="v_feedSrc" class="cin tl"><option>VCF</option><option>SJF</option><option>JBF</option></select></div>
         <div class="frow" style="margin-bottom:0"><label>เบอร์อาหาร <span class="hint">(เลือก/พิมพ์เพิ่มได้)</span></label>
-          <input id="v_feedNo" class="cin tl" list="feedNoList" placeholder="เช่น 108">
+          <div class="ddwrap"><input id="v_feedNo" class="cin tl" list="feedNoList" placeholder="เช่น 108">
+          <button type="button" class="ddbtn" onclick="ddToggle('v_feedNo','feedno')">▾</button></div>
           <datalist id="feedNoList">${['100','105','108','110','120','130','111G'].map(n=>`<option>${n}</option>`).join("")}</datalist></div>
       </div>
       <div class="grid2" style="margin-top:10px">
@@ -6136,7 +6147,8 @@ function vetForm(){
       <h3>🍽️ การกินได้ต่อวัน</h3>
       <div class="grid2">
         <div class="frow" style="margin-bottom:0"><label>อาหารเบอร์ <span class="hint">(เลือก/พิมพ์เพิ่มได้)</span></label>
-          <input id="v_eatNo" class="cin tl" list="feedNoList" placeholder="เช่น 108"></div>
+          <div class="ddwrap"><input id="v_eatNo" class="cin tl" list="feedNoList" placeholder="เช่น 108">
+          <button type="button" class="ddbtn" onclick="ddToggle('v_eatNo','feedno')">▾</button></div></div>
         <div class="frow" style="margin-bottom:0"><label>น้ำหนักอาหารที่กิน</label><div class="unit"><input id="v_eatKg" class="cin tl" type="number" placeholder="0"><span class="u">กก.</span></div></div>
       </div>
     </div>
@@ -6638,6 +6650,28 @@ function renderRequest(){
       ${reqEditUnlocked?`<button class="btn ghost sm" style="margin-top:10px" onclick="reqAddItem(${ci})">＋ เพิ่มรายการ</button>`:''}
     </div>`).join("")}
   `;
+}
+/* 📱 ตัวเลือกแบบแตะ — คู่กับช่องพิมพ์ (datalist บน iPhone/Safari ไม่โชว์ตัวเลือก · Android ยังใช้ datalist ได้เหมือนเดิม) */
+let _ddOpts={};
+function ddToggle(inputId,kind){
+  const old=document.getElementById('ddp_'+inputId);
+  document.querySelectorAll('.ddpick').forEach(x=>x.remove());
+  if(old) return;                                        // แตะปุ่มซ้ำ = ปิด
+  const el=document.getElementById(inputId); if(!el||!el.parentElement) return;
+  let opts=[];
+  if(kind==='formula') opts=MEDFORMULAS.filter(f=>f.items&&f.items.length).map(f=>({v:f.code,h:'<b>'+escA(f.code)+'</b> — '+escA(formulaHint(f))}));
+  else if(kind==='inject') opts=(VET_INJECT_LIST||[]).map(n=>({v:n,h:escA(n)}));
+  else if(kind==='feedno') opts=['100','105','108','110','120','130','111G'].map(n=>({v:n,h:escA(n)}));
+  _ddOpts[inputId]=opts;
+  const box=document.createElement('div'); box.id='ddp_'+inputId; box.className='ddpick';
+  box.innerHTML=opts.length?opts.map((o,i)=>`<div class="ddpick-it" onclick="ddPickSet('${inputId}',${i})">${o.h}</div>`).join(''):'<div class="sub" style="padding:10px 13px">— ไม่มีตัวเลือก —</div>';
+  el.parentElement.appendChild(box);
+}
+function ddPickSet(inputId,i){
+  const el=document.getElementById(inputId), o=(_ddOpts[inputId]||[])[i];
+  document.querySelectorAll('.ddpick').forEach(x=>x.remove());
+  if(!el||!o) return; el.value=o.v;
+  try{ el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){}
 }
 function reqDisplayOrder(list){ // 🧲 จัดชื่อยาตัวเดียวกันให้อยู่ติดกัน: คีย์กลุ่ม = ชื่อตัวยา (ตัดความเข้มข้น/หน่วยท้ายชื่อ เช่น "20%", "100 CC")
   // ชื่อการค้าที่วงเล็บตัวยาไว้ เช่น "เรสเพล็คพาวเดอร์ (ทิลมิโคซิน20%)" → ดึงไปอยู่กลุ่ม "ทิลมิโคซิน" · วงเล็บที่ไม่ตรงกับยาตัวไหน (เช่น ชื่อบริษัท) ไม่ถูกย้าย
