@@ -6624,7 +6624,7 @@ function renderRequest(){
       <h3>${REQ_ICON[cn]||'•'} ${cn} <span class="more">${REQ_DATA[cn].length} รายการ</span></h3>
       <div style="overflow-x:auto"><table>
         <thead><tr><th>ชื่อรายการ</th><th>โดสการใช้</th><th>หมายเหตุ</th><th class="num">คงเหลือ</th><th class="num">จำนวน</th><th></th></tr></thead>
-        <tbody>${REQ_DATA[cn].map((it,i)=>`<tr>
+        <tbody>${(reqEditUnlocked?REQ_DATA[cn].map((_,i)=>i):reqDisplayOrder(REQ_DATA[cn])).map(i=>{const it=REQ_DATA[cn][i];return `<tr>
           <td><input id="rn_${ci}_${i}" class="cin tl" value="${(it.name||'').replace(/"/g,'&quot;')}" onchange="reqSet(${ci},${i},'name',this.value)" ${reqEditUnlocked?'':'readonly'} style="min-width:150px${reqEditUnlocked?'':';background:var(--soft)'}"></td>
           <td><input id="rd_${ci}_${i}" class="cin tl" value="${(it.dose||'').replace(/"/g,'&quot;')}" onchange="reqSet(${ci},${i},'dose',this.value)" placeholder="เช่น 1 cc / นน. 10 กก." ${reqEditUnlocked?'':'readonly'} style="min-width:150px${reqEditUnlocked?'':';background:var(--soft)'}"></td>
           <td><input id="rm_${ci}_${i}" class="cin tl" value="${(it.note||'').replace(/"/g,'&quot;')}" onchange="reqSet(${ci},${i},'note',this.value)" placeholder="คำอธิบาย" ${reqEditUnlocked?'':'readonly'} style="min-width:140px${reqEditUnlocked?'':';background:var(--soft)'}"></td>
@@ -6633,11 +6633,24 @@ function renderRequest(){
           <td class="num" style="white-space:nowrap">
             <button class="btn ghost sm" style="color:var(--brand)" onclick="requestMedRow('${cn}',${ci},${i})">เบิก</button>
             ${reqEditUnlocked?`<button class="btn ghost sm" style="color:var(--bad)" onclick="reqDelItem(${ci},${i})">🗑</button>`:''}</td>
-        </tr>`).join("")}</tbody>
+        </tr>`;}).join("")}</tbody>
       </table></div>
       ${reqEditUnlocked?`<button class="btn ghost sm" style="margin-top:10px" onclick="reqAddItem(${ci})">＋ เพิ่มรายการ</button>`:''}
     </div>`).join("")}
   `;
+}
+function reqDisplayOrder(list){ // 🧲 จัดชื่อยาตัวเดียวกันให้อยู่ติดกัน: คีย์กลุ่ม = ชื่อตัวยา (ตัดความเข้มข้น/หน่วยท้ายชื่อ เช่น "20%", "100 CC")
+  // ชื่อการค้าที่วงเล็บตัวยาไว้ เช่น "เรสเพล็คพาวเดอร์ (ทิลมิโคซิน20%)" → ดึงไปอยู่กลุ่ม "ทิลมิโคซิน" · วงเล็บที่ไม่ตรงกับยาตัวไหน (เช่น ชื่อบริษัท) ไม่ถูกย้าย
+  const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,'');
+  const strip=s=>String(s||'').replace(/\([^)]*\)/g,' ').replace(/[\d.,%\/\s]+(%|กรัม|กก\.?|kg|cc|ml|มล\.?|ds\.?|โดส|ตัว|ลิตร|l)?\.?\s*$/i,'').trim();
+  const rows=list.map((it,i)=>{ const n=String((it&&it.name)||''); const par=(n.match(/\(([^)]+)\)/)||[])[1]||'';
+    return {i:i, n:n, core:strip(n), par:strip(par)}; });
+  rows.forEach(r=>{ r.key=r.core||r.n;
+    if(r.par){ const pn=norm(r.par);
+      const hit=rows.find(o=>o.i!==r.i && norm(o.core) && pn && (norm(o.core).indexOf(pn)===0 || pn.indexOf(norm(o.core))===0));
+      if(hit) r.key=hit.core; } });
+  rows.sort((a,b)=>String(a.key).localeCompare(String(b.key),'th')||String(a.n).localeCompare(String(b.n),'th'));
+  return rows.map(r=>r.i);
 }
 function reqHistHTML(){
   if(!reqHouseCode) return '<div class="sub">เลือกรหัสหลังด้านบนเพื่อดูประวัติการเบิก</div>';
