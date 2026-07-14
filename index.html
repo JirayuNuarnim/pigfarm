@@ -6984,6 +6984,9 @@ function userEdit(uid){
       <div class="frow"><label>บทบาท</label><select id="ue_role" onchange="ueRoleChanged()">${roleOptsHTML(u.role)}</select></div>
     </div>
     <div class="frow" id="ue_farms_wrap" style="display:${u.role==='vet'?'':'none'}"><label>🏭 ฟาร์มที่ดูแล<span class="hint"> — เว้นว่าง = เห็นเฉพาะหลังที่ระบุชื่อนี้ (แนะนำ) · เลือกฟาร์ม = หัวหน้า เห็นทั้งฟาร์ม</span></label><div>${farmChecksHTML('uef',Array.isArray(u.farms)?u.farms:[])}</div></div>
+    <div class="frow"><label>🔑 รหัสผ่าน</label>
+      <input id="ue_pass" type="text" placeholder="พิมพ์รหัสใหม่ ≥ 6 ตัว (มองเห็นตัวอักษร) · เว้นว่าง = ใช้รหัสเดิม" autocomplete="off">
+      <div class="sub" style="margin:5px 0 0">🔒 รหัสเดิมถูกเข้ารหัสทางเดียวไว้ในระบบ <b>ดูย้อนไม่ได้</b> (มาตรฐานความปลอดภัย — กันรหัสรั่วถึงแม้ข้อมูลหลุด) · พนักงานลืมรหัส? พิมพ์รหัสใหม่ตรงนี้แล้วกดบันทึก ใช้ได้ทันที</div></div>
     <div class="actions"><button class="btn ghost" onclick="$('#uEdit').innerHTML=''">ยกเลิก</button><button class="btn" onclick="userSaveEdit('${uid}')">บันทึก</button></div>
   </div>`;
   $("#uEdit").scrollIntoView({block:'center'});
@@ -6992,7 +6995,11 @@ async function userSaveEdit(uid){
   const name=($("#ue_name").value||'').trim();
   const role=$("#ue_role").value;
   const farms=role==='vet'?pickFarms('uef'):[];
-  try{ await adminUsersCall({action:'update',user_id:uid,name,role,farms}); toast('บันทึกแล้ว ✓'); $("#uEdit").innerHTML=''; await loadUsers(); }
+  const pw=($("#ue_pass")&&$("#ue_pass").value)||'';   // 🔑 เว้นว่าง = ไม่แตะรหัสเดิม
+  if(pw&&pw.length<6){ toast('รหัสผ่านใหม่ต้องยาวอย่างน้อย 6 ตัว'); return; }
+  const payload={action:'update',user_id:uid,name,role,farms};
+  if(pw) payload.password=pw;
+  try{ await adminUsersCall(payload); toast(pw?'บันทึกแล้ว ✓ ตั้งรหัสใหม่เรียบร้อย — จดบอกพนักงานได้เลย':'บันทึกแล้ว ✓'); $("#uEdit").innerHTML=''; await loadUsers(); }
   catch(e){ toast('ไม่สำเร็จ: '+e.message); }
 }
 function renderAdmin(){
