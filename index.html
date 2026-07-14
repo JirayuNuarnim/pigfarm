@@ -6369,12 +6369,31 @@ function stockReceiveSubmit(){
   toast('📥 รับเข้า '+name+' +'+fmt(qty)+' → '+farm+' · คงเหลือ '+fmt(stockOnHand(farm,cat,name))+' ✓');
   renderStock();
 }
-function stockSetCountIdx(idx){
+async function stockSetCountIdx(idx){
   if(!stockCanSetCount()){toast('🔒 ตั้งคงเหลือได้เฉพาะบัญชีเจ้าของ — เสมียนใช้ "รับเข้า" · หมอใช้ "เบิก"');return;}
   const r=_stkRows[idx]; if(!r) return;
   const el=$("#stkset_"+idx), nv=parseFloat(el&&el.value);
   if(isNaN(nv)||nv<0){toast('ใส่จำนวนคงเหลือใหม่');return;}
-  const cur=stockOnHand(stockFarm,r.cat,r.name), delta=nv-cur;
+  const cur=stockOnHand(stockFarm,r.cat,r.name);
+  if(CONFIG.supabase.enabled&&CONFIG.supabase.backend==='v2'){
+    // 🎯 ตั้งที่ระบบกลาง: เซิร์ฟเวอร์คิดส่วนต่างจาก "ยอดจริงส่วนกลาง" ใต้ล็อก — เครื่องเราเห็นข้อมูลไม่ครบก็ตั้งได้ตรงเป๊ะ ทุกเครื่องเห็นเลขเดียวกัน
+    // (บั๊กเดิม: คิด delta จากยอดฝั่งเครื่อง → เจ้าของตั้ง 677 แต่ยอดกลางกลายเป็น 916)
+    toast('⏳ กำลังตั้งยอดที่ระบบกลาง…');
+    let merged=null;
+    try{
+      const resp=await supaFetch('/rest/v1/rpc/stock_set_count',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({p_bucket:stockFarm,p_cat:r.cat,p_name:r.name,p_target:nv,
+          p_by:(CURRENT_USER&&CURRENT_USER.name)||'เจ้าของ',p_date:DEMO_DATE_DAY,p_note:'ปรับ '+fmt(cur)+' → '+fmt(nv),p_price:(r.price!=null&&r.price!==''?r.price:null)})});
+      if(resp&&resp.ok){ const j=await resp.json(); if(j&&typeof j==='object') merged=j; }
+    }catch(e){ console.warn('stock_set_count',e); }
+    if(merged){
+      stockMergeInto(merged); queueSave();
+      logAudit('คลัง', stockFarm+' · '+r.name, 'ปรับยอดคงเหลือ', [{label:'คงเหลือ',from:fmt(cur),to:fmt(nv)}], 'ตั้งที่ระบบกลาง');
+      toast('⚙️ ตั้ง '+r.name+' = '+fmt(nv)+' ✓ ยืนยันกับระบบกลางแล้ว — ทุกเครื่องเห็นเลขนี้'); renderStock(); return;
+    }
+    toast('⚠️ ติดต่อระบบกลางไม่ได้ — บันทึกไว้ในเครื่องก่อน จะปรับให้ตรงตอนออนไลน์');
+  }
+  const delta=nv-cur;
   if(delta===0){toast('ยอดเท่าเดิม');return;}
   stockMoveAdd(stockFarm,{date:DEMO_DATE_DAY,type:'adjust',delta,cat:r.cat,name:r.name,price:r.price,by:(CURRENT_USER&&CURRENT_USER.name)||'เสมียน',ref:'ปรับยอด',note:'ปรับ '+fmt(cur)+' → '+fmt(nv)});
   logAudit('คลัง', stockFarm+' · '+r.name, 'ปรับยอดคงเหลือ', [{label:'คงเหลือ',from:fmt(cur),to:fmt(nv)}], '');
