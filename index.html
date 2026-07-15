@@ -1307,7 +1307,7 @@ async function rtPoll(){
       else if(top&&top.key==='salestand'&&!SB_D){ // หน้ารายการบิล = ดึงบิลใหม่ของทีมมาแสดงเองเลย (ไม่มีฟอร์มเปิดอยู่ ปลอดภัย)
         try{ await sbCloudLoad(); const t2=navHist[navHist.length-1]; if(t2&&t2.key==='salestand'&&!SB_D){ renderSaleStand(); toast('🔄 มีบิลใหม่จากทีม — อัปเดตรายการให้แล้ว'); } }catch(e){}
       }
-      else if(['clerkReq','clerkFeedReq','stock','vetReq','vetFeed','clerkFarm','houseList'].indexOf(top&&top.key)>=0){   // หน้าเสมียน/หมอหลักๆ → รีเฟรชสดเมื่อทีมลงข้อมูลใหม่ (ถ้าไม่ได้กำลังพิมพ์)
+      else if(['clerkReq','clerkFeedReq','stock','vetReq','vetFeed','clerkFarm','houseList','perf'].indexOf(top&&top.key)>=0){   // หน้าเสมียน/หมอ/ประสิทธิภาพ → รีเฟรชสดเมื่อทีมลงข้อมูลใหม่ (ถ้าไม่ได้กำลังพิมพ์)
         const ae=document.activeElement, typing=ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
         if(typing){ rtShowBanner(); }
         else { try{ await cloudLoadV2(); const t2=navHist[navHist.length-1]; if(t2&&t2.fn) t2.fn(true); toast('🔄 อัปเดตข้อมูลล่าสุดจากทีมแล้ว'); }catch(e){ rtShowBanner(); } }   // fn(true)=คงตำแหน่งเลื่อนของหน้า (clerkFarm รองรับ keepScroll)
