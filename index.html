@@ -901,6 +901,21 @@ function syncTodayCounters(){
   });
 }
 syncTodayCounters();
+/* 🌅 กันข้อมูล "วันนี้" ค้างเป็นวันเก่า: DEMO_DATE ตรึงตอนโหลดหน้า — เครื่องที่เปิดค้างข้ามเที่ยงคืนจะโชว์ยอดวันเก่า และเสี่ยงบันทึกลงวันที่ผิด
+   → เช็คทุก 1 นาที + ตอนกลับมาเปิดจอ: วันจริงเปลี่ยนเมื่อไหร่ รีโหลดหน้าอัตโนมัติ (ร่างบิล/ธงสต็อกค้างส่ง เก็บใน localStorage ครบ ไม่มีอะไรหาย) */
+(function(){
+  function dayChanged(){ const n=new Date(); return n.getFullYear()!==DEMO_DATE.getFullYear()||n.getMonth()!==DEMO_DATE.getMonth()||n.getDate()!==DEMO_DATE.getDate(); }
+  function maybeRollover(){
+    if(!dayChanged()) return;
+    const ae=document.activeElement, typing=ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)&&!document.hidden;
+    if(typing) return;                              // กำลังพิมพ์อยู่ → รอเช็ครอบถัดไป (ทุก 1 นาที) ไม่ตัดจังหวะมือ
+    try{ toast('🌅 ขึ้นวันใหม่ — รีเฟรชระบบเป็นวันที่ปัจจุบัน…'); }catch(e){}
+    try{ saveState(); }catch(e){}
+    setTimeout(function(){ location.reload(); }, 900);
+  }
+  setInterval(maybeRollover, 60000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) maybeRollover(); });
+})();
 // สาธิต: ใส่ข้อมูลการรับเข้า (รวม "วันที่รับเข้า") ให้ทุกหลัง เพื่อให้ "จำนวนวันเลี้ยง" นับวันอัตโนมัติได้
 (function(){
   const MS=86400000, now=DEMO_DATE;
