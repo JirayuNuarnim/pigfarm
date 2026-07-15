@@ -6648,7 +6648,14 @@ function renderRequest(){
           <td><input id="rd_${ci}_${i}" class="cin tl" value="${(it.dose||'').replace(/"/g,'&quot;')}" onchange="reqSet(${ci},${i},'dose',this.value)" placeholder="เช่น 1 cc / นน. 10 กก." ${reqEditUnlocked?'':'readonly'} style="min-width:150px${reqEditUnlocked?'':';background:var(--soft)'}"></td>
           <td><input id="rm_${ci}_${i}" class="cin tl" value="${(it.note||'').replace(/"/g,'&quot;')}" onchange="reqSet(${ci},${i},'note',this.value)" placeholder="คำอธิบาย" ${reqEditUnlocked?'':'readonly'} style="min-width:140px${reqEditUnlocked?'':';background:var(--soft)'}"></td>
           <td class="num" id="rbal_${ci}_${i}">${stockCountable(cn)?(selFarm?stockNumBadge(bal[stockKey(cn,it.name)]||0,stockMinOf(selFarm,cn,it.name)):'<span class="sub">—</span>'):'<span class="sub" title="ยาสูตรไม่นับสต็อก">N/A</span>'}</td>
-          <td class="num"><input id="rq_${ci}_${i}" class="cin" type="number" placeholder="0" style="width:70px"></td>
+          <td class="num" style="white-space:nowrap">${cn==='ยาผสมอาหาร'
+            ?`<div style="display:flex;gap:5px;align-items:center;justify-content:flex-end;flex-wrap:wrap;min-width:230px">
+              <input id="rqa_${ci}_${i}" class="cin nospin" type="number" step="any" min="0" placeholder="ปริมาณ" style="width:80px" oninput="reqMixHint(${ci},${i})">
+              <select id="rqu_${ci}_${i}" class="cin tl" style="width:auto;padding:8px 8px" onchange="reqMixHint(${ci},${i})"><option value="g">กรัม</option><option value="kg">กก.</option></select>
+              <span style="font-weight:700">×</span>
+              <input id="rqs_${ci}_${i}" class="cin nospin" type="number" min="1" placeholder="ชุด" title="จำนวนชุด (เว้นว่าง = 1 ชุด)" style="width:62px" oninput="reqMixHint(${ci},${i})">
+              <div class="sub" id="rqt_${ci}_${i}" style="width:100%;text-align:right;margin:2px 0 0"></div></div>`
+            :`<input id="rq_${ci}_${i}" class="cin" type="number" placeholder="0" style="width:70px">`}</td>
           <td class="num" style="white-space:nowrap">
             <button class="btn ghost sm" style="color:var(--brand)" onclick="requestMedRow('${cn}',${ci},${i})">เบิก</button>
             ${reqEditUnlocked?`<button class="btn ghost sm" style="color:var(--bad)" onclick="reqDelItem(${ci},${i})">🗑</button>`:''}</td>
@@ -6717,12 +6724,31 @@ function reqDelItem(ci,i){if(blockIfReadonly())return;if(!reqEditUnlocked){toast
   // กันลบรายการที่ยังมีของในคลัง (จะทำให้ยอด/มูลค่าหายจากตารางคลังแต่ moves ยังค้าง)
   if(it.name && stockCountable(cat)){ const held=Object.keys(STOCK).filter(f=>stockOnHand(f,cat,it.name)>0); if(held.length){ toast('❌ ลบไม่ได้ — "'+escA(it.name)+'" ยังมีของในคลัง '+held.length+' ฟาร์ม · ปรับยอดเป็น 0 ก่อน'); return; } }
   REQ_DATA[cat].splice(i,1);syncConfig();renderRequest();}
+/* ⚖️ ยาผสมอาหาร: หมอเบิกเป็น "ปริมาณ/ชุด × จำนวนชุด" ระบุหน่วยเอง (กรัม/กก.) — ระบบรวมเป็นกิโล (ทศนิยม) แล้วตัดสต็อกยอดรวม เช่น 50 กรัม × 50 ชุด = ตัด 2.5 กก. */
+function reqMixCalcKg(ci,i){
+  const amt=parseFloat((($("#rqa_"+ci+"_"+i)||{}).value))||0;
+  const unit=(($("#rqu_"+ci+"_"+i)||{}).value)||'g';
+  const sets=Math.max(1,parseInt((($("#rqs_"+ci+"_"+i)||{}).value))||1);
+  return {amt:amt, unit:unit, sets:sets, kg:Math.round(amt*(unit==='g'?0.001:1)*sets*1000)/1000};
+}
+function reqMixHint(ci,i){ const el=$("#rqt_"+ci+"_"+i); if(!el) return; const m=reqMixCalcKg(ci,i);
+  el.innerHTML=m.amt>0?('= ตัดสต็อกรวม <b>'+fmt(m.kg)+'</b> กก.'+(m.sets>1?' ('+fmt(m.amt)+' '+(m.unit==='g'?'กรัม':'กก.')+' × '+fmt(m.sets)+' ชุด)':'')):'';
+}
 function requestMedRow(cat,ci,i){ if(blockIfReadonly())return;
   const name=($("#rn_"+ci+"_"+i).value||'').trim();
   const price=catalogPriceOf(cat,name);   // ราคาจากแคทาล็อกที่เสมียนตั้งในหน้าคลัง — หมอไม่กรอก/ไม่เห็น (ต้นทุนผูกกับของที่เบิกจริง × ราคาที่เสมียนตั้ง)
   const dose=($("#rd_"+ci+"_"+i).value||'').trim();
-  const note=($("#rm_"+ci+"_"+i).value||'').trim();
-  const qty=parseInt($("#rq_"+ci+"_"+i).value)||0;
+  let note=($("#rm_"+ci+"_"+i).value||'').trim();
+  let qty=0, mixDesc='';
+  if(cat==='ยาผสมอาหาร'){
+    const m=reqMixCalcKg(ci,i);
+    if(m.amt<=0){toast('ใส่ปริมาณต่อชุดก่อน (เช่น 50 แล้วเลือกหน่วย กรัม/กก.)');return;}
+    qty=m.kg;
+    mixDesc=fmt(m.amt)+' '+(m.unit==='g'?'กรัม':'กก.')+(m.sets>1?' × '+fmt(m.sets)+' ชุด':'')+' = '+fmt(m.kg)+' กก.';
+    note=mixDesc+(note?' · '+note:'');
+  } else {
+    qty=parseInt($("#rq_"+ci+"_"+i).value)||0;
+  }
   const code=(reqHouseCode||'').toUpperCase();
   if(!code){toast('กรุณาเลือกรหัสหลังที่เบิก (ด้านบน)');return;}
   if(!name){toast('กรุณาระบุชื่อรายการ');return;}
@@ -6741,8 +6767,10 @@ function requestMedRow(cat,ci,i){ if(blockIfReadonly())return;
   h.meds.unshift({date:useDate,cat,name,dose,note,qty,price,total:price*qty,vet:h.vet||'หมอ'});
   if(stockCountable(cat)){ stockMoveAdd(farm,{date:useDate,type:'out',delta:-qty,cat,name,price,by:h.vet||'หมอ',house:h.code,vet:h.vet||'',ref:'เบิก'+(ahead?'ล่วงหน้า':'')+' หลัง '+h.code,note:dose||''}); syncStock(); } // ตัดสต็อกออกจากคลังฟาร์ม (เซฟแยกคีย์ stock → หมอบันทึกได้จริง)
   syncHouseVet(h);
-  toast(ahead?('⏭ เบิกล่วงหน้า '+name+' x'+qty+' → หลัง '+h.code+' ของวันพรุ่งนี้ ('+useDate+') ✓ จะขึ้นใบเบิกพรุ่งนี้'):('เบิก '+name+' x'+qty+' → หลัง '+h.code+(stockCountable(cat)?' · คลังเหลือ '+fmt(stockOnHand(farm,cat,name)):'')+' ✓'));   // ไม่โชว์ราคา/มูลค่าให้หมอ
-  $("#rq_"+ci+"_"+i).value='';
+  const qtyTxt=mixDesc?mixDesc:('x'+fmt(qty));
+  toast(ahead?('⏭ เบิกล่วงหน้า '+name+' '+qtyTxt+' → หลัง '+h.code+' ของวันพรุ่งนี้ ('+useDate+') ✓ จะขึ้นใบเบิกพรุ่งนี้'):('เบิก '+name+' '+qtyTxt+' → หลัง '+h.code+(stockCountable(cat)?' · คลังเหลือ '+fmt(stockOnHand(farm,cat,name))+(cat==='ยาผสมอาหาร'?' กก.':''):'')+' ✓'));   // ไม่โชว์ราคา/มูลค่าให้หมอ
+  ['rq_','rqa_','rqs_'].forEach(p=>{ const el=$("#"+p+ci+"_"+i); if(el) el.value=''; });
+  const ht=$("#rqt_"+ci+"_"+i); if(ht) ht.innerHTML='';
   const bcell=$("#rbal_"+ci+"_"+i); if(bcell && stockCountable(cat)) bcell.innerHTML=stockNumBadge(stockOnHand(farm,cat,name),stockMinOf(farm,cat,name)); // อัปเดตคงเหลือสดทันทีให้ตรง stock จริงหลังเบิก
   updateReqHist();
 }
