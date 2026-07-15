@@ -1336,12 +1336,26 @@ async function rtRefresh(){
 /* 🔄 ปุ่มรีเฟรชกลางบนแถบบน — ดึง "ทุกอย่าง" จากระบบกลางให้เป็นปัจจุบันในกดเดียว (ข้อมูลหลัง+ตั้งค่า+สต็อก · บิลแท่นขาย · บัญชีลูกค้า) แล้ววาดหน้าที่เปิดอยู่ใหม่
    ของค้างในเครื่องไม่หาย: สต็อกผสานผ่าน stockMergeInto · บิลที่ค้างคิว/ร่างมีเกราะใน sbCloudLoad อยู่แล้ว */
 let _refreshingAll=false;
+function viewInputSnapshot(){ // 📸 จำค่าที่พิมพ์ค้างในฟอร์มของหน้านี้ (input/textarea/select ที่มี id) ก่อนวาดหน้าใหม่
+  const m={};
+  document.querySelectorAll('#view input[id], #view textarea[id], #view select[id]').forEach(el=>{
+    if(el.type==='checkbox'||el.type==='radio'){ m[el.id]={c:el.checked}; }
+    else if(String(el.value||'')!==''){ m[el.id]={v:el.value}; }
+  });
+  return m;
+}
+function viewInputRestore(m){ // คืนค่าเฉพาะช่องที่วาดใหม่แล้ว "ว่าง" — ค่าจริงจากระบบ (ช่องที่ไม่ว่าง) ชนะเสมอ · ของที่พิมพ์ค้างไม่หาย
+  Object.keys(m||{}).forEach(id=>{ const el=document.getElementById(id); if(!el) return; const s=m[id];
+    if('c' in s){ el.checked=s.c; } else if(String(el.value||'')===''){ el.value=s.v; } });
+}
 async function refreshAll(){
   if(!ROLE){ try{ location.reload(); }catch(e){} return; }
   if(_refreshingAll) return;
-  _refreshingAll=true;
+  _refreshingAll=true; _noKick=true;   // 🛡️ ระหว่างรีเฟรช: เซสชันหมดอายุ = แจ้งเตือนเฉยๆ ไม่เด้งไป login (หน้า+ข้อมูลที่กรอกคงเดิม)
   const btn=document.getElementById('refreshBtn'); if(btn){ btn.style.opacity='.35'; btn.disabled=true; }
   try{ toast('🔄 กำลังดึงข้อมูลล่าสุดจากระบบกลาง…'); }catch(e){}
+  const snap=viewInputSnapshot();                                   // 📸 จำของที่พิมพ์ค้าง
+  const focusId=(document.activeElement&&document.activeElement.id)||'';
   let ok=true;
   try{
     const r1=await cloudLoadV2(); if(r1){ _loadFailed=false; } else if(CONFIG.supabase&&CONFIG.supabase.enabled){ ok=false; }
@@ -1350,10 +1364,12 @@ async function refreshAll(){
     try{ syncTodayCounters(); }catch(e){}
     try{ await rtBaseline(); }catch(e){}
   }catch(e){ ok=false; }
-  _refreshingAll=false;
+  _refreshingAll=false; _noKick=false;
   if(btn){ btn.style.opacity=''; btn.disabled=false; }
   try{ const top=navHist[navHist.length-1]; if(top&&top.fn) top.fn(); }catch(e){}
-  try{ toast(ok?('✅ ข้อมูลเป็นปัจจุบันแล้ว · '+nowStamp()):'⚠️ ดึงข้อมูลไม่ครบ (เช็คอินเทอร์เน็ต) — ลองกด 🔄 อีกครั้ง'); }catch(e){}
+  try{ viewInputRestore(snap); }catch(e){}                          // คืนของที่พิมพ์ค้างกลับเข้าช่องเดิม
+  if(focusId){ try{ const el=document.getElementById(focusId); if(el) el.focus({preventScroll:true}); }catch(e){} }
+  try{ toast(ok?('✅ ข้อมูลเป็นปัจจุบันแล้ว · '+nowStamp()):'⚠️ ดึงข้อมูลไม่ครบ (เช็คอินเทอร์เน็ต/เข้าระบบใหม่) — จอและข้อมูลที่กรอกยังอยู่ครบ'); }catch(e){}
 }
 
 /* ---------- (C2) Supabase Auth — ล็อกอินจริง (ชื่อผู้ใช้ + รหัสผ่าน) ผ่าน GoTrue REST ----------
@@ -1445,8 +1461,10 @@ function appProfile(u){
   return { username:u.username||base.username||'', name:u.name||base.name||'', role:u.role||base.role||'clerk', farms:(base.farms!==undefined?base.farms:[]) };
 }
 // เซสชันหมดอายุระหว่างใช้งาน (รีเฟรช token ไม่ได้) → แจ้งผู้ใช้ + กลับไปหน้าล็อกอิน (กันบันทึกไม่ขึ้นคลาวด์โดยไม่รู้ตัว)
+let _noKick=false;   // 🔄 ระหว่างกดปุ่มรีเฟรช: เซสชันหมดอายุก็ห้ามเด้งไปหน้า login — คงหน้าปัจจุบันไว้ แจ้งเตือนเฉยๆ (Peter สั่ง 15 ก.ค.)
 function sessionExpired(){
   if(ROLE===null || _sessExpired) return;   // ยังไม่ได้เข้าแอป หรือแจ้งไปแล้ว → ไม่ทำซ้ำ
+  if(_noKick){ try{ toast('⚠️ เซสชันหมดอายุ — จอนี้ยังใช้ดูได้ (ข้อมูลชุดล่าสุดในเครื่อง) · พอสะดวกให้กด "ออก" แล้วเข้าสู่ระบบใหม่ ข้อมูลที่กรอกไว้ไม่หาย'); }catch(e){} return; }
   _sessExpired=true;
   toast("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่ (ข้อมูลที่แก้ล่าสุดยังอยู่ในเครื่องนี้)");
   logout();
