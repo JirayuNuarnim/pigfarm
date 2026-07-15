@@ -1609,11 +1609,11 @@ const ROLE_DESC={
 };
 let viewRole=null; // เจ้าของ/เสมียน/ผู้ดูแล "ดูในมุม" บทบาทอื่นได้ · null = บทบาทตัวเอง
 function effRole(){ return viewRole||ROLE; }                   // บทบาทที่ใช้แสดงผล/เมนู
-function hasRoleHub(){ return ROLE==='owner'||ROLE==='clerk'||ROLE==='admin'; } // ใครได้หน้าเลือกบทบาท
+function hasRoleHub(){ return ROLE==='owner'||ROLE==='admin'; } // ใครได้หน้าเลือกบทบาท — เสมียนเข้าได้เฉพาะมุมของตัวเอง (Peter สั่ง 15 ก.ค. 69)
 function canEditView(){ return !viewRole || viewRole===ROLE || ROLE==='owner' || ROLE==='admin'; } // แก้ได้ในมุมที่ดูอยู่ไหม (เซิร์ฟเวอร์ RLS บังคับซ้ำอีกชั้น)
 function blockIfReadonly(){ if(!canEditView()){ toast('โหมดดูอย่างเดียว (มุมบทบาทอื่น) — แก้ไขไม่ได้'); return true; } return false; }
 function goHome(){ if(!ROLE) return; viewRole=null; if(hasRoleHub()) renderRoleHub(); else renderHome(); } // แตะโลโก้ → หน้าหลักสุด
-function enterRole(r){ viewRole=(r===ROLE?null:r); renderHome(); } // เลือกบทบาท → หน้าหัวข้อของบทบาทนั้น
+function enterRole(r){ if(!hasRoleHub()&&r!==ROLE){ toast('บัญชีนี้ใช้ได้เฉพาะมุมของตัวเอง'); return; } viewRole=(r===ROLE?null:r); renderHome(); } // เลือกบทบาท → หน้าหัวข้อของบทบาทนั้น (กันเรียกข้ามสิทธิ์ตรงๆ ด้วย)
 // ---- ชิ้นส่วน UI หน้าหลัก ----
 // ไอคอน SVG ประจำเมนู (แทนอิโมจิ) — อิโมจิที่ไม่มีในตารางจะแสดงตามเดิม
 const MENU_ICON={'📊':'i-chart','📈':'i-trend','💊':'i-pill','📦':'i-box','👥':'i-users','🔒':'i-shield','📝':'i-pen','📆':'i-cal','🏭':'i-barn','💉':'i-medkit','🌾':'i-wheat','📤':'i-export','🩺':'i-steth','🧪':'i-flask','🏠':'i-barn','👔':'i-crown','📋':'i-clip','⚙️':'i-gear','🕸️':'i-net','⚖️':'i-scale','📺':'i-net'};
