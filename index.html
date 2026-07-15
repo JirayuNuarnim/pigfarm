@@ -8113,7 +8113,7 @@ function renderSaleBillForm(){
     <h2 class="page">${K.ico} ${SB_ISNEW?'บันทึก':'แก้ไข'}${K.t} <span class="more">${sbThaiDate(SB_D.dateISO)}</span></h2>
     <div class="sub">${isDC?'ลงหมูทีละตัว (หลัง/ประเภท/น้ำหนัก) · ราคาตามช่วงน้ำหนัก แยกคัดขาย-ตาย':'กรอกน้ำหนักรายตัวเหมือนบิลกระดาษ · ระบบรวม/เฉลี่ย/เทียบตาชั่งรถให้เอง'} · ร่างถูกเก็บอัตโนมัติทุกการพิมพ์</div>
     ${locked?`<div class="banner ${canFix?'info':'bad'}">🔒 <div><b>บิลนี้ถูกตรวจและล็อกแล้ว</b> โดย ${escA((stored&&stored.verifiedBy)||'-')} · ${escA((stored&&stored.verifiedAt)||'')} ${canFix?'— เจ้าของ/ผู้ดูแลยังแก้/ปลดล็อกได้':'— <b>ดูอย่างเดียว</b> (แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล)'}</div></div>`:''}
-    ${(savedEdit&&!locked&&roBill)?`<div class="banner bad">🔒 <div><b>บิลนี้บันทึกแล้ว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล</b> · ถ้ากรอกผิด แจ้งเจ้าของให้แก้ให้</div></div>`:''}
+    ${(savedEdit&&!locked&&roBill)?`<div class="banner bad">🔒 <div><b>บิลนี้บันทึกแล้ว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล</b> · <b>ยกเว้นเลขที่บิลอ้างอิง</b> (เล่ม/เลขที่/บิลชั่งรายตัว/ใบชั่งรถ) ที่เสมียนเติมเพิ่มแล้วกด "💾 บันทึกเลขอ้างอิง" ด้านล่างได้</div></div>`:''}
     ${!SB_ISNEW&&SB_D.postedAt&&!locked?`<div class="banner ok">⬇️ <div><b>บิลนี้ลงเข้าหลังแล้ว</b> (${escA((SB_D.postedHouses||[]).join(', '))}) — ถ้าแก้ตัวเลข/ราคา ให้กด "ลงเข้าหลัง" ซ้ำ ระบบจะแทนที่ของเดิมให้ ไม่ลงซ้อน <button class="btn ghost sm" style="margin-left:8px" onclick="var _id='${SB_D.id}';sbSave();if(SB_D===null)sbPostToHouses(_id)">⬇️ ลงเข้าหลังซ้ำ (อัปเดต)</button></div></div>`:''}
     <div id="sbSum" class="sbsticky">${sbSumHTML()}</div>
     <div class="card"><h3>🧾 หัวบิล ${SB_D.webNo?`<span class="sbchip ok" style="font-size:13px">🔢 เลขที่บิลระบบ <b>${escA(SB_D.webNo)}</b></span>`:`<span class="sbchip" style="font-size:12px" title="เลขรันอัตโนมัติจากระบบกลาง แยกตามฟาร์ม+ประเภท · แก้ไม่ได้">🔢 เลขที่บิลระบบ: ออกอัตโนมัติเมื่อบันทึก</span>`}</h3>
@@ -8165,7 +8165,7 @@ function renderSaleBillForm(){
       <textarea class="cin" rows="2" style="margin-top:10px" placeholder="หมายเหตุ เช่น ลดบิลรอบก่อน · เหตุการณ์พิเศษ" oninput="SB_D.note=this.value;sbRefresh()">${escA(SB_D.note)}</textarea></div>
     ${!SB_ISNEW?sbHistCard(SB_D.id):''}
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 30px;align-items:center">
-      ${roBill?'<span class="sbchip bad">🔒 ดูอย่างเดียว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล</span>':`
+      ${roBill?`<span class="sbchip bad">🔒 ดูอย่างเดียว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล</span>${(!locked&&sbCanWrite())?`<button class="btn sm" onclick="sbSaveRefsOnly()">💾 บันทึกเลขอ้างอิง</button>`:''}`:`
       <button id="sbSaveBtn" class="btn sm" style="font-size:16px;padding:13px 30px" onclick="sbSave()">💾 บันทึกบิล</button>
       <button class="btn sm" style="font-size:15px;padding:13px 22px;background:linear-gradient(135deg,#2a7fb8,#1f5f8b)" onclick="sbSaveAndPost()">💾+⬇️ บันทึก แล้วลงเข้าหลังเลย</button>`}
       <button class="btn ghost sm" onclick="sbDraftDrop();sbLiveClear();SB_D=null;renderSaleStand()">ยกเลิก</button>
@@ -8394,6 +8394,22 @@ function sbSave(){
   try{ lgOnBillSaved(SB_D); }catch(e){ console.warn('ledger',e); }  // 📒 ยอดบิลไหลเข้าบัญชีลูกค้าอัตโนมัติ (เมื่อราคาครบ)
   toast('บันทึกบิลแล้ว ✓'+(c.pending?' — ติดป้ายรอใส่ราคาให้เจ้าของ':''));
   SB_D=null; renderSaleStand();
+}
+function sbSaveRefsOnly(){ // 📄 เสมียนเติม "เลขที่บิลอ้างอิง" ให้บิลที่บันทึกแล้ว (เอกสารเว็บต้องอ้างอิงบิลตราชั่งจริง — ใบชั่งรถมักออกทีหลังบันทึกบิล)
+  // เซฟเฉพาะ 4 ช่องเลขอ้างอิงเท่านั้น — ตัวเลขน้ำหนัก/ราคา/ผู้ซื้อ ฯลฯ ยังล็อกให้เจ้าของ/ผู้ดูแลเหมือนเดิม
+  if(blockIfReadonly())return; if(!sbCanWrite()||!SB_D) return;
+  const b=SALE_BILLS.find(x=>x.id===SB_D.id); if(!b){ toast('ไม่พบบิลนี้ในระบบ'); return; }
+  if(b.locked){ toast('🔒 บิลถูกตรวจ/ล็อกแล้ว — แก้ได้เฉพาะเจ้าของ/ผู้ดูแล'); return; }
+  const F=[['เล่มที่','billBook'],['เลขที่','billNo'],['เลขบิลชั่งรายตัว','scaleBillNo'],['เลขใบชั่งรถ','truckScaleNo']];
+  const changes=[];
+  F.forEach(f=>{ const nv=String(SB_D[f[1]]||'').trim(), ov=String(b[f[1]]||'').trim();
+    if(nv!==ov){ changes.push({label:f[0],from:ov||'-',to:nv||'-'}); b[f[1]]=nv; } });
+  if(!changes.length){ toast('ยังไม่มีเลขอ้างอิงที่เปลี่ยน — พิมพ์ในช่อง เล่มที่/เลขที่/บิลชั่ง แล้วกดปุ่มนี้'); return; }
+  b.editLog=b.editLog||[]; b.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',changes:changes,note:'เติมเลขที่บิลอ้างอิง (เสมียน)'});
+  syncSaleBill(b);
+  logAudit('บิลขาย', b.id, 'เติมเลขอ้างอิงบิล', changes, (b.farm||'')+' · '+(b.buyer||'-'));
+  sbDraftDrop(); sbLiveClear(); SB_D=null;
+  toast('📄 บันทึกเลขอ้างอิงแล้ว ✓'); renderSaleStand();
 }
 function sbDelete(id){
   if(!['owner','admin'].includes(ROLE)){ toast('ลบได้เฉพาะเจ้าของ/ผู้ดูแล'); return; }
