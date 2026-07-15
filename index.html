@@ -543,6 +543,7 @@ body.theme-dark .sbpaper th[style*="f1f1ea"], body.theme-dark .sbpaper td[style*
     <div class="spacer"></div>
     <div class="pill" id="datePill">📅 <b id="today"></b></div>
     <div class="pill" id="rolePill"></div>
+    <button class="linkbtn" id="refreshBtn" onclick="refreshAll()" title="ดึงข้อมูลล่าสุดจากระบบกลางทั้งหมด (ข้อมูลหลัง·สต็อก·บิลขาย·บัญชี) แล้วแสดงหน้าปัจจุบันใหม่">🔄</button>
     <button class="linkbtn" id="bigBtn" onclick="bigToggle()" title="ตัวใหญ่/ปกติ">🔍</button>
     <button class="linkbtn" id="themeBtn" onclick="themeToggle()" title="สลับโหมดสว่าง/มืด">🌙</button>
     <button class="linkbtn" onclick="goHome()" title="กลับหน้าหลัก">ออก</button>
@@ -1331,6 +1332,28 @@ async function rtRefresh(){
   try{ const mx=await rtMaxTs(); if(mx) _rtSeenTs=mx; }catch(e){}
   try{ const top=navHist[navHist.length-1]; if(top&&top.fn) top.fn(); }catch(e){}
   try{ toast('โหลดข้อมูลล่าสุดจากทีมแล้ว ✓'); }catch(e){}
+}
+/* 🔄 ปุ่มรีเฟรชกลางบนแถบบน — ดึง "ทุกอย่าง" จากระบบกลางให้เป็นปัจจุบันในกดเดียว (ข้อมูลหลัง+ตั้งค่า+สต็อก · บิลแท่นขาย · บัญชีลูกค้า) แล้ววาดหน้าที่เปิดอยู่ใหม่
+   ของค้างในเครื่องไม่หาย: สต็อกผสานผ่าน stockMergeInto · บิลที่ค้างคิว/ร่างมีเกราะใน sbCloudLoad อยู่แล้ว */
+let _refreshingAll=false;
+async function refreshAll(){
+  if(!ROLE){ try{ location.reload(); }catch(e){} return; }
+  if(_refreshingAll) return;
+  _refreshingAll=true;
+  const btn=document.getElementById('refreshBtn'); if(btn){ btn.style.opacity='.35'; btn.disabled=true; }
+  try{ toast('🔄 กำลังดึงข้อมูลล่าสุดจากระบบกลาง…'); }catch(e){}
+  let ok=true;
+  try{
+    const r1=await cloudLoadV2(); if(r1){ _loadFailed=false; } else if(CONFIG.supabase&&CONFIG.supabase.enabled){ ok=false; }
+    try{ if(!(await sbCloudLoad()) && CONFIG.supabase&&CONFIG.supabase.enabled) ok=false; }catch(e){ ok=false; }
+    try{ if(typeof lgCanUse==='function'&&lgCanUse()) await lgCloudLoad(); }catch(e){}
+    try{ syncTodayCounters(); }catch(e){}
+    try{ await rtBaseline(); }catch(e){}
+  }catch(e){ ok=false; }
+  _refreshingAll=false;
+  if(btn){ btn.style.opacity=''; btn.disabled=false; }
+  try{ const top=navHist[navHist.length-1]; if(top&&top.fn) top.fn(); }catch(e){}
+  try{ toast(ok?('✅ ข้อมูลเป็นปัจจุบันแล้ว · '+nowStamp()):'⚠️ ดึงข้อมูลไม่ครบ (เช็คอินเทอร์เน็ต) — ลองกด 🔄 อีกครั้ง'); }catch(e){}
 }
 
 /* ---------- (C2) Supabase Auth — ล็อกอินจริง (ชื่อผู้ใช้ + รหัสผ่าน) ผ่าน GoTrue REST ----------
