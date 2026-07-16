@@ -6760,14 +6760,29 @@ let reqPickDay='today';
 function reqTomorrowDay(){ const d=new Date(DEMO_DATE); d.setDate(d.getDate()+1); return d.getDate()+' '+_THMON[d.getMonth()]; }
 function reqPickDateStr(){ return reqPickDay==='tomorrow'?reqTomorrowDay():DEMO_DATE_DAY; }
 function reqAheadBadge(dateStr){ return dateStr===reqTomorrowDay()?' <span style="background:#fdf3e0;color:#b7791f;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;white-space:nowrap">⏭ ล่วงหน้า</span>':''; }
+function medDeleteByOwner(houseId,idx){ // 🗑 เจ้าของลบรายการเบิกยาที่หมอกดผิด — สต็อกคืนเข้าคลังเป็นรายการ "คืนยา" (ไม่ลบประวัติเคลื่อนไหวเดิม ตรวจย้อนได้) + ลง editLog/audit
+  if(ROLE!=='owner'){ toast('🔒 ลบรายการเบิกได้เฉพาะบัญชีเจ้าของ'); return; }
+  const h=HOUSES.find(x=>x.id===houseId); if(!h) return;
+  const m=(h.meds||[])[idx]; if(!m) return;
+  if(!confirm('ลบรายการเบิก "'+m.name+'" x'+fmt(m.qty)+' ('+(m.date||'-')+') ของหลัง '+h.code+' ?\n\n• สต็อกจะถูกคืนเข้าคลัง +'+fmt(m.qty)+' ทันที\n• การลบถูกบันทึกในประวัติกันโกง')) return;
+  h.meds.splice(idx,1);
+  if(stockCountable(m.cat)){ stockMoveAdd(h.farm||'ไม่ระบุฟาร์ม',{date:DEMO_DATE_DAY,type:'in',delta:(+m.qty)||0,cat:m.cat,name:m.name,price:m.price,by:whoNow(),house:h.code,vet:m.vet||'',ref:'คืนยา (เจ้าของลบรายการเบิกผิด หลัง '+h.code+')',note:'ยกเลิกรายการเบิกของ '+(m.date||'-')}); syncStock(); }
+  h.editLog=h.editLog||[];
+  h.editLog.unshift({_dom:'vet',ts:Date.now(),time:nowStamp(),by:whoNow(),changes:[{label:'ลบรายการเบิกยา',from:m.name+' x'+fmt(m.qty)+' ('+(m.date||'-')+')',to:'ลบ + คืนสต็อก'}],note:'เจ้าของลบรายการเบิกที่หมอกดผิด'});
+  try{ logAudit('คลัง', (h.farm||'')+' · '+m.name, 'ลบรายการเบิกยา (คืนสต็อก)', [{label:'หลัง '+h.code,from:m.name+' x'+fmt(m.qty),to:'คืนเข้าคลัง'}], m.date||''); }catch(e){}
+  syncHouseVet(h);
+  toast('🗑 ลบรายการเบิกแล้ว · คืนสต็อก '+m.name+' +'+fmt(m.qty)+' ✓');
+  updateReqHist();
+}
 function reqHistHTML(){
   if(!reqHouseCode) return '<div class="sub">เลือกรหัสหลังด้านบนเพื่อดูประวัติการเบิก</div>';
   const h=HOUSES.find(x=>(x.code||'').toUpperCase()===reqHouseCode.toUpperCase());
   const log=(h&&h.meds)||[];
-  return `<div style="font-weight:700;font-size:14px;margin-bottom:8px">🧾 ประวัติการเบิก · หลัง ${escA(reqHouseCode)} <span class="sub" style="font-weight:400">(${log.length} รายการ)</span></div>
+  const own=(ROLE==='owner');   // เจ้าของ (รวมตอนสลับมาดูมุมหมอ) เห็นปุ่มลบรายการที่เบิกผิด
+  return `<div style="font-weight:700;font-size:14px;margin-bottom:8px">🧾 ประวัติการเบิก · หลัง ${escA(reqHouseCode)} <span class="sub" style="font-weight:400">(${log.length} รายการ)</span>${own?' <span class="sub" style="font-weight:400">· 🗑 = ลบรายการที่เบิกผิด (คืนสต็อกอัตโนมัติ)</span>':''}</div>
     <div style="overflow-x:auto"><table>
-      <thead><tr><th>วันที่</th><th>หมวด</th><th>ชื่อ</th><th>โดส</th><th class="num">จำนวน</th><th>หมายเหตุ</th></tr></thead>
-      <tbody>${log.length? log.map(m=>`<tr><td style="white-space:nowrap">${escA(m.date)}${reqAheadBadge(m.date)}</td><td><span class="sub">${escA(m.cat||'-')}</span></td><td>${escA(m.name)}</td><td>${escA(m.dose||'-')}</td><td class="num">${m.qty}</td><td>${escA(m.note||'-')}</td></tr>`).join("") : '<tr><td colspan="6" class="sub">ยังไม่มีการเบิกของหลังนี้</td></tr>'}</tbody>
+      <thead><tr><th>วันที่</th><th>หมวด</th><th>ชื่อ</th><th>โดส</th><th class="num">จำนวน</th><th>หมายเหตุ</th>${own?'<th></th>':''}</tr></thead>
+      <tbody>${log.length? log.map((m,i)=>`<tr><td style="white-space:nowrap">${escA(m.date)}${reqAheadBadge(m.date)}</td><td><span class="sub">${escA(m.cat||'-')}</span></td><td>${escA(m.name)}</td><td>${escA(m.dose||'-')}</td><td class="num">${m.qty}</td><td>${escA(m.note||'-')}</td>${own?`<td><button class="btn ghost sm" style="color:var(--bad)" title="ลบรายการเบิกผิด + คืนสต็อก" onclick="medDeleteByOwner(${h.id},${i})">🗑</button></td>`:''}</tr>`).join("") : `<tr><td colspan="${own?7:6}" class="sub">ยังไม่มีการเบิกของหลังนี้</td></tr>`}</tbody>
     </table></div>`;
 }
 function updateReqHist(){const el=$("#reqHist");if(el)el.innerHTML=reqHistHTML();}
