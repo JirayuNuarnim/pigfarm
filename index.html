@@ -4318,7 +4318,14 @@ function saveMedEdit(hid,id){ if(blockIfReadonly())return;
   medEdit={hid:null,id:null};
   rerenderCurrent();
 }
-// การ์ดรายการเบิกยา/เวชภัณฑ์ของหลังนี้ (withEdit=true → เสมียนกด ✏️ แก้ไขในแถวได้)
+function medDeleteByIdOwner(hid,id){ // 🗑 ลบจากการ์ด "รายการเบิกยา" (อ้างด้วย _id) — ใช้ตัวลบ+คืนสต็อกตัวเดียวกับหน้าเบิกยา แล้ววาดหน้าปัจจุบันใหม่
+  const h=HOUSES.find(x=>x.id===hid); if(!h) return;
+  const idx=(h.meds||[]).findIndex(m=>m&&m._id===id); if(idx<0){ toast('ไม่พบรายการ'); return; }
+  const before=(h.meds||[]).length;
+  medDeleteByOwner(hid,idx);
+  if((h.meds||[]).length<before){ try{ rerenderCurrent(); }catch(e){} }
+}
+// การ์ดรายการเบิกยา/เวชภัณฑ์ของหลังนี้ (withEdit=true → เสมียนกด ✏️ แก้ไขในแถวได้ · เจ้าของมี 🗑 ลบ+คืนสต็อก)
 function medListHTML(h,withEdit){
   ensureMedIds(h);
   const meds=h.meds||[];
@@ -4328,7 +4335,7 @@ function medListHTML(h,withEdit){
   const ehCol=withEdit?'<th class="num">จัดการ</th>':'';
   const act=m=>!withEdit?'':`<td class="num" style="white-space:nowrap">${isEd(m)
     ? `<button class="btn sm" onclick="saveMedEdit(${h.id},'${m._id}')">💾</button> <button class="btn ghost sm" onclick="cancelMedEdit()">✖</button>`
-    : `<button class="btn ghost sm" style="color:var(--info)" onclick="startMedEdit(${h.id},'${m._id}')">✏️</button>`}</td>`;
+    : `<button class="btn ghost sm" style="color:var(--info)" onclick="startMedEdit(${h.id},'${m._id}')">✏️</button>${ROLE==='owner'?` <button class="btn ghost sm" style="color:var(--bad)" title="ลบรายการเบิกผิด + คืนสต็อก (เจ้าของเท่านั้น)" onclick="medDeleteByIdOwner(${h.id},'${m._id}')">🗑</button>`:''}`}</td>`;
   const row=m=>isEd(m)
     ? `<tr><td>${inp(m._id,'date',m.date)}</td><td>${catSel(m._id,m.cat)}</td><td>${inp(m._id,'name',m.name)}</td><td class="num">${inp(m._id,'qty',m.qty,'num')}</td><td class="num">${inp(m._id,'price',m.price,'num')}</td><td class="num"><b>${fmt((Number(m.qty)||0)*(Number(m.price)||0))}</b></td>${act(m)}</tr>`
     : `<tr><td>${escA(m.date)}</td><td><span class="tag ${m.cat==='วัคซีน'?'ok':m.cat==='ยาไม่มีทะเบียน'?'warn':'wait'}">${escA(m.cat)}</span></td><td style="white-space:normal;min-width:160px;max-width:300px">${escA(m.name)}${m.dose?'<div class="sub">โดส: '+escA(m.dose)+'</div>':''}${m.note?'<div class="sub">📝 '+escA(m.note)+'</div>':''}</td><td class="num">${m.qty}</td><td class="num">${fmt(m.price)}</td><td class="num"><b>${fmt(m.total)}</b></td>${act(m)}</tr>`;
@@ -4340,7 +4347,7 @@ function medListHTML(h,withEdit){
         ${meds.length? meds.map(row).join("") : `<tr><td colspan="${colspan}" class="sub">ยังไม่มีรายการเบิกยา</td></tr>`}
       </tbody>
     </table></div>
-    ${withEdit?'<div class="sub" style="margin:8px 0 0">✏️ กดแก้ไขได้ — เมื่อบันทึก <b>รวม = จำนวน × ราคา</b> คิดใหม่อัตโนมัติ และอัปเดต <b>ยอดต้นทุนยาของหลังนี้</b> ทันที พร้อมบันทึกประวัติด้านล่าง':''}
+    ${withEdit?('<div class="sub" style="margin:8px 0 0">✏️ กดแก้ไขได้ — เมื่อบันทึก <b>รวม = จำนวน × ราคา</b> คิดใหม่อัตโนมัติ และอัปเดต <b>ยอดต้นทุนยาของหลังนี้</b> ทันที พร้อมบันทึกประวัติด้านล่าง'+(ROLE==='owner'?' · 🗑 ลบรายการที่เบิกผิด (คืนสต็อกอัตโนมัติ · เจ้าของเท่านั้น)':'')+'</div>'):''}
   </div>`;
 }
 function clerkForm(){
