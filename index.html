@@ -6187,10 +6187,8 @@ function vetForm(){
       <div class="grid2">
         <div class="frow" style="margin-bottom:0"><label>แหล่งรับอาหาร</label>
           <select id="v_feedSrc" class="cin tl">${VET_FEEDSRC.map(s=>`<option>${escA(s)}</option>`).join('')}</select></div>
-        <div class="frow" style="margin-bottom:0"><label>เบอร์อาหาร <span class="hint">(เลือก/พิมพ์เพิ่มได้)</span></label>
-          <div class="ddwrap"><input id="v_feedNo" class="cin tl" list="feedNoList" placeholder="เช่น 108">
-          <button type="button" class="ddbtn" onclick="ddToggle('v_feedNo','feedno')">▾</button></div>
-          <datalist id="feedNoList">${VET_FEEDNO.map(n=>`<option>${escA(n)}</option>`).join("")}</datalist></div>
+        <div class="frow" style="margin-bottom:0"><label>เบอร์อาหาร <span class="hint">(กดเลือกเท่านั้น — เจ้าของเพิ่มตัวเลือกได้ที่ "จัดการเล้า")</span></label>
+          <select id="v_feedNo" class="cin tl"><option value="">— เลือกเบอร์ —</option>${VET_FEEDNO.map(n=>`<option>${escA(n)}</option>`).join("")}</select></div>
       </div>
       <div class="grid2" style="margin-top:10px">
         <div class="frow" style="margin-bottom:0"><label>ปริมาณอาหาร</label><div class="unit"><input id="v_feedKg" class="cin tl" type="number" placeholder="0"><span class="u">กก.</span></div></div>
@@ -6204,9 +6202,8 @@ function vetForm(){
     <div class="card">
       <h3>🍽️ การกินได้ต่อวัน</h3>
       <div class="grid2">
-        <div class="frow" style="margin-bottom:0"><label>อาหารเบอร์ <span class="hint">(เลือก/พิมพ์เพิ่มได้)</span></label>
-          <div class="ddwrap"><input id="v_eatNo" class="cin tl" list="feedNoList" placeholder="เช่น 108">
-          <button type="button" class="ddbtn" onclick="ddToggle('v_eatNo','feedno')">▾</button></div></div>
+        <div class="frow" style="margin-bottom:0"><label>อาหารเบอร์ <span class="hint">(กดเลือกเท่านั้น)</span></label>
+          <select id="v_eatNo" class="cin tl"><option value="">— เลือกเบอร์ —</option>${VET_FEEDNO.map(n=>`<option>${escA(n)}</option>`).join("")}</select></div>
         <div class="frow" style="margin-bottom:0"><label>น้ำหนักอาหารที่กิน</label><div class="unit"><input id="v_eatKg" class="cin tl" type="number" placeholder="0"><span class="u">กก.</span></div></div>
       </div>
     </div>
