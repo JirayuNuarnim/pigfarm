@@ -7463,17 +7463,28 @@ function houseEditLogHTML(h){
     </div>`).join("") : '<div class="sub">ยังไม่มีการแก้ไขข้อมูลหลังนี้</div>'}
   </div>`;
 }
+let admLogRange='3d';   // 🕘 ประวัติแก้ไขหลัง: เริ่มต้นโชว์ 3 วันล่าสุด — ย้อนดูเพิ่มได้ด้วย chips (Peter สั่ง 16 ก.ค.)
+function admEditLogRe(){ const el=document.getElementById('admEditLog'); if(el) el.outerHTML=adminEditLogHTML(); }
 function adminEditLogHTML(){
   const all=HOUSES.flatMap(h=>(h.editLog||[]).map(e=>Object.assign({},e,{code:h.code,farm:h.farm}))).sort((a,b)=>(b.ts||0)-(a.ts||0));
-  return `<div class="card">
-    <h3>🕘 ประวัติการแก้ไขข้อมูลหลัง <span class="more">${all.length} ครั้ง</span></h3>
-    ${all.length? all.map(e=>`
+  const days={'3d':3,'7d':7,'30d':30}[admLogRange]||0;
+  let list=all, label='ทั้งหมด';
+  if(days){ const cut=new Date(DEMO_DATE.getFullYear(),DEMO_DATE.getMonth(),DEMO_DATE.getDate()-(days-1)).getTime();
+    list=all.filter(e=>(e.ts||0)>=cut); label=days+' วันล่าสุด'; }   // รายการเก่ามากที่ไม่มี ts จะเห็นเมื่อเลือก "ทั้งหมด"
+  const chips=[['3d','3 วันล่าสุด'],['7d','7 วัน'],['30d','30 วัน'],['all','ทั้งหมด']]
+    .map(r=>`<button class="sbfchip${admLogRange===r[0]?' on':''}" onclick="admLogRange='${r[0]}';admEditLogRe()">${r[1]}</button>`).join('');
+  const CAP=300, shown=list.slice(0,CAP);
+  return `<div class="card" id="admEditLog">
+    <h3>🕘 ประวัติการแก้ไขข้อมูลหลัง <span class="more">${fmt(list.length)} ครั้ง (${label})${days?' · ทั้งหมดสะสม '+fmt(all.length):''}</span></h3>
+    <div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><span class="sub" style="margin:0 4px 6px 0">⏱ ย้อนดู:</span>${chips}</div>
+    ${shown.length? shown.map(e=>`
       <div style="padding:10px 0;border-bottom:1px solid var(--line)">
         <div style="font-weight:600;font-size:13.5px">✏️ ${escA(e.farm||'')} · หลัง ${escA(e.code)}
           <span class="sub" style="font-weight:400"> · ${escA(e.time)} · โดย ${escA(e.by)}</span></div>
         <div style="margin-top:5px">${e.changes.map(c=>`<div class="sub" style="margin:2px 0">• <b>${escA(c.label)}</b>: ${escA(c.from)} → <b style="color:var(--ink)">${escA(c.to)}</b></div>`).join("")}</div>
         ${e.note?`<div class="sub" style="margin-top:4px">📝 หมายเหตุ: <b style="color:var(--ink)">${escA(e.note)}</b></div>`:''}
-      </div>`).join("") : '<div class="sub">ยังไม่มีการแก้ไข — กดปุ่ม ✏️ ที่หลังใดก็ได้เพื่อแก้ไข แล้วบันทึก</div>'}
+      </div>`).join("") : (all.length?'<div class="sub">— ไม่มีการแก้ไขในช่วง '+label+' — กด "ทั้งหมด" เพื่อย้อนดูของเก่า —</div>':'<div class="sub">ยังไม่มีการแก้ไข — กดปุ่ม ✏️ ที่หลังใดก็ได้เพื่อแก้ไข แล้วบันทึก</div>')}
+    ${list.length>CAP?`<div class="sub" style="margin-top:8px">— แสดง ${fmt(CAP)} รายการแรกจาก ${fmt(list.length)} — เลือกช่วงสั้นลงเพื่อดูครบ —</div>`:''}
   </div>`;
 }
 // รายการเล้าในหน้าผู้ดูแล — จัดกลุ่มตามฟาร์ม (แต่ละหลังอยู่ใต้ชื่อฟาร์มนั้น)
