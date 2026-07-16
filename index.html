@@ -8011,9 +8011,26 @@ function sbDraftHasContent(d){ // ร่างมี "ของจริง" ท
   if(!d||!d.d) return false; const x=d.d;
   return !!(((x.weights||[]).length)||((x.items||[]).some(i=>i&&sbNum(i.w)>0))||gNrm(x.buyer)||((x.houses||[]).some(h=>h&&h.code)));
 }
-function sbDraftList(){ // ร่างทั้งหมด ใหม่→เก่า · ล้างร่างใหม่ที่ยังเปล่าทิ้งเงียบๆ (เปิดฟอร์มแล้วไม่พิมพ์อะไร)
+function sbDraftDiffers(d){ // ร่างของบิลที่บันทึกแล้ว "ต่างจากตัวจริงไหม" — เปิดดูเฉยๆ ไม่แก้ = ไม่นับเป็นบิลค้าง (กันบิลค้างผีสะสมทุกใบที่เปิดดู)
+  // เทียบเฉพาะช่องที่ผู้ใช้แก้ได้จริง + normalize สองฝั่งเหมือนกัน — เพราะตอนเปิดฟอร์ม ระบบแต่งข้อมูลเอง (เติม bands เปล่า/คำนวณ farm ใหม่/คีย์เรียงใหม่จากคลาวด์)
+  if(!d||!d.d) return false; if(d.isNew) return true;
+  const b=SALE_BILLS.find(x=>x.id===d.d.id); if(!b) return true;             // ตัวจริงไม่อยู่ (ถูกลบ/ยังไม่โหลด) → เก็บไว้ให้คนตัดสิน
+  const S=v=>String(v==null?'':v).trim();
+  const norm=x=>JSON.stringify({
+    buyer:gNrm(x.buyer), truck:S(x.truck), dateISO:S(x.dateISO), billBook:S(x.billBook), billNo:S(x.billNo),
+    sc:S(x.scaleBillNo), tsc:S(x.truckScaleNo), p:S(x.pricePerKg), pm:x.payMode||'credit', pr:S(x.payResp), note:S(x.note),
+    si:S(x.scaleIn), so:S(x.scaleOut), t1:S(x.timeStart), t2:S(x.timeEnd), f1:S(x.fastPen), f2:S(x.fastStand),
+    w:(x.weights||[]).map(Number),
+    it:(x.items||[]).filter(i=>i&&(S(i.house)||sbNum(i.w)>0)).map(i=>[S(i.house).toUpperCase(),i.type||'',S(i.dtype),S(i.w)]),
+    hs:(x.houses||[]).filter(h=>h&&S(h.code)).map(h=>[S(h.code).toUpperCase(),S(h.n)]),
+    bd:(x.bands||[]).filter(bd=>bd&&(S(bd.cull)!==''||S(bd.dead)!=='')).map(bd=>[bd.a,bd.b,S(bd.cull),S(bd.dead)]),
+    dd:(x.deducts||[]).filter(v=>v&&(S(v.ref)||sbNum(v.amt))).map(v=>[S(v.ref),S(v.amt)])
+  });
+  try{ return norm(d.d)!==norm(b); }catch(e){ return true; }
+}
+function sbDraftList(){ // ร่างทั้งหมด ใหม่→เก่า · ล้างทิ้งเงียบๆ: ร่างใหม่ที่ยังเปล่า + ร่างบิลเก่าที่ไม่ได้แก้อะไร
   const m=sbDraftsAll(); let ch=false;
-  Object.keys(m).forEach(k=>{ const d=m[k]; if(!d||!d.d||!d.d.id||(d.isNew&&!sbDraftHasContent(d))){ delete m[k]; ch=true; } });
+  Object.keys(m).forEach(k=>{ const d=m[k]; if(!d||!d.d||!d.d.id||(d.isNew&&!sbDraftHasContent(d))||(!d.isNew&&!sbDraftDiffers(d))){ delete m[k]; ch=true; } });
   if(ch) sbDraftsPut(m);
   return Object.keys(m).map(k=>m[k]).sort((a,b)=>((b.d&&b.d.createdAt)||0)-((a.d&&a.d.createdAt)||0));
 }
