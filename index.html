@@ -6975,7 +6975,23 @@ function saveVetEdit(hid,id){ if(blockIfReadonly())return;
   vetEdit={hid:null,id:null};
   rerenderCurrent();
 }
-// ตารางประวัติของหมอ — การรักษา / รับอาหาร / กินได้ (withEdit=true → แก้ไขในแถวได้)
+function vetLogDeleteByOwner(hid,id){ // 🗑 เจ้าของลบประวัติหมอที่ลงผิด (การรักษา/รับอาหาร/กินได้) — ลง editLog+audit ไม่ลบเงียบ · เจ้าของเท่านั้น
+  if(ROLE!=='owner'){ toast('🔒 ลบประวัติได้เฉพาะบัญชีเจ้าของ'); return; }
+  const h=HOUSES.find(x=>x.id===hid); if(!h) return;
+  const idx=(h.vetLog||[]).findIndex(e=>e&&e._id===id); if(idx<0){ toast('ไม่พบรายการ'); return; }
+  const e=h.vetLog[idx], lbl=(VET_TYPE_LABEL[e.type]||'ประวัติหมอ');
+  const desc=lbl+' · '+(e.date||'-')+(e.feedKg?' · '+fmt(e.feedKg)+' กก.':'')+(e.eatKg?' · กิน '+fmt(e.eatKg)+' กก.':'')+(e.formula?' · '+e.formula:'')+(e.feedNo?' · เบอร์ '+e.feedNo:'');
+  if(!confirm('ลบรายการ "'+desc+'" ของหลัง '+h.code+' ?\n\nการลบถูกบันทึกในประวัติกันโกง')) return;
+  h.vetLog.splice(idx,1);
+  h.editLog=h.editLog||[];
+  h.editLog.unshift({_dom:'vet',ts:Date.now(),time:nowStamp(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',changes:[{label:'ลบ'+lbl,from:desc,to:'ลบออก'}],note:'เจ้าของลบประวัติหมอที่ลงผิด'});
+  try{ logAudit('ประวัติหมอ', (h.farm||'')+' · '+h.code, 'ลบ'+lbl, [{label:lbl,from:desc,to:'ลบ'}], ''); }catch(x){}
+  syncHouseVet(h);
+  toast('🗑 ลบ'+lbl+'แล้ว ✓');
+  vetEdit={hid:null,id:null};
+  rerenderCurrent();
+}
+// ตารางประวัติของหมอ — การรักษา / รับอาหาร / กินได้ (withEdit=true → แก้ไขในแถวได้ · เจ้าของมี 🗑 ลบรายการที่ลงผิด)
 function vetLogHTML(h,withEdit){
   ensureVetIds(h);
   const log=h.vetLog||[];
@@ -6988,7 +7004,7 @@ function vetLogHTML(h,withEdit){
   const area=(rid,k,v)=>`<textarea class="cin tl" id="ve_${rid}_${k}" rows="2" style="min-width:120px">${escA(v)}</textarea>`;
   const act=e=>!withEdit?'':`<td class="num" style="white-space:nowrap">${isEd(e)
     ? `<button class="btn sm" onclick="saveVetEdit(${h.id},'${e._id}')">💾</button> <button class="btn ghost sm" onclick="cancelVetEdit()">✖</button>`
-    : `<button class="btn ghost sm" style="color:var(--info)" onclick="startVetEdit(${h.id},'${e._id}')">✏️</button>`}</td>`;
+    : `<button class="btn ghost sm" style="color:var(--info)" onclick="startVetEdit(${h.id},'${e._id}')">✏️</button>${ROLE==='owner'?` <button class="btn ghost sm" style="color:var(--bad)" title="ลบรายการที่ลงผิด (เจ้าของเท่านั้น)" onclick="vetLogDeleteByOwner(${h.id},'${e._id}')">🗑</button>`:''}`}</td>`;
   const ehCol=withEdit?'<th class="num">จัดการ</th>':'';
   const treatRow=e=>isEd(e)
     ? `<tr><td><b>${e.date}</b></td><td>${area(e._id,'symptoms',e.symptoms)}</td><td>${inp(e._id,'formula',e.formula)}</td><td>${inp(e._id,'inject',e.inject)}</td><td>${area(e._id,'note',e.note)}</td><td>${e.by||'-'}</td>${act(e)}</tr>`
