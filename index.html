@@ -7733,8 +7733,8 @@ function sbCanWrite(){ return ['owner','admin','clerk'].includes(ROLE); }
 function sbCanEditPrice(){ return ['owner','admin'].includes(ROLE); } // ตั้ง/แก้ราคา = เจ้าของ/ผู้ดูแลเท่านั้น · เสมียนกรอกบิลได้แต่แก้ราคาไม่ได้ (ราคาเติมจากทะเบียนลูกค้าที่เจ้าของตั้งไว้)
 /* ---------- หน้า "แท่นขายหมู" (รายการบิล) ---------- */
 let sbKindFilter='', sbFarmFilter='', SB_D=null, SB_ISNEW=false;
-/* 📚 คลังบิล — จัดเก็บเป็นระเบียบ: แยกรายเดือน (เดือนล่าสุดโชว์ก่อน บิลเก่าพับเก็บ) + ค้นหาได้ทุกเดือน + กรองสถานะ */
-let sbMonthSel='', sbStatFilter='', sbSearch='';
+/* 📚 คลังบิล — จัดเก็บเป็นระเบียบ: ค่าเริ่มต้นโชว์ 3 วันล่าสุด · เลือกช่วงเวลาได้ (3วัน/7วัน/รายเดือน/กำหนดเอง) + ค้นหาได้ทุกช่วง + กรองสถานะ */
+let sbMonthSel='', sbStatFilter='', sbSearch='', sbRange='3d', sbFrom='', sbTo='';
 function sbMonthLabel(ym,short){ if(!ym) return 'ไม่ระบุวัน'; const p=String(ym).split('-'); try{ return new Date(+p[0],+p[1]-1,1).toLocaleDateString('th-TH',short?{month:'short',year:'2-digit'}:{month:'long',year:'numeric'}); }catch(e){ return ym; } }
 function sbMatchQ(b,q){ // ค้นจากทุกอย่างที่คนจำได้: ผู้ซื้อ · เล่ม/เลขที่ · ทะเบียนรถ · รหัสหลัง · ฟาร์ม · คนกรอก · วันที่ไทย
   const hs=b.kind==='deadcull'?(b.items||[]).map(x=>x&&x.house):(b.houses||[]).map(x=>x&&x.code);
@@ -7777,18 +7777,30 @@ function sbArchiveHTML(){
   const base=SALE_BILLS.slice().filter(b=>(!sbKindFilter||b.kind===sbKindFilter)&&(!sbFarmFilter||b.farm===sbFarmFilter));
   const months=[...new Set(SALE_BILLS.map(b=>String(b.dateISO||'').slice(0,7)).filter(x=>x.length===7))].sort().reverse();
   const curM=(sbMonthSel==='all'||months.indexOf(sbMonthSel)>=0)?sbMonthSel:(months[0]||'all');
-  let scope;
-  if(q) scope=base.filter(b=>sbMatchQ(b,q));                                                    // ค้นหา = ค้นทุกเดือน
-  else if(curM==='all') scope=base;
-  else scope=base.filter(b=>String(b.dateISO||'').slice(0,7)===curM||!b.dateISO);               // บิลไม่มีวันที่ (เก่า/พิมพ์ตก) โชว์เสมอ ไม่หายเงียบ
+  const cutISO=n=>{ const d=new Date(DEMO_DATE.getFullYear(),DEMO_DATE.getMonth(),DEMO_DATE.getDate()-(n-1)); const p=x=>String(x).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); };
+  let scope, scopeLabel='';
+  if(q) scope=base.filter(b=>sbMatchQ(b,q));                                                    // ค้นหา = ค้นทุกช่วงเวลา
+  else if(sbRange==='3d'){ const c=cutISO(3); scope=base.filter(b=>!b.dateISO||b.dateISO>=c); scopeLabel='3 วันล่าสุด'; }
+  else if(sbRange==='7d'){ const c=cutISO(7); scope=base.filter(b=>!b.dateISO||b.dateISO>=c); scopeLabel='7 วันล่าสุด'; }
+  else if(sbRange==='custom'){ const f=sbFrom||'0000-01-01', t=sbTo||'9999-12-31';
+    scope=base.filter(b=>!b.dateISO||(b.dateISO>=f&&b.dateISO<=t));
+    scopeLabel='ช่วง '+(sbFrom?sbThaiDate(sbFrom):'…')+' – '+(sbTo?sbThaiDate(sbTo):'…'); }
+  else if(curM==='all'){ scope=base; scopeLabel='ทุกเดือน'; }
+  else { scope=base.filter(b=>String(b.dateISO||'').slice(0,7)===curM||!b.dateISO); scopeLabel=sbMonthLabel(curM); }   // บิลไม่มีวันที่ (เก่า/พิมพ์ตก) โชว์เสมอ ไม่หายเงียบ
   const stCnt={pend:0,unpost:0,locked:0,unpaid:0};
   scope.forEach(b=>{ if(sbPricePending(b))stCnt.pend++; if(!b.postedAt)stCnt.unpost++; if(b.locked)stCnt.locked++; const ps=sbPayState(b); if(ps==='cash'||ps==='credit')stCnt.unpaid++; });
   const bills=scope.filter(b=>sbStatFilter==='pend'?sbPricePending(b):sbStatFilter==='unpost'?!b.postedAt:sbStatFilter==='locked'?!!b.locked:sbStatFilter==='unpaid'?(function(){const ps=sbPayState(b);return ps==='cash'||ps==='credit';})():true)
     .sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||''))||((b.createdAt||0)-(a.createdAt||0)));
-  // ── แถวควบคุม: เดือน · ประเภท · ฟาร์ม · สถานะ ──
-  const mChips=q?'':(months.length>1||curM==='all'?`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><span class="sub" style="margin:0 4px 6px 0">📅 เดือน:</span>${
+  // ── แถวควบคุม: ช่วงเวลา · เดือน · ประเภท · ฟาร์ม · สถานะ ──
+  const rChips=q?'':`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><span class="sub" style="margin:0 4px 6px 0">⏱ ช่วงเวลา:</span>${
+    [['3d','3 วันล่าสุด'],['7d','7 วัน'],['month','📅 รายเดือน'],['custom','กำหนดเอง']]
+    .map(r=>`<button class="sbfchip${sbRange===r[0]?' on':''}" onclick="sbRange='${r[0]}';sbArchiveRe()">${r[1]}</button>`).join('')}</div>`;
+  const mChips=(q||sbRange!=='month')?'':(months.length?`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><span class="sub" style="margin:0 4px 6px 0">📅 เดือน:</span>${
     months.slice(0,12).map(m=>`<button class="sbfchip${curM===m?' on':''}" onclick="sbMonthSel='${m}';sbArchiveRe()">${sbMonthLabel(m,true)}</button>`).join('')
     }<button class="sbfchip${curM==='all'?' on':''}" onclick="sbMonthSel='all';sbArchiveRe()">ทุกเดือน</button></div>`:'');
+  const customRow=(q||sbRange!=='custom')?'':`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+    <span class="sub" style="margin:0">จากวันที่</span><input type="date" class="cin" style="max-width:175px" value="${escA(sbFrom)}" onchange="sbFrom=this.value;sbArchiveRe()">
+    <span class="sub" style="margin:0">ถึงวันที่</span><input type="date" class="cin" style="max-width:175px" value="${escA(sbTo)}" onchange="sbTo=this.value;sbArchiveRe()"></div>`;
   const farms=[...new Set(SALE_BILLS.map(b=>b.farm).filter(Boolean))].sort();
   const seg=[['','ทั้งหมด'],['fatten','🐖 ขุน'],['deadcull','⚰️ ตาย/คัด'],['breeder','🐷 พันธุ์']]
     .map(k=>`<button class="${sbKindFilter===k[0]?'on':''}" onclick="sbKindFilter='${k[0]}';sbArchiveRe()">${k[1]}</button>`).join('');
@@ -7802,7 +7814,7 @@ function sbArchiveHTML(){
   // ── แถบสรุปของขอบเขตที่กำลังดู ──
   let pigs=0,kg=0,amt=0,pd=0;
   bills.forEach(b=>{ const c=sbCalc(b); pigs+=c.n; kg+=c.totW; if(c.net!=null)amt+=c.net; if(c.pending)pd++; });
-  const sum=`<div style="display:flex;gap:9px 14px;align-items:center;flex-wrap:wrap;background:var(--brand);color:#fff;border-radius:10px;padding:8px 13px;margin:6px 0 4px;font-size:13.5px;font-weight:800">${q?`🔍 ผลค้นหา "${escA(q)}" (ทุกเดือน)`:`📅 ${curM==='all'?'ทุกเดือน':sbMonthLabel(curM)}`} <span style="opacity:.85">${fmt(bills.length)} บิล</span><span>🐷 ${fmt(pigs)} ตัว</span><span>⚖️ ${fmt(Math.round(kg))} กก.</span><span>💰 ${fmt(amt)} บาท</span>${pd?`<span style="background:#fff;color:#b7791f;border-radius:999px;padding:1px 10px">⏳ รอราคา ${fmt(pd)}</span>`:''}</div>`;
+  const sum=`<div style="display:flex;gap:9px 14px;align-items:center;flex-wrap:wrap;background:var(--brand);color:#fff;border-radius:10px;padding:8px 13px;margin:6px 0 4px;font-size:13.5px;font-weight:800">${q?`🔍 ผลค้นหา "${escA(q)}" (ทุกช่วงเวลา)`:`📅 ${escA(scopeLabel)}`} <span style="opacity:.85">${fmt(bills.length)} บิล</span><span>🐷 ${fmt(pigs)} ตัว</span><span>⚖️ ${fmt(Math.round(kg))} กก.</span><span>💰 ${fmt(amt)} บาท</span>${pd?`<span style="background:#fff;color:#b7791f;border-radius:999px;padding:1px 10px">⏳ รอราคา ${fmt(pd)}</span>`:''}</div>`;
   // ── จัดกลุ่มบิลตามวัน + แถบสรุปรายวัน ──
   const CAP=300, shown=bills.slice(0,CAP);
   const dayGroups=[], dgIdx={};
@@ -7813,7 +7825,7 @@ function sbArchiveHTML(){
     const head=`<div style="display:flex;gap:9px 14px;align-items:center;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:7px 12px;margin:13px 0 8px;font-size:13px;font-weight:800">📅 ${sbThaiDate(g.d)} <span class="more">${fmt(n)} บิล</span><span>🐷 ${fmt(gp)} ตัว</span><span>⚖️ ${fmt(Math.round(gk))} กก.</span><span style="color:var(--ok)">💰 ${fmt(ga)} บาท</span>${gpd?`<span style="color:#b7791f">⏳ รอราคา ${fmt(gpd)} บิล</span>`:''}</div>`;
     return head+g.items.map(sbRowHTML).join('');
   }).join('')+(bills.length>CAP?`<div class="sub" style="margin-top:10px">— แสดง ${fmt(CAP)} บิลแรกจาก ${fmt(bills.length)} — เลือกดูรายเดือน หรือพิมพ์ค้นหาให้แคบลง —</div>`:'');
-  return mChips+controls+sum+(rows||`<div class="sub" style="margin-top:10px">— ${q?'ไม่พบบิลที่ตรงกับ "'+escA(q)+'"':'ไม่มีบิลในขอบเขตนี้'} — ${q?'ลองพิมพ์สั้นลง เช่น เฉพาะชื่อผู้ซื้อ':''} —</div>`);
+  return rChips+mChips+customRow+controls+sum+(rows||`<div class="sub" style="margin-top:10px">— ${q?'ไม่พบบิลที่ตรงกับ "'+escA(q)+'"':'ไม่มีบิลในช่วงเวลานี้ — ลองขยายช่วงเวลาด้านบน'} — ${q?'ลองพิมพ์สั้นลง เช่น เฉพาะชื่อผู้ซื้อ':''} —</div>`);
 }
 function renderSaleStand(){ if(vetGuard())return;
   histPush('salestand',renderSaleStand);
