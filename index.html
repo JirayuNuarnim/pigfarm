@@ -1270,7 +1270,7 @@ function syncHouseVet(h){ syncHouse(h,'vet'); }
 function syncHouseCore(h){ syncHouse(h,'core'); }
 function syncConfig(){ queueSave(); if(CONFIG.supabase.enabled && CONFIG.supabase.backend==='v2'){ _dirtyCfg=true; scheduleSyncV2(); } }
 function syncStock(){ queueSave(); if(CONFIG.supabase.enabled && CONFIG.supabase.backend==='v2'){ _dirtyStock=true; try{ localStorage.setItem('sjfStockDirty','1'); }catch(e){} scheduleSyncV2(); } }   // เซฟสต็อกแยกคีย์ 'stock' + ปักธง "มีของค้างส่ง" ถาวรในเครื่อง — เด้ง login/ปิดแอปก่อนส่งสำเร็จ กลับมาแล้วระบบผสาน+ส่งต่อให้จนจบ (เคสเจ้าของตั้งคงเหลือแล้วเซสชันหมดอายุ)
-function scheduleSyncV2(){ if(_syncTimer2) return; _syncTimer2=setTimeout(flushSyncV2,500); }
+function scheduleSyncV2(){ pendMark(); if(_syncTimer2) return; _syncTimer2=setTimeout(flushSyncV2,500); }
 async function flushSyncV2(){
   _syncTimer2=null;
   if(_loadFailed){ const n=Date.now(); if(n-_lfWarnTs>8000){ _lfWarnTs=n; try{ toast('⚠️ โหลดข้อมูลกลางไม่สำเร็จ — ปิด-เปิดแอปใหม่ก่อนบันทึก (กันเขียนทับข้อมูลจริง)'); }catch(e){} } return; }   // P1: โหลดคลาวด์พลาด → ไม่เซฟทับด้วยข้อมูลเก่า/ตัวอย่าง
@@ -1287,8 +1287,36 @@ async function flushSyncV2(){
     if(r===false){ if(!_dirtySB[b.id]) _dirtySB[b.id]=b; requeue=true; } }   // r==='conflict' = มีกล่องถามผู้ใช้แล้ว ไม่ต้องคิวซ้ำ
   try{ if(!(await lgFlushQ())) requeue=true; }catch(e){ console.warn('sync ledger',e); requeue=true; }   // 📒 คิวบัญชีลูกค้า
   if(requeue) setTimeout(()=>{ scheduleSyncV2(); }, 5000);
+  try{ if(requeue||pendHasQueue()) pendMark(); else pendClear(); pendRender(); }catch(e){}   // 🚨 ความล้มเหลวห้ามเงียบ — ค้างส่งนาน = ป้ายเตือนบนจอ
   try{ rtBaseline(); }catch(e){}   // absorb ของที่เราเพิ่งเขียนเข้าเส้นฐาน → poll จะไม่เตือน "ข้อมูลใหม่" จากการแก้ของตัวเอง
 }
+/* ---------- 🚨 ป้ายเตือน "มีข้อมูลค้างส่ง" — บทเรียน 15-17 ก.ค. 69: สต็อกค้างส่ง 2 วันแบบเงียบสนิท (เพดาน keepalive 64KB) ไม่มีใครเห็นจนเจ้าของเจอเองจากหน้าจอ
+   หลักการ: คิวซิงก์ล้มเหลวเกิน ~2 นาที = แถบส้มโผล่ล่างจอทุกเครื่อง บอกว่า "ข้อมูลยังอยู่ในเครื่อง อย่าเพิ่งปิดแอป" + ปุ่มลองส่งซ้ำ · ส่งสำเร็จเมื่อไหร่แถบหายเอง ---------- */
+let _pendSince=0;
+function pendMark(){ if(!_pendSince) _pendSince=Date.now(); }
+function pendClear(){ _pendSince=0; }
+function pendHasQueue(){
+  try{
+    if(Object.keys(_dirtyH).length||_dirtyCfg||_dirtyStock||Object.keys(_dirtySB).length) return true;
+    if(localStorage.getItem('sjfStockDirty')==='1') return true;
+    if(typeof _lgQ!=='undefined'&&_lgQ.length) return true;
+  }catch(e){}
+  return false;
+}
+function pendRender(){
+  let el=document.getElementById('syncWarn');
+  const stuck=_pendSince && (Date.now()-_pendSince>120000) && pendHasQueue() && ROLE!==null;
+  if(!stuck){ if(el) el.remove(); return; }
+  const mins=Math.max(2,Math.round((Date.now()-_pendSince)/60000));
+  if(!el){ el=document.createElement('div'); el.id='syncWarn';
+    el.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#8a5400;color:#fff;padding:10px 14px;font-size:13px;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:0 -2px 12px rgba(0,0,0,.4)';
+    document.body.appendChild(el); }
+  el.innerHTML='<span>⚠️ มีข้อมูลค้างส่งขึ้นระบบกลาง ~'+mins+' นาที — ข้อมูลยังอยู่ในเครื่องนี้ <b>อย่าเพิ่งปิดแอป</b> · เช็คอินเทอร์เน็ตแล้วลองส่งอีกครั้ง</span>'+
+    '<button onclick="pendRetry()" style="background:#fff;color:#8a5400;border:0;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer">📤 ลองส่งเดี๋ยวนี้</button>';
+}
+function pendRetry(){ try{ toast('กำลังส่งข้อมูลค้าง...'); }catch(e){} scheduleSyncV2(); }
+setInterval(pendRender, 15000);   // เช็คทุก 15 วิ — โผล่เมื่อค้างเกิน 2 นาที
+try{ if(localStorage.getItem('sjfStockDirty')==='1'){ _pendSince=Date.now()-105000; } }catch(e){}   // ธงค้างจากรอบก่อน → ถ้าบูตแล้วยังส่งไม่ผ่านใน ~15 วิ ป้ายโผล่เลย
 /* ---------- Realtime-lite: เตือนเมื่อทีมคนอื่นแก้ข้อมูล (poll updated_at ทุก 25 วิ · ไม่ทับข้อมูลที่กำลังพิมพ์) ---------- */
 let _rtTimer=null, _rtSeenTs=0;
 function rtActive(){ const c=CONFIG.supabase; return !!(c&&c.enabled&&c.backend==='v2'&&ROLE!==null); }
