@@ -1146,7 +1146,9 @@ async function supaFetch(path, opts){ // REST helper พร้อม token + ร
   const c=CONFIG.supabase; const t=await supaToken();
   if(ROLE!==null && !t){ sessionExpired(); return null; }
   opts=opts||{};
-  const go=tok=>fetch(c.url+path, Object.assign({}, opts, {keepalive:true,
+  // ⚠️ keepalive มีเพดานเนื้อข้อมูล 64KB — เกินแล้ว fetch โยน error ทันที (บั๊กสต็อกหาย 15-17 ก.ค.: ก้อน stock โต 68KB → save_stock_merged ล้มเงียบทุกเครื่อง)
+  //    → เปิด keepalive เฉพาะคำขอเล็ก · ก้อนใหญ่ใช้ fetch ปกติ (ส่งได้ไม่จำกัด)
+  const go=tok=>fetch(c.url+path, Object.assign({}, opts, {keepalive:(!opts.body||String(opts.body).length<50000),
     headers:Object.assign({apikey:c.anonKey, Authorization:"Bearer "+(tok||c.anonKey)}, opts.headers||{})}));
   try{
     let r=await go(t);
