@@ -4782,14 +4782,15 @@ function vpHeadFormHTML(p){
     <div class="fgrid">
       <div class="frow fspan"><label>ชื่อโปรแกรม</label><input id="vp_title" class="cin" placeholder="เช่น โปรแกรมวัคซีนลูกสุกรฟาร์ม SJF 7/7/69" value="${escA(p?p.title:'')}"></div>
       <div class="frow fspan"><label>อ้างอิง/บรรทัดใต้หัวเอกสาร <span class="hint">(ถ้ามี)</span></label><input id="vp_ref" class="cin" placeholder="เช่น อ้างอิงคำสั่งเฮียชาย 24/6/69" value="${escA(p?(p.ref||''):'')}"></div>
+      <div class="frow fspan"><label>หมายเหตุรวมท้ายเอกสาร <span class="hint">(ถ้ามี · ขึ้นบรรทัดใหม่ได้ · แสดงใต้ตาราง)</span></label><textarea id="vp_footer" class="cin" rows="3" placeholder="เช่น ข้อควรระวังก่อน/หลังย้าย · เก็บวัคซีนที่ 2-8°C · ห้ามผสมวัคซีนต่างชนิด">${escA(p?(p.footer||''):'')}</textarea></div>
     </div>
     <div class="actions" style="margin-top:11px"><button class="btn ghost" onclick="vpHeadForm=null;renderVaxProgram()">ยกเลิก</button><button class="btn" onclick="vpHeadSave()">💾 บันทึก</button></div>
   </div>`;
 }
 function vpHeadSave(){ if(!vpCanEdit()){ toast('เขียนได้เฉพาะเจ้าของ/ผู้ดูแล'); return; }
   const t=vpVal('vp_title'); if(!t){ toast('ใส่ชื่อโปรแกรมก่อน'); return; }
-  if(vpHeadForm==='_new'){ VAXPROG.push({id:'vp'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), title:t, ref:vpVal('vp_ref'), rows:[]}); }
-  else { const p=vpFind(vpHeadForm); if(!p) return; p.title=t; p.ref=vpVal('vp_ref'); }
+  if(vpHeadForm==='_new'){ VAXPROG.push({id:'vp'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), title:t, ref:vpVal('vp_ref'), footer:vpVal('vp_footer'), rows:[]}); }
+  else { const p=vpFind(vpHeadForm); if(!p) return; p.title=t; p.ref=vpVal('vp_ref'); p.footer=vpVal('vp_footer'); }
   const note=(vpHeadForm==='_new'?'สร้างโปรแกรม: ':'แก้หัวเอกสาร: ')+t; vpHeadForm=null; vpPersist(note); toast('บันทึกแล้ว ✓');
 }
 function vpDelProg(pid){ if(!vpCanEdit()){ toast('ลบได้เฉพาะเจ้าของ/ผู้ดูแล'); return; }
@@ -4809,6 +4810,7 @@ function vpRowFormHTML(p){
       <div class="frow"><label>บริษัท</label><input id="vpr_brand" class="cin" placeholder="เช่น HIPRA" value="${escA(r.brand||'')}"></div>
       <div class="frow"><label>เชื้อ</label><select id="vpr_strain" class="cin"><option value=""></option><option ${r.strain==='เชื้อเป็น'?'selected':''}>เชื้อเป็น</option><option ${r.strain==='เชื้อตาย'?'selected':''}>เชื้อตาย</option></select></div>
       <div class="frow"><label>สื่อ</label><input id="vpr_medium" class="cin" placeholder="เช่น สื่อน้ำ / สื่อน้ำมัน" value="${escA(r.medium||'')}"></div>
+      <div class="frow"><label>วิธีให้ / ตำแหน่ง</label><input id="vpr_route" class="cin" list="vpRouteDL" placeholder="เช่น ฉีดเข้ากล้าม / ใต้ผิวหนัง / หยอดจมูก / ผสมน้ำ" value="${escA(r.route||'')}"><datalist id="vpRouteDL"><option value="ฉีดเข้ากล้าม (IM)"><option value="ฉีดใต้ผิวหนัง (SC)"><option value="หยอดจมูก"><option value="หยอดปาก"><option value="ผสมน้ำ"><option value="พ่นละออง"></datalist></div>
       <div class="frow fspan"><label>หมายเหตุ <span class="hint">(ถ้ามี)</span></label><input id="vpr_note" class="cin" placeholder="เช่น สื่อน้ำสายพันธุ์ EU · ทำก่อน/หลังย้ายไม่น้อยกว่า 3 วัน" value="${escA(r.note||'')}"></div>
     </div>
     <div class="actions" style="margin-top:11px"><button class="btn ghost" onclick="vpRowForm=null;renderVaxProgram()">ยกเลิก</button><button class="btn" onclick="vpRowSave()">💾 บันทึก</button></div>
@@ -4817,7 +4819,7 @@ function vpRowFormHTML(p){
 function vpRowSave(){ if(!vpCanEdit()||!vpRowForm){ toast('เขียนได้เฉพาะเจ้าของ/ผู้ดูแล'); return; }
   const p=vpFind(vpRowForm.pid); if(!p) return;
   const name=vpVal('vpr_name'); if(!name){ toast('ใส่ชื่อวัคซีนก่อน'); return; }
-  const row={no:vpVal('vpr_no'),age:vpVal('vpr_age'),name:name,dose:vpVal('vpr_dose'),brand:vpVal('vpr_brand'),strain:vpVal('vpr_strain'),medium:vpVal('vpr_medium'),note:vpVal('vpr_note')};
+  const row={no:vpVal('vpr_no'),age:vpVal('vpr_age'),name:name,dose:vpVal('vpr_dose'),brand:vpVal('vpr_brand'),strain:vpVal('vpr_strain'),medium:vpVal('vpr_medium'),route:vpVal('vpr_route'),note:vpVal('vpr_note')};
   p.rows=p.rows||[];
   const isNew=vpRowForm.idx<0;
   if(isNew) p.rows.push(row); else p.rows[vpRowForm.idx]=row;
@@ -4834,7 +4836,7 @@ function vpTableHTML(p,canEdit){
   const rows=p.rows||[];
   if(!rows.length) return '<div class="sub">— ยังไม่มีรายการเข็ม —</div>';
   return `<div style="overflow:auto"><table><thead><tr>
-      <th style="text-align:center">เข็มที่</th><th style="text-align:center">อายุ (วัน)</th><th>วัคซีน</th><th style="text-align:center">ขนาด/DOSE</th><th>บริษัท</th><th>เชื้อ</th><th>สื่อ</th><th>หมายเหตุ</th>${canEdit?'<th></th>':''}
+      <th style="text-align:center">เข็มที่</th><th style="text-align:center">อายุ (วัน)</th><th>วัคซีน</th><th style="text-align:center">ขนาด/DOSE</th><th>บริษัท</th><th>เชื้อ</th><th>สื่อ</th><th>วิธีให้/ตำแหน่ง</th><th>หมายเหตุ</th>${canEdit?'<th></th>':''}
     </tr></thead><tbody>
     ${rows.map((r,i)=>`<tr>
       <td style="text-align:center;font-weight:800">${escA(String(r.no||'-'))}</td>
@@ -4844,6 +4846,7 @@ function vpTableHTML(p,canEdit){
       <td>${escA(r.brand||'-')}</td>
       <td>${escA(r.strain||'-')}</td>
       <td>${escA(r.medium||'-')}</td>
+      <td>${escA(r.route||'-')}</td>
       <td><span class="sub">${escA(r.note||'')}</span></td>
       ${canEdit?`<td style="white-space:nowrap"><button class="btn sm ghost" onclick="vpRowForm={pid:'${p.id}',idx:${i}};renderVaxProgram()">✏️</button> <button class="btn sm ghost" onclick="vpDelRow('${p.id}',${i})">🗑</button></td>`:''}
     </tr>`).join('')}
@@ -4862,6 +4865,7 @@ function renderVaxProgram(){
         <h3>💉 ${escA(p.title)} <span class="more">${fmt((p.rows||[]).length)} เข็ม</span></h3>
         ${p.ref?`<div class="sub" style="margin-top:-2px">${escA(p.ref)}</div>`:''}
         <div style="margin-top:10px">${vpTableHTML(p,canEdit)}</div>
+        ${p.footer?`<div style="margin-top:11px;padding:10px 12px;background:var(--soft);border-radius:10px;border-left:3px solid var(--brand);font-size:13px;white-space:pre-wrap">📝 <b>หมายเหตุ:</b>\n${escA(p.footer)}</div>`:''}
         ${canEdit&&!(vpRowForm&&vpRowForm.pid===p.id)&&vpHeadForm!==p.id?`<div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn sm" onclick="vpRowForm={pid:'${p.id}',idx:-1};vpHeadForm=null;renderVaxProgram()">➕ เพิ่มเข็ม</button>
           <button class="btn sm ghost" onclick="vpHeadForm='${p.id}';vpRowForm=null;renderVaxProgram()">✏️ แก้หัวเอกสาร</button>
