@@ -5066,7 +5066,8 @@ function chainRemains(h,log){
   log=log||(h.dailyLog||[]); if(!log.length) return [];
   const old=log[log.length-1];
   let running=(h.dailyAnchor!=null)?h.dailyAnchor
-    :(old.remain||0)+(old.deadN||0)+(old.cullN||0)+(old.soldN||0)+(old.moveN||0)-(old.moveInN||0);
+    :(old.remain!=null)?((+old.remain)+(old.deadN||0)+(old.cullN||0)+(old.soldN||0)+(old.moveN||0)-(old.moveInN||0))
+    :(h.pigs!=null?+h.pigs:(h.received||0));   // 🛡️ แถวเก่าสุดยังไม่มีคงเหลือ (เช่น แถวแรกของชุดมาจากบิลแท่นขาย) → ฐาน = ยอดหมูปัจจุบัน ไม่ใช่ 0 (บั๊ก B30 18 ก.ค. 69: ตาย 1 ตัวแรกของชุด ทำคงเหลือ 700→0 บังคับปิดชุด)
   const rems=new Array(log.length);
   for(let k=log.length-1;k>=0;k--){
     running-=(log[k].deadN||0)+(log[k].cullN||0)+(log[k].soldN||0)+(log[k].moveN||0)-(log[k].moveInN||0);
@@ -5079,7 +5080,8 @@ function recalcDailyRemains(h){
   const log=h.dailyLog||[]; if(!log.length) return;
   const old=log[log.length-1];
   let running=(h.dailyAnchor!=null)?h.dailyAnchor
-    :(old.remain||0)+(old.deadN||0)+(old.cullN||0)+(old.soldN||0)+(old.moveN||0)-(old.moveInN||0);
+    :(old.remain!=null)?((+old.remain)+(old.deadN||0)+(old.cullN||0)+(old.soldN||0)+(old.moveN||0)-(old.moveInN||0))
+    :(h.pigs!=null?+h.pigs:(h.received||0));   // 🛡️ ฐานเดียวกับ chainRemains — แถวแรกของชุดไม่มีคงเหลือ → ใช้ยอดหมูปัจจุบัน (กันคงเหลือดิ่งเป็น 0 แบบ B30)
   for(let k=log.length-1;k>=0;k--){
     running -= (log[k].deadN||0)+(log[k].cullN||0)+(log[k].soldN||0)+(log[k].moveN||0)-(log[k].moveInN||0);
     log[k].remain=running;
