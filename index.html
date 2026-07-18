@@ -4667,7 +4667,7 @@ function intakeSummaryHTML(h,showEdit){
    เก็บใน h.vaccineLog (ฝั่งหมอ · VET_KEYS) · ทำต่อได้ระหว่างเลี้ยง · สิทธิ์เขียน = เจ้าของ/ผู้ดูแล/หมอ
    entry = {rowId, dateISO, name, bottles(ขวด), pigsN(ตัวที่ทำ), dose(เข็มที่), by(ผู้ทำ), value(บาท), note, _ts} */
 let vaxForm=null; // {houseId, idx} · idx=-1 = เพิ่มใหม่
-function vaxCanEdit(){ return ROLE==='owner'||ROLE==='admin'||ROLE==='vet'; } // วัคซีน = ข้อมูลหมอ (เซิร์ฟเวอร์ RLS บังคับซ้ำ)
+function vaxCanEdit(){ return ROLE==='owner'||ROLE==='admin'||ROLE==='vet'||ROLE==='clerk'; } // เสมียนบันทึกวัคซีนได้ (18 ก.ค. 69) — เซิร์ฟเวอร์รับจากเสมียนเฉพาะคีย์ vaccineLog งานหมออื่นล็อกไว้
 function vaxAgeDays(h,dateISO){ // อายุหมู (วัน) = วันรับเข้า → วันที่ทำวัคซีน
   const din=h&&h.intake&&h.intake.dateIn; if(!din||!dateISO) return null;
   const inISO=/^\d{4}-\d{2}-\d{2}/.test(din)?String(din).slice(0,10):(thaiDayToISO(din)||'');
@@ -4731,7 +4731,7 @@ function vaxSuggestVal(){ const nm=$("#vx_name"), bt=$("#vx_bottles"), vl=$("#vx
   if(hint) hint.textContent=price>0?('· แคทาล็อก '+fmt(price)+'/ขวด'+(sug?' = '+fmt(sug):'')):'';
   if(sug>0 && (vl.value===''||vl.value===String(vl.dataset.auto||''))){ vl.value=sug; vl.dataset.auto=sug; } // เติมอัตโนมัติเฉพาะตอนยังไม่พิมพ์เอง
 }
-function vaxOpenForm(houseId,idx){ if(!vaxCanEdit()){ toast('เพิ่ม/แก้วัคซีนได้เฉพาะเจ้าของ/ผู้ดูแล/หมอ'); return; } if(blockIfReadonly())return; vaxForm={houseId,idx}; vaxRerender(); setTimeout(()=>{ const e=$("#vx_name"); if(e) e.scrollIntoView({block:'center'}); },50); }
+function vaxOpenForm(houseId,idx){ if(!vaxCanEdit()){ toast('เพิ่ม/แก้วัคซีนได้เฉพาะเจ้าของ/ผู้ดูแล/หมอ/เสมียน'); return; } if(blockIfReadonly())return; vaxForm={houseId,idx}; vaxRerender(); setTimeout(()=>{ const e=$("#vx_name"); if(e) e.scrollIntoView({block:'center'}); },50); }
 function vaxCancelForm(){ vaxForm=null; vaxRerender(); }
 function vaxSaveForm(){
   if(!vaxForm) return; if(!vaxCanEdit()){ toast('ไม่มีสิทธิ์'); return; }
@@ -4754,7 +4754,7 @@ function vaxSaveForm(){
   vaxForm=null; toast('บันทึกการทำวัคซีนแล้ว ✓'); vaxRerender();
 }
 function vaxDelRow(houseId,idx){
-  if(!vaxCanEdit()){ toast('ลบได้เฉพาะเจ้าของ/ผู้ดูแล/หมอ'); return; } if(blockIfReadonly())return;
+  if(!vaxCanEdit()){ toast('ลบได้เฉพาะเจ้าของ/ผู้ดูแล/หมอ/เสมียน'); return; } if(blockIfReadonly())return;
   const h=HOUSES.find(x=>x.id===houseId); if(!h||!(h.vaccineLog||[])[idx]) return;
   const r=h.vaccineLog[idx];
   if(!confirm('ลบบันทึกวัคซีน "'+(r.name||'')+'" วันที่ '+isoToThaiDay(r.dateISO)+' ?')) return;
