@@ -1202,7 +1202,20 @@ async function saveStockMerged(stock){
 async function saveConfigAll(){
   const rs=[];
   rs.push(await saveConfigKey('formulas',MEDFORMULAS)); rs.push(await saveConfigKey('catalog',REQ_DATA));
-  rs.push(await saveConfigKey('options',snapOpts())); rs.push(await saveConfigKey('farms',FARMS)); rs.push(await saveConfigKey('vets',VETS));
+  // 🛡️ options: ส่งเฉพาะคีย์ย่อยที่เครื่องนี้แก้จริง (diff กับเส้นฐาน) แล้วผสาน atomic ที่ server — กันเครื่องที่ถือของเก่าทับทั้งก้อน (ลูกค้า/ราคา/โปรแกรมวัคซีน ฯลฯ หายข้ามกัน)
+  { let okc=true;
+    try{
+      const full=snapOpts(), base=_optsBaseline||{}, patch={};
+      Object.keys(full).forEach(k=>{ if(JSON.stringify(full[k])!==JSON.stringify(base[k])) patch[k]=full[k]; });
+      if(Object.keys(patch).length){
+        const res=await saveOptionsMerged(patch);
+        if(res===false){ okc=false; }                                   // ชั่วคราว → คิวใหม่
+        else if(res===null){ okc=await saveConfigKey('options',full); if(okc===true){ try{ _optsBaseline=JSON.parse(JSON.stringify(full)); }catch(e){} } }  // server เก่าไม่มี RPC → เขียนทั้งก้อน (พฤติกรรมเดิม)
+        else { if(!_optsBaseline) _optsBaseline={}; Object.keys(patch).forEach(k=>{ try{ _optsBaseline[k]=JSON.parse(JSON.stringify(full[k])); }catch(e){ _optsBaseline[k]=full[k]; } }); }  // สำเร็จ → เลื่อนเส้นฐานเฉพาะคีย์ที่ส่ง
+      }
+    }catch(e){ console.warn('cfg options merge',e); okc=false; }
+    rs.push(okc); }
+  rs.push(await saveConfigKey('farms',FARMS)); rs.push(await saveConfigKey('vets',VETS));
   // 🛡️ สต็อกห้ามเขียนทับทั้งก้อนเด็ดขาด — ต้องผ่าน merge ที่เซิร์ฟเวอร์เสมอ
   // (บั๊กเดิม: เครื่องที่เปิดค้างมี STOCK เก่า → แก้ตั้งค่าอะไรก็ตาม → เซฟ 'stock' ทั้งก้อนทับของที่คนอื่นเพิ่งลง เช่น สต็อกยาปากท่อ 13 ก.ค. หายทั้งชุด)
   { let ok=false; try{ const m=await saveStockMerged(STOCK); if(m===true){ ok=true; } else if(m&&typeof m==='object'){ STOCK=m; ok=true; } }catch(e){ console.warn('cfg stock merge',e); } rs.push(ok); }
@@ -1236,6 +1249,7 @@ function applyConfigAll(m){
   if(Array.isArray(m.formulas)){ MEDFORMULAS.length=0; m.formulas.forEach(f=>MEDFORMULAS.push(f)); }
   if(m.catalog&&typeof m.catalog==='object'){ Object.keys(m.catalog).forEach(k=>{ if(Array.isArray(m.catalog[k])) REQ_DATA[k]=m.catalog[k]; }); }
   applyOpts(m.options);
+  try{ _optsBaseline=JSON.parse(JSON.stringify(snapOpts())); }catch(e){}   // 📌 หลังรับ options จากเซิร์ฟเวอร์ = ตั้งเส้นฐานใหม่ (local ตรงกับ server แล้ว) → diff ครั้งหน้าจับเฉพาะที่แก้จริง
   if(Array.isArray(m.farms)){ FARMS.length=0; m.farms.forEach(f=>FARMS.push(f)); }
   if(Array.isArray(m.vets)){ VETS.length=0; m.vets.forEach(v=>VETS.push(v)); }
   if(m.stock&&typeof m.stock==='object') stockMergeInto(m.stock);   // คืนคลัง/สต็อกต่อฟาร์ม (v2 config) — ผสาน ไม่ทับของที่ค้างส่ง
@@ -1262,6 +1276,15 @@ async function cloudLoadV2(){
 }
 // คิวซิงก์รายช่องแบบ debounce (v2)
 let _dirtyH={}, _dirtyCfg=false, _dirtyStock=false, _syncTimer2=null, _loadFailed=false, _lfWarnTs=0;
+let _optsBaseline=null;   // 📌 ภาพ options ล่าสุดที่ตรงกับเซิร์ฟเวอร์ — ใช้ diff หาว่าเครื่องนี้แก้คีย์ไหน แล้วส่งเฉพาะคีย์นั้น (กันทับตั้งค่ากลางทั้งก้อน)
+// ส่งเฉพาะคีย์ย่อยของ options ที่เปลี่ยน → RPC ผสาน atomic ที่เซิร์ฟเวอร์ (คีย์ที่คนอื่นเพิ่งแก้ไม่ถูกทับ)
+async function saveOptionsMerged(patch){
+  const r=await supaFetch('/rest/v1/rpc/save_options_merged',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_patch:patch})});
+  if(r&&r.ok){ try{ return await r.json(); }catch(e){ return true; } }
+  if(r&&(r.status===401||r.status===403)){ cfgDeniedToast('ตั้งค่า'); return true; } // ไม่มีสิทธิ์ = ปฏิเสธถาวร ไม่วนคิว
+  if(r&&r.status===404){ return null; }   // เซิร์ฟเวอร์ยังไม่มีฟังก์ชัน (เวอร์ชันเก่า) → ให้ fallback เขียนทั้งก้อน
+  return false;                            // ชั่วคราว (เน็ตสะดุด) → คิวส่งใหม่
+}
 function syncHouse(h, section){
   queueSave(); // เก็บลงเครื่อง (cache offline) · v1 ยิงคลาวด์ทั้งก้อนด้วย
   if(CONFIG.supabase.enabled && CONFIG.supabase.backend==='v2' && h){ _dirtyH[h.id+':'+section]={h:h,section:section}; scheduleSyncV2(); }
@@ -5181,8 +5204,8 @@ function chainRemains(h,log){
   log=log||(h.dailyLog||[]); if(!log.length) return [];
   const old=log[log.length-1];
   let running=(h.dailyAnchor!=null)?h.dailyAnchor
-    :(old.remain!=null)?((+old.remain)+(old.deadN||0)+(old.cullN||0)+(old.soldN||0)+(old.moveN||0)-(old.moveInN||0))
-    :(h.pigs!=null?+h.pigs:(h.received||0));   // 🛡️ แถวเก่าสุดยังไม่มีคงเหลือ (เช่น แถวแรกของชุดมาจากบิลแท่นขาย) → ฐาน = ยอดหมูปัจจุบัน ไม่ใช่ 0 (บั๊ก B30 18 ก.ค. 69: ตาย 1 ตัวแรกของชุด ทำคงเหลือ 700→0 บังคับปิดชุด)
+    :(old.remain!=null&&!old._fromBill)?((+old.remain)+(old.deadN||0)+(old.cullN||0)+(old.soldN||0)+(old.moveN||0)-(old.moveInN||0))
+    :(h.received||(h.pigs!=null?+h.pigs:0));   // 🛡️ แถวเก่าสุดคงเหลือเชื่อไม่ได้ (แถวแรกของชุดมาจากบิลแท่นขาย remain=0 ตายตัว) → ฐาน = ยอดรับเข้า (บั๊ก B30 18 ก.ค.: ตัวแรกจากบิลทำคงเหลือดิ่ง 0)
   const rems=new Array(log.length);
   for(let k=log.length-1;k>=0;k--){
     running-=(log[k].deadN||0)+(log[k].cullN||0)+(log[k].soldN||0)+(log[k].moveN||0)-(log[k].moveInN||0);
@@ -5195,8 +5218,8 @@ function recalcDailyRemains(h){
   const log=h.dailyLog||[]; if(!log.length) return;
   const old=log[log.length-1];
   let running=(h.dailyAnchor!=null)?h.dailyAnchor
-    :(old.remain!=null)?((+old.remain)+(old.deadN||0)+(old.cullN||0)+(old.soldN||0)+(old.moveN||0)-(old.moveInN||0))
-    :(h.pigs!=null?+h.pigs:(h.received||0));   // 🛡️ ฐานเดียวกับ chainRemains — แถวแรกของชุดไม่มีคงเหลือ → ใช้ยอดหมูปัจจุบัน (กันคงเหลือดิ่งเป็น 0 แบบ B30)
+    :(old.remain!=null&&!old._fromBill)?((+old.remain)+(old.deadN||0)+(old.cullN||0)+(old.soldN||0)+(old.moveN||0)-(old.moveInN||0))
+    :(h.received||(h.pigs!=null?+h.pigs:0));   // 🛡️ ฐานเดียวกับ chainRemains — แถวเก่าสุดจากบิล remain เชื่อไม่ได้ → ใช้ยอดรับเข้า (กันคงเหลือดิ่งเป็น 0 แบบ B30)
   for(let k=log.length-1;k>=0;k--){
     running -= (log[k].deadN||0)+(log[k].cullN||0)+(log[k].soldN||0)+(log[k].moveN||0)-(log[k].moveInN||0);
     log[k].remain=running;
