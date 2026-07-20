@@ -472,6 +472,7 @@ body.theme-dark .sbpaper th[style*="f1f1ea"], body.theme-dark .sbpaper td[style*
   body>*:not(#sbPrintOverlay){display:none!important}
   #sbPrintOverlay{position:static;background:#fff;padding:0;overflow:visible}
   #sbPrintOverlay .sbp-tools{display:none!important}
+  #sbPrintOverlay #lgBillHead{display:none!important}
   #sbPrintPage{width:auto;max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none}
   @page{size:A4 portrait;margin:10mm}
 }
@@ -9224,6 +9225,7 @@ function renderLgCust(){
       <div class="sub">${escA(e.note||'')}${e.responsible?' · 🧍 '+escA(e.responsible):''}${doc?' · '+escA(doc.doc_no):''}${e.voided?' · ❌ ยกเลิก: '+escA(e.void_note||''):''} · ✍️ ${escA(e.clerk||'-')}</div></div>
       <div style="text-align:right;display:flex;gap:7px;align-items:center;white-space:nowrap">
         <b style="color:${(+e.amount)>=0?'var(--bad)':'var(--ok)'}">${(+e.amount)>=0?'+':'−'}${lgMoney(Math.abs(e.amount))}</b>
+        ${e.sale_id?`<button class="btn ghost sm" title="ดูรายละเอียด + รูปบิลที่ทำเสร็จ" onclick="lgViewBill('${e.sale_id}')">🧾 ดูบิล</button>`:''}
         ${doc?`<button class="btn ghost sm" onclick="lgPrintDoc('${doc.id}')">🖨</button>`:''}
         ${(!e.voided&&e.entry_type!=='invoice'&&['owner','admin'].includes(ROLE))?`<button class="btn ghost sm" style="color:var(--bad)" onclick="lgVoid('${e.id}')">✕</button>`:''}
       </div></div>`;
@@ -9324,6 +9326,35 @@ function lgPrintDoc(id){
   ov.innerHTML='<div class="sbp-tools"><button class="btn sm" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF</button>'
     +'<button class="btn ghost sm" onclick="sbPrintClose()">✕ ปิด</button></div>'
     +'<div id="sbPrintPage">'+lgDocPaperHTML(d)+'</div>';
+  ov.addEventListener('click',function(e){ if(e.target===ov) sbPrintClose(); });
+  document.body.appendChild(ov);
+}
+function lgViewBill(saleId){ // 🧾 กดจากหน้าบัญชีลูกหนี้ → รายละเอียดบิล + รูปบิลที่ทำเสร็จ (แผ่นเดียวกับตอนพิมพ์)
+  const b=SALE_BILLS.find(x=>x.id===saleId);
+  if(!b){ toast('ไม่พบบิลนี้ในเครื่อง — กด 🔄 รีเฟรชก่อน (หรือบิลถูกลบไปแล้ว)'); return; }
+  const c=sbCalc(b), out=lgSaleOutstanding(saleId);
+  const codes=b.kind==='deadcull'?[...new Set((b.items||[]).map(x=>x&&x.house).filter(Boolean))]:(b.houses||[]).map(x=>x&&x.code).filter(Boolean);
+  const chip=(t,bg,fg)=>'<span style="display:inline-block;background:'+(bg||'#eef2f7')+';color:'+(fg||'#26415e')+';border-radius:999px;padding:4px 12px;font-weight:800;font-size:13px">'+t+'</span>';
+  SB_PRINT_B=b;
+  let ov=document.getElementById('sbPrintOverlay'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='sbPrintOverlay';
+  const head='<div id="lgBillHead" style="max-width:794px;margin:0 auto 10px;background:#fff;border-radius:12px;padding:12px 16px;color:#111">'
+    +'<div style="font-weight:900;font-size:16px;margin-bottom:8px">'+((SB_KIND[b.kind]||{}).ico||'🧾')+' '+((SB_KIND[b.kind]||{}).t||'บิลขาย')+' · '+sbThaiDate(b.dateISO)+(b.webNo?' · <span style="color:#1c6b52">'+escA(b.webNo)+'</span>':'')+(b.billNo?' · เล่ม '+escA(b.billBook||'-')+'/'+escA(b.billNo):'')+'</div>'
+    +'<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">'
+    +chip('👤 '+escA(b.buyer||'-'))
+    +chip('🏭 '+escA(b.farm||'-'))
+    +(codes.length?chip('🏠 '+escA(codes.join(', '))):'')
+    +chip('🐷 '+fmt(c.n)+' ตัว · '+fmt(Math.round(c.totW))+' กก.')
+    +(c.net!=null?chip('💰 ยอดสุทธิ '+lgMoney(c.net)+' บาท','#e7f6ee','#166446'):chip('⏳ รอใส่ราคา','#fdf3e0','#b7791f'))
+    +sbPayState(b)
+    +(lgFinView()&&c.net!=null?(out>0.5?chip('📒 คงค้างบิลนี้ '+lgMoney(out)+' บาท','#fdeae7','#c0392b'):chip('✓ บิลนี้เคลียร์แล้ว','#e7f6ee','#166446')):'')
+    +'</div></div>';
+  ov.innerHTML='<div class="sbp-tools">'
+    +(['owner','admin'].includes(ROLE)?'<button class="btn sm" onclick="sbPrintClose();sbEdit(\''+saleId+'\')">✏️ เปิดแก้บิล</button>':'')
+    +'<button class="btn sm" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF</button>'
+    +'<button class="btn ghost sm" onclick="sbPrintClose()">✕ ปิด</button></div>'
+    +head
+    +'<div id="sbPrintPage">'+sbBillPaperHTML(b)+'</div>';
   ov.addEventListener('click',function(e){ if(e.target===ov) sbPrintClose(); });
   document.body.appendChild(ov);
 }
