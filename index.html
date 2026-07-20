@@ -9002,6 +9002,10 @@ function lgApplyResult(it,res){ // เซิร์ฟเวอร์ตอบ id
     if(res.doc_no){ const d=LG.docs.find(x=>x.id===('doc_'+p.id)); if(d){ d.doc_no=res.doc_no; d._temp=false; } }
   }
   if(it.fn==='ledger_issue_doc'&&p&&p.id&&res.doc_no){ const d=LG.docs.find(x=>x.id===p.id); if(d){ d.doc_no=res.doc_no; d._temp=false; } }
+  if(it.fn==='ledger_sync_bill_pay'&&p&&p.sale_id){ // เซิร์ฟเวอร์อาจสร้างรับโอน+ใบรับเงินให้ใหม่ (เครื่องนี้ไม่มี) → รับเลขทางการ
+    if(res.doc_no){ const d=LG.docs.find(x=>x.id===('doc_pay_'+p.sale_id)); if(d){ d.doc_no=res.doc_no; d._temp=false; } }
+    if(res.customer_id){ const e=LG.entries.find(x=>x.id===('pay_'+p.sale_id)); if(e) e.customer_id=res.customer_id; }
+  }
   if(it.fn==='ledger_sync_invoice'&&res.customer_id&&it.body&&it.body.p_sale_id){
     const e=LG.entries.find(x=>x.id==='inv_'+it.body.p_sale_id); if(e) e.customer_id=res.customer_id;
   }
@@ -9043,15 +9047,38 @@ function lgOnBillSaved(b){
   else { e.customer_id=cust.id; e.customer_name=nm; e.amount=c.net; e.entry_date=(b.dateISO||todayISO()); if(resp) e.responsible=resp; e.note=note; }
   lgPersist();
   lgQueue('ledger_sync_invoice',{p_sale_id:b.id, p_customer_name:nm, p_amount:c.net, p_entry_date:(b.dateISO||todayISO()), p_responsible:resp, p_note:note}, 'inv:'+b.id);
-  if(b.payMode==='transfer' && !LG.entries.find(x=>x.id==='pay_'+b.id)){ // โอนแล้ววันนี้ → บันทึกรับเงิน + ใบรับเงินอัตโนมัติ (ครั้งเดียวต่อบิล)
-    lgAddEntryLocal({id:'pay_'+b.id, customer:cust, customer_name:nm, sale_id:b.id, entry_type:'payment', method:'transfer',
-      amount:c.net, entry_date:(b.dateISO||todayISO()), responsible:'', note:'รับโอนตอนขาย · บิล '+(b.billNo?b.billBook+'/'+b.billNo:sbThaiDate(b.dateISO))});
+  // 💳 รายการเงินอัตโนมัติต้องตามบิลเสมอ — เจ้าของแก้ราคา/เปลี่ยนรูปแบบรับเงิน = ระบบปรับรับโอน+เอกสารให้ตรง ไม่ทิ้งยอดค้างผี
+  const bDate=(b.dateISO||todayISO()), payId='pay_'+b.id, pay=LG.entries.find(x=>x.id===payId);
+  const findRc=()=>LG.docs.find(x=>x.ledger_id===payId||x.id===('doc_'+payId)||(pay&&pay.receipt_id&&x.id===pay.receipt_id));
+  if(b.payMode==='transfer' && !pay){ // โอนแล้ววันนี้ → บันทึกรับเงิน + ใบรับเงินอัตโนมัติ (ครั้งแรกของบิล)
+    lgAddEntryLocal({id:payId, customer:cust, customer_name:nm, sale_id:b.id, entry_type:'payment', method:'transfer',
+      amount:c.net, entry_date:bDate, responsible:'', note:'รับโอนตอนขาย · บิล '+(b.billNo?b.billBook+'/'+b.billNo:sbThaiDate(b.dateISO))});
+  } else if(pay){
+    const wantAmt=-Math.abs(c.net);
+    if(b.payMode==='transfer' && (pay.voided || Math.abs((+pay.amount||0)-wantAmt)>0.005 || String(pay.entry_date)!==bDate)){
+      pay.voided=false; pay.void_note=''; pay.amount=wantAmt; pay.entry_date=bDate;
+      const d=findRc(); if(d){ d.amount=Math.abs(c.net); d.voided=false; }
+      lgPersist();
+      lgQueue('ledger_sync_bill_pay',{p:{sale_id:b.id, customer_name:nm, customer_id:cust.id, pay_mode:'transfer', amount:Math.abs(c.net), entry_date:bDate, responsible:resp||''}}, 'payfix:'+b.id);
+    } else if(b.payMode!=='transfer' && !pay.voided){
+      pay.voided=true; pay.void_note='เปลี่ยนรูปแบบรับเงินของบิลโดย '+whoNow();
+      const d=findRc(); if(d) d.voided=true;
+      lgPersist();
+      lgQueue('ledger_sync_bill_pay',{p:{sale_id:b.id, customer_name:nm, customer_id:cust.id, pay_mode:(b.payMode||'credit'), amount:Math.abs(c.net), entry_date:bDate, responsible:resp||''}}, 'payfix:'+b.id);
+    }
   }
   if(b.payMode==='cash_later' && resp && !LG.docs.find(d=>d.id==='resp_'+b.id)){ // เก็บสดทีหลัง → เอกสารมอบหมาย (ครั้งเดียวต่อบิล)
     const doc={id:'resp_'+b.id, doc_type:'responsibility', doc_no:'(รอเลขทางการ)', sale_id:b.id, customer_id:cust.id, customer_name:nm,
       amount:c.net, method:null, responsible:resp, issued_by:whoNow(), issued_at:new Date().toISOString(), _temp:true, data:{bill:(b.billBook||'')+'/'+(b.billNo||''), dateISO:b.dateISO}};
     LG.docs.unshift(doc); lgPersist();
     lgQueue('ledger_issue_doc',{p:{id:doc.id, sale_id:b.id, customer_name:nm, amount:c.net, responsible:resp, entry_date:(b.dateISO||todayISO()), doc_data:doc.data}});
+  } else {
+    const rd=LG.docs.find(d=>d.id==='resp_'+b.id); // เอกสารมอบหมายที่ออกไปแล้ว → ปรับยอด/ผู้รับผิดชอบตามบิล หรือยกเลิกเมื่อเปลี่ยนรูปแบบ
+    if(rd){ const shouldVoid=(b.payMode!=='cash_later');
+      if(Math.abs((+rd.amount||0)-Math.abs(c.net))>0.005 || !!rd.voided!==shouldVoid || (resp&&rd.responsible!==resp)){
+        rd.amount=Math.abs(c.net); rd.voided=shouldVoid; if(resp) rd.responsible=resp; lgPersist();
+        lgQueue('ledger_sync_bill_pay',{p:{sale_id:b.id, customer_name:nm, customer_id:cust.id, pay_mode:(b.payMode||'credit'), amount:Math.abs(c.net), entry_date:bDate, responsible:resp||''}}, 'payfix:'+b.id);
+      } }
   }
 }
 function lgOnBillDeleted(b){
