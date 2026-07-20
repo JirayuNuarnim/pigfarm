@@ -8944,20 +8944,44 @@ try{ const _lg0=JSON.parse(localStorage.getItem('sjfLedger')||'null'); if(_lg0&&
 let _lgQ=[]; try{ const _q0=JSON.parse(localStorage.getItem('sjfLedgerQ')||'[]'); if(Array.isArray(_q0)) _lgQ=_q0; }catch(e){}
 let _lgLoadAt=0, lgTab='ar', lgCustSel=null;
 let lgDocType='', lgDocSearch='';   // 🧾 แท็บเอกสาร: กรองประเภท + คำค้น
+let lgDocRange='all', lgDocMonthSel='all', lgDocFrom='', lgDocTo='';   // 📅 ช่วงเวลาแท็บเอกสาร (แบบเดียวกับคลังบิล)
 function lgDocSorted(){ return LG.docs.slice().sort((a,b)=>String(b.issued_at||'').localeCompare(String(a.issued_at||''))); } // เรียงใหม่→เก่าเองเสมอ — ไม่พึ่งลำดับจากเซิร์ฟเวอร์/ลำดับ unshift ในเครื่อง
 function lgDocRowHTML(d){
   return `<div class="fieldrow" style="${d.voided?'opacity:.55':''}"><div class="fmeta"><div class="fn">${d.doc_type==='receipt'?'🧾':'🤝'} <b>${escA(d.doc_no)}</b>${d._temp?' <span class="more">(รอเลขทางการ)</span>':''}${d.voided?' <span style="color:var(--bad)">· ยกเลิกแล้ว</span>':''} · ${escA(d.customer_name||'-')}</div>
     <div class="sub">${sbThaiDate(String(d.issued_at||'').slice(0,10))} · ${lgMoney(d.amount)} บาท${d.method?' · '+(d.method==='cash'?'เงินสด':'โอน'):''}${d.responsible?' · ผู้รับผิดชอบ '+escA(d.responsible):''} · ออกโดย ${escA(d.issued_by||'-')}</div></div>
-    <button class="btn ghost sm" onclick="lgPrintDoc('${d.id}')">🖨 พิมพ์</button></div>`;
+    <div style="display:flex;gap:6px;white-space:nowrap">${d.sale_id?`<button class="btn ghost sm" title="ดูรูปบิลที่เอกสารนี้อ้างอิง" onclick="lgViewBill('${d.sale_id}')">🧾 บิล</button>`:''}<button class="btn ghost sm" title="เปิดดูเอกสารเต็มแผ่นก่อน — มีปุ่มพิมพ์ในหน้าดู" onclick="lgPrintDoc('${d.id}')">👁 ดู / พิมพ์</button></div></div>`;
 }
 function lgDocsRe(){ const el=document.getElementById('lgDocsBox'); if(el) el.innerHTML=lgDocsHTML(); } // วาดเฉพาะกล่องรายการ — ช่องค้นหาอยู่นอกกล่อง โฟกัสไม่หลุด
 function lgDocsHTML(){
   const all=lgDocSorted(), q=String(lgDocSearch||'').trim().toLowerCase();
+  // ── 📅 ช่วงเวลา (แบบเดียวกับคลังบิล) — ค้นหา = ค้นทุกช่วงเวลา ──
+  const cutISO=n=>{ const d=new Date(DEMO_DATE.getFullYear(),DEMO_DATE.getMonth(),DEMO_DATE.getDate()-(n-1)); const p=x=>String(x).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); };
+  const months=[...new Set(all.map(d=>String(d.issued_at||'').slice(0,7)).filter(x=>x.length===7))].sort().reverse();
+  const curM=(lgDocMonthSel==='all'||months.indexOf(lgDocMonthSel)>=0)?lgDocMonthSel:(months[0]||'all');
+  const dISO=d=>String(d.issued_at||'').slice(0,10);
+  let scope, scopeLabel='ทุกช่วงเวลา';
+  if(q){ scope=all; scopeLabel='ผลค้นหา (ทุกช่วงเวลา)'; }
+  else if(lgDocRange==='3d'){ const c=cutISO(3); scope=all.filter(d=>!dISO(d)||dISO(d)>=c); scopeLabel='3 วันล่าสุด'; }
+  else if(lgDocRange==='7d'){ const c=cutISO(7); scope=all.filter(d=>!dISO(d)||dISO(d)>=c); scopeLabel='7 วันล่าสุด'; }
+  else if(lgDocRange==='month'&&curM!=='all'){ scope=all.filter(d=>String(d.issued_at||'').slice(0,7)===curM||!dISO(d)); scopeLabel=sbMonthLabel(curM); }
+  else if(lgDocRange==='custom'){ const f=lgDocFrom||'0000-01-01', t=lgDocTo||'9999-12-31'; scope=all.filter(d=>{const x=dISO(d); return !x||(x>=f&&x<=t);}); scopeLabel='ช่วง '+(lgDocFrom?sbThaiDate(lgDocFrom):'…')+' – '+(lgDocTo?sbThaiDate(lgDocTo):'…'); }
+  else scope=all;
   const cnt={rc:0,rp:0,vd:0};
-  all.forEach(d=>{ if(d.voided)cnt.vd++; else if(d.doc_type==='receipt')cnt.rc++; else cnt.rp++; });
-  let docs=all.filter(d=>lgDocType==='rc'?(d.doc_type==='receipt'&&!d.voided):lgDocType==='rp'?(d.doc_type!=='receipt'&&!d.voided):lgDocType==='vd'?!!d.voided:true);
+  scope.forEach(d=>{ if(d.voided)cnt.vd++; else if(d.doc_type==='receipt')cnt.rc++; else cnt.rp++; });
+  let docs=scope.filter(d=>lgDocType==='rc'?(d.doc_type==='receipt'&&!d.voided):lgDocType==='rp'?(d.doc_type!=='receipt'&&!d.voided):lgDocType==='vd'?!!d.voided:true);
   if(q) docs=docs.filter(d=>[d.doc_no,d.customer_name,d.responsible,d.issued_by,String(d.amount||''),sbThaiDate(String(d.issued_at||'').slice(0,10))].filter(Boolean).join(' ').toLowerCase().indexOf(q)>=0);
-  const chips=[['','ทั้งหมด',all.length],['rc','🧾 ใบรับเงิน',cnt.rc],['rp','🤝 มอบหมายเก็บเงิน',cnt.rp],['vd','❌ ยกเลิกแล้ว',cnt.vd]]
+  const rChips=q?'':`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><span class="sub" style="margin:0 4px 6px 0">⏱ ช่วงเวลา:</span>${
+    [['3d','3 วันล่าสุด'],['7d','7 วัน'],['month','📅 รายเดือน'],['custom','กำหนดเอง'],['all','ทั้งหมด']]
+    .map(r=>`<button class="sbfchip${lgDocRange===r[0]?' on':''}" onclick="lgDocRange='${r[0]}';lgDocsRe()">${r[1]}</button>`).join('')}</div>`;
+  const mChips=(q||lgDocRange!=='month')?'':(months.length?`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><span class="sub" style="margin:0 4px 6px 0">📅 เดือน:</span>${
+    months.slice(0,12).map(m=>`<button class="sbfchip${curM===m?' on':''}" onclick="lgDocMonthSel='${m}';lgDocsRe()">${sbMonthLabel(m,true)}</button>`).join('')
+    }<button class="sbfchip${curM==='all'?' on':''}" onclick="lgDocMonthSel='all';lgDocsRe()">ทุกเดือน</button></div>`:'');
+  const customRow=(q||lgDocRange!=='custom')?'':`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+    <span class="sub" style="margin:0">จากวันที่</span><input type="date" class="cin" style="max-width:175px" value="${escA(lgDocFrom)}" onchange="lgDocFrom=this.value;lgDocsRe()">
+    <span class="sub" style="margin:0">ถึงวันที่</span><input type="date" class="cin" style="max-width:175px" value="${escA(lgDocTo)}" onchange="lgDocTo=this.value;lgDocsRe()"></div>`;
+  const okDocs=docs.filter(d=>!d.voided), sumAmt=okDocs.reduce((s,d)=>s+(+d.amount||0),0);
+  const sumBar=`<div style="display:flex;gap:9px 14px;align-items:center;flex-wrap:wrap;background:var(--brand);color:#fff;border-radius:10px;padding:7px 13px;margin:2px 0 8px;font-size:13.5px;font-weight:800">📅 ${escA(scopeLabel)} <span style="opacity:.85">${fmt(docs.length)} ใบ</span><span>💰 ${lgMoney(sumAmt)} บาท</span></div>`;
+  const chips=[['','ทั้งหมด',scope.length],['rc','🧾 ใบรับเงิน',cnt.rc],['rp','🤝 มอบหมายเก็บเงิน',cnt.rp],['vd','❌ ยกเลิกแล้ว',cnt.vd]]
     .map(s=>`<button class="sbfchip${lgDocType===s[0]?' on':''}"${s[2]||s[0]===''?'':' style="opacity:.45"'} onclick="lgDocType='${s[0]}';lgDocsRe()">${s[1]} (${fmt(s[2])})</button>`).join('');
   // แบ่งกลุ่มตามเดือน — เอกสารเก่าไม่ปนกับของใหม่ · หัวเดือนสรุปจำนวน+ยอดเงิน (ไม่นับใบที่ยกเลิก)
   const CAP=300, shown=docs.slice(0,CAP), groups=[], gIdx={};
@@ -8966,8 +8990,9 @@ function lgDocsHTML(){
     const ok=g.items.filter(d=>!d.voided), sum=ok.reduce((s,d)=>s+(+d.amount||0),0);
     return `<div style="display:flex;gap:9px 14px;align-items:center;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:7px 12px;margin:13px 0 8px;font-size:13px;font-weight:800">📅 ${g.m==='?'?'ไม่ระบุวัน':sbMonthLabel(g.m)} <span class="more">${fmt(g.items.length)} ใบ</span><span style="color:var(--ok)">💰 ${lgMoney(sum)} บาท</span></div>`+g.items.map(lgDocRowHTML).join('');
   }).join('')+(docs.length>CAP?`<div class="sub" style="margin-top:10px">— แสดง ${fmt(CAP)} ใบแรกจาก ${fmt(docs.length)} — พิมพ์ค้นหาให้แคบลง —</div>`:'');
-  return `<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">${chips}</div>`
-    +(rows||`<div class="sub" style="margin-top:10px">— ${q?'ไม่พบเอกสารที่ตรงกับ "'+escA(q)+'"':'ยังไม่มีเอกสารในกลุ่มนี้'} —</div>`);
+  return rChips+mChips+customRow+sumBar
+    +`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">${chips}</div>`
+    +(rows||`<div class="sub" style="margin-top:10px">— ${q?'ไม่พบเอกสารที่ตรงกับ "'+escA(q)+'"':'ยังไม่มีเอกสารในช่วงเวลา/กลุ่มนี้ — ลองกด "ทั้งหมด" หรือเปลี่ยนช่วงวันที่'} —</div>`);
 }
 function lgPersist(){ try{ localStorage.setItem('sjfLedger', JSON.stringify(LG)); }catch(e){} }
 function lgQPersist(){ try{ localStorage.setItem('sjfLedgerQ', JSON.stringify(_lgQ)); }catch(e){} }
