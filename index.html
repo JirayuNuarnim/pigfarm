@@ -3250,7 +3250,7 @@ function expClosedTableHTML(){
   const rows=expClosedRows();
   const tot={inN:0,deadN:0,cullN:0,soldN:0,revenue:0,totalCost:0,profit:0};
   const data=rows.map(b=>{ tot.inN+=b.inN||0;tot.deadN+=b.deadN||0;tot.cullN+=b.cullN||0;tot.soldN+=b.soldN||0;tot.revenue+=b.revenue||0;tot.totalCost+=b.totalCost||0;tot.profit+=b.profit||0;
-    return [fmtISOThai(b.closedOn),b.farm||'-',b.code||'-',b.vet||'-',b.inN||0,b.deadN||0,b.cullN||0,b.soldN||0,b.days||0,(b.fcr||'-'),(b.loss!=null?b.loss+'%':'-'),(b.revenue||0),(b.totalCost||0),(b.profit||0),batchPerPig(b)]; });
+    return [fmtISOThai(b.closedOn),b.farm||'-',b.code||'-',b.vet||'-',b.inN||0,b.deadN||0,b.cullN||0,b.soldN||0,b.days||0,fcrShow(b.fcr),(b.loss!=null?b.loss+'%':'-'),(b.revenue||0),(b.totalCost||0),(b.profit||0),batchPerPig(b)]; });
   return xlsSheet({
     title:'สรุปปิดชุดรวม', meta:xlsMetaExp(),
     columns:[{label:'วันที่ปิด',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'หมอ',type:'text',w:120},{label:'รับเข้า(ตัว)',type:'num',w:80},{label:'ตาย',type:'num',w:60},{label:'คัด',type:'num',w:60},{label:'ขาย',type:'num',w:60},{label:'วันเลี้ยง',type:'num',w:70},{label:'FCR',type:'dec',w:60},{label:'%สูญเสีย',type:'text',w:70},{label:'รายได้',type:'money',w:110},{label:'ต้นทุน',type:'money',w:110},{label:'กำไรสุทธิ',type:'money',w:110},{label:'กำไร/ตัว',type:'money',w:90}],
@@ -3391,7 +3391,7 @@ function renderVetMe(){
   const vlog=mine.flatMap(h=>h.vetLog||[]);
   const nTreat=vlog.filter(e=>e.type==='treat').length, nFeed=vlog.filter(e=>e.type==='feed').length, nEat=vlog.filter(e=>e.type==='intake').length;
   const nMed=mine.flatMap(h=>h.meds||[]).length;
-  const cProfit=closed.reduce((s,b)=>s+(b.profit||0),0), cAvgFcr=avg(closed,b=>b.fcr), cAvgLoss=avg(closed,b=>b.loss);
+  const cProfit=closed.reduce((s,b)=>s+(b.profit||0),0), cAvgFcr=fcrAvg(closed,b=>b.fcr), cAvgLoss=avg(closed,b=>b.loss);
   const best=active.slice().sort((a,b)=>houseScore(b)-houseScore(a))[0], worst=active.slice().sort((a,b)=>houseScore(a)-houseScore(b))[0];
   const sc=p=>`<span style="color:${p>=85?'var(--ok)':p>=70?'var(--warn)':'var(--bad)'};font-weight:700">${p}%</span>`;
   const v=$("#view");
@@ -3402,7 +3402,7 @@ function renderVetMe(){
       <div class="kpi"><div class="lab">🟢 หลังที่กำลังเลี้ยง</div><div class="val">${fmt(active.length)}</div></div>
       <div class="kpi"><div class="lab"><span class="logo-ico"></span> หมูที่ดูแล</div><div class="val">${fmt(pigs)}</div></div>
       <div class="kpi"><div class="lab">📈 คะแนนเฉลี่ย</div><div class="val">${score}%</div></div>
-      <div class="kpi"><div class="lab">🔁 FCR เฉลี่ย</div><div class="val">${avg(active,h=>h.fcr).toFixed(2)}</div></div>
+      <div class="kpi"><div class="lab">🔁 FCR เฉลี่ย</div><div class="val">${fcrAvg(active,h=>h.fcr)?fcrAvg(active,h=>h.fcr).toFixed(2):'-'}</div></div>
       <div class="kpi"><div class="lab">⚰️ ตาย% เฉลี่ย</div><div class="val">${avg(active,h=>h.mortality).toFixed(1)}%</div></div>
       <div class="kpi"><div class="lab">💊 ต้นทุนยารวม</div><div class="val">${fmt(medCost)}</div></div>
     </div>
@@ -3419,13 +3419,13 @@ function renderVetMe(){
     <div class="card"><h3>📦 รุ่นที่ฉันปิดชุดไปแล้ว <span class="more">${fmt(closed.length)} รุ่น</span></h3>
       ${closed.length?`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px">
           <div style="background:var(--soft,#f6f9fc);border-radius:10px;padding:10px"><div class="sub">กำไรรวมที่ปิดได้</div><div style="font-size:19px;font-weight:800;color:${cProfit>=0?'#1e7e4f':'#c0392b'}">${fmt(cProfit)}</div></div>
-          <div style="background:var(--soft,#f6f9fc);border-radius:10px;padding:10px"><div class="sub">FCR เฉลี่ย (รุ่นปิด)</div><div style="font-size:19px;font-weight:800">${cAvgFcr.toFixed(2)}</div></div>
+          <div style="background:var(--soft,#f6f9fc);border-radius:10px;padding:10px"><div class="sub">FCR เฉลี่ย (รุ่นปิด)</div><div style="font-size:19px;font-weight:800">${cAvgFcr?cAvgFcr.toFixed(2):'-'}</div></div>
           <div style="background:var(--soft,#f6f9fc);border-radius:10px;padding:10px"><div class="sub">สูญเสีย% เฉลี่ย</div><div style="font-size:19px;font-weight:800">${cAvgLoss.toFixed(1)}%</div></div>
         </div>
         <div style="overflow-x:auto"><table>
         <thead><tr><th>วันที่ปิด</th><th>หลัง</th><th>ฟาร์ม</th><th class="num">รับเข้า</th><th class="num">วันเลี้ยง</th><th class="num">FCR</th><th class="num">สูญเสีย%</th><th class="num">กำไรสุทธิ</th><th class="num">กำไร/ตัว</th><th></th></tr></thead>
         <tbody>${closed.map(b=>`<tr>
-          <td>${fmtISOThai(b.closedOn)}</td><td><b>${escA(b.code||'-')}</b></td><td>${escA(b.farm||'-')}</td><td class="num">${fmt(b.inN||0)}</td><td class="num">${b.days||0}</td><td class="num">${b.fcr||'-'}</td><td class="num">${b.loss!=null?b.loss+'%':'-'}</td><td class="num" style="color:${(b.profit||0)>=0?'#1e7e4f':'#c0392b'};font-weight:700">${fmt(b.profit||0)}</td><td class="num">${fmt(batchPerPig(b))}</td>
+          <td>${fmtISOThai(b.closedOn)}</td><td><b>${escA(b.code||'-')}</b></td><td>${escA(b.farm||'-')}</td><td class="num">${fmt(b.inN||0)}</td><td class="num">${b.days||0}</td><td class="num">${fcrShow(b.fcr)}</td><td class="num">${b.loss!=null?b.loss+'%':'-'}</td><td class="num" style="color:${(b.profit||0)>=0?'#1e7e4f':'#c0392b'};font-weight:700">${fmt(b.profit||0)}</td><td class="num">${fmt(batchPerPig(b))}</td>
           <td class="num"><button class="btn ghost sm" style="color:var(--brand)" onclick="exportClosedBatch(${escA(JSON.stringify(b.code||''))},${b.ts||0})">📊</button></td></tr>`).join('')}</tbody>
       </table></div>
       <div style="margin-top:10px"><button class="btn ghost sm" onclick="exportVetMe()">📊 ส่งออกผลงานของฉัน (Excel)</button></div>`:'<div class="sub">ยังไม่มีรุ่นที่คุณปิดชุด</div>'}
@@ -3445,7 +3445,7 @@ function exportVetMe(){
   const me=(CURRENT_USER&&CURRENT_USER.name)||'';
   const closed=HOUSES.flatMap(h=>(h.closedBatches||[])).filter(b=>b.vet===me);
   if(!closed.length){toast('ยังไม่มีรุ่นที่ปิดชุด');return;}
-  const data=closed.map(b=>[fmtISOThai(b.closedOn),b.farm||'-',b.code||'-',b.inN||0,b.days||0,(b.fcr||'-'),(b.loss!=null?b.loss+'%':'-'),(b.revenue||0),(b.totalCost||0),(b.profit||0),batchPerPig(b)]);
+  const data=closed.map(b=>[fmtISOThai(b.closedOn),b.farm||'-',b.code||'-',b.inN||0,b.days||0,fcrShow(b.fcr),(b.loss!=null?b.loss+'%':'-'),(b.revenue||0),(b.totalCost||0),(b.profit||0),batchPerPig(b)]);
   const html=xlsSheet({title:'ผลงานของฉัน — รุ่นที่ปิดชุด', meta:[{k:'หมอผู้ดูแล',v:me},{k:'จำนวนรุ่น',v:fmt(closed.length)+' รุ่น'},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT}],
     columns:[{label:'วันที่ปิด',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'รับเข้า',type:'num',w:70},{label:'วันเลี้ยง',type:'num',w:70},{label:'FCR',type:'dec',w:60},{label:'สูญเสีย%',type:'text',w:70},{label:'รายได้',type:'money',w:100},{label:'ต้นทุน',type:'money',w:100},{label:'กำไรสุทธิ',type:'money',w:100},{label:'กำไร/ตัว',type:'money',w:80}],
     rows:data});
@@ -3616,7 +3616,7 @@ function closedBatchBodyHTML(){
           <td class="num">${money(b.revenue)}</td>
           <td class="num">${money(b.totalCost)}</td>
           <td class="num"><b style="color:${(b.profit||0)>=0?'var(--ok)':'var(--bad)'}">${money(b.profit)}</b></td>
-          <td class="num">${b.fcr||'-'}</td>
+          <td class="num">${fcrShow(b.fcr)}</td>
         </tr>`).join('')}</tbody>
       </table></div>
     </div>`;
@@ -3696,7 +3696,7 @@ function exportClosedBatchesCombined(){
     const hh=HOUSES.find(x=>x.code===b.code)||{};                      // ชุด seed เก่าไม่ได้เก็บ assistant → ดึงจากหลัง
     const asst=b.assistant||(b.intake&&b.intake.assistant)||hh.assistant||'-';
     const worker=b.worker||(b.intake&&b.intake.worker)||hh.worker||'-';
-    const row=[fmtISOThai(b.closedOn),b.farm||'-',b.code||'-',b.vet||'-',asst,worker,fmtISOThai(b.dateIn),b.days||0,b.inN||0,b.deadN||0,b.cullN||0,b.soldN||0,b.avgIn||'-',b.avgOut||'-',b.fcr||'-',(b.loss!=null?b.loss+'%':'-'),b.revenue||0,b.totalCost||0,b.profit||0,batchPerPig(b)];
+    const row=[fmtISOThai(b.closedOn),b.farm||'-',b.code||'-',b.vet||'-',asst,worker,fmtISOThai(b.dateIn),b.days||0,b.inN||0,b.deadN||0,b.cullN||0,b.soldN||0,b.avgIn||'-',b.avgOut||'-',fcrShow(b.fcr),(b.loss!=null?b.loss+'%':'-'),b.revenue||0,b.totalCost||0,b.profit||0,batchPerPig(b)];
     t+='<tr>'+row.map((c,i)=>{const isN=numCol.indexOf(i)>-1 && typeof c==='number';return '<td style="'+(numCol.indexOf(i)>-1?Cnum:Ctd)+'">'+esc(isN?fm(c):c)+'</td>';}).join('')+'</tr>';
   });
   const totRow=['รวม '+list.length+' ชุด','','','','','','','',tot.inN,tot.deadN,tot.cullN,tot.soldN,'','','','',tot.revenue,tot.totalCost,tot.profit,''];
@@ -3727,7 +3727,7 @@ function showClosedBatch(code,ts){
       <div class="kpi"><div class="lab">ต้นทุนรวม</div><div class="val">${money(b.totalCost)}</div></div>
       <div class="kpi"><div class="lab">กำไรสุทธิ</div><div class="val" style="color:${(b.profit||0)>=0?'var(--ok)':'var(--bad)'}">${money(b.profit)}</div></div>
       <div class="kpi"><div class="lab">กำไร/ตัว</div><div class="val">${money(batchPerPig(b))}</div></div>
-      <div class="kpi"><div class="lab">FCR</div><div class="val">${b.fcr||'-'}</div></div>
+      <div class="kpi"><div class="lab">FCR</div><div class="val">${fcrShow(b.fcr)}</div></div>
       <div class="kpi"><div class="lab">ADG</div><div class="val">${b.adg||'-'}</div></div>
       <div class="kpi"><div class="lab">% สูญเสีย</div><div class="val">${b.loss||0}%</div></div>
     </div>
@@ -6042,6 +6042,9 @@ function batchDays(){
   return gv('b_days');
 }
 const FAN_RATE=130; // บาท/พัดลม/วัน
+const FCR_MIN=1.2, FCR_MAX=6; // ช่วง FCR ที่เป็นไปได้จริงของหมู — นอกช่วงนี้ = ข้อมูลอาหารไม่ครบ/ผิด ให้โชว์ "—" แทนเลขหลอก
+function fcrShow(v){ const f=parseFloat(v); return (f>=FCR_MIN&&f<=FCR_MAX)?f.toFixed(2):'-'; } // ใช้กับประวัติชุดปิดเก่าที่อาจเก็บเลขเพี้ยนไว้แล้ว (เช่น 0.03)
+function fcrAvg(arr,f){ const xs=arr.map(x=>parseFloat(f(x))).filter(x=>x>=FCR_MIN&&x<=FCR_MAX); return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:0; } // เฉลี่ยเฉพาะค่าที่เชื่อถือได้ — ไม่ให้ 0/ค่าเพี้ยนฉุดค่าเฉลี่ย
 // ค่าใช้จ่ายรายวัน (บาท/วัน) — คิด × จำนวนวันเลี้ยง โดยอัตโนมัติ
 const DAILY_COSTS={c_labor:350,c_asst:50,c_vetman:100,c_clerk:50,c_bio:80,c_dep:500};
 function calcBatch(){
@@ -6085,11 +6088,14 @@ function calcBatch(){
   const profit=revenue-totalCost;
   const avgIn=inN?inW/inN:0, avgOut=outN?outW/outN:0;
   const loss=inN?(deadN+cullN)/inN*100:0;
-  const adg=(days&&avgOut&&avgIn)?(avgOut-avgIn)/days:0;
+  let adg=(days&&avgOut&&avgIn)?(avgOut-avgIn)/days:0;
+  const adgOdd=adg!==0&&(adg<0||adg>1.4); if(adgOdd) adg=0; // ADG ติดลบ/เกิน 1.4 กก./วัน = วันรับเข้าหรือน้ำหนักผิด (เคส J2 โชว์ 4.3) — โชว์ — พร้อมคำเตือน ไม่เก็บเลขหลอก
   const gainW=(outW+cullW)-avgIn*(outN+cullN); // นน.ที่โตขึ้นของหมูที่ออกแบบมีชีวิต (ขาย+คัด) — เดิมนับเฉพาะขาย ทำให้ FCR เพี้ยน
   const eatKg=intakeAgg(currentHouse).totalKg;  // อาหารที่ "กินจริง" (จากบันทึกการกินได้ของหมอ)
-  const fcrFeed=eatKg>0?eatKg:feedKg;           // ใช้อาหาร "กินจริง" ถ้ามี · ไม่งั้น fallback เป็นอาหารรับเข้า (จะสูงกว่าจริงเพราะมีอาหารเหลือในถัง)
-  const fcr=(gainW>0 && avgIn>0)?fcrFeed/gainW:0; // FCR = อาหาร ÷ นน.ที่โตขึ้น · ต้องมี "นน.เฉลี่ยเข้า" จึงคิดได้ ไม่งั้นโชว์ "—"
+  const eatComplete=eatKg>0&&(feedKg<=0||eatKg>=feedKg*0.5); // ใช้กินจริงเฉพาะเมื่อบันทึกครอบคลุมพอ (≥ครึ่งของอาหารรับเข้า) — กันเคสหมอจดกินได้แค่บางวันแล้ว FCR ต่ำผิดโลก (B4: กินได้ 885 กก. vs รับ 175,470 กก. → 0.01)
+  const fcrFeed=eatComplete?eatKg:feedKg;       // ไม่ครบ → ใช้อาหารรับเข้า (อาจสูงกว่าจริงเล็กน้อยเพราะมีอาหารเหลือในถัง)
+  let fcr=(gainW>0 && avgIn>0)?fcrFeed/gainW:0; // FCR = อาหาร ÷ นน.ที่โตขึ้น · ต้องมี "นน.เฉลี่ยเข้า" จึงคิดได้ ไม่งั้นโชว์ "—"
+  const fcrOdd=fcr>0&&(fcr<FCR_MIN||fcr>FCR_MAX); if(fcrOdd) fcr=0; // FCR นอกช่วงหมูจริง = ข้อมูลอาหารไม่ครบ/ผิดปกติ (เคส E25 เก็บ 0.03) — โชว์ — ไม่เก็บเลขหลอกลงประวัติ
   const liveOut=outN+cullN; // หมูที่ออกแบบมีชีวิต = ขายขุน + คัดขาย (คัดขายก็มีรายได้รวมในกำไร)
   const perPig=liveOut?profit/liveOut:(inN?profit/inN:0); // กำไรเฉลี่ย/ตัว หารด้วยหมูที่ออกแบบมีชีวิต (ขาย+คัด) ให้ตรงกับ FCR
   const setT=(id,val,color)=>{const e=document.getElementById(id);if(e){e.textContent=val;if(color)e.style.color=color;}};
@@ -6098,9 +6104,10 @@ function calcBatch(){
   setT('s_loss',inN?loss.toFixed(2)+'%':'—',inN?c(loss<2):'');
   setT('s_adg',adg?adg.toFixed(3):'—',adg?c(adg>=0.78):'');
   setT('s_fcr',fcr?fcr.toFixed(2):'—',fcr?c(fcr<=2.5):'');
-  const fb=document.getElementById('s_fcr_basis'); if(fb) fb.textContent=fcr?(eatKg>0?'(จากกินจริง)':'(จากอาหารรับเข้า)'):'';
+  const fb=document.getElementById('s_fcr_basis'); if(fb) fb.textContent=fcrOdd?'⚠️ ข้อมูลอาหารไม่ครบ/ผิดปกติ — ไม่คำนวณ (กันเลขหลอก)':(fcr?(eatComplete?'(จากกินจริง)':(eatKg>0?'(จากอาหารรับเข้า — บันทึกกินได้มีไม่ครบ จึงไม่ใช้)':'(จากอาหารรับเข้า)')):'');
   const an=document.getElementById('s_adg_note'); if(an){ an.textContent=''; an.style.color='var(--muted)';
-    if(avgIn<=0){ an.textContent='— ใส่ "รับเข้า(นน.)" ก่อน'; }
+    if(adgOdd){ an.textContent='⚠️ ตัวเลขผิดปกติ — ตรวจ "วันที่รับเข้า" กับน้ำหนักเข้า/ออก'; an.style.color='var(--warn)'; }
+    else if(avgIn<=0){ an.textContent='— ใส่ "รับเข้า(นน.)" ก่อน'; }
     else if(days>130 && avgIn<15){ an.textContent='⚠️ ตรวจช่วง นน./วัน'; an.style.color='var(--warn)'; } }
   setT('s_rev',fmt(Math.round(revenue)));
   setT('s_cost',fmt(Math.round(totalCost)));
@@ -9242,6 +9249,28 @@ function renderLgCust(){
   const bal=lgBalance(c.id);
   const TY={invoice:['🧾 บิลขาย','var(--bad)'],payment:['💸 รับเงิน','var(--ok)'],deduction:['➖ หักหน้าบิล','var(--info)'],adjustment:['✏️ ปรับปรุง','var(--warn)']};
   const fin=lgFinView();
+  // ── 📋 dashboard บิลค้างชำระของลูกค้ารายนี้ (เจ้าของ/ผู้ดูแล) ──
+  const openInvs=fin?rows.filter(e=>e.entry_type==='invoice'&&!e.voided&&e.sale_id&&(+e.amount)>0.5)
+    .map(e=>({e:e, out:lgSaleOutstanding(e.sale_id), b:SALE_BILLS.find(x=>x.id===e.sale_id)}))
+    .filter(x=>x.out>0.5):[];
+  const openSum=openInvs.reduce((s,x)=>s+x.out,0);
+  const TD='padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:middle', TH='padding:7px 9px;border-bottom:2px solid var(--line);text-align:left;font-size:12.5px;color:var(--ink-2);white-space:nowrap';
+  const billTable=!fin?'':(openInvs.length?`<div class="card"><h3>📋 บิลค้างชำระของลูกค้ารายนี้ <span class="more">${fmt(openInvs.length)} ใบ · ค้างรวม ${lgMoney(openSum)} บาท</span></h3>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px">
+      <tr><th style="${TH}">วันที่ · เลขบิล</th><th style="${TH}">ฟาร์ม</th><th style="${TH}">รายละเอียด</th><th style="${TH};text-align:right">มูลค่าบิล</th><th style="${TH};text-align:right">ค้างอยู่</th><th style="${TH}">สถานะ</th><th style="${TH};text-align:right">จัดการ</th></tr>
+      ${openInvs.map(x=>{
+        const b=x.b, cc=b?sbCalc(b):null;
+        const ref=b?(sbThaiDate(b.dateISO)+(b.billNo?' · '+escA(b.billBook||'-')+'/'+escA(b.billNo):(b.webNo?' · '+escA(b.webNo):''))):sbThaiDate(x.e.entry_date);
+        const det=cc?(fmt(cc.n)+' ตัว · '+fmt(Math.round(cc.totW))+' กก.'+(cc.n?' · เฉลี่ย '+cc.avg.toFixed(1)+' กก./ตัว':'')):escA(x.e.note||'-');
+        const st=x.e.responsible?'<span class="sbchip" style="background:#fdf3e0;color:#b7791f">🧍 เงินสดอยู่กับ '+escA(x.e.responsible)+'</span>':((+x.e.amount)-x.out>0.5?'<span class="sbchip" style="background:#e8f1fb;color:#26618e">💧 จ่ายมาบางส่วน</span>':'<span class="sbchip bad">📒 ยังไม่จ่าย</span>');
+        return `<tr><td style="${TD};white-space:nowrap">${ref}</td><td style="${TD}">${escA((b&&b.farm)||'-')}</td><td style="${TD}">${det}</td>
+          <td style="${TD};text-align:right;font-weight:800">${lgMoney(x.e.amount)}</td><td style="${TD};text-align:right;font-weight:900;color:var(--bad)">${lgMoney(x.out)}</td>
+          <td style="${TD};white-space:nowrap">${st}</td>
+          <td style="${TD};text-align:right;white-space:nowrap">${b?`<button class="btn ghost sm" onclick="lgViewBill('${x.e.sale_id}')">🧾 ดูบิล</button> `:''}<button class="btn sm" style="padding:7px 11px" onclick="lgPickBillPay('${x.e.sale_id}',${Math.round(x.out)})">💸 รับเงินบิลนี้</button></td></tr>`;
+      }).join('')}
+    </table></div>
+    <div class="sub" style="margin-top:8px">💡 กด "💸 รับเงินบิลนี้" ระบบจะเลือกบิล+ใส่ยอดในฟอร์มรับเงินด้านล่างให้ — เลือกวิธีรับแล้วกดบันทึกได้เลย · ยอดจะตัดเฉพาะบิลนั้น สถานะบิลเปลี่ยนเป็น ✅ อัตโนมัติ</div></div>`
+    :`<div class="card"><h3>📋 บิลค้างชำระของลูกค้ารายนี้</h3><div class="sub">— ไม่มีบิลค้างชำระ 🎉 —</div></div>`);
   const list=rows.length?rows.map(e=>{
     const t=TY[e.entry_type]||['?',''];
     const doc=e.receipt_id?LG.docs.find(d=>d.id===e.receipt_id):null;
@@ -9259,8 +9288,13 @@ function renderLgCust(){
     <h2 class="page">👤 ${escA(c.name)} <span class="more">${escA(c.phone||'')}</span></h2>
     <div class="sub"><a href="#" onclick="renderLedger();return false" style="color:var(--info)">‹ กลับหน้าบัญชีรวม</a></div>
     ${fin?`<div style="margin:10px 0 14px"><span class="sbchip ${bal>0.5?'bad':bal<-0.5?'ok':''}" style="font-size:15px">ยอดค้างปัจจุบัน <b style="font-size:19px">${lgMoney(Math.abs(bal))}</b> บาท ${bal>0.5?'(ลูกค้าค้างจ่าย)':bal<-0.5?'(เครดิตของลูกค้า — จะหักบิลหน้า)':'(ไม่มีหนี้ค้าง ✓)'}</span></div>`:''}
+    ${billTable}
     <div class="card"><h3>💸 บันทึกรับเงิน <span class="more">ออกใบรับเงินให้อัตโนมัติ</span></h3>
       <div class="fgrid">
+        ${fin?`<div class="frow" style="grid-column:1/-1"><label>รับเงินสำหรับ <span class="hint">(เลือกบิล = ตัดหนี้เฉพาะบิลนั้น)</span></label><select id="lgPayBill" class="cin tl" onchange="lgPayBillSel(this.value)">
+          <option value="">ยอดรวมของลูกค้า (ไม่ระบุบิล)</option>
+          ${openInvs.map(x=>{const b=x.b;const ref=b?(sbThaiDate(b.dateISO)+(b.billNo?' เล่ม '+escA(b.billBook||'-')+'/'+escA(b.billNo):(b.webNo?' '+escA(b.webNo):''))):sbThaiDate(x.e.entry_date);return `<option value="${x.e.sale_id}">บิล ${ref} · ค้าง ${lgMoney(x.out)} บาท</option>`;}).join('')}
+        </select></div>`:''}
         <div class="frow"><label>จำนวนเงิน (บาท)</label><input id="lgPayAmt" type="number" step="1" class="cin" value="${fin&&bal>0.5?Math.round(bal):''}" placeholder="ยอดที่รับจริง"></div>
         <div class="frow"><label>วิธีรับ</label><select id="lgPayMethod" class="cin tl"><option value="transfer">🏦 โอนเข้าบัญชี</option><option value="cash">💵 เงินสด</option></select></div>
         <div class="frow"><label>วันที่รับ</label><input id="lgPayDate" type="date" class="cin" value="${todayISO()}"></div>
@@ -9287,12 +9321,29 @@ function lgDoPay(custId){
   const amt=parseFloat(($("#lgPayAmt")||{}).value); if(!isFinite(amt)||amt<=0){ toast('ใส่จำนวนเงินก่อน'); return; }
   const method=($("#lgPayMethod")||{}).value||'transfer';
   const bal=lgBalance(custId);
+  const saleId=lgFinView()?String((($("#lgPayBill")||{}).value)||'').trim()||null:null;   // 💸 เลือกบิล = ตัดหนี้เฉพาะบิลนั้น
+  let note=String((($("#lgPayNote")||{}).value)||'').trim();
+  if(saleId){
+    const bout=lgSaleOutstanding(saleId);
+    if(amt>bout+0.5 && !confirm('ยอดที่รับ ('+lgMoney(amt)+') มากกว่ายอดค้างของบิลนี้ ('+lgMoney(bout)+')\nส่วนเกินจะกลายเป็นเครดิต — ยืนยัน?')) return;
+    if(!note){ const b=SALE_BILLS.find(x=>x.id===saleId); note='ชำระบิล '+(b?(sbThaiDate(b.dateISO)+(b.billNo?' เล่ม '+(b.billBook||'-')+'/'+b.billNo:'')):saleId); }
+  }
   if(lgFinView() && amt>bal+0.5 && !confirm('จำนวนที่รับ ('+lgMoney(amt)+') มากกว่ายอดค้าง ('+lgMoney(bal)+')\nส่วนเกินจะกลายเป็นเครดิตของลูกค้า — ยืนยัน?')) return;
-  const e=lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'payment', method:method, amount:amt,
-    entry_date:($("#lgPayDate")||{}).value||todayISO(), responsible:String((($("#lgPayResp")||{}).value)||'').trim(), note:String((($("#lgPayNote")||{}).value)||'').trim()});
+  const e=lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'payment', method:method, amount:amt, sale_id:saleId,
+    entry_date:($("#lgPayDate")||{}).value||todayISO(), responsible:String((($("#lgPayResp")||{}).value)||'').trim(), note:note});
   toast('บันทึกรับเงินแล้ว ✓ กำลังออกใบรับเงิน…');
   renderLgCust();
   setTimeout(()=>{ const d=LG.docs.find(x=>x.ledger_id===e.id||x.id==='doc_'+e.id); if(d) lgPrintDoc(d.id); }, 700);
+}
+function lgPayBillSel(saleId){ // เลือกบิลในฟอร์มรับเงิน → ใส่ยอดค้างของบิลนั้นให้เลย
+  const a=$("#lgPayAmt"); if(!a) return;
+  if(!saleId){ return; }
+  const out=lgSaleOutstanding(saleId); if(out>0.5) a.value=Math.round(out);
+}
+function lgPickBillPay(saleId,amt){ // ปุ่ม "💸 รับเงินบิลนี้" ในตารางบิลค้าง → เลือกบิล+ใส่ยอด แล้วพาไปที่ฟอร์ม
+  const s=$("#lgPayBill"); if(s) s.value=saleId;
+  const a=$("#lgPayAmt"); if(a){ a.value=amt; try{ a.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} setTimeout(()=>{ try{ a.focus(); }catch(e){} },350); }
+  toast('เลือกบิลแล้ว ✓ เช็ควิธีรับเงิน แล้วกด "บันทึกรับเงิน"');
 }
 function lgDoDeduct(custId){
   const c=LG.customers.find(x=>x.id===custId); if(!c) return;
