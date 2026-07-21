@@ -9497,10 +9497,9 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
   let h='';
   // ── หัวบิล ──
   h+='<table style="width:100%;border-collapse:collapse;margin-bottom:4px"><tr>'
-    +'<td style="'+BD+';width:110px;text-align:center;padding:5px 4px"><div style="font-size:26px;line-height:1">🐷</div><div style="font-size:10px;font-weight:800;letter-spacing:1px">SJF FARM</div></td>'
-    +'<td style="padding:4px 12px;font-size:14px;vertical-align:bottom">เล่มที่ '+line(b.billBook)+'<span style="margin-left:14px">เลขที่ '+line(b.billNo)+'</span></td>'
-    +'<td style="padding:4px 12px;font-size:14px;text-align:right;vertical-align:bottom">เลขที่บิลระบบ <b style="font-size:15px">'+escA(b.webNo||'(ออกเมื่อบันทึก)')+'</b></td></tr>'
-    +'<tr><td colspan="3" style="text-align:center;font-size:21px;font-weight:800;padding:7px 0 3px">'+title+'</td></tr></table>'
+    +'<td style="padding:4px 0;font-size:14px;vertical-align:bottom">เล่มที่ '+line(b.billBook)+'<span style="margin-left:14px">เลขที่ '+line(b.billNo)+'</span></td>'
+    +'<td style="padding:4px 0;font-size:14px;text-align:right;vertical-align:bottom">เลขที่บิลระบบ <b style="font-size:15px">'+escA(b.webNo||'(ออกเมื่อบันทึก)')+'</b></td></tr>'
+    +'<tr><td colspan="2" style="text-align:center;font-size:21px;font-weight:800;padding:7px 0 3px">'+title+'</td></tr></table>'
     +((b.scaleBillNo||b.truckScaleNo)?'<div style="font-size:12.5px;margin:-2px 0 5px;color:#333">อ้างอิง: '+(b.scaleBillNo?'บิลชั่งรายตัวเลขที่ '+escA(b.scaleBillNo):'')+(b.scaleBillNo&&b.truckScaleNo?' · ':'')+(b.truckScaleNo?'ใบชั่งรถเลขที่ '+escA(b.truckScaleNo):'')+'</div>':'');
   h+='<table style="width:100%;border-collapse:collapse;margin-bottom:7px"><tr>'
     +'<td style="font-size:14px;padding:3px 0">ชื่อผู้ซื้อ '+line(b.buyer)+'</td>'
