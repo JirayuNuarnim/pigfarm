@@ -6633,7 +6633,10 @@ function renderStock(){ if(vetGuard())return;
         <div class="frow" style="margin-bottom:8px"><label>วันหมดอายุ (ยา/วัคซีน)</label><input id="stkInExp" class="cin tl" type="date" title="ไม่บังคับ — สำหรับยา/วัคซีนที่มีวันหมดอายุ"></div>
         <div class="frow" style="margin-bottom:8px"><label>เลขที่บิล/อ้างอิง</label><input id="stkInRef" class="cin tl" placeholder="เช่น INV-001 (ไม่บังคับ)"></div>
       </div>
-      <div class="frow" style="margin-bottom:8px"><label>หมายเหตุ</label><input id="stkInNote" class="cin tl" placeholder="ไม่บังคับ"></div>
+      <div class="grid2">
+        <div class="frow" style="margin-bottom:8px"><label>🏭 บริษัท/ร้านที่ส่งของ <span class="hint">(พิมพ์ครั้งเดียว ครั้งหน้าเลือกได้เลย)</span></label><input id="stkInSup" class="cin tl" list="stkSupDL" placeholder="เช่น เบทาโกร / ซีพีเอฟ / ร้านยา ก."><datalist id="stkSupDL">${stockSupplierList().map(s=>`<option value="${escA(s)}">`).join('')}</datalist></div>
+        <div class="frow" style="margin-bottom:8px"><label>หมายเหตุ</label><input id="stkInNote" class="cin tl" placeholder="ไม่บังคับ"></div>
+      </div>
       <button class="btn" style="margin-top:6px" onclick="stockReceiveSubmit()">📥 บันทึกรับเข้าคลัง</button>
     </div>`:''}
     ${(canEdit && farms.filter(f=>f!==farm).length)?`<div class="card" style="border-color:#b8860b">
@@ -6659,6 +6662,7 @@ function renderStock(){ if(vetGuard())return;
         <input class="cin tl" style="width:auto;flex:1;min-width:160px" placeholder="🔍 ค้นหาชื่อรายการ" value="${escA(stockSearch)}" oninput="stockSearch=this.value;clearTimeout(window._stkT);window._stkT=setTimeout(renderStock,250)">
         <label class="sub" style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" ${stockShowZero?'checked':''} onchange="stockShowZero=this.checked;renderStock()"> แสดงของที่หมด</label>
         <button class="btn ghost sm" onclick="renderStockReorder()">🛒 รายการที่ต้องซื้อ</button>
+        <button class="btn ghost sm" onclick="renderStockIntake()">🏭 ทะเบียนรับเข้า</button>
         <button class="btn ghost sm" onclick="renderStockMoves()">🔁 ประวัติเคลื่อนไหว</button>
         ${(farms.length>1&&(effRole()==='owner'||effRole()==='admin'))?'<button class="btn ghost sm" onclick="renderStockOverview()">📊 ภาพรวมทุกฟาร์ม</button>':''}
         <button class="btn ghost sm" onclick="exportStockBalance()">📊 ส่งออก Excel</button>
@@ -6685,15 +6689,101 @@ function stockReceiveSubmit(){
   const farm=stockFarm, cat=$("#stkInCat").value, name=($("#stkInName").value||'').trim();
   const qty=parseFloat($("#stkInQty").value)||0, price=parseFloat($("#stkInPrice").value);
   const ref=($("#stkInRef").value||'').trim(), note=($("#stkInNote").value||'').trim();
-  const exp=(($("#stkInExp")||{}).value||'').trim();
+  const exp=(($("#stkInExp")||{}).value||'').trim(), sup=(($("#stkInSup")||{}).value||'').trim();
   if(!name){toast('เลือกรายการที่รับเข้า');return;}
   if(qty<=0){toast('ระบุจำนวนที่รับเข้า (มากกว่า 0)');return;}
-  stockMoveAdd(farm,{date:DEMO_DATE_DAY,type:'in',delta:qty,cat,name,price:isNaN(price)?catalogPriceOf(cat,name):price,by:(CURRENT_USER&&CURRENT_USER.name)||'เสมียน',ref:ref||'รับเข้า',note,exp:exp||''});
+  stockMoveAdd(farm,{date:DEMO_DATE_DAY,type:'in',delta:qty,cat,name,price:isNaN(price)?catalogPriceOf(cat,name):price,by:(CURRENT_USER&&CURRENT_USER.name)||'เสมียน',ref:ref||'รับเข้า',note,exp:exp||'',sup:sup||''});
   // วันหมดอายุเก็บที่ "ล็อต" (move) นี้ — ไม่ทับค่ารวมราย item อีกต่อไป · ของหลายล็อตวันหมดอายุต่างกันจะแสดงแยกล็อตได้
-  logAudit('คลัง', farm+' · '+name, 'รับเข้า +'+fmt(qty), [{label:'รับเข้าคลัง',from:'-',to:'+'+fmt(qty)}], (ref?('บิล '+ref):'')+(note?(' · '+note):''));
+  logAudit('คลัง', farm+' · '+name, 'รับเข้า +'+fmt(qty), [{label:'รับเข้าคลัง',from:'-',to:'+'+fmt(qty)}], (sup?('บริษัท '+sup+' · '):'')+(ref?('บิล '+ref):'')+(note?(' · '+note):''));
   syncStock();
   toast('📥 รับเข้า '+name+' +'+fmt(qty)+' → '+farm+' · คงเหลือ '+fmt(stockOnHand(farm,cat,name))+' ✓');
   renderStock();
+}
+/* ── 🏭 ทะเบียนรับเข้า — สำหรับเสมียนดูแลยา: ยาที่นำเข้า + บริษัทที่ส่งของ ── */
+let stkInkRange='30d', stkInkSup='', stkInkQ='', stkInkFrom='', stkInkTo='';
+function stockSupplierList(){ // รายชื่อบริษัทที่เคยพิมพ์ไว้ (จาก move รับเข้าทุกคลังที่ดูแล)
+  const s=new Set();
+  try{ stockFarmsForUser().forEach(f=>{ (farmStock(f).moves||[]).forEach(m=>{ if(m.type==='in'&&m.sup) s.add(String(m.sup).trim()); }); }); }catch(e){}
+  return [...s].filter(Boolean).sort((a,b)=>a.localeCompare(b,'th'));
+}
+function stockIntakeRows(){ // รายการรับเข้าของคลังที่เลือก ตามตัวกรองช่วงเวลา/บริษัท/คำค้น
+  const ms=(farmStock(stockFarm).moves||[]).filter(m=>m.type==='in');
+  const now=DEMO_DATE.getTime(), day=864e5;
+  let from=0, to=Infinity;
+  if(stkInkRange==='7d') from=now-7*day;
+  else if(stkInkRange==='30d') from=now-30*day;
+  else if(stkInkRange==='custom'){ if(stkInkFrom) from=new Date(stkInkFrom+'T00:00:00').getTime(); if(stkInkTo) to=new Date(stkInkTo+'T23:59:59').getTime(); }
+  const q=String(stkInkQ||'').trim().toLowerCase();
+  return ms.filter(m=>{ const t=m.ts||0;
+    if(t&&(t<from||t>to)) return false;
+    if(stkInkSup&&String(m.sup||'').trim()!==stkInkSup) return false;
+    if(q&&[m.name,m.sup,m.ref,m.cat,m.by].map(x=>String(x||'').toLowerCase()).join(' ').indexOf(q)<0) return false;
+    return true; }).sort((a,b)=>(b.ts||0)-(a.ts||0));
+}
+function renderStockIntake(){ if(vetGuard())return;
+  histPush('stockIntake',renderStockIntake);
+  const rows=stockIntakeRows(), sups=stockSupplierList();
+  const isTransfer=m=>String(m.ref||'').indexOf('รับโอนจาก')===0;
+  let totalVal=0; const bySup={};
+  rows.forEach(m=>{ const v=(Number(m.delta)||0)*(Number(m.price)||0); totalVal+=v;
+    const k=String(m.sup||'').trim()||(isTransfer(m)?'(โอนระหว่างฟาร์ม)':'(ไม่ระบุบริษัท)');
+    (bySup[k]=bySup[k]||{n:0,val:0}); bySup[k].n++; bySup[k].val+=v; });
+  const supKeys=Object.keys(bySup).sort((a,b)=>bySup[b].val-bySup[a].val);
+  const rangeChips=[['7d','7 วันล่าสุด'],['30d','30 วันล่าสุด'],['all','ทั้งหมด'],['custom','กำหนดเอง']]
+    .map(r=>`<button class="sbfchip${stkInkRange===r[0]?' on':''}" onclick="stkInkRange='${r[0]}';renderStockIntake()">${r[1]}</button>`).join('');
+  const TD='padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle', R='text-align:right';
+  $("#view").innerHTML=`
+    <h2 class="page">🏭 ทะเบียนรับเข้าคลัง <span class="more">${escA(stockFarm)}</span></h2>
+    <div class="sub"><a href="#" onclick="renderStock();return false" style="color:var(--info)">‹ กลับหน้าคลัง</a> · ยาที่นำเข้าทั้งหมด + บริษัทที่ส่งของ — สำหรับเสมียนดูแลยาโดยเฉพาะ</div>
+    <div class="card">
+      <div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><span class="sub" style="margin:0 4px 6px 0">⏱ ช่วงเวลา:</span>${rangeChips}</div>
+      ${stkInkRange==='custom'?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <span class="sub" style="margin:0">จาก</span><input type="date" class="cin" style="max-width:170px" value="${escA(stkInkFrom)}" onchange="stkInkFrom=this.value;renderStockIntake()">
+        <span class="sub" style="margin:0">ถึง</span><input type="date" class="cin" style="max-width:170px" value="${escA(stkInkTo)}" onchange="stkInkTo=this.value;renderStockIntake()"></div>`:''}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <select class="cin tl" style="width:auto" onchange="stkInkSup=this.value;renderStockIntake()"><option value="">— ทุกบริษัท —</option>${sups.map(s=>`<option ${s===stkInkSup?'selected':''}>${escA(s)}</option>`).join('')}</select>
+        <input class="cin tl" style="flex:1;min-width:160px" placeholder="🔍 ค้นหา ชื่อยา/บริษัท/เลขบิล" value="${escA(stkInkQ)}" oninput="stkInkQ=this.value;clearTimeout(window._inkT);window._inkT=setTimeout(renderStockIntake,300)">
+        <button class="btn ghost sm" onclick="exportStockIntake()">📊 ดึง Excel</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:9px 14px;align-items:center;flex-wrap:wrap;background:var(--brand);color:#fff;border-radius:10px;padding:8px 13px;margin:0 0 12px;font-size:13.5px;font-weight:800">📥 รับเข้า ${fmt(rows.length)} รายการ <span>💰 มูลค่ารวม ${fmt(Math.round(totalVal))} บาท</span><span style="opacity:.85">🏭 ${fmt(supKeys.length)} บริษัท/แหล่ง</span></div>
+    ${supKeys.length?`<div class="card"><h3>🏭 สรุปตามบริษัท</h3>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13.5px">
+        <tr><th style="${TD};text-align:left;font-size:12.5px;color:var(--ink-2)">บริษัท/แหล่งที่มา</th><th style="${TD};${R};font-size:12.5px;color:var(--ink-2)">จำนวนรายการ</th><th style="${TD};${R};font-size:12.5px;color:var(--ink-2)">มูลค่ารวม (บาท)</th><th style="${TD}"></th></tr>
+        ${supKeys.map(k=>`<tr><td style="${TD};font-weight:800">${escA(k)}</td><td style="${TD};${R}">${fmt(bySup[k].n)}</td><td style="${TD};${R};font-weight:800">${fmt(Math.round(bySup[k].val))}</td>
+          <td style="${TD};${R}">${(k!=='(ไม่ระบุบริษัท)'&&k!=='(โอนระหว่างฟาร์ม)')?`<button class="btn ghost sm" onclick="stkInkSup='${escA(k)}';renderStockIntake()">ดูเฉพาะเจ้านี้</button>`:''}</td></tr>`).join('')}
+      </table></div></div>`:''}
+    <div class="card"><h3>📥 รายการรับเข้า <span class="more">${fmt(rows.length)} รายการ · ใหม่ → เก่า</span></h3>
+      ${rows.length?`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:860px">
+        <tr>${['วันที่','บริษัท/แหล่งที่มา','หมวด','รายการ','จำนวน','ราคา/หน่วย','มูลค่า','เลขบิล','ผู้รับ','หมายเหตุ'].map((h,i)=>`<th style="${TD};font-size:12px;color:var(--ink-2);${i>=4&&i<=6?R:'text-align:left'}">${h}</th>`).join('')}</tr>
+        ${rows.slice(0,400).map(m=>`<tr>
+          <td style="${TD};white-space:nowrap">${escA(m.date||'-')}</td>
+          <td style="${TD};font-weight:700">${escA(String(m.sup||'').trim()||(isTransfer(m)?'🔄 '+escA(m.ref):'-'))}</td>
+          <td style="${TD}"><span class="sub">${REQ_ICON[m.cat]||''} ${escA(m.cat||'-')}</span></td>
+          <td style="${TD}">${escA(m.name||'-')}${m.exp?` <span class="sub" style="white-space:nowrap">⏰ ${escA(m.exp)}</span>`:''}</td>
+          <td style="${TD};${R};font-weight:800;color:var(--ok)">+${fmt(m.delta||0)}</td>
+          <td style="${TD};${R}">${fmt(m.price||0)}</td>
+          <td style="${TD};${R};font-weight:800">${fmt(Math.round((Number(m.delta)||0)*(Number(m.price)||0)))}</td>
+          <td style="${TD}">${escA((m.ref&&m.ref!=='รับเข้า'&&!isTransfer(m))?m.ref:'-')}</td>
+          <td style="${TD}">${escA(m.by||'-')}</td>
+          <td style="${TD}">${escA(m.note||'-')}</td></tr>`).join('')}
+      </table></div>${rows.length>400?`<div class="sub" style="margin-top:6px">แสดง 400 รายการล่าสุด — ดึง Excel เพื่อดูครบ</div>`:''}`
+      :'<div class="sub">— ไม่มีรายการรับเข้าตามตัวกรอง — ลองกด "ทั้งหมด" หรือล้างคำค้น —</div>'}
+      <div class="sub" style="margin-top:8px">💡 ช่อง "บริษัท" มาจากฟอร์มรับเข้าคลัง (ช่องใหม่ 🏭) — รายการเก่าก่อนมีช่องนี้จะขึ้น "-" · รายการ 🔄 คือรับโอนระหว่างฟาร์ม</div>
+    </div>`;
+}
+function exportStockIntake(){
+  const rows=stockIntakeRows(); if(!rows.length){toast('ไม่มีรายการรับเข้าตามตัวกรอง');return;}
+  let totalVal=0;
+  const data=rows.map(m=>{ const v=(Number(m.delta)||0)*(Number(m.price)||0); totalVal+=v;
+    return [m.date||'-', String(m.sup||'').trim()||'-', m.cat||'-', m.name||'-', m.delta||0, m.price||0, Math.round(v), m.ref||'-', m.exp||'-', m.by||'-', m.note||'']; });
+  downloadXls('ทะเบียนรับเข้า_'+stockFarm+'.xls', xlsSheet({
+    title:'ทะเบียนรับเข้าคลัง — '+stockFarm,
+    meta:[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'คลัง',v:stockFarm},{k:'ตัวกรอง',v:(stkInkSup||'ทุกบริษัท')+' · '+({'7d':'7 วันล่าสุด','30d':'30 วันล่าสุด','all':'ทั้งหมด','custom':(stkInkFrom||'ต้น')+' ถึง '+(stkInkTo||'ล่าสุด')}[stkInkRange]||'')},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออก',v:(CURRENT_USER&&CURRENT_USER.name)||'-'}],
+    columns:[{label:'วันที่',type:'text',w:80},{label:'บริษัท/แหล่งที่มา',type:'text',w:160},{label:'หมวด',type:'text',w:110},{label:'รายการ',type:'text',w:200},{label:'จำนวน',type:'num',w:70},{label:'ราคา/หน่วย',type:'money',w:85},{label:'มูลค่า',type:'money',w:95},{label:'เลขบิล',type:'text',w:100},{label:'วันหมดอายุ',type:'text',w:90},{label:'ผู้รับ',type:'text',w:100},{label:'หมายเหตุ',type:'text',w:140}],
+    rows:data, totals:['รวม '+rows.length+' รายการ','','','','','',Math.round(totalVal),'','','','']
+  }));
+  toast('ส่งออกทะเบียนรับเข้า '+rows.length+' รายการ ✓');
 }
 async function stockSetCountIdx(idx){
   if(!stockCanSetCount()){toast('🔒 ตั้งคงเหลือได้เฉพาะบัญชีเจ้าของ — เสมียนใช้ "รับเข้า" · หมอใช้ "เบิก"');return;}
