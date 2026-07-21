@@ -1149,7 +1149,7 @@ async function supaFetch(path, opts){ // REST helper พร้อม token + ร
   opts=opts||{};
   // ⚠️ keepalive มีเพดานเนื้อข้อมูล 64KB — เกินแล้ว fetch โยน error ทันที (บั๊กสต็อกหาย 15-17 ก.ค.: ก้อน stock โต 68KB → save_stock_merged ล้มเงียบทุกเครื่อง)
   //    → เปิด keepalive เฉพาะคำขอเล็ก · ก้อนใหญ่ใช้ fetch ปกติ (ส่งได้ไม่จำกัด)
-  const go=tok=>fetch(c.url+path, Object.assign({}, opts, {keepalive:(!opts.body||String(opts.body).length<50000),
+  const go=tok=>fetch(c.url+path, Object.assign({}, opts, {keepalive:(!opts.body||(typeof opts.body==='string'&&opts.body.length<50000)),   // body ไม่ใช่ string (เช่น Blob รูปสลิป) = ก้อนใหญ่ → ห้าม keepalive
     headers:Object.assign({apikey:c.anonKey, Authorization:"Bearer "+(tok||c.anonKey)}, opts.headers||{})}));
   try{
     let r=await go(t);
@@ -8956,7 +8956,7 @@ function lgDocSorted(){ return LG.docs.slice().sort((a,b)=>String(b.issued_at||'
 function lgDocRowHTML(d){
   return `<div class="fieldrow" style="${d.voided?'opacity:.55':''}"><div class="fmeta"><div class="fn">${d.doc_type==='receipt'?'🧾':'🤝'} <b>${escA(d.doc_no)}</b>${d._temp?' <span class="more">(รอเลขทางการ)</span>':''}${d.voided?' <span style="color:var(--bad)">· ยกเลิกแล้ว</span>':''} · ${escA(d.customer_name||'-')}</div>
     <div class="sub">${sbThaiDate(String(d.issued_at||'').slice(0,10))} · ${lgMoney(d.amount)} บาท${d.method?' · '+(d.method==='cash'?'เงินสด':'โอน'):''}${d.responsible?' · ผู้รับผิดชอบ '+escA(d.responsible):''} · ออกโดย ${escA(d.issued_by||'-')}</div></div>
-    <div style="display:flex;gap:6px;white-space:nowrap">${d.sale_id?`<button class="btn ghost sm" title="ดูรูปบิลที่เอกสารนี้อ้างอิง" onclick="lgViewBill('${d.sale_id}')">🧾 บิล</button>`:''}<button class="btn ghost sm" title="เปิดดูเอกสารเต็มแผ่นก่อน — มีปุ่มพิมพ์ในหน้าดู" onclick="lgPrintDoc('${d.id}')">👁 ดู / พิมพ์</button></div></div>`;
+    <div style="display:flex;gap:6px;white-space:nowrap">${d.sale_id?`<button class="btn ghost sm" title="ดูรูปบิลที่เอกสารนี้อ้างอิง" onclick="lgViewBill('${d.sale_id}')">🧾 บิล</button>`:''}${(d.data&&d.data.slip)?`<button class="btn ghost sm" title="ดูรูปหลักฐานการรับเงิน" onclick="lgViewSlip('${escA(d.data.slip)}')">📷</button>`:''}<button class="btn ghost sm" title="เปิดดูเอกสารเต็มแผ่นก่อน — มีปุ่มพิมพ์ในหน้าดู" onclick="lgPrintDoc('${d.id}')">👁 ดู / พิมพ์</button></div></div>`;
 }
 function lgDocsRe(){ const el=document.getElementById('lgDocsBox'); if(el) el.innerHTML=lgDocsHTML(); } // วาดเฉพาะกล่องรายการ — ช่องค้นหาอยู่นอกกล่อง โฟกัสไม่หลุด
 function lgDocsHTML(){
@@ -9064,6 +9064,14 @@ function lgCustomerByName(name){
   return c;
 }
 function lgBalance(custId){ return LG.entries.filter(e=>e.customer_id===custId&&!e.voided).reduce((s,e)=>s+(+e.amount||0),0); }
+function lgCreditOf(name){ // 💳 เครดิตหักหน้าบิลคงเหลือของลูกค้า (ยอดบัญชีติดลบ = เครดิตรอหักบิลถัดไป) — ใช้โชว์บนบิลแท่นขาย
+  try{
+    const nm=String(name||'').trim().toLowerCase(); if(!nm||!LG||!LG.customers) return 0;
+    const c=LG.customers.find(x=>String(x.name||'').trim().toLowerCase()===nm); if(!c) return 0;
+    const bal=lgBalance(c.id);
+    return bal<-0.5?-bal:0;
+  }catch(e){ return 0; }
+}
 function lgSaleOutstanding(saleId){ return LG.entries.filter(e=>e.sale_id===saleId&&!e.voided).reduce((s,e)=>s+(+e.amount||0),0); }
 /* ── ตะขอจากบิลแท่นขาย ── */
 function lgOnBillSaved(b){
@@ -9129,7 +9137,7 @@ function lgAddEntryLocal(o){ // สร้างรายการเงิน (p
   if(o.entry_type==='payment'){
     doc={id:'doc_'+e.id, doc_type:'receipt', doc_no:'(รอเลขทางการ)', sale_id:e.sale_id, ledger_id:e.id, customer_id:e.customer_id,
       customer_name:e.customer_name, amount:Math.abs(amt), method:e.method, responsible:e.responsible, issued_by:whoNow(),
-      issued_at:new Date().toISOString(), _temp:true, data:{note:e.note}};
+      issued_at:new Date().toISOString(), _temp:true, data:Object.assign({note:e.note}, o.slip?{slip:o.slip}:{})};
     e.receipt_id=doc.id; LG.docs.unshift(doc);
   }
   lgPersist();
@@ -9161,7 +9169,7 @@ function lgPayCardHTML(){
         <option value="transfer" ${m==='transfer'?'selected':''}>✅ โอนแล้ว (ตัดหนี้ + ใบรับเงินอัตโนมัติ)</option>
         <option value="cash_later" ${m==='cash_later'?'selected':''}>💵 เก็บเงินสดทีหลัง (ระบุผู้รับผิดชอบ)</option></select></div>
       ${m==='cash_later'?`<div class="frow"><label>ผู้รับผิดชอบเก็บเงิน</label><input class="cin" value="${escA(SB_D.payResp||'')}" oninput="SB_D.payResp=this.value" placeholder="ชื่อคนที่ถือ/ตามเก็บเงินบิลนี้"></div>`:''}
-    </div><div class="sub" style="margin-top:6px">📒 ${hint}</div></div>`;
+    </div><div class="sub" style="margin-top:6px">📒 ${hint}</div>${(function(){ const cr=lgCreditOf(SB_D.buyer); return cr>0?`<div class="sbchip ok" style="margin-top:8px;font-size:13px">💳 ลูกค้ารายนี้มีเครดิตหักหน้าบิลในบัญชี <b>${fmt(Math.round(cr))}</b> บาท — บิลจะพิมพ์ "ยอดชำระจริงหลังหักเครดิต" ให้อัตโนมัติ</div>`:''; })()}</div>`;
 }
 /* ── หน้า 📒 บัญชีลูกค้า / ลูกหนี้ ── */
 function renderLedger(){ if(vetGuard())return;
@@ -9280,6 +9288,7 @@ function renderLgCust(){
       <div style="text-align:right;display:flex;gap:7px;align-items:center;white-space:nowrap">
         <b style="color:${(+e.amount)>=0?'var(--bad)':'var(--ok)'}">${(+e.amount)>=0?'+':'−'}${lgMoney(Math.abs(e.amount))}</b>
         ${e.sale_id?`<button class="btn ghost sm" title="ดูรายละเอียด + รูปบิลที่ทำเสร็จ" onclick="lgViewBill('${e.sale_id}')">🧾 ดูบิล</button>`:''}
+        ${(doc&&doc.data&&doc.data.slip)?`<button class="btn ghost sm" title="ดูรูปหลักฐานการรับเงิน" onclick="lgViewSlip('${escA(doc.data.slip)}')">📷</button>`:''}
         ${doc?`<button class="btn ghost sm" onclick="lgPrintDoc('${doc.id}')">🖨</button>`:''}
         ${(!e.voided&&e.entry_type!=='invoice'&&['owner','admin'].includes(ROLE))?`<button class="btn ghost sm" style="color:var(--bad)" onclick="lgVoid('${e.id}')">✕</button>`:''}
       </div></div>`;
@@ -9300,6 +9309,7 @@ function renderLgCust(){
         <div class="frow"><label>วันที่รับ</label><input id="lgPayDate" type="date" class="cin" value="${todayISO()}"></div>
         <div class="frow"><label>ผู้ส่งเงิน/คนเก็บมา (เงินสด)</label><input id="lgPayResp" class="cin" placeholder="เช่น ชื่อคนที่ถือเงินมาส่ง"></div>
         <div class="frow" style="grid-column:1/-1"><label>หมายเหตุ</label><input id="lgPayNote" class="cin" placeholder="เช่น ชำระบิล 6 ก.ค. / โอน กสิกร"></div>
+        <div class="frow" style="grid-column:1/-1"><label>📷 รูปหลักฐาน <span class="hint">(สลิปโอน/รูปรับเงินสด — ไม่บังคับ · ถ่ายหรือเลือกจากเครื่อง)</span></label><input id="lgPaySlip" class="cin" type="file" accept="image/*"></div>
       </div>
       <div style="margin-top:10px"><button class="btn" onclick="lgDoPay('${c.id}')">💸 บันทึกรับเงิน + ออกใบรับเงิน</button></div></div>
     <div class="card"><h3>➖ ตกลงหักหน้าบิล (เครดิตไว้หักรอบถัดไป)</h3>
@@ -9316,11 +9326,19 @@ function renderLgCust(){
     ${fin?`<div class="card"><h3>🧾 รายการเดินบัญชี <span class="more">${rows.length} รายการ · ใหม่→เก่า</span></h3>${list}</div>`
       :`<div class="card"><h3>🧾 ใบรับเงินล่าสุดของลูกค้ารายนี้</h3>${lgDocSorted().filter(d=>d.customer_id===c.id&&d.doc_type==='receipt').slice(0,10).map(d=>`<div class="fieldrow"><div class="fmeta"><div class="fn">${escA(d.doc_no)} · ${sbThaiDate(String(d.issued_at||'').slice(0,10))}</div><div class="sub">${lgMoney(d.amount)} บาท · ${d.method==='cash'?'เงินสด':'โอน'}</div></div><button class="btn ghost sm" onclick="lgPrintDoc('${d.id}')">🖨</button></div>`).join('')||'<div class="sub">— ยังไม่มี —</div>'}<div class="sub" style="margin-top:8px">🔒 ยอดค้างและรายการเดินบัญชีดูได้เฉพาะเจ้าของ/ผู้ดูแล</div></div>`}`;
 }
-function lgDoPay(custId){
+async function lgDoPay(custId){
   const c=LG.customers.find(x=>x.id===custId); if(!c) return;
   const amt=parseFloat(($("#lgPayAmt")||{}).value); if(!isFinite(amt)||amt<=0){ toast('ใส่จำนวนเงินก่อน'); return; }
   const method=($("#lgPayMethod")||{}).value||'transfer';
   const bal=lgBalance(custId);
+  // 📷 รูปหลักฐาน (ถ้าแนบ) — ย่อ+อัปขึ้นคลาวด์ก่อน แล้วผูก path เข้ากับใบรับเงิน
+  let slipPath=null;
+  const fEl=$("#lgPaySlip"), slipFile=fEl&&fEl.files&&fEl.files[0];
+  if(slipFile){
+    toast('📷 กำลังอัปโหลดรูปหลักฐาน...');
+    try{ slipPath=await lgUploadSlip(slipFile); }catch(err){ console.warn('slip',err); slipPath=null; }
+    if(!slipPath && !confirm('อัปโหลดรูปไม่สำเร็จ (เน็ตอาจสะดุด)\nบันทึกรับเงินต่อโดยไม่มีรูป?')) return;
+  }
   const saleId=lgFinView()?String((($("#lgPayBill")||{}).value)||'').trim()||null:null;   // 💸 เลือกบิล = ตัดหนี้เฉพาะบิลนั้น
   let note=String((($("#lgPayNote")||{}).value)||'').trim();
   if(saleId){
@@ -9329,7 +9347,7 @@ function lgDoPay(custId){
     if(!note){ const b=SALE_BILLS.find(x=>x.id===saleId); note='ชำระบิล '+(b?(sbThaiDate(b.dateISO)+(b.billNo?' เล่ม '+(b.billBook||'-')+'/'+b.billNo:'')):saleId); }
   }
   if(lgFinView() && amt>bal+0.5 && !confirm('จำนวนที่รับ ('+lgMoney(amt)+') มากกว่ายอดค้าง ('+lgMoney(bal)+')\nส่วนเกินจะกลายเป็นเครดิตของลูกค้า — ยืนยัน?')) return;
-  const e=lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'payment', method:method, amount:amt, sale_id:saleId,
+  const e=lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'payment', method:method, amount:amt, sale_id:saleId, slip:slipPath,
     entry_date:($("#lgPayDate")||{}).value||todayISO(), responsible:String((($("#lgPayResp")||{}).value)||'').trim(), note:note});
   toast('บันทึกรับเงินแล้ว ✓ กำลังออกใบรับเงิน…');
   renderLgCust();
@@ -9394,6 +9412,30 @@ function lgDocPaperHTML(d){
     +'<table style="width:100%;margin-top:34px;font-size:13.5px;text-align:center"><tr>'
     +'<td style="width:50%">ลงชื่อ ______________________<br>'+(isRC?'ผู้รับเงิน':'ผู้มอบหมาย')+' ('+escA(d.issued_by||'-')+')</td>'
     +'<td>ลงชื่อ ______________________<br>'+(isRC?'ผู้จ่ายเงิน':'ผู้รับมอบหมาย ('+escA(d.responsible||'')+')')+'</td></tr></table></div>';
+}
+async function lgUploadSlip(file){ // 📷 ย่อรูป (ยาวสุด 1400px, JPEG) แล้วอัปขึ้นคลัง payslips → คืน path
+  const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=URL.createObjectURL(file); });
+  const MAX=1400, sc=Math.min(1, MAX/Math.max(img.width||1, img.height||1));
+  const cv=document.createElement('canvas'); cv.width=Math.max(1,Math.round(img.width*sc)); cv.height=Math.max(1,Math.round(img.height*sc));
+  cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+  const blob=await new Promise(res=>cv.toBlob(res,'image/jpeg',0.78));
+  if(!blob) throw new Error('compress failed');
+  const path='slip_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8)+'.jpg';
+  const r=await supaFetch('/storage/v1/object/payslips/'+path,{method:'POST',headers:{'Content-Type':'image/jpeg','x-upsert':'true'},body:blob});
+  if(!r||!r.ok) throw new Error('upload '+(r?r.status:'null'));
+  return path;
+}
+async function lgViewSlip(path){ // 📷 เปิดดูรูปหลักฐาน (คลังส่วนตัว — ดึงผ่านสิทธิ์ผู้ใช้)
+  toast('📷 กำลังเปิดรูป...');
+  const r=await supaFetch('/storage/v1/object/payslips/'+encodeURIComponent(path),{method:'GET'});
+  if(!r||!r.ok){ toast('เปิดรูปไม่สำเร็จ — เช็คอินเทอร์เน็ตแล้วลองใหม่'); return; }
+  const blob=await r.blob(), url=URL.createObjectURL(blob);
+  let ov=document.getElementById('sbPrintOverlay'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='sbPrintOverlay';
+  ov.innerHTML='<div class="sbp-tools"><button class="btn ghost sm" onclick="sbPrintClose()">✕ ปิด</button></div>'
+    +'<div id="sbPrintPage" style="background:transparent;box-shadow:none;text-align:center;padding:4px"><img src="'+url+'" style="max-width:100%;max-height:82vh;border-radius:10px;background:#fff"></div>';
+  ov.addEventListener('click',function(e){ if(e.target===ov) sbPrintClose(); });
+  document.body.appendChild(ov);
 }
 function lgPrintDoc(id){
   const d=LG.docs.find(x=>x.id===id); if(!d){ toast('ไม่พบเอกสาร'); return; }
@@ -9523,6 +9565,8 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
   if(sbNum(b.fastPen)>0||sbNum(b.fastStand)>0) noteLines.push('อดอาหารในเล้า '+sbNum(b.fastPen)+' ชม. · ที่แท่น '+sbNum(b.fastStand)+' ชม.');
   if(c.scaleNet!=null) noteLines.push('นน.รายตัว'+(c.diff>=0?'มากกว่า':'น้อยกว่า')+'ตาชั่งรถ '+fmt(Math.abs(c.diff))+' กก.'+(c.n?' ('+(Math.abs(c.diff)/c.n).toFixed(2)+' กก./ตัว)':''));
   (b.deducts||[]).forEach(d=>noteLines.push('หัก: '+escA(d.ref||'-')+' = '+fmt(sbNum(d.amt))+' บาท'));
+  const cred=lgCreditOf(b.buyer); // 💳 เครดิตหักหน้าบิลที่ตกลงไว้ในบัญชีลูกค้า → แจ้งบนบิลอัตโนมัติ (ตัวเงินตัดกันในบัญชีอยู่แล้ว ไม่แก้ยอดบิล กันหักซ้ำ)
+  if(cred>0) noteLines.push('💳 ลูกค้ามีเครดิตหักหน้าบิลคงเหลือในบัญชี '+fmt(Math.round(cred))+' บาท (ณ วันพิมพ์)');
   if(b.note) noteLines.push('หมายเหตุ: '+escA(b.note));
   const sumR=(k,v,u,big)=>'<tr><td style="padding:3px 6px;font-size:13px;white-space:nowrap">'+k+'</td>'
     +'<td style="border-bottom:1px dotted #666;text-align:right;font-weight:800;font-size:'+(big?'15px':'13.5px')+';padding:3px 8px">'+v+'</td>'
@@ -9538,7 +9582,14 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
   if(b.kind!=='deadcull') right+=sumR('ราคา/กก.',(b.pricePerKg===''||b.pricePerKg==null)?PEND:fmt(sbNum(b.pricePerKg)),'บาท');
   right+=sumR('จำนวนเงินรวม',c.gross!=null?fmt(c.gross):PEND,'บาท');
   if(c.deduct) right+=sumR('หักส่วนลด/ลดบิล','-'+fmt(c.deduct),'บาท');
-  right+=sumR('จำนวนเงินสุทธิ',c.net!=null?fmt(c.net):PEND,'บาท',true)+'</table>';
+  right+=sumR('จำนวนเงินสุทธิ',c.net!=null?fmt(c.net):PEND,'บาท',true);
+  if(cred>0&&c.net!=null){ // 💳 โชว์เครดิตในบัญชี + ยอดชำระจริงหลังหักเครดิต (เครดิตเกินยอดบิล → ส่วนที่เหลือคงเป็นเครดิตต่อ)
+    const use=Math.min(cred,c.net);
+    right+=sumR('เครดิตหักหน้าบิล (ในบัญชี)','-'+fmt(Math.round(use)),'บาท')
+      +sumR('ยอดชำระจริงหลังหักเครดิต',fmt(Math.round(c.net-use)),'บาท',true);
+    if(cred>c.net+0.5) right+='<tr><td colspan="3" style="font-size:11.5px;color:#555;padding:2px 6px">เครดิตส่วนที่เหลือ '+fmt(Math.round(cred-c.net))+' บาท คงไว้หักบิลถัดไป</td></tr>';
+  }
+  right+='</table>';
   h+='<table style="width:100%;border-collapse:collapse"><tr>'
     +'<td style="'+BD+';vertical-align:top;width:54%;padding:6px 9px"><div style="font-size:13px;font-weight:800;margin-bottom:3px">หมายเหตุ :</div>'
     +(noteLines.length?noteLines.map(x=>'<div style="font-size:13px;margin:2.5px 0">'+x+'</div>').join(''):'<div style="font-size:13px;color:#999">—</div>')+'</td>'
