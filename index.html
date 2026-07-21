@@ -3045,7 +3045,7 @@ function exportClerkFeedReq(){
 }
 /* ---------- ศูนย์รวมส่งออก Excel (เสมียน): "📤 การดึงข้อมูลรวม" — รวมทุกหลังที่ดูแล ---------- */
 let expFarm='', expFrom='', expTo='', expHouse='', expVet='', expPreset='';
-let expClosedOpen=false;   // 📦 เปิด/ปิดตารางรายละเอียดสรุปปิดชุด (ดูก่อนดึง Excel)
+let expOpen={sum:false,daily:false,req:false,closed:false};   // 👁️ เปิด/ปิดตารางรายการของแต่ละรายงาน (ดูก่อนดึง Excel)
 function expFarmOf(h){ return h.farm||'ไม่ระบุฟาร์ม'; }
 // ตัวกรองระดับหลัง: ฟาร์ม + หลัง + หมอ (ใช้ร่วมกันแบบ AND)
 function expHouses(){ return myHouses().filter(h=>(!expFarm||expFarmOf(h)===expFarm)&&(!expHouse||h.code===expHouse)&&(!expVet||(h.vet||'')===expVet)); }
@@ -3163,20 +3163,14 @@ function renderClerkExport(){ if(vetGuard())return;
       <div class="kpi"><div class="lab">🏦 มูลค่าขาย+คัด</div><div class="val">${fm(G.soldVal+G.cullVal)}</div></div>
       <div class="kpi"><div class="lab">💊 ค่ายารวม</div><div class="val">${fm(G.med)}</div></div>
     </div>`:'';
-  const previewTable=sumRows.length?`<div style="overflow-x:auto"><table>
-      <thead><tr><th>หลัง</th><th>ฟาร์ม</th><th>หมอ</th><th class="num">รับเข้า</th><th class="num">คงเหลือ</th><th class="num">ตาย</th><th class="num">คัด</th><th class="num">ขาย</th><th class="num">มูลค่าขาย+คัด</th><th class="num">% สูญเสีย</th><th class="num">ค่ายา</th></tr></thead>
-      <tbody>${sumRows.slice(0,PV).map(r=>{const h=r.h,a=r.t,recv=h.received||0,loss=recv?((a.deadN+a.cullN)/recv*100):0;return `<tr>
-        <td><b>${escA(h.code)}</b></td><td>${escA(h.farm||'ไม่ระบุฟาร์ม')}</td><td>${escA(h.vet||'-')}</td>
-        <td class="num">${fm(recv)}</td><td class="num">${fm(h.pigs||0)}</td><td class="num">${fm(a.deadN)}</td><td class="num">${fm(a.cullN)}</td><td class="num">${fm(a.soldN)}</td><td class="num">${fm(a.cullVal+a.soldVal)}</td><td class="num">${recv?loss.toFixed(1)+'%':'-'}</td><td class="num">${fm(medTotal(h))}</td></tr>`;}).join('')}</tbody>
-    </table></div>${sumRows.length>PV?`<div class="sub" style="margin-top:8px">แสดง ${PV} จาก ${fmt(sumRows.length)} หลัง · ไฟล์ส่งออกมีครบทุกหลัง</div>`:''}`:'<div class="sub">— ไม่มีข้อมูลตามตัวกรอง —</div>';
   const v=$("#view");
   v.innerHTML=`
     <h2 class="page">📤 การดึงข้อมูลรวม</h2>
-    <div class="sub">รวมข้อมูลทุกหลังที่คุณดูแลไว้ที่เดียว ดูยอดสรุปก่อนแล้วส่งออกเป็นไฟล์ Excel · เลือกฟาร์ม/หลัง/หมอ/ช่วงวันที่เพื่อกรอง</div>
+    <div class="sub">ใช้ง่าย 3 ขั้น: ${expStepBadge(1)}เลือกช่วงเวลา/ตัวกรอง → ${expStepBadge(2)}เช็คภาพรวม → ${expStepBadge(3)}กด 👁️ ดูรายการ หรือ 📊 ดึงไฟล์ Excel</div>
     ${scopeNoteHTML()}
     ${clerkNav('exp')}
     <div class="card">
-      <h3>🔎 ตัวกรอง <span class="more">ใช้กับทุกการส่งออก + พรีวิวด้านล่าง</span></h3>
+      <h3>${expStepBadge(1)}เลือกช่วงเวลา + ตัวกรอง <span class="more">มีผลกับทุกรายงานด้านล่าง</span></h3>
       <div class="frow"><label>⚡ ช่วงด่วน</label>
         <div style="display:flex;flex-wrap:wrap;gap:7px">${presetBtns}</div></div>
       <div class="frow"><label>🏭 ฟาร์ม</label>
@@ -3194,24 +3188,19 @@ function renderClerkExport(){ if(vetGuard())return;
       ${(expFarm||expHouse||expVet||expFrom||expTo)?`<div class="sub" style="margin-top:10px">กรอง: ${expFarm?'🏭 '+escA(expFarm)+' ':''}${expHouse?'· 🏚️ '+escA(expHouse)+' ':''}${expVet?'· 🩺 '+escA(expVet)+' ':''}${(expFrom||expTo)?'· 📅 '+escA(expFrom||'ต้น')+' ถึง '+escA(expTo||'ล่าสุด'):''} <a href="#" onclick="expFarm='';expHouse='';expVet='';expFrom='';expTo='';expPreset='';renderClerkExport();return false" style="color:var(--info)">ล้างตัวกรอง</a></div>`:''}
     </div>
     <div class="card">
-      <h3>👁️ พรีวิวภาพรวม <span class="more">${fmt(sCount)} หลัง</span></h3>
-      <div class="sub" style="margin-top:-4px;margin-bottom:10px">ตรวจตัวเลขบนจอได้เลย ก่อนดาวน์โหลด</div>
-      ${kpiBand}
-      ${previewTable}
+      <h3>${expStepBadge(2)}ภาพรวมช่วงที่เลือก <span class="more">${fmt(sCount)} หลัง</span></h3>
+      <div class="sub" style="margin-top:-4px;margin-bottom:10px">ยอดรวมของช่วง/ตัวกรองที่เลือก — เช็คเลขก่อนดึงไฟล์</div>
+      ${kpiBand||'<div class="sub">— ไม่มีข้อมูลตามตัวกรอง —</div>'}
     </div>
-    <button class="btn" onclick="exportExpAll()" ${anyData?'':'disabled style="opacity:.5;cursor:not-allowed"'} style="margin-bottom:14px">📦 ดึงทุกรายงานในไฟล์เดียว (หลายชีต)${anyData?'':' — ไม่มีข้อมูล'}</button>
-    ${expCard('📋','บันทึกรายงานภาพรวม','สรุปยอดรวมต่อหลัง — ตาย/คัด/ขาย/ย้าย + รับเข้า/คงเหลือ/% สูญเสีย/ค่ายา (1 แถว/หลัง · ไม่มีชื่อลูกค้า)',sCount,'หลัง','exportExpSummary()')}
-    ${expCard('🧾','บันทึกรายวันรวมทุกหลัง','รวม ตาย/คัด/ขาย/ย้าย ของทุกหลังเป็นไฟล์เดียว (1 แถว/วันบันทึก + ยอดรวม)',dCount,'วันบันทึก','exportExpDaily()')}
-    ${expCard('💉','รายการเบิกยา/อุปกรณ์รวม','ยา/เวชภัณฑ์ที่หมอเบิกของทุกหลัง รวมยอดมูลค่า',rCount,'รายการ','exportExpReq()')}
-    <div class="card">
-      <h3>📦 สรุปปิดชุดรวม <span class="more">${fmt(cCount)} ชุด</span></h3>
-      <div class="sub" style="margin-top:-4px">รุ่นที่ปิดแล้ว สรุป 1 แถว/ชุด พร้อมยอดรวมรายได้/ต้นทุน/กำไร</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
-        <button class="btn ghost" ${cCount?`onclick="expClosedOpen=!expClosedOpen;renderClerkExport()"`:'disabled style="opacity:.5;cursor:not-allowed"'}>${expClosedOpen?'▴ ซ่อนรายละเอียด':'👁️ ดูรายละเอียดก่อนดึง'}</button>
-        <button class="btn" ${cCount?'onclick="exportExpClosed()"':'disabled style="opacity:.5;cursor:not-allowed"'}>📊 ส่งออก Excel${cCount?'':' — ไม่มีข้อมูล'}</button>
-      </div>
-      ${(expClosedOpen&&cCount)?expClosedPreviewHTML():''}
+    <div class="card" style="background:var(--soft)">
+      <h3>${expStepBadge(3)}เลือกรายงานที่จะดู / ดึง</h3>
+      <div class="sub" style="margin-top:-4px">ทุกรายงานมี 2 ปุ่มเหมือนกัน: <b>👁️ ดูรายการ</b> = กางตารางบนจอ · <b>📊 ดึง Excel</b> = โหลดไฟล์ · ตัวเลขบนจอตรงกับไฟล์เป๊ะ</div>
+      <button class="btn" onclick="exportExpAll()" ${anyData?'':'disabled style="opacity:.5;cursor:not-allowed"'} style="margin-top:10px">📦 ดึงทุกรายงานในไฟล์เดียว (หลายชีต)${anyData?'':' — ไม่มีข้อมูล'}</button>
     </div>
+    ${expCard2('sum','📋','ภาพรวมรายหลัง','สรุป 1 แถว/หลัง — รับเข้า คงเหลือ ตาย คัด ขาย %สูญเสีย ค่ายา',sCount,'หลัง',expSumPreviewHTML,'exportExpSummary()')}
+    ${expCard2('daily','🧾','บันทึกรายวันรวมทุกหลัง','ตาย/คัด/ขาย/ย้าย รายวันของทุกหลัง (1 แถว/วันบันทึก)',dCount,'วันบันทึก',expDailyPreviewHTML,'exportExpDaily()')}
+    ${expCard2('req','💉','รายการเบิกยา/อุปกรณ์รวม','ยา/เวชภัณฑ์ที่หมอเบิก พร้อมมูลค่ารวม',rCount,'รายการ',expReqPreviewHTML,'exportExpReq()')}
+    ${expCard2('closed','📦','สรุปปิดชุดรวม','รุ่นที่ปิดแล้ว 1 แถว/ชุด พร้อมรายได้/ต้นทุน/กำไร',cCount,'ชุด',expClosedPreviewHTML,'exportExpClosed()')}
     <div class="sub" style="margin-top:4px">💡 ไฟล์เปิดได้ด้วย Excel / Google ชีต · ปุ่มจะปิดเองถ้าไม่มีข้อมูลตามตัวกรอง</div>
   `;
 }
@@ -3255,6 +3244,56 @@ function expReqTableHTML(){
   });
 }
 function exportExpReq(){ if(!expReqRows().length){toast('ไม่มีรายการเบิกยาตามตัวกรอง');return;} downloadXls('เบิกยารวม'+expNameSfx()+'.xls', expReqTableHTML()); toast('ส่งออกรายการเบิกยารวม '+expReqRows().length+' รายการ ✓'); }
+function expStepBadge(n){ return '<span style="display:inline-flex;width:25px;height:25px;border-radius:50%;background:var(--brand);color:#fff;align-items:center;justify-content:center;font-size:13.5px;font-weight:900;margin-right:8px;vertical-align:-5px">'+n+'</span>'; }
+function expCard2(key,icon,title,desc,count,unit,prevFn,xlsCall){ // การ์ดรายงานแบบเดียวกันหมด: 👁️ ดูรายการ + 📊 ดึง Excel
+  const open=!!expOpen[key];
+  return `<div class="card">
+    <h3>${icon} ${escA(title)} <span class="more">${fmt(count)} ${escA(unit)}</span></h3>
+    <div class="sub" style="margin-top:-4px">${escA(desc)}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+      <button class="btn ghost" ${count?`onclick="expOpen.${key}=!expOpen.${key};renderClerkExport()"`:'disabled style="opacity:.5;cursor:not-allowed"'}>${open?'▴ ซ่อนรายการ':'👁️ ดูรายการ'}</button>
+      <button class="btn" ${count?`onclick="${xlsCall}"`:'disabled style="opacity:.5;cursor:not-allowed"'}>📊 ดึง Excel${count?'':' — ไม่มีข้อมูล'}</button>
+    </div>
+    ${(open&&count)?prevFn():''}
+  </div>`;
+}
+function expSumPreviewHTML(){ // 📋 ตารางภาพรวมรายหลัง — ดูก่อนดึง
+  const rows=expSummaryRows(), fm=v=>Math.round(Number(v)||0).toLocaleString('th-TH');
+  const CAP=150, shown=rows.slice(0,CAP);
+  let recv=0,pigs=0,dead=0,cull=0,sold=0,val=0,med=0;
+  rows.forEach(r=>{const h=r.h,a=r.t;recv+=h.received||0;pigs+=h.pigs||0;dead+=a.deadN;cull+=a.cullN;sold+=a.soldN;val+=a.cullVal+a.soldVal;med+=medTotal(h);});
+  const trs=shown.map(r=>{const h=r.h,a=r.t,rc=h.received||0,loss=rc?((a.deadN+a.cullN)/rc*100):0;
+    return `<tr><td><b>${escA(h.code)}</b></td><td>${escA(h.farm||'-')}</td><td>${escA(h.vet||'-')}</td>
+      <td class="num">${fm(rc)}</td><td class="num">${fm(h.pigs||0)}</td><td class="num">${fm(a.deadN)}</td><td class="num">${fm(a.cullN)}</td><td class="num">${fm(a.soldN)}</td><td class="num">${fm(a.cullVal+a.soldVal)}</td><td class="num">${rc?loss.toFixed(1)+'%':'-'}</td><td class="num">${fm(medTotal(h))}</td></tr>`;}).join('');
+  return `<div style="overflow-x:auto;margin-top:10px"><table>
+    <thead><tr><th>หลัง</th><th>ฟาร์ม</th><th>หมอ</th><th class="num">รับเข้า</th><th class="num">คงเหลือ</th><th class="num">ตาย</th><th class="num">คัด</th><th class="num">ขาย</th><th class="num">มูลค่าขาย+คัด</th><th class="num">%สูญเสีย</th><th class="num">ค่ายา</th></tr></thead>
+    <tbody>${trs}<tr style="font-weight:900"><td colspan="3">รวม ${fmt(rows.length)} หลัง</td><td class="num">${fm(recv)}</td><td class="num">${fm(pigs)}</td><td class="num">${fm(dead)}</td><td class="num">${fm(cull)}</td><td class="num">${fm(sold)}</td><td class="num">${fm(val)}</td><td></td><td class="num">${fm(med)}</td></tr></tbody></table></div>
+    ${rows.length>CAP?`<div class="sub" style="margin-top:6px">แสดง ${CAP} จาก ${fmt(rows.length)} หลัง — ไฟล์ Excel มีครบทุกหลัง</div>`:''}`;
+}
+function expDailyPreviewHTML(){ // 🧾 ตารางบันทึกรายวัน — ดูก่อนดึง (คร่าว ๆ · น้ำหนัก/มูลค่าเต็มอยู่ในไฟล์)
+  const rows=expDailyRows(), CAP=250, shown=rows.slice(0,CAP);
+  const tot={dead:0,cull:0,sold:0,move:0,mi:0};
+  rows.forEach(r=>{const e=r.e;tot.dead+=e.deadN||0;tot.cull+=e.cullN||0;tot.sold+=e.soldN||0;tot.move+=e.moveN||0;tot.mi+=e.moveInN||0;});
+  const trs=shown.map(r=>{const e=r.e;return `<tr><td style="white-space:nowrap">${escA(e.date||'-')}</td><td>${escA(r.farm||'-')}</td><td><b>${escA(r.house)}</b></td>
+    <td class="num">${fmt(e.deadN||0)}</td><td class="num">${fmt(e.cullN||0)}</td><td class="num">${fmt(e.soldN||0)}</td>
+    <td class="num">${fmt(e.moveN||0)}</td><td class="num">${fmt(e.moveInN||0)}</td>
+    <td>${escA(e.soldCust||e.cullCust||e.deadCust||'-')}</td><td class="num">${e.remain!=null?fmt(e.remain):'-'}</td></tr>`;}).join('');
+  return `<div style="overflow-x:auto;margin-top:10px"><table>
+    <thead><tr><th>วันที่</th><th>ฟาร์ม</th><th>หลัง</th><th class="num">ตาย</th><th class="num">คัด</th><th class="num">ขาย</th><th class="num">ย้ายออก</th><th class="num">ย้ายเข้า</th><th>ลูกค้า</th><th class="num">คงเหลือ</th></tr></thead>
+    <tbody>${trs}<tr style="font-weight:900"><td colspan="3">รวม ${fmt(rows.length)} วันบันทึก</td><td class="num">${fmt(tot.dead)}</td><td class="num">${fmt(tot.cull)}</td><td class="num">${fmt(tot.sold)}</td><td class="num">${fmt(tot.move)}</td><td class="num">${fmt(tot.mi)}</td><td></td><td></td></tr></tbody></table></div>
+    <div class="sub" style="margin-top:6px">${rows.length>CAP?`แสดง ${CAP} จาก ${fmt(rows.length)} รายการ — ไฟล์ Excel มีครบ · `:''}น้ำหนัก (กก.) และมูลค่าละเอียดอยู่ในไฟล์ Excel</div>`;
+}
+function expReqPreviewHTML(){ // 💉 ตารางเบิกยา/อุปกรณ์ — ดูก่อนดึง
+  const rows=expReqRows(), CAP=300;
+  const sorted=rows.slice().sort((a,b)=>reqDateKey(b.date)-reqDateKey(a.date));
+  const shown=sorted.slice(0,CAP);
+  let qty=0,sum=0; rows.forEach(m=>{qty+=Number(m.qty)||0;sum+=Number(m.total)||0;});
+  const trs=shown.map(m=>`<tr><td style="white-space:nowrap">${escA(m.date||'-')}</td><td>${escA(m.vet||'-')}</td><td><b>${escA(m.house||'-')}</b></td><td>${escA(m.cat||'-')}</td><td>${escA(m.name||'-')}</td><td class="num">${fmt(m.qty||0)}</td><td class="num">${fmt(Math.round(m.total||0))}</td></tr>`).join('');
+  return `<div style="overflow-x:auto;margin-top:10px"><table>
+    <thead><tr><th>วันที่</th><th>หมอ</th><th>หลัง</th><th>หมวด</th><th>ชื่อยา/อุปกรณ์</th><th class="num">จำนวน</th><th class="num">มูลค่า</th></tr></thead>
+    <tbody>${trs}<tr style="font-weight:900"><td colspan="5">รวม ${fmt(rows.length)} รายการ</td><td class="num">${fmt(qty)}</td><td class="num">${fmt(Math.round(sum))}</td></tr></tbody></table></div>
+    ${rows.length>CAP?`<div class="sub" style="margin-top:6px">แสดง ${CAP} รายการล่าสุดจาก ${fmt(rows.length)} — ไฟล์ Excel มีครบ (จัดกลุ่มตามหมอ)</div>`:''}`;
+}
 function expClosedPreviewHTML(){ // 📦 ตารางรายละเอียดชุดที่ปิดบนจอ — ดูคร่าว ๆ ก่อนดึง Excel (ข้อมูลชุดเดียวกับไฟล์เป๊ะ)
   const rows=expClosedRows().slice().sort((a,b)=>(b.ts||0)-(a.ts||0)||String(b.closedOn||'').localeCompare(String(a.closedOn||'')));
   const TD='padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap', TH='padding:6px 8px;border-bottom:2px solid var(--line);text-align:left;font-size:12px;color:var(--ink-2);white-space:nowrap';
