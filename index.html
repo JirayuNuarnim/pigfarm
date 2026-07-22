@@ -8160,11 +8160,21 @@ function sbRowHTML(b){
       :(c.pending?'<span style="background:var(--warn);color:#fff;border-radius:999px;padding:2px 10px;font-size:11.5px;font-weight:700">⏳ รอใส่ราคา</span>':'<span class="more">—</span>');
     const diff=c.scaleNet!=null?`<span class="more"> · ตาชั่งรถ ${fmt(c.scaleNet)} กก. (${c.diff>=0?'รายตัวมากกว่า ':'น้อยกว่า '}${fmt(Math.abs(c.diff))} กก.)</span>`:'';
     const ref=(b.webNo?` · 🔢 ${escA(b.webNo)}`:'')+((b.billBook||b.billNo)?` · 📄 เล่ม ${escA(b.billBook||'-')}/${escA(b.billNo||'-')}`:'');
-    const posted=b.postedAt?`<span style="background:var(--ok);color:#fff;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700" title="ลงเข้าหลัง: ${escA((b.postedHouses||[]).join(', '))}">⬇️ ลงหลังแล้ว</span>`:`<button class="btn ghost sm" title="ลงบันทึกเข้าหลัง (ตัดคงเหลือ)" style="padding:6px 10px" onclick="event.stopPropagation();sbPostToHouses('${b.id}')">⬇️</button>`;
-    return `<div class="fieldrow" style="cursor:pointer" onclick="sbEdit('${b.id}')">
-      <div class="fmeta"><div class="fn">${K.ico} <b>${sbThaiDate(b.dateISO)}</b> · ${escA(b.farm||'-')} → ${escA(b.buyer||'ไม่ระบุผู้ซื้อ')}${ref}</div>
+    const posted=b.postedAt?`<span style="background:var(--ok);color:#fff;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700" title="ลงเข้าหลัง: ${escA((b.postedHouses||[]).join(', '))}">⬇️ ลงหลังแล้ว</span>`:'';
+    const btn=(label,title,fn,extra)=>`<button class="btn ghost sm" title="${title}" style="padding:6px 11px;white-space:nowrap${extra||''}" onclick="event.stopPropagation();${fn}">${label}</button>`;
+    return `<div class="fieldrow" style="cursor:pointer;flex-wrap:wrap;row-gap:7px" onclick="sbEdit('${b.id}')">
+      <div class="fmeta" style="flex:1;min-width:230px"><div class="fn">${K.ico} <b>${sbThaiDate(b.dateISO)}</b> · ${escA(b.farm||'-')} → ${escA(b.buyer||'ไม่ระบุผู้ซื้อ')}${ref}</div>
       <div class="sub" style="margin:3px 0 0">${fmt(c.n)} ตัว · ${fmt(Math.round(c.totW))} กก.${c.n?` · เฉลี่ย ${(c.avg).toFixed(1)} กก./ตัว`:''}${diff}${b.truck?` · 🚚 ${escA(b.truck)}`:''} · ✍️ ${escA(b.by||'-')}</div></div>
-      <div style="text-align:right;white-space:nowrap;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">${money}${sbPayChipHTML(b)}${b.locked?`<span title="ตรวจแล้ว·ล็อกโดย ${escA(b.verifiedBy||'')}">🔒</span>`:''}${posted}${sbCanWrite()?`<button class="btn ghost sm" title="คัดลอกเป็นบิลใหม่วันนี้ (คงผู้ซื้อ/ราคา)" style="padding:6px 10px" onclick="event.stopPropagation();sbDuplicate('${b.id}')">⧉</button>`:''}${b.paySlip?`<button class="btn ghost sm" title="ดูสลิปโอนเงินที่แนบ" style="padding:6px 10px" onclick="event.stopPropagation();lgViewSlip('${escA(b.paySlip)}')">📷</button>`:''}<button class="btn ghost sm" title="ดูบิล / พิมพ์ A4" style="padding:6px 10px" onclick="event.stopPropagation();sbPrint('${b.id}')">🖨</button><button class="btn ghost sm" title="ส่งออก Excel บิลนี้" style="padding:6px 10px" onclick="event.stopPropagation();sbExportXls('${b.id}')">📊</button></div></div>`;
+      <div style="display:flex;flex-direction:column;gap:7px;align-items:flex-end;margin-left:auto">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${money}${sbPayChipHTML(b)}${b.locked?`<span title="ตรวจแล้ว·ล็อกโดย ${escA(b.verifiedBy||'')}">🔒</span>`:''}${posted}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+          ${(!b.postedAt&&sbCanWrite())?btn('⬇️ ลงเข้าหลัง','ลงบันทึกเข้าหลัง (ตัดคงเหลือ)',`sbPostToHouses('${b.id}')`,';color:var(--brand);font-weight:800;border-color:var(--brand)'):''}
+          ${btn('🖨 พิมพ์','ดูบิล / พิมพ์ A4',`sbPrint('${b.id}')`)}
+          ${btn('📊 Excel','ส่งออก Excel บิลนี้',`sbExportXls('${b.id}')`)}
+          ${sbCanWrite()?btn('⧉ คัดลอก','คัดลอกเป็นบิลใหม่วันนี้ (คงผู้ซื้อ/ราคา)',`sbDuplicate('${b.id}')`):''}
+          ${b.paySlip?btn('📷 สลิป','ดูสลิปโอนเงินที่แนบ',`lgViewSlip('${escA(b.paySlip)}')`):''}
+        </div>
+      </div></div>`;
 }
 function sbArchiveRe(){ const el=document.getElementById('sbArchive'); if(el) el.innerHTML=sbArchiveHTML(); } // วาดเฉพาะกล่องคลังบิล — ช่องค้นหาอยู่นอกกล่อง โฟกัสไม่หลุดตอนพิมพ์
 function sbArchiveHTML(){
@@ -8186,26 +8196,25 @@ function sbArchiveHTML(){
   scope.forEach(b=>{ if(sbPricePending(b))stCnt.pend++; if(!b.postedAt)stCnt.unpost++; if(b.locked)stCnt.locked++; const ps=sbPayState(b); if(ps==='cash'||ps==='credit')stCnt.unpaid++; });
   const bills=scope.filter(b=>sbStatFilter==='pend'?sbPricePending(b):sbStatFilter==='unpost'?!b.postedAt:sbStatFilter==='locked'?!!b.locked:sbStatFilter==='unpaid'?(function(){const ps=sbPayState(b);return ps==='cash'||ps==='credit';})():true)
     .sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||''))||((b.createdAt||0)-(a.createdAt||0)));
-  // ── แถวควบคุม: ช่วงเวลา · เดือน · ประเภท · ฟาร์ม · สถานะ ──
-  const rChips=q?'':`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><span class="sub" style="margin:0 4px 6px 0">⏱ ช่วงเวลา:</span>${
-    [['3d','3 วันล่าสุด'],['7d','7 วัน'],['month','📅 รายเดือน'],['custom','กำหนดเอง']]
-    .map(r=>`<button class="sbfchip${sbRange===r[0]?' on':''}" onclick="sbRange='${r[0]}';sbArchiveRe()">${r[1]}</button>`).join('')}</div>`;
-  const mChips=(q||sbRange!=='month')?'':(months.length?`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:8px"><span class="sub" style="margin:0 4px 6px 0">📅 เดือน:</span>${
+  // ── แถวควบคุม: กล่องเดียว หัวข้อชิดซ้ายทุกแถว อ่านไล่จากบนลงล่าง ──
+  const CTRL=(label,inner)=>`<div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:7px"><span style="min-width:72px;font-size:12.5px;font-weight:800;color:var(--ink-2);padding-top:7px">${label}</span><div style="flex:1;display:flex;gap:6px;flex-wrap:wrap;align-items:center">${inner}</div></div>`;
+  const rChips=q?'':CTRL('⏱ ช่วงเวลา',[['3d','3 วันล่าสุด'],['7d','7 วัน'],['month','📅 รายเดือน'],['custom','กำหนดเอง']]
+    .map(r=>`<button class="sbfchip${sbRange===r[0]?' on':''}" onclick="sbRange='${r[0]}';sbArchiveRe()">${r[1]}</button>`).join(''));
+  const mChips=(q||sbRange!=='month')?'':(months.length?CTRL('📅 เดือน',
     months.slice(0,12).map(m=>`<button class="sbfchip${curM===m?' on':''}" onclick="sbMonthSel='${m}';sbArchiveRe()">${sbMonthLabel(m,true)}</button>`).join('')
-    }<button class="sbfchip${curM==='all'?' on':''}" onclick="sbMonthSel='all';sbArchiveRe()">ทุกเดือน</button></div>`:'');
-  const customRow=(q||sbRange!=='custom')?'':`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-    <span class="sub" style="margin:0">จากวันที่</span><input type="date" class="cin" style="max-width:175px" value="${escA(sbFrom)}" onchange="sbFrom=this.value;sbArchiveRe()">
-    <span class="sub" style="margin:0">ถึงวันที่</span><input type="date" class="cin" style="max-width:175px" value="${escA(sbTo)}" onchange="sbTo=this.value;sbArchiveRe()"></div>`;
+    +`<button class="sbfchip${curM==='all'?' on':''}" onclick="sbMonthSel='all';sbArchiveRe()">ทุกเดือน</button>`):'');
+  const customRow=(q||sbRange!=='custom')?'':CTRL('ช่วงวันที่',`
+    <span class="sub" style="margin:0">จาก</span><input type="date" class="cin" style="max-width:170px" value="${escA(sbFrom)}" onchange="sbFrom=this.value;sbArchiveRe()">
+    <span class="sub" style="margin:0">ถึง</span><input type="date" class="cin" style="max-width:170px" value="${escA(sbTo)}" onchange="sbTo=this.value;sbArchiveRe()"`+`>`);
   const farms=[...new Set(SALE_BILLS.map(b=>b.farm).filter(Boolean))].sort();
   const seg=[['','ทั้งหมด'],['fatten','🐖 ขุน'],['deadcull','⚰️ ตาย/คัด'],['breeder','🐷 พันธุ์']]
     .map(k=>`<button class="${sbKindFilter===k[0]?'on':''}" onclick="sbKindFilter='${k[0]}';sbArchiveRe()">${k[1]}</button>`).join('');
   const stChips=[['','ทั้งหมด',scope.length],['pend','⏳ รอราคา',stCnt.pend],['unpaid','💵 ยังไม่ได้เงิน',stCnt.unpaid],['unpost','⬇️ ยังไม่ลงหลัง',stCnt.unpost],['locked','🔒 ตรวจแล้ว',stCnt.locked]]
     .map(s=>`<button class="sbfchip${sbStatFilter===s[0]?' on':''}"${s[2]||s[0]===''?'':' style="opacity:.45"'} onclick="sbStatFilter='${s[0]}';sbArchiveRe()">${s[1]} (${fmt(s[2])})</button>`).join('');
-  const controls=`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-      <div class="seg" style="margin:0">${seg}</div>
+  const controls=CTRL('ประเภทบิล',`<div class="seg" style="margin:0">${seg}</div>
       <select class="cin tl" style="max-width:220px" onchange="sbFarmFilter=this.value;sbArchiveRe()">
-        <option value="">ทุกฟาร์ม</option>${farms.map(f=>`<option ${f===sbFarmFilter?'selected':''}>${escA(f)}</option>`).join('')}</select>
-    </div><div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:4px"><span class="sub" style="margin:0 4px 6px 0">สถานะ:</span>${stChips}</div>`;
+        <option value="">ทุกฟาร์ม</option>${farms.map(f=>`<option ${f===sbFarmFilter?'selected':''}>${escA(f)}</option>`).join('')}</select>`)
+    +CTRL('สถานะ',stChips);
   // ── แถบสรุปของขอบเขตที่กำลังดู ──
   let pigs=0,kg=0,amt=0,pd=0;
   bills.forEach(b=>{ const c=sbCalc(b); pigs+=c.n; kg+=c.totW; if(c.net!=null)amt+=c.net; if(c.pending)pd++; });
@@ -8220,7 +8229,8 @@ function sbArchiveHTML(){
     const head=`<div style="display:flex;gap:9px 14px;align-items:center;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:7px 12px;margin:13px 0 8px;font-size:13px;font-weight:800">📅 ${sbThaiDate(g.d)} <span class="more">${fmt(n)} บิล</span><span>🐷 ${fmt(gp)} ตัว</span><span>⚖️ ${fmt(Math.round(gk))} กก.</span><span style="color:var(--ok)">💰 ${fmt(ga)} บาท</span>${gpd?`<span style="color:#b7791f">⏳ รอราคา ${fmt(gpd)} บิล</span>`:''}</div>`;
     return head+g.items.map(sbRowHTML).join('');
   }).join('')+(bills.length>CAP?`<div class="sub" style="margin-top:10px">— แสดง ${fmt(CAP)} บิลแรกจาก ${fmt(bills.length)} — เลือกดูรายเดือน หรือพิมพ์ค้นหาให้แคบลง —</div>`:'');
-  return rChips+mChips+customRow+controls+sum+(rows||`<div class="sub" style="margin-top:10px">— ${q?'ไม่พบบิลที่ตรงกับ "'+escA(q)+'"':'ไม่มีบิลในช่วงเวลานี้ — ลองขยายช่วงเวลาด้านบน'} — ${q?'ลองพิมพ์สั้นลง เช่น เฉพาะชื่อผู้ซื้อ':''} —</div>`);
+  const filterBox=(rChips||mChips||customRow||controls)?`<div style="background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px 4px;margin-bottom:10px">${rChips+mChips+customRow+controls}</div>`:'';
+  return filterBox+sum+(rows||`<div class="sub" style="margin-top:10px">— ${q?'ไม่พบบิลที่ตรงกับ "'+escA(q)+'"':'ไม่มีบิลในช่วงเวลานี้ — ลองขยายช่วงเวลาด้านบน'} — ${q?'ลองพิมพ์สั้นลง เช่น เฉพาะชื่อผู้ซื้อ':''} —</div>`);
 }
 function renderSaleStand(){ if(vetGuard())return;
   histPush('salestand',renderSaleStand);
