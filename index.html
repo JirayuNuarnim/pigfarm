@@ -919,6 +919,31 @@ syncTodayCounters();
   setInterval(maybeRollover, 60000);
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) maybeRollover(); });
 })();
+/* 🔄 ตัวอัปเดตอัตโนมัติ: บางเครื่อง (iPhone หน้าจอโฮม / เปิดผ่าน LINE / แท็บค้าง) แคชหน้าเก่าไว้แน่นมาก
+   ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
+   → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
+     เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
+const APP_BUILD='690722a';
+(function(){
+  let busy=false, lastChk=0;
+  function checkUpdate(){
+    if(busy||document.hidden) return;
+    if(Date.now()-lastChk<240e3) return; lastChk=Date.now();
+    fetch('version.json?t='+Date.now(), {cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+      if(!j||!j.build||j.build===APP_BUILD) return;
+      if(new URLSearchParams(location.search).get('v')===j.build) return; // เคยลองรีโหลดด้วย build นี้แล้วยังได้ไฟล์เก่า → หยุด กันลูป
+      const ae=document.activeElement, typing=ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)&&!document.hidden;
+      if(typing) { lastChk=0; return; }               // กำลังพิมพ์ → รอรอบถัดไป
+      busy=true;
+      try{ toast('🔄 มีเวอร์ชันใหม่ — กำลังอัปเดตแอปอัตโนมัติ…'); }catch(e){}
+      try{ saveState(); }catch(e){}
+      setTimeout(function(){ location.replace(location.pathname+'?v='+encodeURIComponent(j.build)); }, 1200);
+    }).catch(()=>{});
+  }
+  setInterval(checkUpdate, 60000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) checkUpdate(); });
+  setTimeout(checkUpdate, 5000);
+})();
 // สาธิต: ใส่ข้อมูลการรับเข้า (รวม "วันที่รับเข้า") ให้ทุกหลัง เพื่อให้ "จำนวนวันเลี้ยง" นับวันอัตโนมัติได้
 (function(){
   const MS=86400000, now=DEMO_DATE;
