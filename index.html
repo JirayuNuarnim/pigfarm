@@ -923,7 +923,7 @@ syncTodayCounters();
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690722c';
+const APP_BUILD='690722d';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -5321,7 +5321,13 @@ function chainRemains(h,log){
 }
 // คำนวณ "คงเหลือ" ของทุกรายการใหม่จาก anchor (ต้นวันของรายการเก่าสุด) → กันคงเหลือเพี้ยนหลังแก้ไข
 function recalcDailyRemains(h){
-  const log=h.dailyLog||[]; if(!log.length) return;
+  const log=h.dailyLog||[];
+  if(!log.length){ // 🩹 ถอนบันทึกจนหมด (เช่น ถอนแถวผิดจากบิลแท่นขาย) → คืนยอดหมูกลับฐานตั้งต้น + ล้างตัวนับวันนี้ (บั๊ก E33 22 ก.ค.: ถอนตายผิดแล้วยอดค้าง)
+    if(h.dailyAnchor!=null) h.pigs=Math.max(0,+h.dailyAnchor);
+    else if(h.received) h.pigs=+h.received;
+    h.deadToday=0; h.cullToday=0; h.soldToday=0; h.moveToday=0;
+    return;
+  }
   const old=log[log.length-1];
   let running=(h.dailyAnchor!=null)?h.dailyAnchor
     :(old.remain!=null&&!old._fromBill)?((+old.remain)+(old.deadN||0)+(old.cullN||0)+(old.soldN||0)+(old.moveN||0)-(old.moveInN||0))
