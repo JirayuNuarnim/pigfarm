@@ -923,7 +923,7 @@ syncTodayCounters();
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690723d';
+const APP_BUILD='690723e';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -6539,11 +6539,16 @@ function vetForm(){
     </div>
 
     <div class="card">
-      <h3>🍽️ การกินได้ต่อวัน</h3>
+      <h3>🍽️ การกินได้ต่อวัน <span class="more">หมูกิน 2 เบอร์พร้อมกัน ลงได้ในรอบเดียว</span></h3>
       <div class="grid2">
-        <div class="frow" style="margin-bottom:0"><label>อาหารเบอร์ <span class="hint">(กดเลือกเท่านั้น)</span></label>
+        <div class="frow" style="margin-bottom:0"><label>กินอาหาร 1 — เบอร์ <span class="hint">(กดเลือกเท่านั้น)</span></label>
           <select id="v_eatNo" class="cin tl"><option value="">— เลือกเบอร์ —</option>${VET_FEEDNO.map(n=>`<option>${escA(n)}</option>`).join("")}</select></div>
-        <div class="frow" style="margin-bottom:0"><label>น้ำหนักอาหารที่กิน</label><div class="unit"><input id="v_eatKg" class="cin tl" type="number" placeholder="0"><span class="u">กก.</span></div></div>
+        <div class="frow" style="margin-bottom:0"><label>น้ำหนักที่กิน (เบอร์ 1)</label><div class="unit"><input id="v_eatKg" class="cin tl" type="number" placeholder="0"><span class="u">กก.</span></div></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="frow" style="margin-bottom:0"><label>กินอาหาร 2 — เบอร์ <span class="hint">(ถ้ากินเบอร์เดียว เว้นว่างไว้)</span></label>
+          <select id="v_eatNo2" class="cin tl"><option value="">— ไม่มีเบอร์ที่ 2 —</option>${VET_FEEDNO.map(n=>`<option>${escA(n)}</option>`).join("")}</select></div>
+        <div class="frow" style="margin-bottom:0"><label>น้ำหนักที่กิน (เบอร์ 2)</label><div class="unit"><input id="v_eatKg2" class="cin tl" type="number" placeholder="0"><span class="u">กก.</span></div></div>
       </div>
     </div>
 
@@ -6572,14 +6577,15 @@ function vetSubmit(){ if(blockIfReadonly())return;
   const day=DEMO_DATE_DAY, by=currentHouse.vet||'หมอ';
   const sym=val('v_symptoms'),fm=val('v_formula'),inj=val('v_inject'),note=val('v_note');
   const fSrc=val('v_feedSrc'),fNo=val('v_feedNo'),fMed=val('v_feedMed'),fKg=val('v_feedKg'),fBill=val('v_feedBill');
-  const eatNo=val('v_eatNo'),eatKg=val('v_eatKg');
+  const eatNo=val('v_eatNo'),eatKg=val('v_eatKg'),eatNo2=val('v_eatNo2'),eatKg2=val('v_eatKg2');
   currentHouse.vetLog=currentHouse.vetLog||[];
   let added=0;
   // การรักษา = คนละบันทึก
   if(sym||fm||inj||note){currentHouse.vetLog.unshift({type:'treat',date:day,by,symptoms:sym,formula:fm,inject:inj,note});added++;}
   // การรับอาหาร = คนละบันทึก
   if(fNo||fKg){currentHouse.vetLog.unshift({type:'feed',date:day,by,feedSrc:fSrc,feedNo:fNo,feedMed:fMed,feedKg:fKg,feedBill:fBill});added++;}
-  // การกินได้ต่อวัน = คนละบันทึก
+  // การกินได้ต่อวัน = คนละบันทึก (🍽️ กิน 2 เบอร์พร้อมกัน → แตกเป็น 2 รายการ เบอร์ 1 อยู่บนสุด)
+  if(eatNo2||eatKg2){currentHouse.vetLog.unshift({type:'intake',date:day,by,eatNo:eatNo2,eatKg:eatKg2});added++;}
   if(eatNo||eatKg){currentHouse.vetLog.unshift({type:'intake',date:day,by,eatNo,eatKg});added++;}
   if(!added){toast('กรุณากรอกข้อมูลอย่างน้อย 1 ช่อง');return;}
   currentHouse.filled=true;
@@ -7363,7 +7369,7 @@ function newRecId(p){ return p+Date.now().toString(36)+Math.random().toString(36
 function ensureVetIds(h){ const seen=new Set(); (h.vetLog||[]).forEach(e=>{ if(!e) return; if(e._id==null||seen.has(e._id)) e._id=newRecId('v'); seen.add(e._id); }); }   // ซ่อมรหัสซ้ำที่ค้างในข้อมูลเก่าให้เองทุกครั้งที่วาด
 function escA(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 // เก็บ/คืนค่าที่พิมพ์ค้างในฟอร์มกรอกของหมอ เวลาแก้ประวัติแล้ว re-render (กันข้อมูลที่พิมพ์ยังไม่บันทึกหาย)
-const VET_DRAFT_IDS=['v_symptoms','v_formula','v_inject','v_note','v_feedSrc','v_feedNo','v_feedKg','v_feedBill','v_feedMed','v_eatNo','v_eatKg'];
+const VET_DRAFT_IDS=['v_symptoms','v_formula','v_inject','v_note','v_feedSrc','v_feedNo','v_feedKg','v_feedBill','v_feedMed','v_eatNo','v_eatKg','v_eatNo2','v_eatKg2'];
 function captureVetDraft(){if(!document.getElementById('v_symptoms')){vetDraft=null;return;}vetDraft={};VET_DRAFT_IDS.forEach(id=>{const e=document.getElementById(id);if(e)vetDraft[id]=e.value;});}
 function restoreVetDraft(){if(!vetDraft)return;VET_DRAFT_IDS.forEach(id=>{const e=document.getElementById(id);if(e&&vetDraft[id]!=null)e.value=vetDraft[id];});vetDraft=null;}
 function rerenderCurrent(){captureVetDraft();const t=navHist[navHist.length-1];if(t&&t.fn)t.fn();}
