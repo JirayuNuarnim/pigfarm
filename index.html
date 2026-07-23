@@ -904,6 +904,34 @@ function syncTodayCounters(){
   });
 }
 syncTodayCounters();
+/* 🚨 แจ้งเตือนหมอ: ตาย+คัดขายรวมของหลังที่ดูแล "วันนี้" เกิน 3 ตัว → ป้ายเตือนใหญ่ 7 วินาที
+   เด้งหลังโหลดข้อมูลคลาวด์/login · เตือนซ้ำเฉพาะเมื่อยอดขยับเพิ่ม (จำด้วย localStorage รายวัน·รายยอด) */
+function vetAlertShow(html){
+  try{
+    var old=document.getElementById('vetAlertBox'); if(old) old.remove();
+    var d=document.createElement('div'); d.id='vetAlertBox';
+    d.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:99999;max-width:540px;width:calc(100% - 30px);background:linear-gradient(135deg,#7a2e0e,#a3540e);color:#fff;padding:16px 20px;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.4);font-size:15.5px;line-height:1.7;border:2px solid #ffd35c';
+    d.innerHTML=html+'<div style="font-size:11px;opacity:.75;margin-top:8px">ข้อความปิดเองใน 7 วินาที · แตะเพื่อปิดทันที</div>';
+    d.onclick=function(){ d.remove(); };
+    document.body.appendChild(d);
+    setTimeout(function(){ try{ d.style.transition='opacity .5s'; d.style.opacity='0'; setTimeout(function(){ d.remove(); },550); }catch(e){} },7000);
+  }catch(e){}
+}
+function vetDeathAlertCheck(){
+  try{
+    if(typeof effRole==='function'&&effRole()!=='vet') return;
+    var me=(CURRENT_USER&&CURRENT_USER.name)||''; if(!me) return;
+    var n=0;
+    HOUSES.forEach(function(h){ if(h.vet!==me) return;
+      (h.dailyLog||[]).forEach(function(e){ if(e&&e.date===DEMO_DATE_DAY&&!e._bfSum) n+=(+e.deadN||0)+(+e.cullN||0); });
+    });
+    if(n<=3) return;
+    var key='vetDeathAlert_'+me+'_'+DEMO_DATE_DAY+'_'+n;
+    if(localStorage.getItem(key)) return;
+    localStorage.setItem(key,'1');
+    vetAlertShow('🚨 <b>วันที่ '+DEMO_DATE_DAY+'</b> คุณมียอดหมูตาย+คัดขายรวมกัน <b style="font-size:20px;color:#ffd35c">'+n+' ตัว</b> แล้วนะ<br>ตั้งใจกว่านี้หน่อยได้มั้ยจ๊ะ 💪 กินยาแล้วใช่มั้ย? ฉีดยาต่อเนื่องแล้วใช่มั้ย?<br><b>ลองดูอีกทีนะ</b>');
+  }catch(e){}
+}
 /* 🌅 กันข้อมูล "วันนี้" ค้างเป็นวันเก่า: DEMO_DATE ตรึงตอนโหลดหน้า — เครื่องที่เปิดค้างข้ามเที่ยงคืนจะโชว์ยอดวันเก่า และเสี่ยงบันทึกลงวันที่ผิด
    → เช็คทุก 1 นาที + ตอนกลับมาเปิดจอ: วันจริงเปลี่ยนเมื่อไหร่ รีโหลดหน้าอัตโนมัติ (ร่างบิล/ธงสต็อกค้างส่ง เก็บใน localStorage ครบ ไม่มีอะไรหาย) */
 (function(){
@@ -923,7 +951,7 @@ syncTodayCounters();
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690723e';
+const APP_BUILD='690723f';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -1295,7 +1323,8 @@ async function cloudLoadV2(){
       return true;
     }
     HOUSES=rows.map(mergeHouse);
-    try{ syncTodayCounters(); }catch(e){}   // 🔢 ตัวนับ "วันนี้ ตาย/คัด/ขาย" ต้องคำนวณสดจากแถวรายวันทุกครั้งที่รับข้อมูลจากคลาวด์ — ค่าที่ติดมากับข้อมูลหลังเป็นของเก่าจากเครื่องอื่น/วันอื่น (บั๊กหัวฟาร์มโชว์ 36·28 ทั้งที่จริง 13·15, 17 ก.ค. 69)
+    try{ syncTodayCounters(); }catch(e){}   // 🔢 ตัวนับ "วันนี้ ตาย/คัด/ขาย" ต้องคำนวณสดจากแถวรายวันทุกครั้งที่รับข้อมูลจากคลาวด์
+    try{ vetDeathAlertCheck(); }catch(e){}   // 🚨 เตือนหมอ ตาย+คัดวันนี้เกิน 3 — ค่าที่ติดมากับข้อมูลหลังเป็นของเก่าจากเครื่องอื่น/วันอื่น (บั๊กหัวฟาร์มโชว์ 36·28 ทั้งที่จริง 13·15, 17 ก.ค. 69)
     try{ await sbCloudLoad(); }catch(e){}   // บิลแท่นขาย (ถ้าหลังบ้านยังไม่มีตาราง → ใช้ข้อมูลในเครื่องไปก่อน)
     try{ await lgCloudLoad(); }catch(e){}   // 📒 บัญชีลูกค้า/ลูกหนี้ (โหลดไม่ได้ = ใช้ข้อมูลในเครื่องไปก่อน)
     return true;
@@ -1443,6 +1472,7 @@ async function refreshAll(){
     try{ if(!(await sbCloudLoad()) && CONFIG.supabase&&CONFIG.supabase.enabled) ok=false; }catch(e){ ok=false; }
     try{ if(typeof lgCanUse==='function'&&lgCanUse()) await lgCloudLoad(); }catch(e){}
     try{ syncTodayCounters(); }catch(e){}
+  try{ vetDeathAlertCheck(); }catch(e){}
     try{ await rtBaseline(); }catch(e){}
   }catch(e){ ok=false; }
   _refreshingAll=false; _noKick=false;
@@ -1636,7 +1666,8 @@ function doLogin(user){
   $("#rolePill").innerHTML=ROLE_ICON[ROLE]+' <b class="userPill" title="'+escA(user.name)+'">'+escA(user.name)+'</b>';
   try{ const pref=localStorage.getItem('farmBig'); bigApply(pref===null?(ROLE==='vet'):pref==='1'); }catch(e){ try{ bigApply(ROLE==='vet'); }catch(_){} }   // 🔍 หมอ = ตัวใหญ่อัตโนมัติ (ถ้ายังไม่เคยตั้งเอง)
   navHist=[]; navBacking=false;
-  try{ syncTodayCounters(); }catch(e){}   // รีเซ็ตตัวนับ "วันนี้" ให้ตรงวันจริงหลังโหลดข้อมูล (เดโม/คลาวด์) ก่อนเรนเดอร์
+  try{ syncTodayCounters(); }catch(e){}
+  try{ vetDeathAlertCheck(); }catch(e){}   // รีเซ็ตตัวนับ "วันนี้" ให้ตรงวันจริงหลังโหลดข้อมูล (เดโม/คลาวด์) ก่อนเรนเดอร์
   route();
   try{ rtStart(); rtBaseline(); }catch(e){}   // เริ่มเฝ้าดูข้อมูลใหม่จากทีม (realtime-lite)
   try{ presenceStart(); }catch(e){}           // ☄️ ส่งสัญญาณออนไลน์ — โผล่เป็นดาวหางบนแผนผังของทุกคน
