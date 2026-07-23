@@ -923,7 +923,7 @@ syncTodayCounters();
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690722e';
+const APP_BUILD='690723a';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9405,7 +9405,7 @@ function lgPayCardHTML(){
       ${m==='transfer'?`<div class="frow" style="grid-column:1/-1"><label>📷 สลิปโอนเงิน <span class="hint">(ไม่บังคับ — แนบแล้วติดไปกับบิล+ใบรับเงินอัตโนมัติ)</span></label>
         ${SB_D.paySlip?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sbchip ok">✓ แนบสลิปแล้ว</span><button class="btn ghost sm" onclick="lgViewSlip('${escA(SB_D.paySlip)}')">📷 ดูรูป</button><button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.paySlip='';renderSaleBillForm()">✕ เอาออก</button></div>`
         :`<input class="cin" type="file" accept="image/*" onchange="sbPaySlipPick(this)">`}</div>`:''}
-    </div><div class="sub" style="margin-top:6px">📒 ${hint}</div>${(function(){ const cr=lgCreditOf(SB_D.buyer); return cr>0?`<div class="sbchip ok" style="margin-top:8px;font-size:13px">💳 ลูกค้ารายนี้มีเครดิตหักหน้าบิลในบัญชี <b>${fmt(Math.round(cr))}</b> บาท — บิลจะพิมพ์ "ยอดชำระจริงหลังหักเครดิต" ให้อัตโนมัติ</div>`:''; })()}</div>`;
+    </div><div class="sub" style="margin-top:6px">📒 ${hint}</div>${(function(){ const cr=lgCreditOf(SB_D.buyer); return cr>0?`<div class="sbchip warn" style="margin-top:8px;font-size:13px">⚠️ บัญชีลูกค้ารายนี้มียอดเกินค้าง <b>${fmt(Math.round(cr))}</b> บาท — ผิดปกติ (ลูกค้าหมูไม่มีเครดิตกับฟาร์ม) แจ้งเจ้าของตรวจบัญชีลูกค้า · บิลนี้คิดเต็มตามปกติ</div>`:''; })()}</div>`;
 }
 async function sbPaySlipPick(inp){ // 📷 แนบสลิปโอนในฟอร์มบิลแท่นขาย — อัปโหลดทันทีที่เลือก แล้วผูก path ไว้กับบิล (ติดไปกับร่าง/บิลที่บันทึก)
   const f=inp.files&&inp.files[0]; if(!f||!SB_D) return;
@@ -9810,8 +9810,8 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
   if(sbNum(b.fastPen)>0||sbNum(b.fastStand)>0) noteLines.push('อดอาหารในเล้า '+sbNum(b.fastPen)+' ชม. · ที่แท่น '+sbNum(b.fastStand)+' ชม.');
   if(c.scaleNet!=null) noteLines.push('นน.รายตัว'+(c.diff>=0?'มากกว่า':'น้อยกว่า')+'ตาชั่งรถ '+fmt(Math.abs(c.diff))+' กก.'+(c.n?' ('+(Math.abs(c.diff)/c.n).toFixed(2)+' กก./ตัว)':''));
   (b.deducts||[]).forEach(d=>noteLines.push('หัก: '+escA(d.ref||'-')+' = '+fmt(sbNum(d.amt))+' บาท'));
-  const cred=lgCreditOf(b.buyer); // 💳 เครดิตหักหน้าบิลที่ตกลงไว้ในบัญชีลูกค้า → แจ้งบนบิลอัตโนมัติ (ตัวเงินตัดกันในบัญชีอยู่แล้ว ไม่แก้ยอดบิล กันหักซ้ำ)
-  if(cred>0) noteLines.push('💳 ลูกค้ามีเครดิตหักหน้าบิลคงเหลือในบัญชี '+fmt(Math.round(cred))+' บาท (ณ วันพิมพ์)');
+  // 💳 (ถอด 23 ก.ค. ตามกติกาเจ้าของ) ลูกค้าหมูไม่มีเครดิตกับฟาร์ม — การหักจบในบิลนั้นผ่านช่อง "หัก/ลดบิล" เท่านั้น
+  //    บิลห้ามโชว์/หักเครดิตจากบัญชีอัตโนมัติ (ยอดบัญชีติดลบ = ความผิดปกติให้ไปแก้ที่บัญชี ไม่ใช่เอามาหักบิล)
   if(b.paySlip) noteLines.push('📷 มีสลิปโอนเงินแนบไว้ในระบบ ✓');
   if(b.note) noteLines.push('หมายเหตุ: '+escA(b.note));
   const sumR=(k,v,u,big)=>'<tr><td style="padding:3px 6px;font-size:13px;white-space:nowrap">'+k+'</td>'
@@ -9829,12 +9829,6 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
   right+=sumR('จำนวนเงินรวม',c.gross!=null?fmt(c.gross):PEND,'บาท');
   if(c.deduct) right+=sumR('หักส่วนลด/ลดบิล','-'+fmt(c.deduct),'บาท');
   right+=sumR('จำนวนเงินสุทธิ',c.net!=null?fmt(c.net):PEND,'บาท',true);
-  if(cred>0&&c.net!=null){ // 💳 โชว์เครดิตในบัญชี + ยอดชำระจริงหลังหักเครดิต (เครดิตเกินยอดบิล → ส่วนที่เหลือคงเป็นเครดิตต่อ)
-    const use=Math.min(cred,c.net);
-    right+=sumR('เครดิตหักหน้าบิล (ในบัญชี)','-'+fmt(Math.round(use)),'บาท')
-      +sumR('ยอดชำระจริงหลังหักเครดิต',fmt(Math.round(c.net-use)),'บาท',true);
-    if(cred>c.net+0.5) right+='<tr><td colspan="3" style="font-size:11.5px;color:#555;padding:2px 6px">เครดิตส่วนที่เหลือ '+fmt(Math.round(cred-c.net))+' บาท คงไว้หักบิลถัดไป</td></tr>';
-  }
   right+='</table>';
   h+='<table style="width:100%;border-collapse:collapse"><tr>'
     +'<td style="'+BD+';vertical-align:top;width:54%;padding:6px 9px"><div style="font-size:13px;font-weight:800;margin-bottom:3px">หมายเหตุ :</div>'
