@@ -951,7 +951,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690723f';
+const APP_BUILD='690724a';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -3538,7 +3538,7 @@ function renderVetMe(){
   const nMed=mine.flatMap(h=>h.meds||[]).length;
   const cProfit=closed.reduce((s,b)=>s+(b.profit||0),0), cAvgFcr=fcrAvg(closed,b=>b.fcr), cAvgLoss=avg(closed,b=>b.loss);
   // 🌾💊 รายการของฉันแบบรายวัน (สั่งอาหาร + เบิกยา/อุปกรณ์) — เริ่ม 7 วัน กดดูย้อนหลังได้
-  const myFeed=mine.flatMap(h=>(h.feedReqs||[]).map(r=>Object.assign({},r,{house:h.code}))).filter(r=>!r.by||r.by===me);
+  const myFeed=HOUSES.flatMap(h=>(h.feedReqs||[]).map(r=>Object.assign({},r,{house:h.code,_hv:h.vet}))).filter(r=>r.by?r.by===me:r._hv===me);   // 👤 นับตามคนกดจริง (สั่งแทนหลังหมออื่นก็ขึ้นหน้าของคนสั่ง) · รายการเก่าไม่มี by → นับตามหมอประจำหลัง
   const myMeds=mine.flatMap(h=>(h.meds||[]).map(m=>Object.assign({},m,{house:h.code}))).filter(m=>!m.vet||m.vet===me);
   const feedG=vmDailyGroups(myFeed,vmFeedDays), medG=vmDailyGroups(myMeds,vmMedDays);
   const feedN=feedG.reduce((s,g)=>s+g.items.length,0), medN=medG.reduce((s,g)=>s+g.items.length,0);
@@ -6343,6 +6343,7 @@ function batchSummary(h){
     vet:h.vet, worker:h.worker, assistant:h.assistant, source:it.source||h.source||'',
     intake: it, dailyLog:(h.dailyLog||[]).slice(), vetLog:(h.vetLog||[]).slice(), meds:(h.meds||[]).slice(),
     vaccineLog:(h.vaccineLog||[]).slice(),   // สแนปช็อตประวัติการทำวัคซีน ณ วันปิดชุด
+    feedReqs:(h.feedReqs||[]).slice(),       // 🌾 สแนปช็อตรายการสั่งอาหารของรุ่นนี้ (เดิมลืมเก็บ — ประวัติหายตอนปิดชุด)
     editLog:(h.editLog||[]).slice(), pigletHistory:h.pigletHistory||'', vaccineHistory:h.vaccineHistory||'',
     extraCosts: bxList(),   // ค่าใช้จ่ายอื่นๆ ที่เพิ่มเอง (เก็บไว้แสดงในสรุป/Excel)
     medCost: medTotal(h)
@@ -6358,7 +6359,7 @@ function finalizeBatch(){
   h.closedBatches.unshift(rec);
   // ♻️ รีเซ็ตข้อมูลประจำหลัง "ทั้งหมด" → หลังพร้อมลงข้อมูลรุ่นถัดไป
   //   เก็บไว้เฉพาะ: ตัวตนหลัง (รหัส/ฟาร์ม/โซน/ความจุ/พัดลม), ทีมงานประจำหลัง, และประวัติปิดชุด
-  h.intake=null; h.dailyLog=[]; h.vetLog=[]; h.meds=[]; h.vaccineLog=[]; h.batch=null; h.batchLog=[]; h.editLog=[];
+  h.intake=null; h.dailyLog=[]; h.vetLog=[]; h.meds=[]; h.vaccineLog=[]; h.feedReqs=[]; h.batch=null; h.batchLog=[]; h.editLog=[];   // 🌾 ล้างรายการสั่งอาหารด้วย (เดิมลืม → ประวัติรุ่นเก่าไหลข้ามรุ่นใหม่)
   h.received=0; h.pigs=0; h.dailyAnchor=null; h.closedDate=null;   // รีเซ็ต anchor ด้วย — ไม่งั้นรุ่นถัดไปที่เริ่มด้วยหมูย้ายเข้าจะใช้ anchor ค้างจากรุ่นก่อน → คงเหลือพองเกินจริง
   h.cleanStart=todayISO(); h.status='กำลังล้างคอก'; // เริ่มสถานะ "กำลังล้างคอก" ต่อเนื่อง 3 วันนับจากวันกดยืนยันปิดชุด
   h.deadToday=0; h.cullToday=0; h.soldToday=0; h.sick=0; h.filled=false;
@@ -7352,9 +7353,12 @@ function renderFeedRequest(){
     <div class="card" id="feedHist">${feedHistHTML()}</div>
   `;
 }
+function ensureFeedIds(h){ const seen=new Set(); (h.feedReqs||[]).forEach(e=>{ if(!e) return; if(e._id==null||seen.has(e._id)) e._id=newRecId('f'); seen.add(e._id); }); }   // 🔑 ซ่อมรหัสรายการสั่งอาหาร (มาตรฐานเดียวกับเบิกยา — กันลบ/ผสานผิดตัวข้ามเครื่อง)
+function feedReqSig(e){ return encodeURIComponent([(e&&e.feedNo)||'',(e&&e.date)||'',(e&&e.qty)||''].join('|')); }
 function feedHistHTML(){
   if(!reqHouseCode) return '<div class="sub">เลือกรหัสหลังด้านบนเพื่อดูประวัติการสั่งอาหารของหลังนั้น</div>';
   const h=HOUSES.find(x=>(x.code||'').toUpperCase()===reqHouseCode.toUpperCase());
+  if(h) ensureFeedIds(h);
   const log=(h&&h.feedReqs)||[];
   const canEdit=(effRole()==='vet') && canEditView();
   return `<div style="font-weight:700;font-size:14px;margin-bottom:8px">🧾 ประวัติการสั่งอาหาร · หลัง ${escA(reqHouseCode)} <span class="sub" style="font-weight:400">(${log.length} รายการ)</span></div>
@@ -7364,7 +7368,7 @@ function feedHistHTML(){
         <td>${escA(e.date)}</td><td>${e.feedSrc?'<b>'+escA(e.feedSrc)+'</b>':'-'}</td><td><b>${escA(e.feedNo||'-')}</b></td>
         <td class="num">${fmt(Number(e.qty)||0)}</td><td><span class="sub">${escA(e.unit||'-')}</span></td>
         <td>${e.formula?'<b>'+escA(e.formula)+'</b>':'-'}</td><td>${escA(e.note||'-')}</td>
-        ${canEdit?`<td class="num"><button class="btn ghost sm" style="color:var(--bad)" onclick="delFeedReq(${i})">ลบ</button></td>`:''}
+        ${canEdit?`<td class="num"><button class="btn ghost sm" style="color:var(--bad)" onclick="delFeedReqById('${e._id}','${feedReqSig(e)}')">ลบ</button></td>`:''}
       </tr>`).join("") : `<tr><td colspan="${canEdit?8:7}" class="sub">ยังไม่มีการสั่งอาหารของหลังนี้</td></tr>`}</tbody>
     </table></div>`;
 }
@@ -7380,16 +7384,22 @@ function submitFeedReq(){ if(blockIfReadonly())return;
   if(!fNo){toast('กรุณาระบุเบอร์อาหาร');return;}
   if(qty<=0){toast('กรุณาระบุจำนวนที่สั่ง');return;}
   h.feedReqs=h.feedReqs||[];
-  h.feedReqs.unshift({date:DEMO_DATE_DAY,feedSrc:fSrc,feedNo:fNo,qty,unit,formula,note,by:h.vet||'หมอ',ts:Date.now()});   // ⏱ ts = เวลาจริงที่หมอกดส่งเบิก
+  h.feedReqs.unshift({_id:newRecId('f'),date:DEMO_DATE_DAY,feedSrc:fSrc,feedNo:fNo,qty,unit,formula,note,by:whoNow()||h.vet||'หมอ',ts:Date.now()});   // ⏱ ts = เวลากดจริง · 🔑 _id กันชนข้ามเครื่อง · 👤 by = คนที่ login กดจริง (หมอเวรสั่งแทน ชื่อไม่เพี้ยนเป็นหมอประจำ)
   syncHouseVet(h);
   toast('สั่งอาหาร'+(fSrc?' '+fSrc:'')+' เบอร์ '+fNo+' '+fmt(qty)+' '+unit+(formula?' · '+formula:'')+' → หลัง '+h.code+' ✓');
   ['fr_src','fr_no','fr_qty','fr_formula','fr_note'].forEach(id=>{const e=$("#"+id);if(e)e.value='';});
   updateFeedHist();
 }
-function delFeedReq(i){ if(blockIfReadonly())return;
+function delFeedReqById(id,sig){ // 🗑 ลบรายการสั่งอาหารอ้างด้วยรหัส+ลายเซ็น (เดิมลบตามลำดับแถว → 2 เครื่องเปิดพร้อมกันลบผิดตัว) + กล่องยืนยันก่อนลบ
+  if(blockIfReadonly())return;
   const h=HOUSES.find(x=>(x.code||'').toUpperCase()===(reqHouseCode||'').toUpperCase());
-  if(!h||!h.feedReqs||!h.feedReqs[i]) return;
-  const r=h.feedReqs[i]; h.feedReqs.splice(i,1);
+  if(!h||!h.feedReqs) return;
+  const idx=h.feedReqs.findIndex(e=>e&&e._id===id);
+  if(idx<0){ toast('ไม่พบรายการ — กด 🔄 แล้วลองใหม่'); return; }
+  const r=h.feedReqs[idx];
+  if(feedReqSig(r)!==sig){ toast('รายการบนจอไม่ตรงกับข้อมูลล่าสุด — กด 🔄 แล้วลองใหม่'); updateFeedHist(); return; }
+  if(!confirm('ลบรายการสั่งอาหาร?\n\n'+(r.date||'')+' · เบอร์ '+(r.feedNo||'-')+' · '+fmt(Number(r.qty)||0)+' '+(r.unit||'')+(r.formula?' · '+r.formula:''))) return;
+  h.feedReqs.splice(idx,1);
   syncHouseVet(h);
   toast('ลบรายการสั่ง เบอร์ '+(r.feedNo||'')+' แล้ว');
   updateFeedHist();
