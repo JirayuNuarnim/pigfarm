@@ -923,7 +923,7 @@ syncTodayCounters();
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690722d';
+const APP_BUILD='690722e';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9022,7 +9022,10 @@ function sbBillRef(b){ const r=(b.billBook?b.billBook+'/':'')+(b.billNo||''); re
 function sbRowUid(){ return 'sb'+Date.now()+'_'+Math.round(Math.random()*1e6); }
 function sbFindHouse(code,farm){ // บิลระบุฟาร์ม = จับคู่เฉพาะหลังในฟาร์มนั้น (กันรหัสซ้ำข้ามฟาร์ม เช่น A1 มีหลายฟาร์ม → ตัดสต็อกผิดหลัง) · เทียบแบบ normalize ("J.40 "→"J40") ให้ตรงกับ guard กันเกินยอด
   const n0=sbNormCode(code); if(!n0) return null;
-  if(farm) return HOUSES.find(y=>sbNormCode(y.code)===n0&&(y.farm||'')===farm)||null;
+  if(farm){ // 🛒 แท่นขายรวม (เช่น เบิกไพรขายให้วันครู1-2-3): บิลคร่อมหลายฟาร์ม farm="A + B" → แยกชื่อแล้วจับคู่ในกลุ่มนั้น (เดิมเทียบทั้งก้อนตรง ๆ → ลงเข้าหลังไม่ได้ทั้งบิล)
+    const fs=String(farm).split(' + ').map(s=>s.trim()).filter(Boolean);
+    return HOUSES.find(y=>sbNormCode(y.code)===n0&&fs.includes(y.farm||''))||null;
+  }
   return HOUSES.find(y=>sbNormCode(y.code)===n0)||null;
 }
 function sbBandVal(b,items,type){ // มูลค่ารวมของหมูกลุ่มนี้ตามช่วงราคา · null = มีช่วงที่ยังไม่ใส่ราคา
