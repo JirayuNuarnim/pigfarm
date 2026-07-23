@@ -923,7 +923,7 @@ syncTodayCounters();
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690723c';
+const APP_BUILD='690723d';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -3478,6 +3478,15 @@ async function renderAuditLog(){
       </div>`; }).join('')}`;
 }
 /* ---------- ประสิทธิภาพของฉัน (หน้าหมอ) — รวมทุกหลังที่ดูแล (กำลังเลี้ยง + ที่เคยปิดชุด) + ประวัติที่บันทึก ---------- */
+let vmFeedDays=7, vmMedDays=7;   // 🗓 หน้าต่างย้อนหลังของ 2 การ์ดรายวัน (7 วันเริ่มต้น · 0 = ทั้งหมด)
+function vmSetFeedDays(n){ vmFeedDays=n; renderVetMe(); }
+function vmSetMedDays(n){ vmMedDays=n; renderVetMe(); }
+function vmRangeBtns(cur,fn){ return '<span style="display:inline-flex;background:#e4e9ef;border-radius:9px;padding:2px;gap:2px;vertical-align:middle">'+[[7,'7 วัน'],[14,'14 วัน'],[30,'30 วัน'],[0,'ทั้งหมด']].map(([n,t])=>`<button type="button" onclick="${fn}(${n})" style="border:none;border-radius:7px;padding:4px 11px;font-size:12px;font-weight:600;cursor:pointer;${cur===n?'background:#fff;color:var(--brand);box-shadow:0 1px 2px rgba(20,35,50,.13)':'background:transparent;color:var(--muted)'}">${t}</button>`).join('')+'</span>'; }
+function vmDailyGroups(rows,days){ // จัดกลุ่มรายวัน ใหม่→เก่า (กรองหน้าต่างวัน · ในวันเรียงตามเวลา)
+  const inWin=r=>days===0||reqWithinDaysBackN(r.date,days-1);
+  const byDate={}; rows.filter(inWin).forEach(r=>{(byDate[r.date]=byDate[r.date]||[]).push(r);});
+  return Object.keys(byDate).sort((a,b)=>reqDateKey(b)-reqDateKey(a)).map(d=>({date:d,items:byDate[d].slice().sort((a,b)=>(a.ts||0)-(b.ts||0))}));
+}
 function vmDays(h){ const d=h&&h.intake&&h.intake.dateIn; if(!d) return ''; const p=String(d).split('-'); if(p.length<3) return ''; const dt=new Date(+p[0],+p[1]-1,+p[2]); const n=Math.round((reqToday()-dt)/86400000); return n>0?n:''; }
 function renderVetMe(){
   histPush('vetme',renderVetMe);
@@ -3497,6 +3506,11 @@ function renderVetMe(){
   const nTreat=vlog.filter(e=>e.type==='treat').length, nFeed=vlog.filter(e=>e.type==='feed').length, nEat=vlog.filter(e=>e.type==='intake').length;
   const nMed=mine.flatMap(h=>h.meds||[]).length;
   const cProfit=closed.reduce((s,b)=>s+(b.profit||0),0), cAvgFcr=fcrAvg(closed,b=>b.fcr), cAvgLoss=avg(closed,b=>b.loss);
+  // 🌾💊 รายการของฉันแบบรายวัน (สั่งอาหาร + เบิกยา/อุปกรณ์) — เริ่ม 7 วัน กดดูย้อนหลังได้
+  const myFeed=mine.flatMap(h=>(h.feedReqs||[]).map(r=>Object.assign({},r,{house:h.code}))).filter(r=>!r.by||r.by===me);
+  const myMeds=mine.flatMap(h=>(h.meds||[]).map(m=>Object.assign({},m,{house:h.code}))).filter(m=>!m.vet||m.vet===me);
+  const feedG=vmDailyGroups(myFeed,vmFeedDays), medG=vmDailyGroups(myMeds,vmMedDays);
+  const feedN=feedG.reduce((s,g)=>s+g.items.length,0), medN=medG.reduce((s,g)=>s+g.items.length,0);
   const best=active.slice().sort((a,b)=>houseScore(b)-houseScore(a))[0], worst=active.slice().sort((a,b)=>houseScore(a)-houseScore(b))[0];
   const sc=p=>`<span style="color:${p>=85?'var(--ok)':p>=70?'var(--warn)':'var(--bad)'};font-weight:700">${p}%</span>`;
   const v=$("#view");
@@ -3544,6 +3558,34 @@ function renderVetMe(){
         <div style="background:var(--soft,#f6f9fc);border-radius:10px;padding:10px"><div class="sub">💉 ครั้งที่เบิกยา</div><div style="font-size:19px;font-weight:800">${fmt(nMed)}</div></div>
       </div>
       <div class="sub" style="margin-top:10px">💡 แตะหลังในตารางด้านบนเพื่อดู/แก้บันทึกของหลังนั้น</div>
+    </div>
+
+    <div class="card"><h3>🌾 อาหารที่ฉันสั่ง (รายวัน) <span class="more">${fmt(feedN)} รายการ</span></h3>
+      <div style="margin:2px 0 10px">${vmRangeBtns(vmFeedDays,'vmSetFeedDays')} <span class="sub" style="margin-left:6px">${vmFeedDays===0?'แสดงทั้งหมด':'แสดงย้อนหลัง '+vmFeedDays+' วัน'}</span></div>
+      ${feedG.length?feedG.map(g=>`<div style="margin-top:10px">
+        <div style="font-weight:700;font-size:13.5px;margin-bottom:5px">📅 ${escA(g.date)} <span class="sub" style="font-weight:400">· ${g.items.length} รายการ</span></div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>⏱ เวลาสั่ง</th><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th></tr></thead>
+          <tbody>${g.items.map(r=>`<tr>
+            <td>${reqTimeCell(r)}</td><td><b>${escA(r.house)}</b></td><td>${r.feedSrc?'<b>'+escA(r.feedSrc)+'</b>':'-'}</td><td><b>${escA(r.feedNo||'-')}</b></td>
+            <td class="num">${fmt(Number(r.qty)||0)}</td><td><span class="sub">${escA(r.unit||'-')}</span></td>
+            <td>${r.formula?'<b>'+escA(r.formula)+'</b>':'-'}</td><td>${escA(r.note||'-')}</td></tr>`).join('')}</tbody>
+        </table></div>
+      </div>`).join(''):'<div class="sub">— ไม่มีรายการสั่งอาหารในช่วงที่เลือก —</div>'}
+    </div>
+
+    <div class="card"><h3>💊 ยา/อุปกรณ์ที่ฉันเบิก (รายวัน) <span class="more">${fmt(medN)} รายการ</span></h3>
+      <div style="margin:2px 0 10px">${vmRangeBtns(vmMedDays,'vmSetMedDays')} <span class="sub" style="margin-left:6px">${vmMedDays===0?'แสดงทั้งหมด':'แสดงย้อนหลัง '+vmMedDays+' วัน'}</span></div>
+      ${medG.length?medG.map(g=>`<div style="margin-top:10px">
+        <div style="font-weight:700;font-size:13.5px;margin-bottom:5px">📅 ${escA(g.date)} <span class="sub" style="font-weight:400">· ${g.items.length} รายการ</span></div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th>⏱ เวลาส่งเบิก</th><th>หลัง</th><th>หมวด</th><th>ชื่อ</th><th class="num">จำนวน</th><th>โดส/หมายเหตุ</th></tr></thead>
+          <tbody>${g.items.map(m=>`<tr>
+            <td>${reqTimeCell(m)}</td><td><b>${escA(m.house)}</b></td><td><span class="sub">${escA(m.cat||'-')}</span></td>
+            <td>${escA(m.name||'-')}</td><td class="num">${fmt(Number(m.qty)||0)}</td>
+            <td><span class="sub">${escA([m.dose,m.note].filter(Boolean).join(' · ')||'-')}</span></td></tr>`).join('')}</tbody>
+        </table></div>
+      </div>`).join(''):'<div class="sub">— ไม่มีรายการเบิกยา/อุปกรณ์ในช่วงที่เลือก —</div>'}
     </div>`;
 }
 function exportVetMe(){
