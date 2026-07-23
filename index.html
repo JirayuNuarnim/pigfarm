@@ -923,7 +923,7 @@ syncTodayCounters();
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690723b';
+const APP_BUILD='690723c';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -1719,7 +1719,7 @@ const HOME_MENU = {
     {icon:'📒', t:'บันทึกรับเงิน / ใบรับเงิน', d:'รับเงินลูกค้า+ออกใบรับเงิน · เงินสดค้างเก็บ · พิมพ์เอกสารซ้ำ', fn:'renderLedger'},
     {icon:'🏭', t:'ข้อมูลประจำฟาร์ม',    d:'ภาพรวมหลังในแต่ละฟาร์ม',                fn:'renderClerkFarm'},
     {icon:'💉', t:'รายการเบิกยา',        d:'ดูรายการเบิกยา/เวชภัณฑ์ของหมอ',          fn:'renderClerkReq'},
-    {icon:'🌾', t:'รายการเบิกอาหาร',     d:'ดูใบเบิกอาหารของหมอ',                   fn:'renderClerkFeedReq'},
+    {icon:'🌾', t:'รายการสั่งอาหาร',     d:'ดูใบสั่งอาหารของหมอ',                   fn:'renderClerkFeedReq'},
     {icon:'📦', t:'คลังยา/อุปกรณ์',       d:'รับเข้า · ยอดคงเหลือ · ของใกล้หมด รายฟาร์ม', fn:'renderStock'},
     {icon:'📤', t:'การดึงข้อมูลรวม',      d:'ส่งออก Excel รายวัน/เบิก/ปิดชุด',          fn:'renderClerkExport'},
   ],
@@ -1727,7 +1727,7 @@ const HOME_MENU = {
     {icon:'📊', t:'ประสิทธิภาพของฉัน',   d:'สรุปผลงานของฉัน · หลังที่ดูแล + ที่ปิดชุดไปแล้ว + ประวัติที่บันทึก', fn:'renderVetMe'},
     {icon:'🩺', t:'บันทึกรายหลัง',       d:'รักษา · รับอาหาร · กินได้ รายหลัง',         fn:'renderHouseList'},
     {icon:'💉', t:'เบิกยา / อุปกรณ์',     d:'ใบเบิกยา/เวชภัณฑ์/อุปกรณ์',               fn:'renderRequest'},
-    {icon:'🌾', t:'เบิกอาหาร',           d:'ใบเบิก/ขออาหารจากคลัง',                  fn:'renderFeedRequest'},
+    {icon:'🌾', t:'สั่งอาหาร',           d:'ใบสั่ง/ขออาหารจากคลัง',                  fn:'renderFeedRequest'},
     {icon:'🕸️', t:'แผนผังเล้าหมู',       d:'แผนผังเล้าที่ฉันดูแล · แตะจุดดูสถานะ/เข้าเล้า', fn:'renderFarmGraph'},
     {icon:'📋', t:'โปรแกรมวัคซีน',       d:'แผนวัคซีนที่เจ้าของกำหนด — อ่านทำความเข้าใจ/ทำตาม', fn:'renderVaxProgram'},
   ],
@@ -2688,7 +2688,7 @@ function vetNav(active){
   return `<div class="seg">
     <button class="${active==='rec'?'on':''}" onclick="renderHouseList()">🩺 บันทึกรายหลัง</button>
     <button class="${active==='req'?'on':''}" onclick="renderRequest()">💉 เบิกยา / อุปกรณ์</button>
-    <button class="${active==='feed'?'on':''}" onclick="renderFeedRequest()">🌾 เบิกอาหาร</button>
+    <button class="${active==='feed'?'on':''}" onclick="renderFeedRequest()">🌾 สั่งอาหาร</button>
   </div>`;
 }
 function vetGuard(){ if(effRole()==='vet'){ const v=$("#view"); if(v) v.innerHTML='<button class="back" onclick="goHome()">‹ กลับหน้าหลัก</button><div class="banner bad" style="margin-top:12px">🔒 หน้านี้สำหรับเสมียน/เจ้าของ — หมอไม่มีสิทธิ์เข้าถึง</div>'; try{toast('🔒 หมอไม่มีสิทธิ์เข้าหน้านี้');}catch(e){} return true; } return false; }
@@ -2701,7 +2701,7 @@ function clerkNav(active){
     <button class="${active==='ledger'?'on':''}" onclick="renderLedger()">📒 บัญชีลูกค้า</button>
     <button class="${active==='farm'?'on':''}" onclick="renderClerkFarm()">🏭 ข้อมูลประจำฟาร์ม</button>
     <button class="${active==='req'?'on':''}" onclick="renderClerkReq()">💉 รายการเบิกยา</button>
-    <button class="${active==='freq'?'on':''}" onclick="renderClerkFeedReq()">🌾 รายการเบิกอาหาร</button>
+    <button class="${active==='freq'?'on':''}" onclick="renderClerkFeedReq()">🌾 รายการสั่งอาหาร</button>
     <button class="${active==='stock'?'on':''}" onclick="renderStock()">📦 คลังยา/อุปกรณ์</button>
     <button class="${active==='exp'?'on':''}" onclick="renderClerkExport()">📤 การดึงข้อมูลรวม</button>
   </div>`;
@@ -2968,7 +2968,7 @@ function renderClerkReq(){ if(vetGuard())return;
     }).join("")}
   `;
 }
-/* ---------- รายการเบิกอาหาร (เสมียน): รวม h.feedReqs ทุกหลังที่ดูแล แยกตามฟาร์ม→วัน ---------- */
+/* ---------- รายการสั่งอาหาร (เสมียน): รวม h.feedReqs ทุกหลังที่ดูแล แยกตามฟาร์ม→วัน ---------- */
 let cfrFarm='', cfrHouse='', cfrVet='', cfrDate='', cfrDateMode='day', cfrDateFrom='', cfrDateTo='';
 function clerkFeedReqAll(){return myHouses().flatMap(h=>(h.feedReqs||[]).map(r=>Object.assign({},r,{house:h.code,farm:h.farm||'ไม่ระบุฟาร์ม'})));}
 function cfrDateMatch(r){
@@ -3002,7 +3002,7 @@ function renderClerkFeedReq(){ if(vetGuard())return;
   const v=$("#view");
   v.innerHTML=`
     <h2 class="page">📋 เสมียน</h2>
-    <div class="sub">รายการเบิกอาหารที่หมอเบิกจากคลัง · แยกตามฟาร์ม → วัน · แสดง ${all.length} รายการ</div>
+    <div class="sub">รายการสั่งอาหารที่หมอสั่งจากคลัง · แยกตามฟาร์ม → วัน · แสดง ${all.length} รายการ</div>
     ${clerkNav('freq')}
     <div class="card">
       <h3>🖨️ ส่งออก / กรองรายการ</h3>
@@ -3042,7 +3042,7 @@ function renderClerkFeedReq(){ if(vetGuard())return;
           return `<div style="margin-top:14px">
             <div style="font-weight:700;font-size:14px;margin-bottom:6px">📅 ${escA(d)} <span class="sub" style="font-weight:400">· ${dItems.length} รายการ</span></div>
             <div style="overflow-x:auto"><table>
-              <thead><tr><th>⏱ เวลาส่งเบิก</th><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th><th>หมอ</th></tr></thead>
+              <thead><tr><th>⏱ เวลาสั่ง</th><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th><th>หมอ</th></tr></thead>
               <tbody>${dItems.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(r=>`<tr>
                 <td>${reqTimeCell(r)}</td>
                 <td><b>${escA(r.house)}</b></td><td>${r.feedSrc?'<b>'+escA(r.feedSrc)+'</b>':'-'}</td><td><b>${escA(r.feedNo||'-')}</b></td>
@@ -3052,12 +3052,12 @@ function renderClerkFeedReq(){ if(vetGuard())return;
             </table></div>
           </div>`;}).join("")}
       </div>`;
-    }).join("") : '<div class="card"><div class="sub">ยังไม่มีรายการเบิกอาหาร — เมื่อหมอเบิกอาหารจากหน้า "🌾 เบิกอาหาร" รายการจะมาแสดงที่นี่</div></div>'}
+    }).join("") : '<div class="card"><div class="sub">ยังไม่มีรายการสั่งอาหาร — เมื่อหมอสั่งอาหารจากหน้า "🌾 สั่งอาหาร" รายการจะมาแสดงที่นี่</div></div>'}
   `;
 }
 function exportClerkFeedReq(){
   const rows=clerkFeedReqFiltered();
-  if(!rows.length){toast('ไม่มีรายการเบิกอาหารให้ส่งออก');return;}
+  if(!rows.length){toast('ไม่มีรายการสั่งอาหารให้ส่งออก');return;}
   // จัดกลุ่มตามหมอ (คนเบิก): หมอคนละช่วง + แถวรวมย่อย
   const byVet={}; rows.forEach(r=>{ const k=(r.by&&String(r.by).trim())||'(ไม่ระบุหมอ)'; (byVet[k]=byVet[k]||[]).push(r); });
   let qty=0; const data=[];
@@ -3068,12 +3068,12 @@ function exportClerkFeedReq(){
     qty+=vq;
     data.push(['รวม — '+v+' ('+byVet[v].length+' รายการ)','','','','','','',vq,'','','']);
   });
-  const html=xlsSheet({ title:'รายการเบิกอาหาร (แยกตามหมอ)',
+  const html=xlsSheet({ title:'รายการสั่งอาหาร (แยกตามหมอ)',
     meta:[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'ขอบเขต',v:cfrFarm?('ฟาร์ม '+cfrFarm):'ทุกฟาร์มที่ดูแล'},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออกรายงาน',v:(CURRENT_USER&&CURRENT_USER.name)||'-'}],
-    columns:[{label:'หมอ',type:'text',w:130},{label:'วันที่',type:'text',w:90},{label:'เวลาส่งเบิก',type:'text',w:80},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'แหล่ง',type:'text',w:80},{label:'เบอร์อาหาร',type:'text',w:100},{label:'จำนวน',type:'num',w:70},{label:'หน่วย',type:'text',w:70},{label:'ยาสูตร',type:'text',w:120},{label:'หมายเหตุ',type:'text',w:150}],
+    columns:[{label:'หมอ',type:'text',w:130},{label:'วันที่',type:'text',w:90},{label:'เวลาสั่ง',type:'text',w:80},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'แหล่ง',type:'text',w:80},{label:'เบอร์อาหาร',type:'text',w:100},{label:'จำนวน',type:'num',w:70},{label:'หน่วย',type:'text',w:70},{label:'ยาสูตร',type:'text',w:120},{label:'หมายเหตุ',type:'text',w:150}],
     rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','','','',qty,'','',''] });
-  downloadXls('รายการเบิกอาหาร'+(cfrFarm?'_'+cfrFarm:'')+'.xls', html);
-  toast('ส่งออกรายการเบิกอาหาร '+rows.length+' รายการ ✓');
+  downloadXls('รายการสั่งอาหาร'+(cfrFarm?'_'+cfrFarm:'')+'.xls', html);
+  toast('ส่งออกรายการสั่งอาหาร '+rows.length+' รายการ ✓');
 }
 /* ---------- ศูนย์รวมส่งออก Excel (เสมียน): "📤 การดึงข้อมูลรวม" — รวมทุกหลังที่ดูแล ---------- */
 let expFarm='', expFrom='', expTo='', expHouse='', expVet='', expPreset='';
@@ -7233,7 +7233,7 @@ function requestMedRow(cat,ci,i){ if(blockIfReadonly())return;
   const bcell=$("#rbal_"+ci+"_"+i); if(bcell && stockCountable(cat)) bcell.innerHTML=stockNumBadge(stockOnHand(farm,cat,name),stockMinOf(farm,cat,name)); // อัปเดตคงเหลือสดทันทีให้ตรง stock จริงหลังเบิก
   updateReqHist();
 }
-/* ---------- หน้าเบิกอาหาร (ใบเบิก/ขออาหารจากคลัง — แยกจาก "การรับอาหาร" ไม่คิดต้นทุน · เก็บแยกใน h.feedReqs) ---------- */
+/* ---------- หน้าสั่งอาหาร (ใบเบิก/ขออาหารจากคลัง — แยกจาก "การรับอาหาร" ไม่คิดต้นทุน · เก็บแยกใน h.feedReqs) ---------- */
 const FEED_REQ_UNITS=['กระสอบ','กก.'];
 function renderFeedRequest(){
   histPush('vetFeed',renderFeedRequest);
@@ -7241,44 +7241,44 @@ function renderFeedRequest(){
   const v=$("#view");
   v.innerHTML=`
     <h2 class="page">🩺 สัตวแพทย์</h2>
-    <div class="sub">เบิกอาหาร · ใบเบิก/ขออาหารจากคลัง — เลือกหลัง → เบอร์อาหาร → จำนวน → กดเบิก <span class="hint">(แยกจากการรับอาหาร · ไม่คิดต้นทุน)</span></div>
+    <div class="sub">สั่งอาหาร · ใบสั่ง/ขออาหารจากคลัง — เลือกหลัง → เบอร์อาหาร → จำนวน → กดสั่ง <span class="hint">(แยกจากการรับอาหาร · ไม่คิดต้นทุน)</span></div>
     ${vetNav('feed')}
     <div class="card">
-      <div class="frow" style="margin-bottom:0"><label>รหัสหลังที่เบิก <span class="req">*</span></label>
+      <div class="frow" style="margin-bottom:0"><label>รหัสหลังที่สั่งอาหาร <span class="req">*</span></label>
         <select id="feedHouse" class="cin tl" onchange="reqHouseCode=this.value;updateFeedHist()">
           <option value="">— เลือกหลัง —</option>
           ${codes.map(c=>`<option ${c===reqHouseCode?'selected':''}>${escA(c)}</option>`).join("")}
         </select></div>
     </div>
     <div class="card">
-      <h3>🌾 เบิกอาหารจากคลัง</h3>
+      <h3>🌾 สั่งอาหารจากคลัง</h3>
       <div class="grid2">
-        <div class="frow" style="margin-bottom:0"><label>แหล่งที่เบิกอาหาร <span class="hint">(กดเลือกเท่านั้น — เจ้าของเพิ่มตัวเลือกได้ที่ "จัดการเล้า")</span></label>
+        <div class="frow" style="margin-bottom:0"><label>แหล่งที่สั่งอาหาร <span class="hint">(กดเลือกเท่านั้น — เจ้าของเพิ่มตัวเลือกได้ที่ "จัดการเล้า")</span></label>
           <select id="fr_src" class="cin tl"><option value="">— เลือกแหล่ง —</option>${VET_FEEDSRC.map(s=>`<option>${escA(s)}</option>`).join('')}</select></div>
         <div class="frow" style="margin-bottom:0"><label>เบอร์อาหาร <span class="req">*</span> <span class="hint">(กดเลือกเท่านั้น)</span></label>
           <select id="fr_no" class="cin tl"><option value="">— เลือกเบอร์ —</option>${VET_FEEDNO.map(n=>`<option>${escA(n)}</option>`).join('')}</select></div>
       </div>
-      <div class="frow" style="margin-top:10px;margin-bottom:0"><label>จำนวนที่เบิก <span class="req">*</span></label>
+      <div class="frow" style="margin-top:10px;margin-bottom:0"><label>จำนวนที่สั่ง <span class="req">*</span></label>
         <div style="display:flex;gap:8px;max-width:340px">
           <input id="fr_qty" class="cin tl" type="number" placeholder="0" style="flex:1">
           <select id="fr_unit" class="cin tl" style="max-width:110px">${FEED_REQ_UNITS.map(u=>`<option>${escA(u)}</option>`).join('')}</select>
         </div></div>
       <div class="frow" style="margin-top:10px;margin-bottom:0"><label>ยาสูตรที่ผสม <span class="hint">(เลือกจากยาสูตร · ถ้ามี)</span></label>
         <select id="fr_formula" class="cin tl"><option value="">— ไม่ผสมยาสูตร —</option>${MEDFORMULAS.filter(f=>f.items.length).map(f=>`<option value="${f.code}">${f.code} — ${escA(formulaHint(f))}</option>`).join("")}</select></div>
-      <div class="frow" style="margin-top:10px;margin-bottom:0"><label>หมายเหตุ <span class="hint">(ถ้ามี)</span></label><input id="fr_note" class="cin tl" placeholder="เช่น เบิกล่วงหน้า 3 วัน"></div>
+      <div class="frow" style="margin-top:10px;margin-bottom:0"><label>หมายเหตุ <span class="hint">(ถ้ามี)</span></label><input id="fr_note" class="cin tl" placeholder="เช่น สั่งล่วงหน้า 3 วัน"></div>
       <div class="actions" style="margin-top:12px">
-        <button type="button" class="btn" onclick="submitFeedReq()">💾 บันทึกเบิกอาหาร</button>
+        <button type="button" class="btn" onclick="submitFeedReq()">💾 บันทึกสั่งอาหาร</button>
       </div>
     </div>
     <div class="card" id="feedHist">${feedHistHTML()}</div>
   `;
 }
 function feedHistHTML(){
-  if(!reqHouseCode) return '<div class="sub">เลือกรหัสหลังด้านบนเพื่อดูประวัติการเบิกอาหารของหลังนั้น</div>';
+  if(!reqHouseCode) return '<div class="sub">เลือกรหัสหลังด้านบนเพื่อดูประวัติการสั่งอาหารของหลังนั้น</div>';
   const h=HOUSES.find(x=>(x.code||'').toUpperCase()===reqHouseCode.toUpperCase());
   const log=(h&&h.feedReqs)||[];
   const canEdit=(effRole()==='vet') && canEditView();
-  return `<div style="font-weight:700;font-size:14px;margin-bottom:8px">🧾 ประวัติการเบิกอาหาร · หลัง ${escA(reqHouseCode)} <span class="sub" style="font-weight:400">(${log.length} รายการ)</span></div>
+  return `<div style="font-weight:700;font-size:14px;margin-bottom:8px">🧾 ประวัติการสั่งอาหาร · หลัง ${escA(reqHouseCode)} <span class="sub" style="font-weight:400">(${log.length} รายการ)</span></div>
     <div style="overflow-x:auto"><table>
       <thead><tr><th>วันที่</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th>${canEdit?'<th></th>':''}</tr></thead>
       <tbody>${log.length? log.map((e,i)=>`<tr>
@@ -7286,7 +7286,7 @@ function feedHistHTML(){
         <td class="num">${fmt(Number(e.qty)||0)}</td><td><span class="sub">${escA(e.unit||'-')}</span></td>
         <td>${e.formula?'<b>'+escA(e.formula)+'</b>':'-'}</td><td>${escA(e.note||'-')}</td>
         ${canEdit?`<td class="num"><button class="btn ghost sm" style="color:var(--bad)" onclick="delFeedReq(${i})">ลบ</button></td>`:''}
-      </tr>`).join("") : `<tr><td colspan="${canEdit?8:7}" class="sub">ยังไม่มีการเบิกอาหารของหลังนี้</td></tr>`}</tbody>
+      </tr>`).join("") : `<tr><td colspan="${canEdit?8:7}" class="sub">ยังไม่มีการสั่งอาหารของหลังนี้</td></tr>`}</tbody>
     </table></div>`;
 }
 function updateFeedHist(){const el=$("#feedHist");if(el)el.innerHTML=feedHistHTML();}
@@ -7295,15 +7295,15 @@ function submitFeedReq(){ if(blockIfReadonly())return;
   if(!code){toast('กรุณาเลือกรหัสหลัง (ด้านบน)');return;}
   const h=HOUSES.find(x=>(x.code||'').toUpperCase()===code);
   if(!h){toast('ไม่พบรหัสหลัง '+code);return;}
-  if(!canSeeFarm(h.farm||'ไม่ระบุฟาร์ม')){toast('❌ ไม่มีสิทธิ์เบิกอาหารในฟาร์มนี้');return;}   // กันเบิกข้ามฟาร์มที่ไม่ได้ดูแล
+  if(!canSeeFarm(h.farm||'ไม่ระบุฟาร์ม')){toast('❌ ไม่มีสิทธิ์สั่งอาหารในฟาร์มนี้');return;}   // กันเบิกข้ามฟาร์มที่ไม่ได้ดูแล
   const val=id=>{const e=$("#"+id);return e?String(e.value).trim():'';};
   const fSrc=val('fr_src'), fNo=val('fr_no'), qty=Number(val('fr_qty'))||0, unit=val('fr_unit')||FEED_REQ_UNITS[0], formula=val('fr_formula'), note=val('fr_note');
   if(!fNo){toast('กรุณาระบุเบอร์อาหาร');return;}
-  if(qty<=0){toast('กรุณาระบุจำนวนที่เบิก');return;}
+  if(qty<=0){toast('กรุณาระบุจำนวนที่สั่ง');return;}
   h.feedReqs=h.feedReqs||[];
   h.feedReqs.unshift({date:DEMO_DATE_DAY,feedSrc:fSrc,feedNo:fNo,qty,unit,formula,note,by:h.vet||'หมอ',ts:Date.now()});   // ⏱ ts = เวลาจริงที่หมอกดส่งเบิก
   syncHouseVet(h);
-  toast('เบิกอาหาร'+(fSrc?' '+fSrc:'')+' เบอร์ '+fNo+' '+fmt(qty)+' '+unit+(formula?' · '+formula:'')+' → หลัง '+h.code+' ✓');
+  toast('สั่งอาหาร'+(fSrc?' '+fSrc:'')+' เบอร์ '+fNo+' '+fmt(qty)+' '+unit+(formula?' · '+formula:'')+' → หลัง '+h.code+' ✓');
   ['fr_src','fr_no','fr_qty','fr_formula','fr_note'].forEach(id=>{const e=$("#"+id);if(e)e.value='';});
   updateFeedHist();
 }
@@ -7312,7 +7312,7 @@ function delFeedReq(i){ if(blockIfReadonly())return;
   if(!h||!h.feedReqs||!h.feedReqs[i]) return;
   const r=h.feedReqs[i]; h.feedReqs.splice(i,1);
   syncHouseVet(h);
-  toast('ลบรายการเบิก เบอร์ '+(r.feedNo||'')+' แล้ว');
+  toast('ลบรายการสั่ง เบอร์ '+(r.feedNo||'')+' แล้ว');
   updateFeedHist();
 }
 /* ---------- ประวัติของหมอ — แก้ไขในตารางได้ (inline) + เก็บประวัติการแก้ไข ---------- */
@@ -7850,8 +7850,8 @@ function cfgCardHTML(){
     ${cfgBlock('death','⚰️ ประเภทการตาย')}
     ${cfgBlock('cull','🔪 ประเภทการคัดขาย')}
     ${cfgBlock('cust','👤 ชื่อลูกค้า')}
-    ${cfgBlock('feedsrc','🌾 แหล่งอาหาร (ฟอร์มหมอ: เบิกอาหาร/รับอาหาร)')}
-    ${cfgBlock('feedno','🔢 เบอร์อาหาร (ฟอร์มหมอ: เบิกอาหาร/รับอาหาร/การกินได้)')}
+    ${cfgBlock('feedsrc','🌾 แหล่งอาหาร (ฟอร์มหมอ: สั่งอาหาร/รับอาหาร)')}
+    ${cfgBlock('feedno','🔢 เบอร์อาหาร (ฟอร์มหมอ: สั่งอาหาร/รับอาหาร/การกินได้)')}
   </div>`;
 }
 // ---- ตารางราคาตามน้ำหนัก (ผู้ดูแลแก้ได้) ----
