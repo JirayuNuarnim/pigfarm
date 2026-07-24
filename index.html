@@ -13,6 +13,29 @@
 <meta name="theme-color" content="#15212d">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap');
+  /* ═══ จัดระเบียบหน้าแท่นขาย (จอคอมกว้าง) — build 690724e ═══ */
+  .sbhome .sbtop{display:grid;gap:0 14px}
+  @media(min-width:1080px){ .sbhome .sbtop{grid-template-columns:minmax(0,3fr) minmax(0,2fr);align-items:stretch} }
+  .sbnewbtns{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+  .sbnewbtn{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:14px;text-align:left;font-size:14.5px;line-height:1.25}
+  .sbnewbtn .ic{font-size:26px;line-height:1}
+  .sbnewbtn b{font-size:15px}
+  .sbnewbtn small{display:block;font-weight:500;opacity:.72;font-size:11.5px;margin-top:3px}
+  .sbarch-head{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .sbarch-head .srch{flex:1;display:flex;gap:8px;align-items:center;justify-content:flex-end;min-width:280px}
+  .sbarch-head .srch input{flex:1;max-width:540px}
+  .sbfilters{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:4px 16px;margin-bottom:10px}
+  .sbctrl{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .sbfilters .sbctrl:last-child{border-bottom:0}
+  .sbctrl-l{min-width:84px;font-size:12.5px;font-weight:800;color:var(--ink-2);padding-top:8px;white-space:nowrap}
+  .sbctrl-c{flex:1;display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+  .sbctrl-c .seg{margin:0}
+  .sbctrl-c .seg button{flex:0 0 auto;white-space:nowrap;padding:9px 16px}
+  @media(min-width:1080px){
+    .sbfilters{display:grid;grid-template-columns:1fr 1fr;column-gap:36px;padding:4px 18px}
+    .sbfilters .sbctrl.wide{grid-column:1/-1}
+    .sbfchip{padding:8px 13px;font-size:13px}
+  }
   :root{
     --bg:#28383b; --card:#ffffff; --ink:#1b2a36; --ink-2:#3a4f61; --muted:#62748a;
     --line:#e3ece9; --line-2:#eef3f1; --brand:#1f7d6e; --brand-d:#18655a; --brand-soft:#ddf1ec;
@@ -952,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690724d';
+const APP_BUILD='690724e';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -8344,12 +8367,12 @@ function sbArchiveHTML(){
   const bills=scope.filter(b=>sbStatFilter==='pend'?sbPricePending(b):sbStatFilter==='unpost'?!b.postedAt:sbStatFilter==='locked'?!!b.locked:sbStatFilter==='unpaid'?(function(){const ps=sbPayState(b);return ps==='cash'||ps==='credit';})():true)
     .sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||''))||((b.createdAt||0)-(a.createdAt||0)));
   // ── แถวควบคุม: กล่องเดียว หัวข้อชิดซ้ายทุกแถว อ่านไล่จากบนลงล่าง ──
-  const CTRL=(label,inner)=>`<div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:7px"><span style="min-width:72px;font-size:12.5px;font-weight:800;color:var(--ink-2);padding-top:7px">${label}</span><div style="flex:1;display:flex;gap:6px;flex-wrap:wrap;align-items:center">${inner}</div></div>`;
+  const CTRL=(label,inner,cls)=>`<div class="sbctrl${cls?' '+cls:''}"><span class="sbctrl-l">${label}</span><div class="sbctrl-c">${inner}</div></div>`;
   const rChips=q?'':CTRL('⏱ ช่วงเวลา',[['3d','3 วันล่าสุด'],['7d','7 วัน'],['month','📅 รายเดือน'],['custom','กำหนดเอง']]
     .map(r=>`<button class="sbfchip${sbRange===r[0]?' on':''}" onclick="sbRange='${r[0]}';sbArchiveRe()">${r[1]}</button>`).join(''));
   const mChips=(q||sbRange!=='month')?'':(months.length?CTRL('📅 เดือน',
     months.slice(0,12).map(m=>`<button class="sbfchip${curM===m?' on':''}" onclick="sbMonthSel='${m}';sbArchiveRe()">${sbMonthLabel(m,true)}</button>`).join('')
-    +`<button class="sbfchip${curM==='all'?' on':''}" onclick="sbMonthSel='all';sbArchiveRe()">ทุกเดือน</button>`):'');
+    +`<button class="sbfchip${curM==='all'?' on':''}" onclick="sbMonthSel='all';sbArchiveRe()">ทุกเดือน</button>`,'wide'):'');
   const customRow=(q||sbRange!=='custom')?'':CTRL('ช่วงวันที่',`
     <span class="sub" style="margin:0">จาก</span><input type="date" class="cin" style="max-width:170px" value="${escA(sbFrom)}" onchange="sbFrom=this.value;sbArchiveRe()">
     <span class="sub" style="margin:0">ถึง</span><input type="date" class="cin" style="max-width:170px" value="${escA(sbTo)}" onchange="sbTo=this.value;sbArchiveRe()"`+`>`);
@@ -8361,7 +8384,7 @@ function sbArchiveHTML(){
   const controls=CTRL('ประเภทบิล',`<div class="seg" style="margin:0">${seg}</div>
       <select class="cin tl" style="max-width:220px" onchange="sbFarmFilter=this.value;sbArchiveRe()">
         <option value="">ทุกฟาร์ม</option>${farms.map(f=>`<option ${f===sbFarmFilter?'selected':''}>${escA(f)}</option>`).join('')}</select>`)
-    +CTRL('สถานะ',stChips);
+    +CTRL('สถานะ',stChips,'wide');
   // ── แถบสรุปของขอบเขตที่กำลังดู ──
   let pigs=0,kg=0,amt=0,pd=0;
   bills.forEach(b=>{ const c=sbCalc(b); pigs+=c.n; kg+=c.totW; if(c.net!=null)amt+=c.net; if(c.pending)pd++; });
@@ -8376,7 +8399,7 @@ function sbArchiveHTML(){
     const head=`<div style="display:flex;gap:9px 14px;align-items:center;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:7px 12px;margin:13px 0 8px;font-size:13px;font-weight:800">📅 ${sbThaiDate(g.d)} <span class="more">${fmt(n)} บิล</span><span>🐷 ${fmt(gp)} ตัว</span><span>⚖️ ${fmt(Math.round(gk))} กก.</span><span style="color:var(--ok)">💰 ${fmt(ga)} บาท</span>${gpd?`<span style="color:#b7791f">⏳ รอราคา ${fmt(gpd)} บิล</span>`:''}</div>`;
     return head+g.items.map(sbRowHTML).join('');
   }).join('')+(bills.length>CAP?`<div class="sub" style="margin-top:10px">— แสดง ${fmt(CAP)} บิลแรกจาก ${fmt(bills.length)} — เลือกดูรายเดือน หรือพิมพ์ค้นหาให้แคบลง —</div>`:'');
-  const filterBox=(rChips||mChips||customRow||controls)?`<div style="background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 12px 4px;margin-bottom:10px">${rChips+mChips+customRow+controls}</div>`:'';
+  const filterBox=(rChips||mChips||customRow||controls)?`<div class="sbfilters">${rChips+mChips+customRow+controls}</div>`:'';
   return filterBox+sum+(rows||`<div class="sub" style="margin-top:10px">— ${q?'ไม่พบบิลที่ตรงกับ "'+escA(q)+'"':'ไม่มีบิลในช่วงเวลานี้ — ลองขยายช่วงเวลาด้านบน'} — ${q?'ลองพิมพ์สั้นลง เช่น เฉพาะชื่อผู้ซื้อ':''} —</div>`);
 }
 function renderSaleStand(){ if(vetGuard())return;
@@ -8386,33 +8409,39 @@ function renderSaleStand(){ if(vetGuard())return;
     <h2 class="page">⚖️ แท่นขายหมู</h2>
     <div class="sub">บิลขายรายคันรถ/รายรอบ · น้ำหนักรายตัว · เทียบตาชั่งรถอัตโนมัติ · ${sbCanWrite()?'ราคาใส่ทีหลังได้ (ขึ้นป้ายรอเจ้าของเติม)':'ดูอย่างเดียว'}</div>
     ${clerkNav('sale')}
+    <div class="sbhome">
     ${pend?`<div class="banner info">⏳ <div><b>${pend} บิล</b> ยังไม่ใส่ราคา — เปิดบิลแล้วเติมราคา/กก. หรือช่วงราคาได้เลย</div></div>`:''}
     ${(function(){ if(!sbCanWrite()) return ''; const ds=sbDraftList(); if(!ds.length) return '';
       return `<div class="banner info" style="border-color:#e0b45c">📥 <div><b>บิลค้างที่ยังไม่ได้บันทึก ${fmt(ds.length)} ใบ</b> <span class="more">— สร้างบิลใหม่เพิ่มได้เลย บิลค้างไม่หาย · กด "กรอกต่อ" เพื่อทำใบไหนต่อก็ได้</span>
         ${ds.map(x=>{ const n=(x.d.kind==='deadcull'?(x.d.items||[]).filter(i=>i&&sbNum(i.w)>0).length:(x.d.weights||[]).length);
           return `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-top:1px dashed var(--line);padding-top:7px">
           <span>${(SB_KIND[x.d.kind]||{}).ico||''} ${escA((SB_KIND[x.d.kind]||{}).t||'บิล')} · <b>${escA(x.d.buyer||'ยังไม่ระบุผู้ซื้อ')}</b>${n?' · '+fmt(n)+' ตัว':''}${x.d.farm?' · '+escA(x.d.farm):''} · พิมพ์ล่าสุด ${escA(x.t||'')}</span>
-          <button class="btn sm" onclick="sbDraftResume('${x.d.id}')">▶️ กรอกต่อ</button>
+          <button class="btn sm" style="margin-left:auto" onclick="sbDraftResume('${x.d.id}')">▶️ กรอกต่อ</button>
           <button class="btn ghost sm" onclick="if(confirm('ทิ้งบิลค้างใบนี้? (${escA(x.d.buyer||'ยังไม่ระบุผู้ซื้อ')}${n?' · '+fmt(n)+' ตัว':''})')){sbDraftDrop('${x.d.id}');renderSaleStand();}">🗑 ทิ้ง</button></div>`;}).join('')}
       </div></div>`;})()}
+    <div class="sbtop">
     ${sbCanWrite()?`<div class="card"><h3>＋ บันทึกการขายใหม่</h3>
-      <div style="display:flex;gap:9px;flex-wrap:wrap">
-        <button class="btn sm" onclick="sbNew('fatten')">🐖 ขายหมูขุน (รายคันรถ)</button>
-        <button class="btn sm" onclick="sbNew('deadcull')">⚰️ หมูตาย/คัดขาย (ช่วงราคา)</button>
-        <button class="btn ghost sm" onclick="sbNew('breeder')">🐷 แม่/พ่อพันธุ์</button>
+      <div class="sbnewbtns">
+        <button class="btn sbnewbtn" onclick="sbNew('fatten')"><span class="ic">🐖</span><span><b>ขายหมูขุน</b><small>รายคันรถ · ชั่งน้ำหนักรายตัว</small></span></button>
+        <button class="btn sbnewbtn" onclick="sbNew('deadcull')"><span class="ic">⚰️</span><span><b>หมูตาย/คัดขาย</b><small>คิดตามช่วงราคา</small></span></button>
+        <button class="btn ghost sbnewbtn" onclick="sbNew('breeder')"><span class="ic">🐷</span><span><b>แม่/พ่อพันธุ์</b><small>บิลขายพ่อแม่พันธุ์</small></span></button>
       </div>
-      <div class="sub" style="margin-top:8px">💡 มีบิลกระดาษ? ถ่ายรูปส่งให้ผู้ดูแลระบบสแกนลงให้ได้เช่นกัน</div></div>`:''}
+      <div class="sub" style="margin-top:10px">💡 มีบิลกระดาษ? ถ่ายรูปส่งให้ผู้ดูแลระบบสแกนลงให้ได้เช่นกัน</div></div>`:''}
     <div class="card"><h3>👤 รายชื่อลูกค้า + ราคาประจำเจ้า <span class="more">${fmt(SB_CUST.length)} เจ้า</span></h3>
       <div class="sub" style="margin-top:-2px">ตารางราคาตามน้ำหนักแยกรายลูกค้า — พิมพ์ชื่อในบิลแล้วราคาเติมเอง · ${ROLE==='owner'?'แก้ราคาได้ (เฉพาะเจ้าของ)':'เจ้าของเป็นผู้ตั้งราคา'}</div>
-      <button class="btn ghost sm" style="margin-top:8px" onclick="renderSbCustomers()">เปิดทะเบียนลูกค้า ›</button></div>
+      <button class="btn ghost sm" style="margin-top:10px" onclick="renderSbCustomers()">เปิดทะเบียนลูกค้า ›</button></div>
+    </div>
     <div class="card">
-      <h3>📚 คลังบิลทั้งหมด <span class="more">${fmt(SALE_BILLS.length)} บิลในระบบ</span></h3>
-      ${SALE_BILLS.length?`<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-        <input id="sbSearchIn" class="cin" style="flex:1;max-width:430px" placeholder="🔍 ค้นหาบิล — ชื่อผู้ซื้อ / เลขที่บิล / ทะเบียนรถ / รหัสหลัง / คนกรอก" value="${escA(sbSearch)}" oninput="sbSearch=this.value;sbArchiveRe()">
-        <button class="btn ghost sm" title="ล้างคำค้น" onclick="sbSearch='';var el=document.getElementById('sbSearchIn');if(el)el.value='';sbArchiveRe()">✕</button>
+      ${SALE_BILLS.length?`<div class="sbarch-head">
+        <h3 style="margin:0">📚 คลังบิลทั้งหมด <span class="more">${fmt(SALE_BILLS.length)} บิลในระบบ</span></h3>
+        <div class="srch">
+          <input id="sbSearchIn" class="cin" placeholder="🔍 ค้นหาบิล — ชื่อผู้ซื้อ / เลขที่บิล / ทะเบียนรถ / รหัสหลัง / คนกรอก" value="${escA(sbSearch)}" oninput="sbSearch=this.value;sbArchiveRe()">
+          <button class="btn ghost sm" title="ล้างคำค้น" onclick="sbSearch='';var el=document.getElementById('sbSearchIn');if(el)el.value='';sbArchiveRe()">✕</button>
+        </div>
       </div>
       <div id="sbArchive">${sbArchiveHTML()}</div>`
-      :'<div class="sub">— ยังไม่มีบิลขาย — กดปุ่มด้านบนเพื่อเริ่มบันทึก หรือรอข้อมูลซิงก์จากทีม —</div>'}
+      :`<h3>📚 คลังบิลทั้งหมด</h3><div class="sub">— ยังไม่มีบิลขาย — กดปุ่มด้านบนเพื่อเริ่มบันทึก หรือรอข้อมูลซิงก์จากทีม —</div>`}
+    </div>
     </div>`;
 }
 /* ---------- ฟอร์มบิล ---------- */
