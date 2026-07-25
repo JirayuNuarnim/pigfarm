@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690725a';
+const APP_BUILD='690725b';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -2932,16 +2932,16 @@ function exportClerkReq(){
   Object.keys(byVet).sort((a,b)=>a.localeCompare(b,'th')).forEach(v=>{
     let vq=0, vs=0;
     byVet[v].slice().sort((a,b)=>reqDateKey(a.date)-reqDateKey(b.date)||(a.ts||0)-(b.ts||0)||String(a.name||'').localeCompare(String(b.name||''),'th'))
-      .forEach(m=>{ vq+=Number(m.qty)||0; vs+=Number(m.total)||0; data.push([v,m.date,reqTimeStr(m)||'-',m.farm,m.house,m.cat,m.name,m.dose||'',m.qty||0,m.price||0,m.total||0,m.note||'']); });
+      .forEach(m=>{ vq+=Number(m.qty)||0; vs+=Number(m.total)||0; data.push([v,m.by||m.vet||'-',m.date,reqTimeStr(m)||'-',m.farm,m.house,m.cat,m.name,m.dose||'',m.qty||0,m.price||0,m.total||0,m.note||'']); });
     qty+=vq; sum+=vs;
-    data.push(['รวม — '+v+' ('+byVet[v].length+' รายการ)','','','','','','','',vq,'',vs,'']);
+    data.push(['รวม — '+v+' ('+byVet[v].length+' รายการ)','','','','','','','','',vq,'',vs,'']);
   });
   const meta=[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'ขอบเขต',v:scope}];
   if(dlab) meta.push({k:'วันที่',v:dlab});
   meta.push({k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออกรายงาน',v:(CURRENT_USER&&CURRENT_USER.name)||'-'});
   const html=xlsSheet({ title:'รายการเบิกยา/อุปกรณ์ (แยกตามหมอ)', meta:meta,
-    columns:[{label:'หมอ',type:'text',w:130},{label:'วันที่',type:'text',w:90},{label:'เวลาส่งเบิก',type:'text',w:80},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'หมวด',type:'text',w:120},{label:'ชื่อ',type:'text',w:200},{label:'โดสการใช้',type:'text',w:130},{label:'จำนวน',type:'num',w:70},{label:'ราคา/หน่วย',type:'money',w:90},{label:'มูลค่า',type:'money',w:100},{label:'หมายเหตุ',type:'text',w:140}],
-    rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','','','','',qty,'',sum,''] });
+    columns:[{label:'หมอประจำหลัง',type:'text',w:130},{label:'คนกดเบิก',type:'text',w:130},{label:'วันที่',type:'text',w:90},{label:'เวลาส่งเบิก',type:'text',w:80},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'หมวด',type:'text',w:120},{label:'ชื่อ',type:'text',w:200},{label:'โดสการใช้',type:'text',w:130},{label:'จำนวน',type:'num',w:70},{label:'ราคา/หน่วย',type:'money',w:90},{label:'มูลค่า',type:'money',w:100},{label:'หมายเหตุ',type:'text',w:140}],
+    rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','','','','','',qty,'',sum,''] });
   downloadXls('รายการเบิกยา'+(crFarm?'_'+crFarm:'')+(crHouse?'_หลัง'+crHouse:'')+(crVet?'_'+crVet:'')+(dlab?'_'+dlab.replace(/ /g,''):'')+'.xls', html);
   toast('ส่งออกไฟล์ Excel แล้ว ('+rows.length+' รายการ) ✓');
 }
@@ -3013,11 +3013,12 @@ function renderClerkReq(){ if(vetGuard())return;
               const tss=vi.map(reqTimeStr).filter(Boolean).sort();   // ⏱ ช่วงเวลาที่หมอคนนี้กดส่งเบิกในวันนั้น
               const trange=tss.length?(' · ⏱ '+(tss.length>1&&tss[0]!==tss[tss.length-1]?tss[0]+'–'+tss[tss.length-1]:tss[0])+' น.'):'';
               return `<div style="margin-top:8px">
-                <div style="font-weight:600;font-size:13px;border-left:3px solid var(--brand);padding-left:8px;margin-bottom:5px">🩺 ${escA(vt)} <span class="sub" style="font-weight:400">· ${vi.length} รายการ · ${fmt(vtotal)} บาท${trange}</span></div>
+                <div style="font-weight:600;font-size:13px;border-left:3px solid var(--brand);padding-left:8px;margin-bottom:5px">🩺 ${escA(vt)} <span class="sub" style="font-weight:400">(หมอประจำหลัง) · ${vi.length} รายการ · ${fmt(vtotal)} บาท${trange}</span></div>
                 <div style="overflow-x:auto"><table>
-                  <thead><tr><th>⏱ เวลาส่งเบิก</th><th>หลัง</th><th>หมวด</th><th>ชื่อ</th><th class="num">จำนวน</th><th class="num">มูลค่า</th></tr></thead>
+                  <thead><tr><th>⏱ เวลาส่งเบิก</th><th>✍️ คนกดเบิก</th><th>หลัง</th><th>หมวด</th><th>ชื่อ</th><th class="num">จำนวน</th><th class="num">มูลค่า</th></tr></thead>
                   <tbody>${vi.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(m=>`<tr>
                     <td>${reqTimeCell(m)}</td>
+                    <td>${(m.by&&String(m.by).trim()&&m.by!==vt)?'<b style="color:#b7791f" title="คนกดเบิกไม่ใช่หมอประจำหลังนี้">'+escA(m.by)+'</b>':'<span class="sub">'+escA(m.by||vt)+'</span>'}</td>
                     <td><b>${escA(m.house)}</b></td><td><span class="sub">${escA(m.cat||'-')}</span></td>
                     <td>${escA(m.name)}${m.dose?'<div class="sub">โดส: '+escA(m.dose)+'</div>':''}${m.note?'<div class="sub">📝 '+escA(m.note)+'</div>':''}</td>
                     <td class="num">${m.qty}</td><td class="num">${m.total?fmt(m.total):'-'}</td></tr>`).join("")}</tbody>
@@ -3033,7 +3034,7 @@ function renderClerkReq(){ if(vetGuard())return;
 }
 /* ---------- รายการสั่งอาหาร (เสมียน): รวม h.feedReqs ทุกหลังที่ดูแล แยกตามฟาร์ม→วัน ---------- */
 let cfrFarm='', cfrHouse='', cfrVet='', cfrDate='', cfrDateMode='day', cfrDateFrom='', cfrDateTo='';
-function clerkFeedReqAll(){return myHouses().flatMap(h=>(h.feedReqs||[]).map(r=>Object.assign({},r,{house:h.code,farm:h.farm||'ไม่ระบุฟาร์ม'})));}
+function clerkFeedReqAll(){return myHouses().flatMap(h=>(h.feedReqs||[]).map(r=>Object.assign({},r,{house:h.code,farm:h.farm||'ไม่ระบุฟาร์ม',hvet:h.vet||''})));}
 function cfrDateMatch(r){
   if(cfrDateMode==='range'){
     if(!cfrDateFrom && !cfrDateTo) return true;
@@ -3105,12 +3106,12 @@ function renderClerkFeedReq(){ if(vetGuard())return;
           return `<div style="margin-top:14px">
             <div style="font-weight:700;font-size:14px;margin-bottom:6px">📅 ${escA(d)} <span class="sub" style="font-weight:400">· ${dItems.length} รายการ</span></div>
             <div style="overflow-x:auto"><table>
-              <thead><tr><th>⏱ เวลาสั่ง</th><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th><th>หมอ</th></tr></thead>
+              <thead><tr><th>⏱ เวลาสั่ง</th><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th><th>✍️ คนกดสั่ง</th></tr></thead>
               <tbody>${dItems.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(r=>`<tr>
                 <td>${reqTimeCell(r)}</td>
                 <td><b>${escA(r.house)}</b></td><td>${r.feedSrc?'<b>'+escA(r.feedSrc)+'</b>':'-'}</td><td><b>${escA(r.feedNo||'-')}</b></td>
                 <td class="num">${fmt(Number(r.qty)||0)}</td><td><span class="sub">${escA(r.unit||'-')}</span></td>
-                <td>${r.formula?'<b>'+escA(r.formula)+'</b>':'-'}</td><td>${escA(r.note||'-')}</td><td><span class="sub">${escA(r.by||'-')}</span></td>
+                <td>${r.formula?'<b>'+escA(r.formula)+'</b>':'-'}</td><td>${escA(r.note||'-')}</td><td>${(r.by&&r.hvet&&r.by!==r.hvet)?'<b style="color:#b7791f" title="คนกดสั่งไม่ใช่หมอประจำหลังนี้">'+escA(r.by)+'</b><div class="sub">ประจำ: '+escA(r.hvet)+'</div>':'<span class="sub">'+escA(r.by||r.hvet||'-')+'</span>'}</td>
               </tr>`).join("")}</tbody>
             </table></div>
           </div>`;}).join("")}
@@ -7346,8 +7347,8 @@ function requestMedRow(cat,ci,i){ if(blockIfReadonly())return;
   }
   const ahead=(reqPickDay==='tomorrow'), useDate=reqPickDateStr();   // ⏭ เบิกล่วงหน้า: ลงวันที่พรุ่งนี้ทุกจุด (ใบเบิก/บันทึกยา/ต้นทุน) · สต็อกจองทันที
   h.meds=h.meds||[];
-  h.meds.unshift({date:useDate,cat,name,dose,note,qty,price,total:price*qty,vet:h.vet||'หมอ',ts:Date.now()});   // ⏱ ts = เวลาจริงที่หมอกดส่งเบิก (เสมียนดูได้ว่าเบิกกี่โมง)
-  if(stockCountable(cat)){ stockMoveAdd(farm,{date:useDate,type:'out',delta:-qty,cat,name,price,by:h.vet||'หมอ',house:h.code,vet:h.vet||'',ref:'เบิก'+(ahead?'ล่วงหน้า':'')+' หลัง '+h.code,note:dose||''}); syncStock(); } // ตัดสต็อกออกจากคลังฟาร์ม (เซฟแยกคีย์ stock → หมอบันทึกได้จริง)
+  h.meds.unshift({date:useDate,cat,name,dose,note,qty,price,total:price*qty,vet:h.vet||'หมอ',by:whoNow()||h.vet||'',ts:Date.now()});   // ⏱ ts = เวลาจริงที่หมอกดส่งเบิก · ✍️ by = คนที่กดเบิกจริง (อาจไม่ใช่หมอประจำหลัง)
+  if(stockCountable(cat)){ stockMoveAdd(farm,{date:useDate,type:'out',delta:-qty,cat,name,price,by:whoNow()||h.vet||'หมอ',house:h.code,vet:h.vet||'',ref:'เบิก'+(ahead?'ล่วงหน้า':'')+' หลัง '+h.code,note:dose||''}); syncStock(); } // ตัดสต็อกออกจากคลังฟาร์ม · by = คนกดเบิกจริง
   syncHouseVet(h);
   const qtyTxt=mixDesc?mixDesc:('x'+fmt(qty));
   toast(ahead?('⏭ เบิกล่วงหน้า '+name+' '+qtyTxt+' → หลัง '+h.code+' ของวันพรุ่งนี้ ('+useDate+') ✓ จะขึ้นใบเบิกพรุ่งนี้'):('เบิก '+name+' '+qtyTxt+' → หลัง '+h.code+(stockCountable(cat)?' · คลังเหลือ '+fmt(stockOnHand(farm,cat,name))+(cat==='ยาผสมอาหาร'?' กก.':''):'')+' ✓'));   // ไม่โชว์ราคา/มูลค่าให้หมอ
