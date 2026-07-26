@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690726b';
+const APP_BUILD='690726c';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9938,21 +9938,21 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
       +'<td style="'+BD+';'+TH+';text-align:center;font-size:12px;font-weight:800">'+(c.pending?PEND:fmt(gd))+'</td></tr></table>';
     h+=bt;
   }else{
-    // ── ตารางน้ำหนักรายตัว 10 คู่คอลัมน์ (ไล่ลงทีละคอลัมน์ เหมือนบิลกระดาษ · เกิน 100 ตัวขึ้นแผ่นต่อ) ──
+    // ── ตารางน้ำหนักรายตัว 10 คู่คอลัมน์ — ทุกตัวอยู่บล็อกเดียว (แถวยืดตามจำนวน แล้วตัวย่อ A4 จัดการให้อยู่หน้าเดียวเสมอ) ──
     const ws=b.weights||[];
-    for(let page=0; page*100<Math.max(ws.length,1); page++){
-      const off=page*100;
+    const ROWS=Math.max(10,Math.ceil(Math.max(ws.length,1)/10));   // 110 ตัว = 11 แถว · 150 ตัว = 15 แถว — ไม่ขึ้นแผ่นต่อแล้ว
+    {
       let g='<table style="width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:8px"><tr>';
       for(let j=0;j<10;j++) g+='<th style="'+BD+';'+TH+';font-size:10px;width:3.6%;padding:2px 1px">ตัว</th><th style="'+BD+';'+TH+';font-size:10px;width:6.4%;padding:2px 1px">น.น.</th>';
       g+='</tr>';
-      for(let r=0;r<10;r++){ g+='<tr>';
-        for(let j=0;j<10;j++){ const idx=off+j*10+r;
+      for(let r=0;r<ROWS;r++){ g+='<tr>';
+        for(let j=0;j<10;j++){ const idx=j*ROWS+r;
           g+='<td style="'+BD+';font-size:9px;color:#888;text-align:center;padding:2px 1px">'+(idx<ws.length?(idx+1):'&nbsp;')+'</td>'
             +'<td style="'+BD+';font-size:12.5px;font-weight:700;text-align:center;padding:2px 1px'+((live&&ws.length&&idx===ws.length-1)?';background:#ffe9a8':'')+'">'+(idx<ws.length?ws[idx]:'')+'</td>'; }
         g+='</tr>'; }
       g+='<tr>';
       for(let j=0;j<10;j++){ let s=0,has=false;
-        for(let r=0;r<10;r++){ const idx=off+j*10+r; if(idx<ws.length){ s+=sbNum(ws[idx]); has=true; } }
+        for(let r=0;r<ROWS;r++){ const idx=j*ROWS+r; if(idx<ws.length){ s+=sbNum(ws[idx]); has=true; } }
         g+='<td colspan="2" style="'+BD+';'+TH+';text-align:center;font-size:11.5px;padding:3px 1px">'+(has?fmt(Math.round(s*10)/10):'&nbsp;')+'</td>'; }
       g+='</tr></table>';
       h+=g;
@@ -10035,12 +10035,12 @@ function sbPrintObj(b){
 }
 function sbPrint(id){ const b=SALE_BILLS.find(x=>x.id===id); if(!b){ toast('ไม่พบบิล'); return; } sbPrintObj(b); }
 function sbPrintClose(){ const ov=document.getElementById('sbPrintOverlay'); if(ov) ov.remove(); SB_PRINT_B=null; }
-function sbPrintFit(){ // 📄 ย่อเอกสารอัตโนมัติให้พอดี A4 แนวตั้ง 1 หน้า (เกินพอประมาณถึง ~38% — เกินกว่านั้นปล่อยขึ้นหน้าใหม่เพื่อให้อ่านออก)
+function sbPrintFit(){ // 📄 ย่อเอกสารอัตโนมัติให้พอดี A4 แนวตั้ง "1 หน้าเสมอ" (กติกาเจ้าของ 26 ก.ค. — ย่อเท่าที่จำเป็น ไม่ปล่อยขึ้นหน้า 2)
   try{
     const pg=document.getElementById('sbPrintPage'); if(!pg) return;
     const H=1035, W=716; // พื้นที่พิมพ์ A4 margin 10mm ≈ 277×190 มม. คิดเป็น px (96dpi)
     const z=Math.min(1, H/Math.max(1,pg.scrollHeight), W/Math.max(1,pg.scrollWidth));
-    pg.style.setProperty('--sbfit', (z<1&&z>=0.62)?z.toFixed(3):'1');
+    pg.style.setProperty('--sbfit', z<1?Math.max(z,0.3).toFixed(3):'1');   // กันสุดโต่ง: ต่ำสุด 30% (บิลปกติไม่มีทางถึง)
   }catch(e){}
 }
 /* ---------- ส่งออกบิลขายเป็น Excel รายบิล (หน้าตาเหมือนบิลกระดาษ · ปริ๊นจาก Excel ได้เลย) ---------- */
