@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690726f';
+const APP_BUILD='690726g';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9114,6 +9114,9 @@ function sbSave(){
       return k+((String(bd.cull==null?'':bd.cull)!==String(nb.cull==null?'':nb.cull))?1:0)+((String(bd.dead==null?'':bd.dead)!==String(nb.dead==null?'':nb.dead))?1:0);},0);
     if(bandCh) changes.push({label:'ราคาช่วงน้ำหนัก',from:'-',to:'แก้ '+bandCh+' ช่อง'});
   }
+  // 📷 กติกาเจ้าของ (26 ก.ค.): เงินเข้าต้องมีหลักฐาน — เลือก "โอนแล้ว" ครั้งแรก (ยังไม่เคยบันทึกรับเงินของบิลนี้) ต้องแนบสลิปก่อน
+  const _payDone=(function(){ try{ return !!(LG.entries||[]).find(e=>e.id==='pay_'+SB_D.id&&!e.voided); }catch(e){ return false; } })();
+  if(SB_D.payMode==='transfer'&&!SB_D.paySlip&&!_payDone&&c.net!=null){ toast('📷 เลือก "โอนแล้ว" ต้องแนบสลิปโอนก่อนบันทึก — ไม่มีหลักฐานการโอน ปิดบิลไม่ได้ (กติกาเจ้าของ)'); return; }
   SB_D.editLog=SB_D.editLog||[];
   SB_D.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',changes:changes,note:(SB_ISNEW?'สร้างบิล':'แก้ไขบิล')+(c.pending?' (ยังไม่ใส่ราคา)':'')});
   if(!SB_D.savedAt) SB_D.savedAt=Date.now();   // 🕐 เวลากดบันทึกครั้งแรก (โชว์ในคลังบิล — แก้ทีหลังไม่เปลี่ยนเวลานี้)
@@ -9578,7 +9581,7 @@ function lgPayCardHTML(){
       ${m==='cash_later'?`<div class="frow"><label>ผู้รับผิดชอบเก็บเงิน</label><input class="cin" value="${escA(SB_D.payResp||'')}" oninput="SB_D.payResp=this.value" placeholder="ชื่อคนที่ถือ/ตามเก็บเงินบิลนี้"></div>`:''}
       ${m==='transfer'?`<div class="frow"><label>ยอดโอนจริง (บาท) <span class="hint">(เว้นว่าง = โอนเต็มยอดบิล · ใส่เมื่อโอนไม่ครบ ส่วนต่างจะขึ้นเป็นยอดค้าง)</span></label>
         <input class="cin tl" type="number" step="1" value="${escA(SB_D.payAmt||'')}" oninput="SB_D.payAmt=this.value;sbRefresh()" placeholder="เว้นว่าง = เต็มยอดบิล"></div>
-      <div class="frow" style="grid-column:1/-1"><label>📷 สลิปโอนเงิน <span class="hint">(ไม่บังคับ — แนบแล้วติดไปกับบิล+ใบรับเงินอัตโนมัติ)</span></label>
+      <div class="frow" style="grid-column:1/-1"><label>📷 สลิปโอนเงิน <span class="hint" style="color:var(--bad);font-weight:700">(บังคับเมื่อเลือก "โอนแล้ว" — ไม่มีหลักฐานการโอน ปิดบิลไม่ได้)</span></label>
         ${SB_D.paySlip?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sbchip ok">✓ แนบสลิปแล้ว</span><button class="btn ghost sm" onclick="lgViewSlip('${escA(SB_D.paySlip)}')">📷 ดูรูป</button><button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.paySlip='';renderSaleBillForm()">✕ เอาออก</button></div>`
         :`<input class="cin" type="file" accept="image/*" onchange="sbPaySlipPick(this)">`}</div>`:''}
     </div><div class="sub" style="margin-top:6px">📒 ${hint}</div>${(function(){ const cr=lgCreditOf(SB_D.buyer); return cr>0?`<div class="sbchip warn" style="margin-top:8px;font-size:13px">⚠️ บัญชีลูกค้ารายนี้มียอดเกินค้าง <b>${fmt(Math.round(cr))}</b> บาท — ผิดปกติ (ลูกค้าหมูไม่มีเครดิตกับฟาร์ม) แจ้งเจ้าของตรวจบัญชีลูกค้า · บิลนี้คิดเต็มตามปกติ</div>`:''; })()}</div>`;
@@ -9730,7 +9733,7 @@ function renderLgCust(){
         <div class="frow"><label>วันที่รับ</label><input id="lgPayDate" type="date" class="cin" value="${todayISO()}"></div>
         <div class="frow"><label>ผู้ส่งเงิน/คนเก็บมา (เงินสด)</label><input id="lgPayResp" class="cin" placeholder="เช่น ชื่อคนที่ถือเงินมาส่ง"></div>
         <div class="frow" style="grid-column:1/-1"><label>หมายเหตุ</label><input id="lgPayNote" class="cin" placeholder="เช่น ชำระบิล 6 ก.ค. / โอน กสิกร"></div>
-        <div class="frow" style="grid-column:1/-1"><label>📷 รูปหลักฐาน <span class="hint">(สลิปโอน/รูปรับเงินสด — ไม่บังคับ · ถ่ายหรือเลือกจากเครื่อง)</span></label><input id="lgPaySlip" class="cin" type="file" accept="image/*"></div>
+        <div class="frow" style="grid-column:1/-1"><label>📷 รูปหลักฐาน <span class="hint" style="color:var(--bad);font-weight:700">(บังคับ — สลิปโอน/รูปเอกสารรับเงิน · ไม่มีหลักฐาน บันทึกรับเงิน/ปิดบิลไม่ได้)</span></label><input id="lgPaySlip" class="cin" type="file" accept="image/*"></div>
       </div>
       <div style="margin-top:10px"><button class="btn" onclick="lgDoPay('${c.id}')">💸 บันทึกรับเงิน + ออกใบรับเงิน</button></div></div>
     <div class="card"><h3>➖ ตกลงหักหน้าบิล (เครดิตไว้หักรอบถัดไป)</h3>
@@ -9755,11 +9758,10 @@ async function lgDoPay(custId){
   // 📷 รูปหลักฐาน (ถ้าแนบ) — ย่อ+อัปขึ้นคลาวด์ก่อน แล้วผูก path เข้ากับใบรับเงิน
   let slipPath=null;
   const fEl=$("#lgPaySlip"), slipFile=fEl&&fEl.files&&fEl.files[0];
-  if(slipFile){
-    toast('📷 กำลังอัปโหลดรูปหลักฐาน...');
-    try{ slipPath=await lgUploadSlip(slipFile); }catch(err){ console.warn('slip',err); slipPath=null; }
-    if(!slipPath && !confirm('อัปโหลดรูปไม่สำเร็จ (เน็ตอาจสะดุด)\nบันทึกรับเงินต่อโดยไม่มีรูป?')) return;
-  }
+  if(!slipFile){ toast('📷 ต้องแนบรูปหลักฐานก่อน (สลิปโอน/รูปเอกสารรับเงิน) — ไม่มีหลักฐาน บันทึกรับเงิน/ปิดบิลไม่ได้ (กติกาเจ้าของ)'); return; }
+  toast('📷 กำลังอัปโหลดรูปหลักฐาน...');
+  try{ slipPath=await lgUploadSlip(slipFile); }catch(err){ console.warn('slip',err); slipPath=null; }
+  if(!slipPath){ toast('❌ อัปโหลดรูปไม่สำเร็จ — เช็คอินเทอร์เน็ตแล้วลองใหม่ (ต้องมีหลักฐานจึงบันทึกได้)'); return; }
   const saleId=lgFinView()?String((($("#lgPayBill")||{}).value)||'').trim()||null:null;   // 💸 เลือกบิล = ตัดหนี้เฉพาะบิลนั้น
   let note=String((($("#lgPayNote")||{}).value)||'').trim();
   if(saleId){
