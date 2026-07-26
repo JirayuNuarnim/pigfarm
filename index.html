@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690726g';
+const APP_BUILD='690726h';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9332,7 +9332,7 @@ function sbSaveAndPost(){ const id=SB_D&&SB_D.id; sbSave(); if(id&&SB_D===null&&
 let LG={customers:[],entries:[],docs:[]};
 try{ const _lg0=JSON.parse(localStorage.getItem('sjfLedger')||'null'); if(_lg0&&Array.isArray(_lg0.entries)) LG=_lg0; }catch(e){}
 let _lgQ=[]; try{ const _q0=JSON.parse(localStorage.getItem('sjfLedgerQ')||'[]'); if(Array.isArray(_q0)) _lgQ=_q0; }catch(e){}
-let _lgLoadAt=0, lgTab='ar', lgCustSel=null;
+let _lgLoadAt=0, lgTab='ar', lgCustSel=null, lgPaySel=[];   // ☑️ lgPaySel = บิลที่ติ๊กเลือกไว้รับเงินรวดเดียว (โอนรวมหลายบิล)
 let lgDocType='', lgDocSearch='';   // 🧾 แท็บเอกสาร: กรองประเภท + คำค้น
 let lgDocRange='all', lgDocMonthSel='all', lgDocFrom='', lgDocTo='';   // 📅 ช่วงเวลาแท็บเอกสาร (แบบเดียวกับคลังบิล)
 function lgDocSorted(){ return LG.docs.slice().sort((a,b)=>String(b.issued_at||'').localeCompare(String(a.issued_at||''))); } // เรียงใหม่→เก่าเองเสมอ — ไม่พึ่งลำดับจากเซิร์ฟเวอร์/ลำดับ unshift ในเครื่อง
@@ -9677,6 +9677,7 @@ function renderLgCust(){
   if(Date.now()-_lgLoadAt>5000){ lgCloudLoad().then(()=>{ const t2=navHist[navHist.length-1]; if(t2&&t2.key==='lgcust'&&t2.fn) t2.fn(); }); }   // 📱 เปิดบัญชีรายลูกค้า = ดึงสดเบื้องหลัง
   const c=LG.customers.find(x=>x.id===lgCustSel);
   if(!c){ renderLedger(); return; }
+  lgPaySel=lgPaySel.filter(id=>{ const inv=LG.entries.find(en=>en.customer_id===c.id&&en.entry_type==='invoice'&&en.sale_id===id&&!en.voided); return !!inv&&lgSaleOutstanding(id)>0.5; });   // ตัดบิลที่จ่ายแล้ว/คนละลูกค้าออกจากที่เลือก
   const rows=LG.entries.filter(e=>e.customer_id===c.id).sort((a,b)=>String(b.entry_date).localeCompare(String(a.entry_date))||String(b.created_at||'').localeCompare(String(a.created_at||'')));
   const bal=lgBalance(c.id);
   const TY={invoice:['🧾 บิลขาย','var(--bad)'],payment:['💸 รับเงิน','var(--ok)'],deduction:['➖ หักหน้าบิล','var(--info)'],adjustment:['✏️ ปรับปรุง','var(--warn)']};
@@ -9698,9 +9699,12 @@ function renderLgCust(){
         return `<tr><td style="${TD};white-space:nowrap">${ref}</td><td style="${TD}">${escA((b&&b.farm)||'-')}</td><td style="${TD}">${det}</td>
           <td style="${TD};text-align:right;font-weight:800">${lgMoney(x.e.amount)}</td><td style="${TD};text-align:right;font-weight:900;color:var(--bad)">${lgMoney(x.out)}</td>
           <td style="${TD};white-space:nowrap">${st}</td>
-          <td style="${TD};text-align:right;white-space:nowrap">${b?`<button class="btn ghost sm" onclick="lgViewBill('${x.e.sale_id}')">🧾 ดูบิล</button> `:''}<button class="btn sm" style="padding:7px 11px" onclick="lgPickBillPay('${x.e.sale_id}',${Math.round(x.out)})">💸 รับเงินบิลนี้</button></td></tr>`;
+          <td style="${TD};text-align:right;white-space:nowrap"><label style="display:inline-flex;align-items:center;gap:5px;margin-right:8px;cursor:pointer;font-size:12.5px"><input type="checkbox" style="width:19px;height:19px" ${lgPaySel.indexOf(x.e.sale_id)>=0?'checked':''} onchange="lgPaySelTgl('${x.e.sale_id}')">เลือก</label>${b?`<button class="btn ghost sm" onclick="lgViewBill('${x.e.sale_id}')">🧾 ดูบิล</button> `:''}<button class="btn sm" style="padding:7px 11px" onclick="lgPickBillPay('${x.e.sale_id}',${Math.round(x.out)})">💸 รับเงินบิลนี้</button></td></tr>`;
       }).join('')}
     </table></div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      ${lgPaySel.length?`<button class="btn" onclick="lgPickSelPay()">💸 รับเงิน ${fmt(lgPaySel.length)} บิลที่เลือก — รวม ${lgMoney(lgPaySel.reduce((s,id)=>s+lgSaleOutstanding(id),0))} บาท</button><button class="btn ghost sm" onclick="lgPaySel=[];renderLgCust()">✕ ล้างที่เลือก</button>`:`<span class="sub" style="margin:0">☑️ ลูกค้าโอนรวมหลายบิลมาก้อนเดียว? ติ๊ก "เลือก" 2 บิลขึ้นไป แล้วกดรับเงินรวดเดียว</span>`}
+    </div>
     <div class="sub" style="margin-top:8px">💡 กด "💸 รับเงินบิลนี้" ระบบจะเลือกบิล+ใส่ยอดในฟอร์มรับเงินด้านล่างให้ — เลือกวิธีรับแล้วกดบันทึกได้เลย · ยอดจะตัดเฉพาะบิลนั้น สถานะบิลเปลี่ยนเป็น ✅ อัตโนมัติ</div></div>`
     :`<div class="card"><h3>📋 บิลค้างชำระของลูกค้ารายนี้</h3><div class="sub">— ไม่มีบิลค้างชำระ 🎉 —</div></div>`);
   const list=rows.length?rows.map(e=>{
@@ -9724,11 +9728,13 @@ function renderLgCust(){
     ${billTable}
     <div class="card"><h3>💸 บันทึกรับเงิน <span class="more">ออกใบรับเงินให้อัตโนมัติ</span></h3>
       <div class="fgrid">
-        ${fin?`<div class="frow" style="grid-column:1/-1"><label>รับเงินสำหรับ <span class="hint">(เลือกบิล = ตัดหนี้เฉพาะบิลนั้น)</span></label><select id="lgPayBill" class="cin tl" onchange="lgPayBillSel(this.value)">
+        ${(fin&&lgPaySel.length)?`<div class="frow" style="grid-column:1/-1"><label>☑️ ชำระหลายบิลรวดเดียว (${fmt(lgPaySel.length)} ใบ) <span class="hint">แตะป้ายบิลเพื่อเอาออก · ระบบตัดเต็มยอดค้างของแต่ละบิล</span></label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">${lgPaySel.map(id=>{const b=SALE_BILLS.find(x=>x.id===id);const o=lgSaleOutstanding(id);return `<button class="sbfchip on" onclick="lgPaySelTgl('${id}')">${b?sbThaiDate(b.dateISO)+(b.billNo?' '+escA(b.billBook||'-')+'/'+escA(b.billNo):''):escA(id)} · ${lgMoney(o)} ✕</button>`;}).join('')}</div></div>`
+        :fin?`<div class="frow" style="grid-column:1/-1"><label>รับเงินสำหรับ <span class="hint">(เลือกบิล = ตัดหนี้เฉพาะบิลนั้น)</span></label><select id="lgPayBill" class="cin tl" onchange="lgPayBillSel(this.value)">
           <option value="">ยอดรวมของลูกค้า (ไม่ระบุบิล)</option>
           ${openInvs.map(x=>{const b=x.b;const ref=b?(sbThaiDate(b.dateISO)+(b.billNo?' เล่ม '+escA(b.billBook||'-')+'/'+escA(b.billNo):(b.webNo?' '+escA(b.webNo):''))):sbThaiDate(x.e.entry_date);return `<option value="${x.e.sale_id}">บิล ${ref} · ค้าง ${lgMoney(x.out)} บาท</option>`;}).join('')}
         </select></div>`:''}
-        <div class="frow"><label>จำนวนเงิน (บาท)</label><input id="lgPayAmt" type="number" step="1" class="cin" value="${fin&&bal>0.5?Math.round(bal):''}" placeholder="ยอดที่รับจริง"></div>
+        <div class="frow"><label>จำนวนเงิน (บาท)</label><input id="lgPayAmt" type="number" step="1" class="cin" ${lgPaySel.length?'readonly style="background:var(--soft);font-weight:800"':''} value="${lgPaySel.length?Math.round(lgPaySel.reduce((s,id)=>s+lgSaleOutstanding(id),0)):(fin&&bal>0.5?Math.round(bal):'')}" placeholder="ยอดที่รับจริง"></div>
         <div class="frow"><label>วิธีรับ</label><select id="lgPayMethod" class="cin tl"><option value="transfer">🏦 โอนเข้าบัญชี</option><option value="cash">💵 เงินสด</option></select></div>
         <div class="frow"><label>วันที่รับ</label><input id="lgPayDate" type="date" class="cin" value="${todayISO()}"></div>
         <div class="frow"><label>ผู้ส่งเงิน/คนเก็บมา (เงินสด)</label><input id="lgPayResp" class="cin" placeholder="เช่น ชื่อคนที่ถือเงินมาส่ง"></div>
@@ -9762,6 +9768,20 @@ async function lgDoPay(custId){
   toast('📷 กำลังอัปโหลดรูปหลักฐาน...');
   try{ slipPath=await lgUploadSlip(slipFile); }catch(err){ console.warn('slip',err); slipPath=null; }
   if(!slipPath){ toast('❌ อัปโหลดรูปไม่สำเร็จ — เช็คอินเทอร์เน็ตแล้วลองใหม่ (ต้องมีหลักฐานจึงบันทึกได้)'); return; }
+  // ☑️ โหมดชำระหลายบิลรวดเดียว (ติ๊กเลือกจากตารางบิลค้าง) — ตัดเต็มยอดค้างของแต่ละบิล ใช้สลิปเดียวกันทุกใบ
+  if(lgFinView()&&lgPaySel.length){
+    const ids=lgPaySel.slice().filter(id=>lgSaleOutstanding(id)>0.5);
+    if(!ids.length){ toast('บิลที่เลือกไม่มียอดค้างแล้ว'); lgPaySel=[]; renderLgCust(); return; }
+    const total=ids.reduce((s,id)=>s+lgSaleOutstanding(id),0);
+    if(Math.abs(amt-total)>0.5&&!confirm('ยอดที่กรอก ('+lgMoney(amt)+') ไม่เท่ายอดรวมของบิลที่เลือก ('+lgMoney(total)+')\nระบบจะตัดเต็มยอดค้างของแต่ละบิลที่เลือก — ดำเนินการต่อ?')) return;
+    const dt=($("#lgPayDate")||{}).value||todayISO(), resp=String((($("#lgPayResp")||{}).value)||'').trim(), n0=String((($("#lgPayNote")||{}).value)||'').trim();
+    ids.forEach(id=>{ const b=SALE_BILLS.find(x=>x.id===id); const out=lgSaleOutstanding(id);
+      lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'payment', method:method, amount:out, sale_id:id, slip:slipPath,
+        entry_date:dt, responsible:resp, note:(n0?n0+' · ':'')+'โอนรวม '+ids.length+' บิล · ชำระบิล '+(b?(sbThaiDate(b.dateISO)+(b.billNo?' เล่ม '+(b.billBook||'-')+'/'+b.billNo:'')):id)}); });
+    lgPaySel=[];
+    toast('✅ บันทึกรับเงิน '+fmt(ids.length)+' บิลรวดเดียวแล้ว — ใบรับเงินออกให้ทุกบิล (พิมพ์ได้จากแท็บเอกสาร)');
+    renderLgCust(); return;
+  }
   const saleId=lgFinView()?String((($("#lgPayBill")||{}).value)||'').trim()||null:null;   // 💸 เลือกบิล = ตัดหนี้เฉพาะบิลนั้น
   let note=String((($("#lgPayNote")||{}).value)||'').trim();
   if(saleId){
@@ -9781,7 +9801,10 @@ function lgPayBillSel(saleId){ // เลือกบิลในฟอร์ม�
   if(!saleId){ return; }
   const out=lgSaleOutstanding(saleId); if(out>0.5) a.value=Math.round(out);
 }
+function lgPaySelTgl(id){ const i=lgPaySel.indexOf(id); if(i>=0) lgPaySel.splice(i,1); else lgPaySel.push(id); renderLgCust(); }   // ☑️ ติ๊ก/เอาออก บิลที่จะรับเงินรวดเดียว
+function lgPickSelPay(){ const a=$("#lgPayAmt"); if(a){ try{ a.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} } toast('เลือก '+fmt(lgPaySel.length)+' บิลแล้ว ✓ แนบสลิป เลือกวิธีรับ แล้วกด "บันทึกรับเงิน" ครั้งเดียวจบ'); }
 function lgPickBillPay(saleId,amt){ // ปุ่ม "💸 รับเงินบิลนี้" ในตารางบิลค้าง → เลือกบิล+ใส่ยอด แล้วพาไปที่ฟอร์ม
+  if(lgPaySel.length){ lgPaySel=[]; renderLgCust(); setTimeout(()=>lgPickBillPay(saleId,amt),80); return; }   // ออกจากโหมดหลายบิลก่อน (ฟอร์มคนละหน้าตา)
   const s=$("#lgPayBill"); if(s) s.value=saleId;
   const a=$("#lgPayAmt"); if(a){ a.value=amt; try{ a.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} setTimeout(()=>{ try{ a.focus(); }catch(e){} },350); }
   toast('เลือกบิลแล้ว ✓ เช็ควิธีรับเงิน แล้วกด "บันทึกรับเงิน"');
