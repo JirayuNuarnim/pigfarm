@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690726e';
+const APP_BUILD='690726f';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -1441,7 +1441,7 @@ async function rtPoll(){
       if(top&&top.key==='fgraph'&&typeof gLiveRefresh==='function'){ gLiveRefresh(); } // หน้าแผนผัง = โหลด+วาดใหม่เอง + วาบแสงเล้าที่เปลี่ยน
       else if(top&&top.key==='sbmonitor'){ /* หน้ามอนิเตอร์แท่นขายรีเฟรชตัวเองทุก 5 วิอยู่แล้ว — ไม่ต้องเด้งแบนเนอร์ทับจอ */ }
       else if(top&&top.key==='salestand'&&!SB_D){ // หน้ารายการบิล = ดึงบิลใหม่ของทีมมาแสดงเองเลย (ไม่มีฟอร์มเปิดอยู่ ปลอดภัย)
-        try{ await sbCloudLoad(); const t2=navHist[navHist.length-1]; if(t2&&t2.key==='salestand'&&!SB_D){ renderSaleStand(); toast('🔄 มีบิลใหม่จากทีม — อัปเดตรายการให้แล้ว'); } }catch(e){}
+        try{ await sbCloudLoad(); try{ if(typeof lgCanUse==='function'&&lgCanUse()) await lgCloudLoad(); }catch(e2){} const t2=navHist[navHist.length-1]; if(t2&&t2.key==='salestand'&&!SB_D){ renderSaleStand(); toast('🔄 มีบิลใหม่จากทีม — อัปเดตรายการให้แล้ว'); } }catch(e){}
       }
       else if(['ledger','lgcust'].indexOf(top&&top.key)>=0){   // 📒 หน้าบัญชีลูกค้า/ลูกหนี้ → ดึงยอดล่าสุดเอง (ถ้าไม่ได้กำลังพิมพ์)
         const ae=document.activeElement, typing=ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
@@ -1468,7 +1468,7 @@ function rtStart(){ if(_rtTimer||!rtActive()) return; _rtTimer=setInterval(rtPol
 document.addEventListener('visibilitychange', function(){ if(document.hidden) return;
   try{ const top=navHist[navHist.length-1]; if(!top) return;
     if((top.key==='ledger'||top.key==='lgcust')&&Date.now()-_lgLoadAt>5000){ lgCloudLoad().then(()=>{ const t2=navHist[navHist.length-1]; if(t2&&(t2.key==='ledger'||t2.key==='lgcust')&&t2.fn) t2.fn(); }); }
-    else if(top.key==='salestand'&&!SB_D&&Date.now()-_sbLoadAt>5000){ sbCloudLoad().then(()=>{ const t2=navHist[navHist.length-1]; if(t2&&t2.key==='salestand'&&!SB_D) renderSaleStand(); }); }
+    else if(top.key==='salestand'&&!SB_D&&(Date.now()-_sbLoadAt>5000||Date.now()-_lgLoadAt>5000)){ Promise.all([sbCloudLoad(),(typeof lgCanUse==='function'&&lgCanUse())?lgCloudLoad():Promise.resolve()]).then(()=>{ const t2=navHist[navHist.length-1]; if(t2&&t2.key==='salestand'&&!SB_D) renderSaleStand(); }); }
   }catch(e){}
 });
 function rtShowBanner(){
@@ -8427,6 +8427,7 @@ function sbArchiveHTML(){
 function renderSaleStand(){ if(vetGuard())return;
   histPush('salestand',renderSaleStand);
   if(!SB_D&&Date.now()-_sbLoadAt>5000){ sbCloudLoad().then(ok=>{ const t2=navHist[navHist.length-1]; if(ok&&t2&&t2.key==='salestand'&&!SB_D) renderSaleStand(); }); }   // 📱 เปิดหน้า = ดึงบิลสดเบื้องหลัง (iPad ค้างจอ ยอดไม่ตรง — เคสเจ้พร)
+  if(!SB_D&&typeof lgCanUse==='function'&&lgCanUse()&&Date.now()-_lgLoadAt>5000){ lgCloudLoad().then(()=>{ const t2=navHist[navHist.length-1]; if(t2&&t2.key==='salestand'&&!SB_D){ try{ sbArchiveRe(); }catch(e){} } }); }   // 💵 ป้ายแดงค้างชำระ/รับเงินแล้ว ใช้ข้อมูลบัญชีลูกหนี้ — ต้องโหลดคู่กับบิลเสมอ (iPad เข้าหน้าแล้วป้ายไม่ขึ้นจนกว่าจะกดรีเฟรช)
   const pend=SALE_BILLS.filter(sbPricePending).length;
   $("#view").innerHTML=`
     <h2 class="page">⚖️ แท่นขายหมู</h2>
