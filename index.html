@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690726d';
+const APP_BUILD='690726e';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -1427,7 +1427,7 @@ let _rtTimer=null, _rtSeenTs=0;
 function rtActive(){ const c=CONFIG.supabase; return !!(c&&c.enabled&&c.backend==='v2'&&ROLE!==null); }
 async function rtMaxTs(){
   const q=async tbl=>{ const r=await supaFetch('/rest/v1/'+tbl+'?select=updated_at&order=updated_at.desc&limit=1',{method:'GET'}); if(!r||!r.ok) return 0; const a=await r.json(); return (a&&a[0]&&a[0].updated_at)?Date.parse(a[0].updated_at):0; };
-  try{ const a=await Promise.all([q('houses'),q('app_config'),q('sale_bills')]); return Math.max(a[0]||0,a[1]||0,a[2]||0); }catch(e){ return 0; }
+  try{ const a=await Promise.all([q('houses'),q('app_config'),q('sale_bills'),q('customer_ledger')]); return Math.max(a[0]||0,a[1]||0,a[2]||0,a[3]||0); }catch(e){ return 0; }   // 📒 เฝ้าบัญชีลูกหนี้ด้วย (เดิมรับเงินจากเครื่องอื่นแล้วเครื่องเรานิ่ง — เคส iPad เจ้พร)
 }
 async function rtBaseline(){ if(!rtActive()) return; const t=await supaToken(); if(!t) return; const mx=await rtMaxTs(); if(mx) _rtSeenTs=mx; }
 async function rtPoll(){
@@ -1442,6 +1442,12 @@ async function rtPoll(){
       else if(top&&top.key==='sbmonitor'){ /* หน้ามอนิเตอร์แท่นขายรีเฟรชตัวเองทุก 5 วิอยู่แล้ว — ไม่ต้องเด้งแบนเนอร์ทับจอ */ }
       else if(top&&top.key==='salestand'&&!SB_D){ // หน้ารายการบิล = ดึงบิลใหม่ของทีมมาแสดงเองเลย (ไม่มีฟอร์มเปิดอยู่ ปลอดภัย)
         try{ await sbCloudLoad(); const t2=navHist[navHist.length-1]; if(t2&&t2.key==='salestand'&&!SB_D){ renderSaleStand(); toast('🔄 มีบิลใหม่จากทีม — อัปเดตรายการให้แล้ว'); } }catch(e){}
+      }
+      else if(['ledger','lgcust'].indexOf(top&&top.key)>=0){   // 📒 หน้าบัญชีลูกค้า/ลูกหนี้ → ดึงยอดล่าสุดเอง (ถ้าไม่ได้กำลังพิมพ์)
+        const ae=document.activeElement, typing=ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
+        if(typing){ rtShowBanner(); }
+        else { try{ await lgCloudLoad(); const t2=navHist[navHist.length-1];
+          if(t2&&['ledger','lgcust'].indexOf(t2.key)>=0&&t2.fn){ t2.fn(); toast('🔄 อัปเดตบัญชีลูกค้าล่าสุดแล้ว'); } }catch(e){ rtShowBanner(); } }
       }
       else if(['clerkReq','clerkFeedReq','stock','vetReq','vetFeed','clerkFarm','houseList','perf'].indexOf(top&&top.key)>=0){   // หน้าเสมียน/หมอ/ประสิทธิภาพ → รีเฟรชสดเมื่อทีมลงข้อมูลใหม่ (ถ้าไม่ได้กำลังพิมพ์)
         const ae=document.activeElement, typing=ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
@@ -1458,6 +1464,13 @@ async function rtPoll(){
   }catch(e){}
 }
 function rtStart(){ if(_rtTimer||!rtActive()) return; _rtTimer=setInterval(rtPoll,25000); }
+// 📱 ปลุกจอ (iPad/มือถือพับเครื่องแล้วกลับมา) → หน้าบัญชี/แท่นขายดึงข้อมูลสดทันที ไม่ต้องกดรีเฟรชเอง
+document.addEventListener('visibilitychange', function(){ if(document.hidden) return;
+  try{ const top=navHist[navHist.length-1]; if(!top) return;
+    if((top.key==='ledger'||top.key==='lgcust')&&Date.now()-_lgLoadAt>5000){ lgCloudLoad().then(()=>{ const t2=navHist[navHist.length-1]; if(t2&&(t2.key==='ledger'||t2.key==='lgcust')&&t2.fn) t2.fn(); }); }
+    else if(top.key==='salestand'&&!SB_D&&Date.now()-_sbLoadAt>5000){ sbCloudLoad().then(()=>{ const t2=navHist[navHist.length-1]; if(t2&&t2.key==='salestand'&&!SB_D) renderSaleStand(); }); }
+  }catch(e){}
+});
 function rtShowBanner(){
   if(document.getElementById('rtBanner')) return;
   const d=document.createElement('div'); d.id='rtBanner';
@@ -8194,7 +8207,9 @@ function sbConflict(b,j){ // ⚠️ บิลใบเดียวกันถ�
     sbCloudLoad().then(()=>{ const top=navHist[navHist.length-1]; if(top&&top.key==='salestand') renderSaleStand(); toast('โหลดบิลเวอร์ชันของ '+who+' แล้ว — ของเราอยู่ใน "บิลค้าง" เปิดเทียบได้'); });
   }
 }
+let _sbLoadAt=0;   // เวลาโหลดบิลจากคลาวด์ล่าสุด — ใช้กันโหลดถี่ตอนเปิดหน้า/ปลุกจอ
 async function sbCloudLoad(){ // โหลดบิลจากระบบกลาง (ถ้าหลังบ้านยังไม่เปิดตาราง → คงข้อมูลในเครื่อง)
+  _sbLoadAt=Date.now();
   const r=await supaFetch('/rest/v1/rpc/load_sale_bills',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
   if(!r||!r.ok) return false;
   const rows=await r.json(); if(!Array.isArray(rows)) return false;
@@ -8411,6 +8426,7 @@ function sbArchiveHTML(){
 }
 function renderSaleStand(){ if(vetGuard())return;
   histPush('salestand',renderSaleStand);
+  if(!SB_D&&Date.now()-_sbLoadAt>5000){ sbCloudLoad().then(ok=>{ const t2=navHist[navHist.length-1]; if(ok&&t2&&t2.key==='salestand'&&!SB_D) renderSaleStand(); }); }   // 📱 เปิดหน้า = ดึงบิลสดเบื้องหลัง (iPad ค้างจอ ยอดไม่ตรง — เคสเจ้พร)
   const pend=SALE_BILLS.filter(sbPricePending).length;
   $("#view").innerHTML=`
     <h2 class="page">⚖️ แท่นขายหมู</h2>
@@ -9576,6 +9592,7 @@ async function sbPaySlipPick(inp){ // 📷 แนบสลิปโอนใน�
 /* ── หน้า 📒 บัญชีลูกค้า / ลูกหนี้ ── */
 function renderLedger(){ if(vetGuard())return;
   histPush('ledger', renderLedger);
+  if(Date.now()-_lgLoadAt>5000){ lgCloudLoad().then(()=>{ const t2=navHist[navHist.length-1]; if(t2&&t2.key==='ledger'&&t2.fn) t2.fn(); }); }   // 📱 เปิดหน้า = ดึงยอดลูกหนี้สดเบื้องหลังเสมอ
   if(!lgCanUse()){ $("#view").innerHTML='<h2 class="page">📒 บัญชีลูกค้า</h2><div class="banner bad">⛔ หน้านี้เปิดได้เฉพาะ เจ้าของ / ผู้ดูแล / เสมียน</div>'; return; }
   const bals=LG.customers.map(c=>({c:c, bal:lgBalance(c.id)}));
   const debtors=bals.filter(x=>x.bal>0.5).sort((a,b)=>b.bal-a.bal);
@@ -9653,6 +9670,7 @@ function renderLedger(){ if(vetGuard())return;
 /* ── หน้าบัญชีรายลูกค้า (statement) + ฟอร์มรับเงิน/หักหน้าบิล/ปรับปรุง ── */
 function renderLgCust(){
   histPush('lgcust', renderLgCust);
+  if(Date.now()-_lgLoadAt>5000){ lgCloudLoad().then(()=>{ const t2=navHist[navHist.length-1]; if(t2&&t2.key==='lgcust'&&t2.fn) t2.fn(); }); }   // 📱 เปิดบัญชีรายลูกค้า = ดึงสดเบื้องหลัง
   const c=LG.customers.find(x=>x.id===lgCustSel);
   if(!c){ renderLedger(); return; }
   const rows=LG.entries.filter(e=>e.customer_id===c.id).sort((a,b)=>String(b.entry_date).localeCompare(String(a.entry_date))||String(b.created_at||'').localeCompare(String(a.created_at||'')));
