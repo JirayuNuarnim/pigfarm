@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690726c';
+const APP_BUILD='690726d';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -8329,6 +8329,8 @@ function sbPayChipHTML(b){ // ป้ายบนแถวบิล — เห็
   return lgFinView()?`<span style="background:#fdeae7;color:var(--bad);${P}" title="ขายเชื่อ (ลงบัญชีลูกหนี้) — ลูกค้ายังไม่จ่าย">📒 ค้างชำระ ${lgMoney(out)}</span>`
                     :`<span style="background:var(--soft);color:var(--ink-2);${P}" title="ลงบัญชีลูกหนี้แล้ว">📒 ลงบัญชีลูกหนี้</span>`;
 }
+function sbSavedTs(b){ if(b.savedAt) return b.savedAt; const el=b.editLog||[]; for(let i=el.length-1;i>=0;i--){ if(el[i]&&el[i].ts) return el[i].ts; } return b.createdAt||0; }   // บิลเก่าไม่มี savedAt → ใช้เวลา "สร้างบิล" จาก editLog แถวเก่าสุด
+function sbSavedStr(b){ const ts=sbSavedTs(b); if(!ts) return ''; const d=new Date(ts); return d.toLocaleDateString('th-TH',{day:'numeric',month:'short'})+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function sbRowHTML(b){
     const c=sbCalc(b), K=SB_KIND[b.kind]||SB_KIND.fatten;
     const money=c.net!=null?`<b style="color:var(--ok)">${fmt(c.net)} บาท</b>${c.deduct?`<span class="more"> (หัก ${fmt(c.deduct)})</span>`:''}`
@@ -8339,7 +8341,7 @@ function sbRowHTML(b){
     const btn=(label,title,fn,extra)=>`<button class="btn ghost sm" title="${title}" style="padding:6px 11px;white-space:nowrap${extra||''}" onclick="event.stopPropagation();${fn}">${label}</button>`;
     return `<div class="fieldrow" style="cursor:pointer;flex-wrap:wrap;row-gap:7px" onclick="sbEdit('${b.id}')">
       <div class="fmeta" style="flex:1;min-width:230px"><div class="fn">${K.ico} <b>${sbThaiDate(b.dateISO)}</b> · ${escA(b.farm||'-')} → ${escA(b.buyer||'ไม่ระบุผู้ซื้อ')}${ref}</div>
-      <div class="sub" style="margin:3px 0 0">${fmt(c.n)} ตัว · ${fmt(Math.round(c.totW))} กก.${c.n?` · เฉลี่ย ${(c.avg).toFixed(1)} กก./ตัว`:''}${diff}${b.truck?` · 🚚 ${escA(b.truck)}`:''} · ✍️ ${escA(b.by||'-')}</div></div>
+      <div class="sub" style="margin:3px 0 0">${fmt(c.n)} ตัว · ${fmt(Math.round(c.totW))} กก.${c.n?` · เฉลี่ย ${(c.avg).toFixed(1)} กก./ตัว`:''}${diff}${b.truck?` · 🚚 ${escA(b.truck)}`:''} · ✍️ ${escA(b.by||'-')}${sbSavedStr(b)?` · 🕐 บันทึก ${sbSavedStr(b)} น.`:''}</div></div>
       <div style="display:flex;flex-direction:column;gap:7px;align-items:flex-end;margin-left:auto">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${money}${sbPayChipHTML(b)}${b.locked?`<span title="ตรวจแล้ว·ล็อกโดย ${escA(b.verifiedBy||'')}">🔒</span>`:''}${posted}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
@@ -9097,6 +9099,7 @@ function sbSave(){
   }
   SB_D.editLog=SB_D.editLog||[];
   SB_D.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',changes:changes,note:(SB_ISNEW?'สร้างบิล':'แก้ไขบิล')+(c.pending?' (ยังไม่ใส่ราคา)':'')});
+  if(!SB_D.savedAt) SB_D.savedAt=Date.now();   // 🕐 เวลากดบันทึกครั้งแรก (โชว์ในคลังบิล — แก้ทีหลังไม่เปลี่ยนเวลานี้)
   const i=SALE_BILLS.findIndex(x=>x.id===SB_D.id);
   if(i>=0){ if(stored){ SB_D.locked=stored.locked; SB_D.verifiedBy=stored.verifiedBy; SB_D.verifiedAt=stored.verifiedAt; } SALE_BILLS[i]=SB_D; }
   else SALE_BILLS.unshift(SB_D);
