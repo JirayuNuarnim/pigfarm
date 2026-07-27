@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690727i';
+const APP_BUILD='690727j';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9858,15 +9858,17 @@ function lgPayCardHTML(){
       ${m==='transfer'?`<div class="frow"><label>ยอดโอนจริง (บาท) <span class="hint">(เว้นว่าง = โอนเต็มยอดบิล · ใส่เมื่อโอนไม่ครบ ส่วนต่างจะขึ้นเป็นยอดค้าง)</span></label>
         <input class="cin tl" type="number" step="1" value="${escA(SB_D.payAmt||'')}" oninput="SB_D.payAmt=this.value;sbRefresh()" placeholder="เว้นว่าง = เต็มยอดบิล"></div>
       <div class="frow" style="grid-column:1/-1"><label>📷 สลิปโอนเงิน <span class="hint" style="color:var(--bad);font-weight:700">(บังคับเมื่อเลือก "โอนแล้ว" — ไม่มีหลักฐานการโอน ปิดบิลไม่ได้)</span></label>
-        ${SB_D.paySlip?`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sbchip ok">✓ แนบสลิปแล้ว</span><button class="btn ghost sm" onclick="lgViewSlip('${escA(SB_D.paySlip)}')">📷 ดูรูป</button><button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.paySlip='';renderSaleBillForm()">✕ เอาออก</button></div>`
-        :`<input class="cin" type="file" accept="image/*" onchange="sbPaySlipPick(this)">`}</div>`:''}
+        ${SB_D.paySlip?(function(){ const ns=String(SB_D.paySlip).split('|').filter(Boolean).length; return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sbchip ok">✓ แนบสลิปแล้ว${ns>1?' ('+ns+' รูป)':''}</span><button class="btn ghost sm" onclick="lgViewSlip('${escA(SB_D.paySlip)}')">📷 ดูรูป</button><button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.paySlip='';renderSaleBillForm()">✕ เอาออก</button></div>`; })()
+        :`<input class="cin" type="file" accept="image/*" multiple onchange="sbPaySlipPick(this)">`}</div>`:''}
     </div><div class="sub" style="margin-top:6px">📒 ${hint}</div>${(function(){ const cr=lgCreditOf(SB_D.buyer); return cr>0?`<div class="sbchip warn" style="margin-top:8px;font-size:13px">⚠️ บัญชีลูกค้ารายนี้มียอดเกินค้าง <b>${fmt(Math.round(cr))}</b> บาท — ผิดปกติ (ลูกค้าหมูไม่มีเครดิตกับฟาร์ม) แจ้งเจ้าของตรวจบัญชีลูกค้า · บิลนี้คิดเต็มตามปกติ</div>`:''; })()}</div>`;
 }
-async function sbPaySlipPick(inp){ // 📷 แนบสลิปโอนในฟอร์มบิลแท่นขาย — อัปโหลดทันทีที่เลือก แล้วผูก path ไว้กับบิล (ติดไปกับร่าง/บิลที่บันทึก)
-  const f=inp.files&&inp.files[0]; if(!f||!SB_D) return;
-  toast('📷 กำลังอัปโหลดสลิป...');
-  try{ const p=await lgUploadSlip(f); SB_D.paySlip=p; toast('✓ แนบสลิปแล้ว — จะติดไปกับบิลเมื่อกดบันทึก'); }
-  catch(e){ console.warn('paySlip',e); toast('อัปโหลดไม่สำเร็จ — เช็คอินเทอร์เน็ตแล้วลองใหม่'); inp.value=''; return; }
+async function sbPaySlipPick(inp){ // 📷 แนบสลิปโอนในฟอร์มบิลแท่นขาย — อัปโหลดทันทีที่เลือก แล้วผูก path ไว้กับบิล (ติดไปกับร่าง/บิลที่บันทึก) · หลายรูปได้ (เก็บคั่น "|")
+  const fs=(inp.files&&inp.files.length)?Array.prototype.slice.call(inp.files):[]; if(!fs.length||!SB_D) return;
+  toast('📷 กำลังอัปโหลดสลิป'+(fs.length>1?' ('+fs.length+' รูป)':'')+'...');
+  const ps=[];
+  for(const f of fs){ try{ ps.push(await lgUploadSlip(f)); }catch(e){ console.warn('paySlip',e); } }
+  if(ps.length!==fs.length){ toast('อัปโหลดไม่ครบ ('+ps.length+'/'+fs.length+') — เช็คอินเทอร์เน็ตแล้วลองใหม่'); inp.value=''; return; }
+  SB_D.paySlip=ps.join('|'); toast('✓ แนบสลิปแล้ว'+(ps.length>1?' '+ps.length+' รูป':'')+' — จะติดไปกับบิลเมื่อกดบันทึก');
   renderSaleBillForm();
 }
 /* ── หน้า 📒 บัญชีลูกค้า / ลูกหนี้ ── */
@@ -10018,7 +10020,7 @@ function renderLgCust(){
         <div class="frow"><label>วันที่รับ</label><input id="lgPayDate" type="date" class="cin" value="${todayISO()}"></div>
         <div class="frow"><label>ผู้ส่งเงิน/คนเก็บมา (เงินสด)</label><input id="lgPayResp" class="cin" placeholder="เช่น ชื่อคนที่ถือเงินมาส่ง"></div>
         <div class="frow" style="grid-column:1/-1"><label>หมายเหตุ</label><input id="lgPayNote" class="cin" placeholder="เช่น ชำระบิล 6 ก.ค. / โอน กสิกร"></div>
-        <div class="frow" style="grid-column:1/-1"><label>📷 รูปหลักฐาน <span class="hint" style="color:var(--bad);font-weight:700">(บังคับ — สลิปโอน/รูปเอกสารรับเงิน · ไม่มีหลักฐาน บันทึกรับเงิน/ปิดบิลไม่ได้)</span></label><input id="lgPaySlip" class="cin" type="file" accept="image/*"></div>
+        <div class="frow" style="grid-column:1/-1"><label>📷 รูปหลักฐาน <span class="hint" style="color:var(--bad);font-weight:700">(บังคับ — สลิปโอน/รูปเอกสารรับเงิน · ไม่มีหลักฐาน บันทึกรับเงิน/ปิดบิลไม่ได้)</span> <span class="hint">แนบได้หลายรูป — กดเลือกทีเดียวหลายไฟล์ได้</span></label><input id="lgPaySlip" class="cin" type="file" accept="image/*" multiple></div>
       </div>
       <div style="margin-top:10px"><button class="btn" onclick="lgDoPay('${c.id}')">💸 บันทึกรับเงิน + ออกใบรับเงิน</button></div></div>
     <div class="card"><h3>➖ ตกลงหักหน้าบิล (เครดิตไว้หักรอบถัดไป)</h3>
@@ -10040,13 +10042,15 @@ async function lgDoPay(custId){
   const amt=parseFloat(($("#lgPayAmt")||{}).value); if(!isFinite(amt)||amt<=0){ toast('ใส่จำนวนเงินก่อน'); return; }
   const method=($("#lgPayMethod")||{}).value||'transfer';
   const bal=lgBalance(custId);
-  // 📷 รูปหลักฐาน (ถ้าแนบ) — ย่อ+อัปขึ้นคลาวด์ก่อน แล้วผูก path เข้ากับใบรับเงิน
+  // 📷 รูปหลักฐาน (ถ้าแนบ) — ย่อ+อัปขึ้นคลาวด์ก่อน แล้วผูก path เข้ากับใบรับเงิน · แนบได้หลายรูป (เก็บคั่น "|" — ของเก่ารูปเดียวเข้ากันได้)
   let slipPath=null;
-  const fEl=$("#lgPaySlip"), slipFile=fEl&&fEl.files&&fEl.files[0];
-  if(!slipFile){ toast('📷 ต้องแนบรูปหลักฐานก่อน (สลิปโอน/รูปเอกสารรับเงิน) — ไม่มีหลักฐาน บันทึกรับเงิน/ปิดบิลไม่ได้ (กติกาเจ้าของ)'); return; }
-  toast('📷 กำลังอัปโหลดรูปหลักฐาน...');
-  try{ slipPath=await lgUploadSlip(slipFile); }catch(err){ console.warn('slip',err); slipPath=null; }
-  if(!slipPath){ toast('❌ อัปโหลดรูปไม่สำเร็จ — เช็คอินเทอร์เน็ตแล้วลองใหม่ (ต้องมีหลักฐานจึงบันทึกได้)'); return; }
+  const fEl=$("#lgPaySlip"), slipFiles=(fEl&&fEl.files)?Array.prototype.slice.call(fEl.files):[];
+  if(!slipFiles.length){ toast('📷 ต้องแนบรูปหลักฐานก่อน (สลิปโอน/รูปเอกสารรับเงิน) — ไม่มีหลักฐาน บันทึกรับเงิน/ปิดบิลไม่ได้ (กติกาเจ้าของ)'); return; }
+  toast('📷 กำลังอัปโหลดรูปหลักฐาน'+(slipFiles.length>1?' ('+slipFiles.length+' รูป)':'')+'...');
+  const slipPaths=[];
+  for(const sf of slipFiles){ try{ slipPaths.push(await lgUploadSlip(sf)); }catch(err){ console.warn('slip',err); } }
+  if(slipPaths.length!==slipFiles.length){ toast('❌ อัปโหลดรูปไม่ครบ ('+slipPaths.length+'/'+slipFiles.length+') — เช็คอินเทอร์เน็ตแล้วลองใหม่ (ต้องมีหลักฐานครบจึงบันทึกได้)'); return; }
+  slipPath=slipPaths.join('|');
   // ☑️ โหมดชำระหลายบิลรวดเดียว (ติ๊กเลือกจากตารางบิลค้าง) — ตัดเต็มยอดค้างของแต่ละบิล ใช้สลิปเดียวกันทุกใบ
   if(lgFinView()&&lgPaySel.length){
     const ids=lgPaySel.slice().filter(id=>lgSaleOutstanding(id)>0.5);
@@ -10150,15 +10154,22 @@ async function lgUploadSlip(file){ // 📷 ย่อรูป (ยาวสุ�
   if(!r||!r.ok) throw new Error('upload '+(r?r.status:'null'));
   return path;
 }
-async function lgViewSlip(path){ // 📷 เปิดดูรูปหลักฐาน (คลังส่วนตัว — ดึงผ่านสิทธิ์ผู้ใช้)
-  toast('📷 กำลังเปิดรูป...');
-  const r=await supaFetch('/storage/v1/object/payslips/'+encodeURIComponent(path),{method:'GET'});
-  if(!r||!r.ok){ toast('เปิดรูปไม่สำเร็จ — เช็คอินเทอร์เน็ตแล้วลองใหม่'); return; }
-  const blob=await r.blob(), url=URL.createObjectURL(blob);
+async function lgViewSlip(path){ // 📷 เปิดดูรูปหลักฐาน (คลังส่วนตัว — ดึงผ่านสิทธิ์ผู้ใช้) · หลายรูปคั่นด้วย "|" โชว์เรียงต่อกัน (27 ก.ค. 69)
+  const paths=String(path||'').split('|').map(s=>s.trim()).filter(Boolean);
+  if(!paths.length) return;
+  toast('📷 กำลังเปิดรูป'+(paths.length>1?' ('+paths.length+' รูป)':'')+'...');
+  const urls=[];
+  for(const p of paths){
+    try{ const r=await supaFetch('/storage/v1/object/payslips/'+encodeURIComponent(p),{method:'GET'});
+      if(r&&r.ok){ urls.push(URL.createObjectURL(await r.blob())); } }catch(e){ console.warn('slip view',e); }
+  }
+  if(!urls.length){ toast('เปิดรูปไม่สำเร็จ — เช็คอินเทอร์เน็ตแล้วลองใหม่'); return; }
   let ov=document.getElementById('sbPrintOverlay'); if(ov) ov.remove();
   ov=document.createElement('div'); ov.id='sbPrintOverlay';
   ov.innerHTML='<div class="sbp-tools"><button class="btn ghost sm" onclick="sbPrintClose()">✕ ปิด</button></div>'
-    +'<div id="sbPrintPage" style="background:transparent;box-shadow:none;text-align:center;padding:4px"><img src="'+url+'" style="max-width:100%;max-height:82vh;border-radius:10px;background:#fff"></div>';
+    +'<div id="sbPrintPage" style="background:transparent;box-shadow:none;text-align:center;padding:4px">'
+    +urls.map((u,i)=>'<div style="margin-bottom:10px">'+(urls.length>1?'<div style="color:#fff;font-size:12.5px;margin-bottom:3px">รูปที่ '+(i+1)+' / '+urls.length+'</div>':'')+'<img src="'+u+'" style="max-width:100%;max-height:82vh;border-radius:10px;background:#fff"></div>').join('')
+    +'</div>';
   ov.addEventListener('click',function(e){ if(e.target===ov) sbPrintClose(); });
   document.body.appendChild(ov);
 }
