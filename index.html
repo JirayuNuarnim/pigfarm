@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690727g';
+const APP_BUILD='690727h';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9911,7 +9911,10 @@ function renderLgCust(){
       ${openInvs.map(x=>{
         const b=x.b, cc=b?sbCalc(b):null;
         const ref=b?(sbThaiDate(b.dateISO)+(b.billNo?' · '+escA(b.billBook||'-')+'/'+escA(b.billNo):(b.webNo?' · '+escA(b.webNo):''))):sbThaiDate(x.e.entry_date);
-        const det=cc?(fmt(cc.n)+' ตัว · '+fmt(Math.round(cc.totW))+' กก.'+(cc.n?' · เฉลี่ย '+cc.avg.toFixed(1)+' กก./ตัว':'')):escA(x.e.note||'-');
+        const priceTxt=!b?'':(b.kind==='deadcull'
+          ? ((cc&&cc.gross!=null&&cc.totW>0)?' · <b style="color:var(--ok)">💰 เฉลี่ย '+(cc.gross/cc.totW).toFixed(2)+' บาท/กก.</b> <span class="sub">(คัด/ตาย ตามช่วงราคา)</span>':'')
+          : ((b.pricePerKg!==''&&b.pricePerKg!=null)?' · <b style="color:var(--ok)">💰 '+fmt(sbNum(b.pricePerKg))+' บาท/กก.</b>':' · <b style="color:#b7791f">⏳ รอใส่ราคา</b>'));
+        const det=cc?(fmt(cc.n)+' ตัว · '+fmt(Math.round(cc.totW))+' กก.'+(cc.n?' · เฉลี่ย '+cc.avg.toFixed(1)+' กก./ตัว':'')+priceTxt):escA(x.e.note||'-');
         const st=x.e.responsible?'<span class="sbchip" style="background:#fdf3e0;color:#b7791f">🧍 เงินสดอยู่กับ '+escA(x.e.responsible)+'</span>':((+x.e.amount)-x.out>0.5?'<span class="sbchip" style="background:#e8f1fb;color:#26618e">💧 จ่ายมาบางส่วน</span>':'<span class="sbchip bad">📒 ยังไม่จ่าย</span>');
         return `<tr><td style="${TD};white-space:nowrap">${ref}</td><td style="${TD}">${escA((b&&b.farm)||'-')}</td><td style="${TD}">${det}</td>
           <td style="${TD};text-align:right;font-weight:800">${lgMoney(x.e.amount)}</td><td style="${TD};text-align:right;font-weight:900;color:var(--bad)">${lgMoney(x.out)}</td>
