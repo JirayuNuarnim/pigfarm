@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690727e';
+const APP_BUILD='690727f';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -8456,7 +8456,13 @@ function sbOverList(b){ // 🛡️ หลังไหนที่จำนวน
   if(b.kind==='deadcull'){ (b.items||[]).forEach(x=>{ const k=sbNormCode(x.house); if(!k) return; cnt[k]=(cnt[k]||0)+1; disp[k]=disp[k]||String(x.house).trim(); }); }
   else{ (b.houses||[]).forEach(x=>{ const k=sbNormCode(x.code); const n=Math.round(sbNum(x.n)); if(!k||!n) return; cnt[k]=(cnt[k]||0)+n; disp[k]=disp[k]||String(x.code).trim(); }); }
   const out=[];
-  Object.keys(cnt).forEach(k=>{ const remain=sbHouseRemain(k,(b&&b.farm)||''); if(remain!=null && cnt[k]>remain) out.push({code:disp[k],key:k,n:cnt[k],remain:remain}); });
+  Object.keys(cnt).forEach(k=>{ const remain=sbHouseRemain(k,(b&&b.farm)||''); if(remain==null) return;
+    // 🛡️ บิลที่ "ลงหลังแล้ว": หมูของบิลนี้ถูกหักออกจากเล้าไปแล้ว — ต้องบวกยอดของบิลตัวเองคืนก่อนเทียบ
+    //    (ไม่งั้นเจ้าของกลับมาแก้ราคา/แก้บิล จะโดนเตือนหลอก "ลงขาย 100 > เหลือ 0" ทั้งที่ 0 นั้นเกิดจากบิลนี้เอง)
+    let credit=0;
+    if(b&&b.postedAt&&b.id){ const H=sbFindHouse(k,(b&&b.farm)||null);
+      if(H) credit=(H.dailyLog||[]).filter(e=>e&&e._fromBill===b.id).reduce((s,e)=>s+(Number(e.soldN)||0)+(Number(e.cullN)||0)+(Number(e.deadN)||0),0); }
+    if(cnt[k]>remain+credit) out.push({code:disp[k],key:k,n:cnt[k],remain:remain+credit}); });
   return out;
 }
 function sbHInfoHTML(code){ // ป้ายข้างช่องกรอกหลัง: อายุ/หมอ/คงเหลือ + เตือนแดงทันทีถ้าลงเกินยอดเล้า / เตือนเหลืองถ้าพิมพ์รหัสที่ไม่มีในฟาร์ม
