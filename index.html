@@ -916,9 +916,17 @@ genDailyLog();
 genVetLog();
 if(SEED_DEMO) seedStock();   // คลังเริ่มต้น (เฉพาะข้อมูลสาธิต) · โปรดักชัน: เริ่มคลังว่าง เสมียนรับเข้าเอง
 // ซิงก์ตัวนับ "วันนี้" (ตาย/คัด/ขาย/ย้าย) + สถานะกรอก ให้ตรงกับ "วันจริง" (DEMO_DATE_DAY) — แมตช์แถวของวันนี้ (ไม่ใช่แถวล่าสุด) · กันโชว์ตัวเลขของวันก่อนค้างเมื่อขึ้นวันใหม่ · ใช้ซ้ำหลังโหลดคลาวด์ (เรียกใน doLogin)
+function houseDailyAll(h){ // 🧾 บันทึกรายวันครบทุกแถวของหลัง = ชุดปัจจุบัน + สแนปช็อตชุดที่ปิดแล้ว — ปิดชุดแล้วประวัติต้องไม่หายจากรายงาน/ยอดวันนี้ (เคส A7 27 ก.ค. 69: ปิดชุดวันเดียวกับที่ขาย ยอดขายฟาร์มหด 15 ตัว)
+  let rows=(h.dailyLog||[]).slice();
+  (h.closedBatches||[]).forEach(rec=>{ rows=rows.concat(rec.dailyLog||[]); });
+  return rows;
+}
 function syncTodayCounters(){
   HOUSES.forEach(h=>{
-    const rows=(h.dailyLog||[]).filter(e=>e&&e.date===DEMO_DATE_DAY&&!e._bfSum); // แถวของ "วันนี้จริง" ทุกแถว (เสมียน+บิลแท่นขาย) · ข้ามแถวยอดสรุปย้อนหลัง _bfSum — ยอดสะสมไม่ใช่เหตุการณ์วันนี้
+    let rows=(h.dailyLog||[]).filter(e=>e&&e.date===DEMO_DATE_DAY&&!e._bfSum); // แถวของ "วันนี้จริง" ทุกแถว (เสมียน+บิลแท่นขาย) · ข้ามแถวยอดสรุปย้อนหลัง _bfSum — ยอดสะสมไม่ใช่เหตุการณ์วันนี้
+    // 📦 หลังที่ "ปิดชุดวันนี้": แถวของวันนี้ย้ายเข้าสแนปช็อตปิดชุดแล้ว — ต้องนับรวม ไม่งั้นยอดวันนี้ของฟาร์มหดเงียบๆ (เทียบ closedOn=วันนี้เท่านั้น กันชนชุดเก่าปีก่อนที่วันที่ไทยซ้ำ)
+    (h.closedBatches||[]).forEach(rec=>{ if((rec.closedOn||'')!==todayISO()) return;
+      (rec.dailyLog||[]).forEach(e=>{ if(e&&e.date===DEMO_DATE_DAY&&!e._bfSum) rows=rows.concat([e]); }); });
     const bf=(h.dailyLog||[]).some(e=>e&&e.date===DEMO_DATE_DAY&&e._bfSum);
     if(!rows.length){ h.deadToday=0;h.cullToday=0;h.soldToday=0;h.moveToday=0; if((h.pigs||0)>0&&!bf) h.filled=false; return; } // มีแค่แถวสรุปวันนี้ = ถือว่ากรอกแล้ว (กันเสมียนลงยอดวันนี้ซ้ำกับยอดสรุป)
     const sum=k=>rows.reduce((s,e)=>s+(e[k]||0),0);   // 🟡 แถวย้ายเข้าที่ถูกแก้เพิ่มตาย/คัด ต้องนับด้วย (แถวย้ายเข้าปกติค่าเป็น 0 อยู่แล้ว)
@@ -975,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690727k';
+const APP_BUILD='690727l';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -3335,7 +3343,7 @@ function expInRange(d){ // d=Date|null · ช่วง [expFrom,expTo] · เว
 }
 function expDailyRows(){
   const rows=[];
-  expHouses().forEach(h=>{(h.dailyLog||[]).forEach(e=>{ if(e._bfSum&&(expFrom||expTo)) return; if(expInRange(parseThaiDate(e.date))) rows.push({farm:expFarmOf(h),house:h.code,e}); });});  // เลือกช่วงวันที่ = ข้ามแถวยอดสรุปย้อนหลัง (ยอดสะสมทั้งรุ่นไม่ใช่ของช่วงนั้น)
+  expHouses().forEach(h=>{((expFrom||expTo)?houseDailyAll(h):(h.dailyLog||[])).forEach(e=>{ if(!e) return; if(e._bfSum&&(expFrom||expTo)) return; if(expInRange(parseThaiDate(e.date))) rows.push({farm:expFarmOf(h),house:h.code,e}); });});  // เลือกช่วงวันที่ = ข้ามแถวยอดสรุป + รวมบันทึกของชุดที่ปิดแล้ว (ปิดชุดวันไหน ประวัติช่วงนั้นไม่หาย) · โหมด "ทั้งหมด" = ชุดปัจจุบันตามเดิม (คู่กับรับเข้ารวม)
   return rows;
 }
 // เบิกยา: กรองด้วยชุดรหัสหลังที่ผ่านตัวกรอง (ครอบทั้ง ฟาร์ม/หลัง/หมอ) + ช่วงวันที่
@@ -3612,7 +3620,7 @@ function exportExpClosed(){ if(!expClosedRows().length){toast('ไม่มี�
 function expSummaryRows(){
   return expHouses().map(h=>{
     const t={deadN:0,deadW:0,deadVal:0,cullN:0,cullW:0,cullVal:0,soldN:0,soldW:0,soldVal:0,moveN:0,moveInN:0,days:0};
-    (h.dailyLog||[]).forEach(e=>{ if(e._bfSum&&(expFrom||expTo)) return; if(!expInRange(parseThaiDate(e.date))) return; t.days++;  // ช่วงวันที่ = ไม่นับแถวยอดสรุปย้อนหลัง (กันยอดสะสมทั้งรุ่นโผล่เป็นยอดของสัปดาห์/เดือนนี้)
+    ((expFrom||expTo)?houseDailyAll(h):(h.dailyLog||[])).forEach(e=>{ if(!e) return; if(e._bfSum&&(expFrom||expTo)) return; if(!expInRange(parseThaiDate(e.date))) return; t.days++;  // ช่วงวันที่ = ไม่นับแถวยอดสรุป + รวมชุดที่ปิดแล้ว (ประวัติไม่หายตอนปิดชุด) · "ทั้งหมด" = ชุดปัจจุบันตามเดิม
       t.deadN+=e.deadN||0; t.deadW+=e.deadW||0; t.deadVal+=(e.deadVal!=null?+e.deadVal:(e.deadW||0)*(e.deadP||0));
       t.cullN+=e.cullN||0; t.cullW+=e.cullW||0; t.cullVal+=(e.cullVal!=null?+e.cullVal:(e.cullW||0)*(e.cullP||0));
       t.soldN+=e.soldN||0; t.soldW+=e.soldW||0; t.soldVal+=(e.soldVal!=null?+e.soldVal:(e.soldW||0)*(e.soldP||0));
