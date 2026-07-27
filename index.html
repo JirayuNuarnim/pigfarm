@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690727h';
+const APP_BUILD='690727i';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9034,7 +9034,7 @@ function sbHistCard(id){
   const b=SALE_BILLS.find(x=>x.id===id); if(!b) return '';
   const log=b.editLog||[];
   const ver=b.locked?`<div class="banner ok" style="margin-bottom:8px">✅ <div>ตรวจและล็อกโดย <b>${escA(b.verifiedBy||'-')}</b> · ${escA(b.verifiedAt||'')}</div></div>`:'';
-  const post=b.postedAt?`<div class="sub" style="margin:0 0 8px">⬇️ ลงเข้าหลังแล้ว: <b>${escA((b.postedHouses||[]).join(', '))}</b> · โดย ${escA(b.postedBy||'-')}</div>`:'';
+  const post=b.postedAt?`<div class="sub" style="margin:0 0 8px">⬇️ ลงเข้าหลังแล้ว: <b>${escA((b.postedHouses||[]).join(', '))}</b> · โดย ${escA(b.postedBy||'-')}${(b.batchRefs&&b.batchRefs.length)?' · 📦 หมูชุด: '+b.batchRefs.map(r=>escA(r.code)+(r.dateIn?' (รับเข้า '+escA(fmtISOThai(r.dateIn))+')':'')).join(', '):''}</div>`:'';
   return `<div class="card"><h3>🕘 ประวัติบิล <span class="more">${fmt(log.length)} ครั้ง</span></h3>${ver}${post}
     <div class="densewrap" style="max-height:32vh">${log.map(e=>`<div style="padding:7px 6px;border-bottom:1px solid var(--line);font-size:12.5px">
       <b>${escA(e.time||'')}</b> · ${escA(e.by||'-')} <span class="sub" style="margin:0">(${escA(e.role||'-')})</span>${e.note?' — '+escA(e.note):''}
@@ -9060,7 +9060,11 @@ function renderSaleBillForm(){
     <div class="sub">${isDC?'ลงหมูทีละตัว (หลัง/ประเภท/น้ำหนัก) · ราคาตามช่วงน้ำหนัก แยกคัดขาย-ตาย':'กรอกน้ำหนักรายตัวเหมือนบิลกระดาษ · ระบบรวม/เฉลี่ย/เทียบตาชั่งรถให้เอง'} · ร่างถูกเก็บอัตโนมัติทุกการพิมพ์</div>
     ${locked?`<div class="banner ${canFix?'info':'bad'}">🔒 <div><b>บิลนี้ถูกตรวจและล็อกแล้ว</b> โดย ${escA((stored&&stored.verifiedBy)||'-')} · ${escA((stored&&stored.verifiedAt)||'')} ${canFix?'— เจ้าของ/ผู้ดูแลยังแก้/ปลดล็อกได้':'— <b>ดูอย่างเดียว</b> (แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล)'}</div></div>`:''}
     ${(savedEdit&&!locked&&roBill)?`<div class="banner bad">🔒 <div><b>บิลนี้บันทึกแล้ว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล</b> · <b>ยกเว้นเลขที่บิลอ้างอิง</b> (เล่ม/เลขที่/บิลชั่งรายตัว/ใบชั่งรถ) ที่เสมียนเติมเพิ่มแล้วกด "💾 บันทึกเลขอ้างอิง" ด้านล่างได้</div></div>`:''}
-    ${!SB_ISNEW&&SB_D.postedAt&&!locked?`<div class="banner ok">⬇️ <div><b>บิลนี้ลงเข้าหลังแล้ว</b> (${escA((SB_D.postedHouses||[]).join(', '))}) — ถ้าแก้ตัวเลข/ราคา ให้กด "ลงเข้าหลัง" ซ้ำ ระบบจะแทนที่ของเดิมให้ ไม่ลงซ้อน <button class="btn ghost sm" style="margin-left:8px" onclick="var _id='${SB_D.id}';sbSave();if(SB_D===null)sbPostToHouses(_id)">⬇️ ลงเข้าหลังซ้ำ (อัปเดต)</button></div></div>`:''}
+    ${!SB_ISNEW&&SB_D.postedAt&&!locked?(function(){ const cbs=sbClosedRefsFor(SB_D);
+      const stamp=(SB_D.batchRefs&&SB_D.batchRefs.length)?' · 📦 หมูชุด: '+SB_D.batchRefs.map(r=>escA(r.code)+(r.dateIn?' (รับเข้า '+escA(fmtISOThai(r.dateIn))+')':'')).join(', '):'';
+      return cbs.length
+        ? `<div class="banner warn">📦 <div><b>บิลนี้เป็นของหมูชุดที่ปิดไปแล้ว</b> (${cbs.map(x=>escA(x.h.code)+' ปิดชุด '+escA(fmtISOThai(x.rec.closedOn||'')||'-')).join(' · ')})${stamp} — แก้ราคา/ตัวเลขแล้วกด "บันทึกบิล" ได้เลย <b>ระบบจะอัปเดตงบปิดชุด (รายได้/กำไร) ให้อัตโนมัติ</b> · ไม่ต้องกดลงเข้าหลังซ้ำ (ระบบกันไม่ให้ลงทับหมูชุดใหม่)</div></div>`
+        : `<div class="banner ok">⬇️ <div><b>บิลนี้ลงเข้าหลังแล้ว</b> (${escA((SB_D.postedHouses||[]).join(', '))})${stamp} — ถ้าแก้ตัวเลข/ราคา ให้กด "ลงเข้าหลัง" ซ้ำ ระบบจะแทนที่ของเดิมให้ ไม่ลงซ้อน <button class="btn ghost sm" style="margin-left:8px" onclick="var _id='${SB_D.id}';sbSave();if(SB_D===null)sbPostToHouses(_id)">⬇️ ลงเข้าหลังซ้ำ (อัปเดต)</button></div></div>`; })():''}
     <div id="sbSum" class="sbsticky">${sbSumHTML()}</div>
     <div class="card"><h3>🧾 หัวบิล ${SB_D.webNo?`<span class="sbchip ok" style="font-size:13px">🔢 เลขที่บิลระบบ <b>${escA(SB_D.webNo)}</b></span>`:`<span class="sbchip" style="font-size:12px" title="เลขรันอัตโนมัติจากระบบกลาง แยกตามฟาร์ม+ประเภท · แก้ไม่ได้">🔢 เลขที่บิลระบบ: ออกอัตโนมัติเมื่อบันทึก</span>`}</h3>
       <div class="fgrid">
@@ -9344,7 +9348,9 @@ function sbSave(){
   logAudit('บิลขาย', SB_D.id, SB_ISNEW?'สร้างบิลขาย':'แก้ไขบิลขาย', changes.length?changes:null, (SB_D.farm||'')+' · '+(SB_KIND[SB_D.kind]||{}).t+' · '+(SB_D.buyer||'-')+' · '+fmt(c.n)+' ตัว '+fmt(Math.round(c.totW))+' กก.'+(c.net!=null?' · '+fmt(c.net)+' บาท':' · รอใส่ราคา'));
   sbDraftDrop(); sbLiveClear();
   try{ lgOnBillSaved(SB_D); }catch(e){ console.warn('ledger',e); }  // 📒 ยอดบิลไหลเข้าบัญชีลูกค้าอัตโนมัติ (เมื่อราคาครบ)
-  toast('บันทึกบิลแล้ว ✓'+(c.pending?' — ติดป้ายรอใส่ราคาให้เจ้าของ':''));
+  // 📦 บิลของหมูชุดที่ปิดไปแล้ว: อัปเดตงบปิดชุด (รายได้/กำไร) ให้ตรงบิลใหม่อัตโนมัติ (Peter 27 ก.ค.)
+  let cbMsg=''; try{ const nCB=sbSyncClosedBatches(SB_D); if(nCB) cbMsg=' · 📦 อัปเดตงบปิดชุดตามบิลแล้ว ('+nCB+' ชุด)'; }catch(e){ console.warn('closedsync',e); }
+  toast('บันทึกบิลแล้ว ✓'+(c.pending?' — ติดป้ายรอใส่ราคาให้เจ้าของ':'')+cbMsg);
   SB_D=null; renderSaleStand();
 }
 function sbSaveRefsOnly(){ // 📄 เสมียนเติม "เลขที่บิลอ้างอิง" ให้บิลที่บันทึกแล้ว (เอกสารเว็บต้องอ้างอิงบิลตราชั่งจริง — ใบชั่งรถมักออกทีหลังบันทึกบิล)
@@ -9420,6 +9426,46 @@ function sbBandVal(b,items,type){ // มูลค่ารวมของหม�
     if(r===''||r==null) return null; v+=sbNum(x.w)*sbNum(r); }
   return v;
 }
+function sbClosedRefsFor(b){ // 📦 หา "ชุดที่ปิดแล้ว" ที่มีแถวของบิลนี้อยู่ (บิลถูกลงหลังไว้ แล้วหลังนั้นปิดชุดไปแล้ว)
+  const out=[]; if(!b||!b.id) return out;
+  HOUSES.forEach(h=>{ (h.closedBatches||[]).forEach(rec=>{ if((rec.dailyLog||[]).some(e=>e&&e._fromBill===b.id)) out.push({h:h,rec:rec}); }); });
+  return out;
+}
+function sbSyncClosedBatches(b){ // 💰 แก้บิลของชุดที่ปิดแล้ว → อัปเดตแถวในสแนปช็อต + งบชุดนั้น (จำนวน/นน./ราคา/มูลค่า → รายได้/กำไร/กำไรต่อตัว/%สูญเสีย) ให้ตรงบิลใหม่เสมอ (Peter 27 ก.ค.)
+  const refs=sbClosedRefsFor(b); if(!refs.length) return 0;
+  const fresh=sbPostRowsFor(b).rows; let touched=0;
+  refs.forEach(rf=>{
+    const rec=rf.rec, h=rf.h;
+    const srows=(rec.dailyLog||[]).filter(e=>e&&e._fromBill===b.id);
+    const frows=fresh.filter(r=>r.H&&r.H.id===h.id).map(r=>r.e);
+    let d={soldN:0,cullN:0,deadN:0,soldW:0,cullW:0,deadW:0,soldV:0,cullV:0,deadV:0};
+    const match=(sr)=>frows.find(fe=>(sr.soldN&&fe.soldN)||(sr.cullN&&fe.cullN)||(sr.deadN&&fe.deadN&&fe.deadType===sr.deadType))||null;
+    srows.forEach(sr=>{ const fe=match(sr); if(!fe) return;
+      const oldV=Number(sr.value)||0, newV=Number(fe.value)||0;
+      if(sr.soldN||fe.soldN){ d.soldN+=(fe.soldN||0)-(sr.soldN||0); d.soldW+=(fe.soldW||0)-(sr.soldW||0); d.soldV+=newV-oldV; }
+      else if(sr.cullN||fe.cullN){ d.cullN+=(fe.cullN||0)-(sr.cullN||0); d.cullW+=(fe.cullW||0)-(sr.cullW||0); d.cullV+=newV-oldV; }
+      else { d.deadN+=(fe.deadN||0)-(sr.deadN||0); d.deadW+=(fe.deadW||0)-(sr.deadW||0); d.deadV+=newV-oldV; }
+      ['soldN','soldW','soldP','soldCust','soldBill','cullN','cullW','cullP','cullType','cullCust','cullBill','deadN','deadW','deadP','deadType','deadCust','deadBill','dead','outN','avg','value','cust','bill'].forEach(k=>{ if(k in fe) sr[k]=fe[k]; });
+    });
+    const dv=d.soldV+d.cullV+d.deadV, dn=d.soldN+d.cullN+d.deadN;
+    if(Math.abs(dv)<0.5&&dn===0&&Math.abs(d.soldW+d.cullW+d.deadW)<0.05) return;   // ไม่มีอะไรเปลี่ยนจริง
+    rec.soldN=(rec.soldN||0)+d.soldN; rec.cullN=(rec.cullN||0)+d.cullN; rec.deadN=(rec.deadN||0)+d.deadN;
+    if(rec.outW!=null) rec.outW=+((rec.outW||0)+d.soldW).toFixed(1); if(rec.cullW!=null) rec.cullW=+((rec.cullW||0)+d.cullW).toFixed(1); if(rec.deadW!=null) rec.deadW=+((rec.deadW||0)+d.deadW).toFixed(1);
+    rec.outVal=Math.round((rec.outVal||0)+d.soldV); rec.cullVal=Math.round((rec.cullVal||0)+d.cullV); rec.deadVal=Math.round((rec.deadVal||0)+d.deadV);
+    const oldRev=rec.revenue||0;
+    rec.revenue=Math.round(oldRev+dv); rec.profit=Math.round((rec.profit||0)+dv);
+    const live=(rec.soldN||0)+(rec.cullN||0); rec.perPig=live>0?Math.round((rec.profit||0)/live):((rec.inN>0)?Math.round((rec.profit||0)/rec.inN):0);
+    if(rec.inN>0) rec.loss=+(((rec.deadN||0)+(rec.cullN||0))/rec.inN*100).toFixed(2);
+    h.editLog=h.editLog||[];
+    h.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',
+      changes:[{label:'งบปิดชุด '+(rec.closedOn||'')+' (จากบิล '+sbBillRef(b)+')',from:'รายได้ '+fmt(oldRev),to:'รายได้ '+fmt(rec.revenue)}],
+      note:'บิลแท่นขายถูกแก้หลังปิดชุด — ระบบอัปเดตงบปิดชุดให้ตรงบิลอัตโนมัติ'});
+    logAudit('ปิดชุด', h.code+' · '+(rec.closedOn||''), 'อัปเดตงบปิดชุดตามบิล', [{label:'รายได้',from:fmt(oldRev),to:fmt(rec.revenue)}], 'บิล '+sbBillRef(b)+' · '+(b.buyer||'-'));
+    syncHouseClerk(h);
+    touched++;
+  });
+  return touched;
+}
 function sbPostRowsFor(b){ // เตรียมแถว dailyLog ต่อหลัง (ยังไม่แตะข้อมูลจริง)
   const c=sbCalc(b), dThai=isoToThaiDay(b.dateISO), ref=sbBillRef(b), buyer=b.buyer||'-';
   const base={date:dThai, by:whoNow(), remain:0,
@@ -9486,7 +9532,17 @@ async function sbPostToHouses(id){
     b=SALE_BILLS.find(x=>x.id===id); if(!b){ toast('ไม่พบบิลหลังรีเฟรชข้อมูล — ลองใหม่อีกครั้ง'); return; }
   }
   const prep=sbPostRowsFor(b);
+  // 📦 กันลงทับหมูชุดใหม่ (Peter 27 ก.ค.): หลังที่ปิดชุดไปแล้ว (แถวของบิลอยู่ในประวัติปิดชุด) หรือหลังที่เปิดชุดใหม่หลังวันที่บิล — ห้ามลงเข้า dailyLog ปัจจุบัน
+  const blockedCB=[];
+  prep.rows=prep.rows.filter(r=>{
+    const inClosed=(r.H.closedBatches||[]).some(rec=>(rec.dailyLog||[]).some(e=>e&&e._fromBill===b.id));
+    const newerBatch=!inClosed && r.H.intake && r.H.intake.dateIn && b.dateISO && String(b.dateISO)<String(r.H.intake.dateIn);
+    if(inClosed||newerBatch){ blockedCB.push(r.code+(inClosed?' (ชุดของบิลปิดไปแล้ว — งบปิดชุดอัปเดตจากบิลให้เองเมื่อกดบันทึกบิล)':' (หลังเปิดชุดใหม่หลังวันที่บิล — บิลเป็นของชุดเก่า)')); return false; }
+    return true;
+  });
+  if(blockedCB.length&&!prep.rows.length){ toast('📦 ไม่ลงเข้าหลัง — '+blockedCB.join(' · ')); return; }
   if(!prep.rows.length){ toast('ไม่พบหลังที่ตรงกับระบบในบิลนี้'+(prep.miss.length?' (ไม่รู้จัก: '+prep.miss.join(', ')+')':'')); return; }
+  if(blockedCB.length) prep.miss=prep.miss.concat(blockedCB);
   // สรุปให้ยืนยันก่อนลงจริง
   const dThai=isoToThaiDay(b.dateISO);
   const lines=prep.rows.map(r=>{
@@ -9529,8 +9585,11 @@ async function sbPostToHouses(id){
   });
   // สถานะ "ลงหลังแล้ว" ให้ตรงความจริงเสมอ: นับจากแถวที่มีอยู่จริงในเล้า (สำเร็จใหม่ + ของเดิมของหลังที่ fail)
   const still=HOUSES.filter(h=>(h.dailyLog||[]).some(e=>e&&e._fromBill===b.id)).map(h=>h.code);
-  if(still.length){ b.postedAt=Date.now(); b.postedHouses=still; b.postedBy=whoNow(); }
-  else { delete b.postedAt; delete b.postedHouses; delete b.postedBy; }
+  if(still.length){ b.postedAt=Date.now(); b.postedHouses=still; b.postedBy=whoNow();
+    // 📦 ตราประจำบิล (Peter 27 ก.ค.): บิลจำว่าตัดจากหลังไหน + หมูชุดไหน (วันรับเข้าของชุด ณ ตอนลง) — ใช้กันลงทับชุดใหม่ + โชว์ในบิล
+    b.batchRefs=still.map(cd=>{ const H=sbFindHouse(cd,b.farm)||{}; const it=H.intake||{}; return {code:cd, farm:H.farm||'', dateIn:it.dateIn||''}; });
+  }
+  else { delete b.postedAt; delete b.postedHouses; delete b.postedBy; delete b.batchRefs; }
   syncSaleBill(b);
   if(done.length||fail.length) logAudit('บิลขาย', b.id, 'ลงบิลเข้าหลัง', null, done.join(', ')+(fail.length?' · ไม่สำเร็จ: '+fail.join(', '):''));
   toast((done.length?'✅ ลงเข้าหลังแล้ว: '+done.join(', '):'ไม่ได้ลงหลังไหนเลย')+(fail.length?' · ❌ '+fail.join(', '):''));
