@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690727f';
+const APP_BUILD='690727g';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -6390,6 +6390,8 @@ function batchHTML(h){
     <h3>💸 ค่าใช้จ่าย (งบกำไรขาดทุน)</h3>
     <div class="banner info">🔗 <div>ค่ายา/เวชภัณฑ์ แยกเป็น <b>6 หมวด</b> ตามที่หมอเบิกจริงรายหลัง (รวม <b>${fmt(medTotal(h))} บาท</b>) — ดึงผลรวมมูลค่าจากรายการเบิกของหลังนี้อัตโนมัติ</div></div>
     <table><tbody>
+      <tr><td class="lab">🐖 ต้นทุนลูกหมู (รับเข้า) <span class="sub">🔗 จากแถว "รับเข้า" ในตาราง จำนวน/น้ำหนัก/มูลค่า ด้านบน — แก้ราคา บาท/ตัว ที่นั่น</span></td>
+        <td><input class="cin" id="c_pigletShow" readonly style="background:var(--soft);font-weight:700" placeholder="ใส่ราคา บาท/ตัว ที่แถวรับเข้าก่อน"></td></tr>
       <tr><td class="lab">🌾 รวมมูลค่าอาหาร <span class="sub">🔗 จากตารางอาหารที่ใช้</span></td>
         <td><input class="cin" id="c_feedTotal" readonly style="background:var(--soft);font-weight:700"></td></tr>
       ${REQ_COST_CATS.map(c=>`<tr><td class="lab">${c.label} <span class="sub">🔗 เบิกจริง</span></td>
@@ -6524,6 +6526,7 @@ function calcBatch(){
   setT('s_feed',fmt(Math.round(feedKg))+' กก. · '+fmt(Math.round(feedCost))+' บาท');
   setT('s_avg',(avgIn?avgIn.toFixed(1):'—')+' → '+(avgOut?avgOut.toFixed(1):'—')+' กก.');
   setT('s_inVal',(pigCost>0)?fmt(Math.round(pigCost)):'—'); // โชว์ต้นทุนลูกหมูที่ใช้จริง (รวมกรณีดึงจากค่าลูกหมูตอนรับเข้า)
+  { const pe=document.getElementById('c_pigletShow'); if(pe) pe.value=(pigCost>0)?Math.round(pigCost):''; } // 🐖 บรรทัดต้นทุนลูกหมูในงบกำไรขาดทุน (โชว์คู่กับแถวรับเข้า — Peter 27 ก.ค.: "หัวข้อต้นทุนลูกหมูหายไปไหน")
   setT('s_deadAvg',(deadW&&deadVal)?fmt(Math.round(deadVal/deadW)):'—');
   setT('s_cullAvg',(cullW&&cullVal)?fmt(Math.round(cullVal/cullW)):'—');
   setT('s_outAvg',(outW&&outVal)?fmt(Math.round(outVal/outW)):'—');
