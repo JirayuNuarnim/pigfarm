@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690727d';
+const APP_BUILD='690727e';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -7008,7 +7008,8 @@ function renderStock(){ if(vetGuard())return;
         <button class="btn ghost sm" onclick="renderStockIntake()">🏭 ทะเบียนรับเข้า</button>
         <button class="btn ghost sm" onclick="renderStockMoves()">🔁 ประวัติเคลื่อนไหว</button>
         ${(farms.length>1&&(effRole()==='owner'||effRole()==='admin'))?'<button class="btn ghost sm" onclick="renderStockOverview()">📊 ภาพรวมทุกฟาร์ม</button>':''}
-        <button class="btn ghost sm" onclick="exportStockBalance()">📊 ส่งออก Excel</button>
+        <button class="btn sm" onclick="exportStockAll()" title="ไฟล์เดียว 4 ชีต: ยอดคงเหลือ · เคลื่อนไหวทั้งหมด · ทะเบียนรับเข้า · รายการต้องซื้อ">📊 ดึงข้อมูล Excel (รวมทุกชีต)</button>
+        <button class="btn ghost sm" onclick="exportStockBalance()" title="เฉพาะตารางยอดคงเหลือ">Excel คงเหลือ</button>
       </div>
       <div style="overflow-x:auto"><table>
         <thead><tr><th>ชื่อรายการ</th><th>หมวด</th><th class="num">คงเหลือ</th><th>สถานะ</th><th>วันหมดอายุ</th><th class="num">ขั้นต่ำ</th><th class="num">ราคา/หน่วย</th><th class="num">มูลค่า</th>${canSet?'<th>ตั้งคงเหลือ</th>':''}</tr></thead>
@@ -7351,6 +7352,33 @@ function stockMovesTableHTML(){
   });
 }
 function exportStockMoves(){ const moves=stockMovesFiltered(); if(!moves.length){toast('ไม่มีรายการตามตัวกรอง');return;} downloadXls('ประวัติคลัง'+(smFarm?'_'+smFarm:'')+'.xls', stockMovesTableHTML()); toast('ส่งออกประวัติคลัง '+fmt(moves.length)+' รายการ ✓'); }
+function exportStockAll(){ // 📊 ดึง Excel รวมคลังเดียวจบ 4 ชีต: คงเหลือ + เคลื่อนไหวทั้งหมด + ทะเบียนรับเข้า + รายการต้องซื้อ (Peter สั่ง 27 ก.ค.)
+  if(!stockFarm){toast('เลือกฟาร์มก่อน');return;}
+  const farm=stockFarm;
+  const meta=[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'คลัง',v:farm},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออกรายงาน',v:(CURRENT_USER&&CURRENT_USER.name)||'-'}];
+  const sheets=[{name:'ยอดคงเหลือ', html:stockBalTableHTML(farm)}];
+  // เคลื่อนไหวทั้งหมดของคลังนี้ (ทุกวัน ไม่อิงตัวกรอง) + คงเหลือสะสมรายรายการ
+  const asc=(farmStock(farm).moves||[]).slice().sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const run={}; asc.forEach(m=>{ const k=stockKey(m.cat,m.name); run[k]=(run[k]||0)+(Number(m.delta)||0); m.__aft=run[k]; });
+  const mv=asc.slice().reverse();
+  if(mv.length){
+    const lbl=t=>t==='in'?'รับเข้า':t==='out'?'เบิกออก':'ปรับยอด';
+    sheets.push({name:'เคลื่อนไหว', html:xlsSheet({title:'ประวัติเคลื่อนไหวคลัง — '+farm+' (ทั้งหมด ใหม่→เก่า)', meta,
+      columns:[{label:'วันที่',type:'text',w:90},{label:'ชนิด',type:'text',w:80},{label:'หมวด',type:'text',w:120},{label:'รายการ',type:'text',w:200},{label:'หลัง',type:'text',w:64},{label:'หมอ',type:'text',w:110},{label:'จำนวน (+/-)',type:'num',w:90},{label:'คงเหลือสะสม',type:'num',w:95},{label:'โดย',type:'text',w:120},{label:'อ้างอิง',type:'text',w:120},{label:'หมายเหตุ',type:'text',w:170}],
+      rows:mv.map(m=>[m.date||'',lbl(m.type),m.cat||'',m.name||'',m.house||'',m.vet||'',(Number(m.delta)||0),(m.__aft!=null?m.__aft:''),m.by||'',m.ref||'',m.note||''])})});
+  }
+  const ins=mv.filter(m=>m.type==='in');
+  if(ins.length){
+    sheets.push({name:'ทะเบียนรับเข้า', html:xlsSheet({title:'ทะเบียนรับเข้าคลัง — '+farm, meta,
+      columns:[{label:'วันที่',type:'text',w:90},{label:'หมวด',type:'text',w:120},{label:'รายการ',type:'text',w:200},{label:'จำนวน',type:'num',w:80},{label:'ราคา/หน่วย',type:'money',w:90},{label:'มูลค่า',type:'money',w:100},{label:'วันหมดอายุล็อต',type:'text',w:110},{label:'บริษัท/ร้าน',type:'text',w:140},{label:'บิล/อ้างอิง',type:'text',w:110},{label:'ผู้รับเข้า',type:'text',w:110}],
+      rows:ins.map(m=>{ const q=Number(m.delta)||0, p=Number(m.price)||0;
+        return [m.date||'',m.cat||'',m.name||'',q,p,Math.round(q*p*100)/100,(m.exp?fmtISOThai(m.exp):''),m.sup||'',m.ref||'',m.by||'']; }),
+      totals:['รวม','','',ins.reduce((s,m)=>s+(Number(m.delta)||0),0),'',Math.round(ins.reduce((s,m)=>s+(Number(m.delta)||0)*(Number(m.price)||0),0)),'','','','']})});
+  }
+  if(stockReorderRows(farm).length) sheets.push({name:'รายการต้องซื้อ', html:stockReorderTableHTML(farm)});
+  downloadXlsMulti(('คลังยา_'+farm+'_รวม').replace(/[\\\/:*?"<>|]/g,'-')+'.xls', sheets);
+  toast('📊 ส่งออก Excel รวมคลัง '+farm+' ('+sheets.length+' ชีต) ✓');
+}
 function renderRequest(){
   histPush('vetReq',renderRequest);
   const cats=Object.keys(REQ_DATA), codes=myHouses().slice().sort(byCode).map(h=>h.code);   // เฉพาะหลังในฟาร์มที่ดูแล
