@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690726h';
+const APP_BUILD='690727a';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -8585,13 +8585,26 @@ function sbBandsHTML(){
     <tbody>${rows}</tbody></table></div>
     <div class="sub" style="margin-top:7px">${canP?'💡 ใส่ราคาเฉพาะช่วงที่มีน้ำหนัก (แถวเข้ม) · เว้นว่างได้ — บิลจะติดป้าย "รอใส่ราคา" ให้เจ้าของเติม':'🔒 ราคาตั้งโดยเจ้าของ — เติมอัตโนมัติจากทะเบียนลูกค้า · เสมียนกรอกจำนวน/น้ำหนักได้ ราคาให้เจ้าของเป็นผู้ใส่'}</div>`;
 }
+function sbDedSet(i,k,v){ // หัก/ลดบิล: เสมียนกรอก กก.×ราคา/กก. เองได้ (ราคาไม่ล็อกกับที่เจ้าของตั้ง) → ระบบคูณเป็นยอดหักให้ · หรือพิมพ์ยอดเงินตรงๆ แบบเดิม
+  const d=(SB_D.deducts||[])[i]; if(!d) return; d[k]=v;
+  if(k!=='amt'){ const auto=sbNum(d.w)>0&&sbNum(d.p)>0, el=$("#sbDedAmt"+i);
+    if(auto){ d.amt=String(Math.round(sbNum(d.w)*sbNum(d.p)*100)/100); if(el){ el.value=d.amt; el.readOnly=true; el.style.background='var(--soft)'; el.style.fontWeight='700'; } }
+    else if(el){ el.readOnly=false; el.style.background=''; el.style.fontWeight=''; } }
+  sbRefresh();
+}
 function sbDeductsHTML(){
   const ds=SB_D.deducts||[];
-  return ds.map((d,i)=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap">
-      <input class="cin" placeholder="อ้างอิง เช่น ลดบิล 69/03265" style="max-width:230px" value="${escA(d.ref)}" oninput="SB_D.deducts[${i}].ref=this.value;sbRefresh()">
-      <input class="cin" type="number" step="1" placeholder="จำนวนเงิน (บาท)" style="max-width:160px" value="${escA(d.amt)}" oninput="SB_D.deducts[${i}].amt=this.value;sbRefresh()">
-      <button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.deducts.splice(${i},1);renderSaleBillForm()">✕</button></div>`).join('')+
-    `<button class="btn ghost sm" onclick="SB_D.deducts.push({ref:'',amt:''});renderSaleBillForm()">＋ เพิ่มรายการหัก/ลดบิล</button>`;
+  return ds.map((d,i)=>{ const auto=sbNum(d.w)>0&&sbNum(d.p)>0;
+    return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:7px;flex-wrap:wrap">
+      <input class="cin" placeholder="อ้างอิง เช่น ลดบิล 69/03265 · หมูคัด" style="max-width:210px" value="${escA(d.ref)}" oninput="sbDedSet(${i},'ref',this.value)">
+      <input class="cin" type="number" step="0.1" inputmode="decimal" placeholder="กก." style="max-width:90px" value="${escA(d.w==null?'':d.w)}" oninput="sbDedSet(${i},'w',this.value)">
+      <span style="color:var(--mut);font-weight:700">×</span>
+      <input class="cin" type="number" step="0.25" inputmode="decimal" placeholder="ราคา/กก." style="max-width:100px" value="${escA(d.p==null?'':d.p)}" oninput="sbDedSet(${i},'p',this.value)">
+      <span style="color:var(--mut);font-weight:700">=</span>
+      <input id="sbDedAmt${i}" class="cin" type="number" step="1" placeholder="จำนวนเงิน (บาท)" style="max-width:150px${auto?';background:var(--soft);font-weight:700':''}"${auto?' readonly':''} value="${escA(d.amt)}" oninput="sbDedSet(${i},'amt',this.value)">
+      <button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.deducts.splice(${i},1);renderSaleBillForm()">✕</button></div>`; }).join('')+
+    `<button class="btn ghost sm" onclick="SB_D.deducts.push({ref:'',w:'',p:'',amt:''});renderSaleBillForm()">＋ เพิ่มรายการหัก/ลดบิล</button>
+    <div class="sub" style="margin-top:6px">💡 ใส่ <b>กก. × ราคา/กก.</b> (กรอกราคาเองได้ตามตกลงจริง) ระบบคูณเป็นยอดหักให้อัตโนมัติ · หรือพิมพ์ยอดเงินที่ช่องขวาตรงๆ ก็ได้</div>`;
 }
 function sbSumHTML(){ // แถบสรุปสดลอยติดจอ — เห็นยอดตลอดเวลาที่กรอก
   const c=sbCalc(SB_D);
@@ -8643,7 +8656,7 @@ function sbDraftDiffers(d){ // ร่างของบิลที่บัน�
     it:(x.items||[]).filter(i=>i&&(S(i.house)||sbNum(i.w)>0)).map(i=>[S(i.house).toUpperCase(),i.type||'',S(i.dtype),S(i.w)]),
     hs:(x.houses||[]).filter(h=>h&&S(h.code)).map(h=>[S(h.code).toUpperCase(),S(h.n)]),
     bd:(x.bands||[]).filter(bd=>bd&&(S(bd.cull)!==''||S(bd.dead)!=='')).map(bd=>[bd.a,bd.b,S(bd.cull),S(bd.dead)]),
-    dd:(x.deducts||[]).filter(v=>v&&(S(v.ref)||sbNum(v.amt))).map(v=>[S(v.ref),S(v.amt)])
+    dd:(x.deducts||[]).filter(v=>v&&(S(v.ref)||sbNum(v.amt)||sbNum(v.w)||sbNum(v.p))).map(v=>[S(v.ref),S(v.amt),S(v.w),S(v.p)])
   });
   try{ return norm(d.d)!==norm(b); }catch(e){ return true; }
 }
@@ -9098,14 +9111,14 @@ function sbSave(){
     if(ov.length&&!confirm('⛔ จำนวนหมูในบิลมากกว่ายอดคงเหลือของเล้า!\n\n'+ov.map(o=>'• หลัง '+o.code+': ลงขาย '+fmt(o.n)+' ตัว แต่เล้าเหลือ '+fmt(o.remain)+' ตัว').join('\n')+'\n\nเช็คเลขหลังและจำนวนกับหน้าเล้าอีกครั้ง\nถ้ายืนยันว่าตัวเลขถูกต้อง (เช่น เล้ายังไม่ได้ลงบันทึกวันนี้) กด "ตกลง" เพื่อบันทึกต่อ')) return;
   }
   SB_D.houses=(SB_D.houses||[]).filter(x=>x.code);
-  SB_D.deducts=(SB_D.deducts||[]).filter(x=>x.ref||sbNum(x.amt));
+  SB_D.deducts=(SB_D.deducts||[]).filter(x=>x.ref||sbNum(x.amt)||sbNum(x.w)||sbNum(x.p));
   // 🕘 ประวัติแก้ไขรายช่อง — ตรวจสอบย้อนหลังได้ว่าใครแก้อะไรจากค่าไหนเป็นค่าไหน
   let changes=[];
   if(!SB_ISNEW&&stored){
     const oc=sbCalc(stored);
     const F=[['ผู้ซื้อ',stored.buyer,SB_D.buyer],['ทะเบียนรถ',stored.truck,SB_D.truck],['วันที่',stored.dateISO,SB_D.dateISO],
       ['เล่มที่',stored.billBook,SB_D.billBook],['เลขที่',stored.billNo,SB_D.billNo],['ราคา/กก.',stored.pricePerKg,SB_D.pricePerKg],
-      ['จำนวนตัว',oc.n,c.n],['น้ำหนักรวม',Math.round(oc.totW*10)/10,Math.round(c.totW*10)/10],
+      ['จำนวนตัว',oc.n,c.n],['น้ำหนักรวม',Math.round(oc.totW*10)/10,Math.round(c.totW*10)/10],['หัก/ลดบิลรวม',oc.deduct||0,c.deduct||0],
       ['รถเบา',stored.scaleIn,SB_D.scaleIn],['รถหนัก',stored.scaleOut,SB_D.scaleOut],
       ['ยอดสุทธิ',(oc.net==null?'รอราคา':fmt(oc.net)),(c.net==null?'รอราคา':fmt(c.net))]];
     changes=F.filter(f=>String(f[1]==null?'':f[1])!==String(f[2]==null?'':f[2]))
@@ -10012,7 +10025,7 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
     noteLines.push('หลัง '+escA(x.code)+' = '+fmt(parseInt(x.n)||0)+' ตัว'+((age||H.vet)?' ('+(age?age+' วัน':'')+(H.vet?(age?' / ':'')+escA(H.vet):'')+')':'')); });
   if(sbNum(b.fastPen)>0||sbNum(b.fastStand)>0) noteLines.push('อดอาหารในเล้า '+sbNum(b.fastPen)+' ชม. · ที่แท่น '+sbNum(b.fastStand)+' ชม.');
   if(c.scaleNet!=null) noteLines.push('นน.รายตัว'+(c.diff>=0?'มากกว่า':'น้อยกว่า')+'ตาชั่งรถ '+fmt(Math.abs(c.diff))+' กก.'+(c.n?' ('+(Math.abs(c.diff)/c.n).toFixed(2)+' กก./ตัว)':''));
-  (b.deducts||[]).forEach(d=>noteLines.push('หัก: '+escA(d.ref||'-')+' = '+fmt(sbNum(d.amt))+' บาท'));
+  (b.deducts||[]).forEach(d=>{ const wp=(sbNum(d.w)>0&&sbNum(d.p)>0)?' ('+fmt(sbNum(d.w))+' กก. × '+fmt(sbNum(d.p))+' บาท/กก.)':''; noteLines.push('หัก: '+escA(d.ref||'-')+wp+' = '+fmt(sbNum(d.amt))+' บาท'); });
   // 💳 (ถอด 23 ก.ค. ตามกติกาเจ้าของ) ลูกค้าหมูไม่มีเครดิตกับฟาร์ม — การหักจบในบิลนั้นผ่านช่อง "หัก/ลดบิล" เท่านั้น
   //    บิลห้ามโชว์/หักเครดิตจากบัญชีอัตโนมัติ (ยอดบัญชีติดลบ = ความผิดปกติให้ไปแก้ที่บัญชี ไม่ใช่เอามาหักบิล)
   if(b.paySlip) noteLines.push('📷 มีสลิปโอนเงินแนบไว้ในระบบ ✓');
@@ -10158,8 +10171,8 @@ function sbExportXlsObj(b){
   }
   if((b.deducts||[]).length){
     sheets.push({name:'หัก-ลดบิล', html:xlsSheet({title:'รายการหัก/ลดบิล',
-      columns:[{label:'อ้างอิง',w:240},{label:'จำนวนเงิน (บาท)',type:'num',w:130}],
-      rows:b.deducts.map(d=>[d.ref||'-', sbNum(d.amt)]), totals:['รวม', c.deduct]})});
+      columns:[{label:'อ้างอิง',w:240},{label:'น้ำหนัก (กก.)',type:'dec',w:100},{label:'ราคา/กก.',type:'dec',w:90},{label:'จำนวนเงิน (บาท)',type:'num',w:130}],
+      rows:b.deducts.map(d=>[d.ref||'-', sbNum(d.w)||'', sbNum(d.p)||'', sbNum(d.amt)]), totals:['รวม','','', c.deduct]})});
   }
   const fname=('บิลขาย_'+K.t+'_'+(b.farm||'ฟาร์ม')+'_'+(b.dateISO||'')+(b.billNo?('_เลขที่'+b.billNo):'')).replace(/[\\\/:*?"<>|]/g,'-')+'.xls';
   downloadXlsMulti(fname, sheets);
