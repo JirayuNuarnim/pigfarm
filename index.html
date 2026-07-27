@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690727a';
+const APP_BUILD='690727b';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -1449,7 +1449,7 @@ async function rtPoll(){
         else { try{ await lgCloudLoad(); const t2=navHist[navHist.length-1];
           if(t2&&['ledger','lgcust'].indexOf(t2.key)>=0&&t2.fn){ t2.fn(); toast('🔄 อัปเดตบัญชีลูกค้าล่าสุดแล้ว'); } }catch(e){ rtShowBanner(); } }
       }
-      else if(['clerkReq','clerkFeedReq','stock','vetReq','vetFeed','clerkFarm','houseList','perf'].indexOf(top&&top.key)>=0){   // หน้าเสมียน/หมอ/ประสิทธิภาพ → รีเฟรชสดเมื่อทีมลงข้อมูลใหม่ (ถ้าไม่ได้กำลังพิมพ์)
+      else if(['clerkReq','clerkFeedReq','clerkFeedRecv','stock','vetReq','vetFeed','clerkFarm','houseList','perf'].indexOf(top&&top.key)>=0){   // หน้าเสมียน/หมอ/ประสิทธิภาพ → รีเฟรชสดเมื่อทีมลงข้อมูลใหม่ (ถ้าไม่ได้กำลังพิมพ์)
         const ae=document.activeElement, typing=ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
         if(typing){ rtShowBanner(); }
         else { try{ const snap=viewInputSnapshot(); await cloudLoadV2();   // 🔴 จำของที่พิมพ์ค้างก่อนวาดใหม่ (เดิมมือถือปิดคีย์บอร์ด = ของที่กรอกครึ่งๆ หายเงียบ)
@@ -1795,6 +1795,7 @@ const HOME_MENU = {
     {icon:'🏭', t:'ข้อมูลประจำฟาร์ม',    d:'ภาพรวมหลังในแต่ละฟาร์ม',                fn:'renderClerkFarm'},
     {icon:'💉', t:'รายการเบิกยา',        d:'ดูรายการเบิกยา/เวชภัณฑ์ของหมอ',          fn:'renderClerkReq'},
     {icon:'🌾', t:'รายการสั่งอาหาร',     d:'ดูใบสั่งอาหารของหมอ',                   fn:'renderClerkFeedReq'},
+    {icon:'🚚', t:'รับอาหารรายวัน',      d:'ประวัติรับอาหารเข้าหลังจริง (บันทึกของหมอ) · เทียบกับใบสั่งอาหาร', fn:'renderClerkFeedRecv'},
     {icon:'📦', t:'คลังยา/อุปกรณ์',       d:'รับเข้า · ยอดคงเหลือ · ของใกล้หมด รายฟาร์ม', fn:'renderStock'},
     {icon:'📤', t:'การดึงข้อมูลรวม',      d:'ส่งออก Excel รายวัน/เบิก/ปิดชุด',          fn:'renderClerkExport'},
   ],
@@ -2778,6 +2779,7 @@ function clerkNav(active){
     <button class="${active==='farm'?'on':''}" onclick="renderClerkFarm()">🏭 ข้อมูลประจำฟาร์ม</button>
     <button class="${active==='req'?'on':''}" onclick="renderClerkReq()">💉 รายการเบิกยา</button>
     <button class="${active==='freq'?'on':''}" onclick="renderClerkFeedReq()">🌾 รายการสั่งอาหาร</button>
+    <button class="${active==='frecv'?'on':''}" onclick="renderClerkFeedRecv()">🚚 รับอาหารรายวัน</button>
     <button class="${active==='stock'?'on':''}" onclick="renderStock()">📦 คลังยา/อุปกรณ์</button>
     <button class="${active==='exp'?'on':''}" onclick="renderClerkExport()">📤 การดึงข้อมูลรวม</button>
   </div>`;
@@ -3151,6 +3153,147 @@ function exportClerkFeedReq(){
     rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','','','',qty,'','',''] });
   downloadXls('รายการสั่งอาหาร'+(cfrFarm?'_'+cfrFarm:'')+'.xls', html);
   toast('ส่งออกรายการสั่งอาหาร '+rows.length+' รายการ ✓');
+}
+/* ---------- 🚚 รับอาหารรายวัน (เสมียน): ประวัติการรับอาหารเข้าหลังจริง (บันทึก "การรับอาหาร" ของหมอ) + เทียบกับใบสั่งอาหาร ---------- */
+let cfvFarm='', cfvHouse='', cfvVet='', cfvDate='', cfvDateMode='day', cfvDateFrom='', cfvDateTo='';
+function clerkFeedRecvAll(){return myHouses().flatMap(h=>(h.vetLog||[]).filter(e=>e&&e.type==='feed').map(r=>Object.assign({},r,{house:h.code,farm:h.farm||'ไม่ระบุฟาร์ม',hvet:h.vet||''})));}
+function cfvDateMatch(r){
+  if(cfvDateMode==='range'){
+    if(!cfvDateFrom && !cfvDateTo) return true;
+    const t=parseThaiDate(r.date); if(!t) return true;
+    let a=cfvDateFrom?parseThaiDate(cfvDateFrom):null, b=cfvDateTo?parseThaiDate(cfvDateTo):null;
+    if(a&&b&&a>b){const tmp=a;a=b;b=tmp;}
+    if(a && t<a) return false;
+    if(b){const end=new Date(b.getFullYear(),b.getMonth(),b.getDate(),23,59,59); if(t>end) return false;}
+    return true;
+  }
+  return !cfvDate || r.date===cfvDate;
+}
+function setCfvDateMode(m){cfvDateMode=m; if(m==='day'){cfvDateFrom='';cfvDateTo='';}else{cfvDate='';} renderClerkFeedRecv();}
+function clerkFeedRecvFiltered(){const vq=(cfvVet||'').trim().toLowerCase();return clerkFeedRecvAll().filter(r=>(!cfvFarm||r.farm===cfvFarm)&&(!cfvHouse||r.house===cfvHouse)&&(!vq||(r.by||'').toLowerCase().includes(vq))&&cfvDateMatch(r));}
+function clerkFeedReqSameFilter(){ // ใบสั่งอาหารในขอบเขต/ช่วงวันเดียวกัน — ไว้เทียบ สั่ง vs รับ (กรองหมอตามคนกดสั่ง เหมือนหน้าสั่งอาหาร)
+  const vq=(cfvVet||'').trim().toLowerCase();
+  return clerkFeedReqAll().filter(r=>(!cfvFarm||r.farm===cfvFarm)&&(!cfvHouse||r.house===cfvHouse)&&(!vq||(r.by||'').toLowerCase().includes(vq))&&cfvDateMatch(r));
+}
+function cfvCompareRows(){ // จับคู่ หลัง+เบอร์อาหาร: รวมสั่ง (แยกหน่วย กระสอบ/กก.) vs รวมรับจริง (กก.)
+  const m={}, K=r=>r.farm+'|'+r.house+'|'+(r.feedNo||'-');
+  const blank=r=>({farm:r.farm,house:r.house,no:r.feedNo||'-',ordKg:0,ordSack:0,ordN:0,recvKg:0,recvN:0});
+  clerkFeedReqSameFilter().forEach(r=>{ const k=K(r); m[k]=m[k]||blank(r);
+    const q=Number(r.qty)||0; if((r.unit||'')==='กระสอบ') m[k].ordSack+=q; else m[k].ordKg+=q; m[k].ordN++; });
+  clerkFeedRecvFiltered().forEach(r=>{ const k=K(r); m[k]=m[k]||blank(r);
+    m[k].recvKg+=Number(r.feedKg)||0; m[k].recvN++; });
+  return Object.values(m).sort((a,b)=>String(a.farm).localeCompare(String(b.farm),'th')||byCode({code:a.house},{code:b.house})||String(a.no).localeCompare(String(b.no),'th'));
+}
+function cfvOrdStr(r){ const p=[]; if(r.ordSack) p.push(fmt(r.ordSack)+' กระสอบ'); if(r.ordKg) p.push(fmt(r.ordKg)+' กก.'); return p.length?p.join(' + '):'—'; }
+function cfvDiffCell(r){ // ผลต่างเทียบตรงได้เฉพาะตอนสั่งเป็น กก. ล้วน — มี "กระสอบ" ปนให้ดูคู่กันด้วยตา (น้ำหนักต่อกระสอบไม่แน่นอน)
+  if(!r.ordN) return '<span class="sub" title="มีบันทึกรับ แต่ไม่พบใบสั่งในช่วงวันที่ที่กรอง">ไม่มีใบสั่ง</span>';
+  if(!r.recvN) return '<b style="color:#b7791f" title="สั่งแล้ว แต่ยังไม่มีบันทึกรับอาหารเข้าหลัง">ยังไม่รับ</b>';
+  if(r.ordSack) return '<span class="sub" title="สั่งเป็นกระสอบ เทียบเป็น กก. ตรงๆ ไม่ได้">หน่วยต่างกัน</span>';
+  const d=Math.round((r.recvKg-r.ordKg)*10)/10;
+  if(Math.abs(d)<0.5) return '<b style="color:var(--ok)">ครบ ✓</b>';
+  return '<b style="color:var(--bad)">'+(d>0?'+':'')+fmt(d)+' กก.</b>';
+}
+function renderClerkFeedRecv(){ if(vetGuard())return;
+  histPush('clerkFeedRecv',renderClerkFeedRecv);
+  const myFarmList=[...new Set(myHouses().map(h=>h.farm||'ไม่ระบุฟาร์ม'))];
+  const orderedFarms=FARMS.filter(f=>myFarmList.includes(f)).concat(myFarmList.filter(f=>!FARMS.includes(f)));
+  const allRaw=clerkFeedRecvAll();
+  const codeOpts=[...new Set(allRaw.map(r=>r.house))].sort((a,b)=>byCode({code:a},{code:b}));
+  const vetScopeHouses=myHouses().filter(h=>(!cfvFarm||(h.farm||'ไม่ระบุฟาร์ม')===cfvFarm)&&(!cfvHouse||h.code===cfvHouse));
+  const vetOpts=[...new Set(vetScopeHouses.map(h=>h.vet).filter(Boolean))].sort();
+  const dateOpts=[...new Set(allRaw.map(r=>r.date).concat(clerkFeedReqAll().map(r=>r.date)))].sort((a,b)=>reqDateKey(b)-reqDateKey(a));
+  const all=clerkFeedRecvFiltered();
+  const cmp=cfvCompareRows();
+  const farmsToShow=cfvFarm?orderedFarms.filter(f=>f===cfvFarm):orderedFarms;
+  const opt=(arr,sel)=>arr.map(o=>`<option ${o===sel?'selected':''}>${escA(o)}</option>`).join("");
+  const v=$("#view");
+  v.innerHTML=`
+    <h2 class="page">📋 เสมียน</h2>
+    <div class="sub">ประวัติการรับอาหารเข้าหลังจริง (จากบันทึก "การรับอาหาร" ของหมอ) · เทียบกับใบสั่งอาหาร · แสดง ${all.length} รายการ</div>
+    ${clerkNav('frecv')}
+    <div class="card">
+      <h3>🖨️ ส่งออก / กรองรายการ</h3>
+      <div class="grid2">
+        <div class="frow" style="margin-bottom:0"><label>ฟาร์ม</label>
+          <select class="cin tl" onchange="cfvFarm=this.value;cfvHouse='';cfvVet='';renderClerkFeedRecv()"><option value="">— ทุกฟาร์ม —</option>${opt(orderedFarms,cfvFarm)}</select></div>
+        <div class="frow" style="margin-bottom:0"><label>รหัสหลัง</label>
+          <select class="cin tl" onchange="cfvHouse=this.value;cfvVet='';renderClerkFeedRecv()"><option value="">— ทุกหลัง —</option>${opt(codeOpts.filter(c=>!cfvFarm||(HOUSES.find(h=>h.code===c)||{}).farm===cfvFarm),cfvHouse)}</select></div>
+      </div>
+      <div class="frow" style="margin-top:10px;margin-bottom:0"><label>ชื่อหมอ <span class="hint">(พิมพ์ค้นหา หรือเลือกจากรายชื่อ)</span></label>
+        <input class="cin tl" list="cfvVetList" value="${escA(cfvVet)}" onchange="cfvVet=this.value.trim();renderClerkFeedRecv()" placeholder="— ทุกหมอ —" autocomplete="off" autocapitalize="off">
+        <datalist id="cfvVetList">${vetOpts.map(vt=>`<option value="${escA(vt)}"></option>`).join('')}</datalist></div>
+      <div class="frow" style="margin-top:10px;margin-bottom:0">
+        <label style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">วันที่
+          <span style="display:inline-flex;background:#e4e9ef;border-radius:9px;padding:3px;gap:3px">
+            <button type="button" onclick="setCfvDateMode('day')" style="border:none;border-radius:7px;padding:5px 13px;font-size:12.5px;font-weight:600;cursor:pointer;${cfvDateMode==='day'?'background:#fff;color:var(--brand);box-shadow:0 1px 2px rgba(20,35,50,.13)':'background:transparent;color:var(--muted)'}">📅 รายวัน</button>
+            <button type="button" onclick="setCfvDateMode('range')" style="border:none;border-radius:7px;padding:5px 13px;font-size:12.5px;font-weight:600;cursor:pointer;${cfvDateMode==='range'?'background:#fff;color:var(--brand);box-shadow:0 1px 2px rgba(20,35,50,.13)':'background:transparent;color:var(--muted)'}">↔️ ช่วงวันที่</button>
+          </span>
+        </label>
+        ${cfvDateMode==='range'
+          ? `<div class="grid2" style="margin-top:7px">
+               <select class="cin tl" onchange="cfvDateFrom=this.value;renderClerkFeedRecv()"><option value="">— ตั้งแต่วันที่ —</option>${opt(dateOpts,cfvDateFrom)}</select>
+               <select class="cin tl" onchange="cfvDateTo=this.value;renderClerkFeedRecv()"><option value="">— ถึงวันที่ —</option>${opt(dateOpts,cfvDateTo)}</select>
+             </div>`
+          : `<select class="cin tl" style="margin-top:7px" onchange="cfvDate=this.value;renderClerkFeedRecv()"><option value="">— ทุกวัน —</option>${opt(dateOpts,cfvDate)}</select>`}
+      </div>
+      <button class="btn" style="margin-top:12px${(all.length||cmp.length)?'':';opacity:.5;cursor:not-allowed'}" ${(all.length||cmp.length)?'onclick="exportClerkFeedRecv()"':'disabled'}>🖨️ ปริ๊น / Export Excel</button>
+      ${(cfvFarm||cfvHouse||cfvVet||cfvDate||cfvDateFrom||cfvDateTo)?`<div class="sub" style="margin-top:10px">กรอง: ${cfvFarm?'🏭 '+escA(cfvFarm)+' ':''}${cfvHouse?'· หลัง '+escA(cfvHouse)+' ':''}${cfvVet?'· 🩺 '+escA(cfvVet)+' ':''}${(cfvDate||cfvDateFrom||cfvDateTo)?'· 📅 '+escA(cfvDate||((cfvDateFrom||'ต้น')+' – '+(cfvDateTo||'ล่าสุด'))):''} <a href="#" onclick="cfvFarm='';cfvHouse='';cfvVet='';cfvDate='';cfvDateFrom='';cfvDateTo='';renderClerkFeedRecv();return false" style="color:var(--info)">ล้างตัวกรอง</a></div>`:''}
+    </div>
+    <div class="card">
+      <h3>⚖️ เทียบ สั่งอาหาร vs รับเข้าหลังจริง <span class="more">จับคู่ หลัง + เบอร์อาหาร · ตามตัวกรอง/ช่วงวันที่ด้านบน</span></h3>
+      ${cmp.length?`<div style="overflow-x:auto"><table>
+        <thead><tr><th>ฟาร์ม</th><th>หลัง</th><th>เบอร์อาหาร</th><th class="num">สั่งรวม</th><th class="num">รับจริงรวม (กก.)</th><th class="num">ผลต่าง</th></tr></thead>
+        <tbody>${cmp.map(r=>`<tr>
+          <td><span class="sub">${escA(r.farm)}</span></td><td><b>${escA(r.house)}</b></td><td><b>${escA(r.no)}</b></td>
+          <td class="num">${cfvOrdStr(r)}${r.ordN?'<div class="sub">'+r.ordN+' ใบสั่ง</div>':''}</td>
+          <td class="num">${r.recvN?'<b>'+fmt(Math.round(r.recvKg*10)/10)+'</b><div class="sub">'+r.recvN+' ครั้ง</div>':'—'}</td>
+          <td class="num">${cfvDiffCell(r)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+      <div class="sub" style="margin-top:8px">💡 สั่งวันนี้ อาหารอาจเข้าหลังวันถัดไป — ถ้าเทียบรายวันแล้วไม่ตรง ให้เลือก "↔️ ช่วงวันที่" คร่อมไว้ · หน่วย "กระสอบ" น้ำหนักต่อกระสอบไม่แน่นอน ระบบจึงโชว์คู่กันให้เทียบด้วยตา ไม่คำนวณผลต่างให้</div>`
+      :'<div class="sub">ยังไม่มีทั้งใบสั่งอาหารและบันทึกรับอาหารในช่วงที่เลือก</div>'}
+    </div>
+    ${all.length? farmsToShow.map(f=>{
+      const fItems=all.filter(r=>r.farm===f); if(!fItems.length) return '';
+      const byDate={}; fItems.forEach(r=>{(byDate[r.date]=byDate[r.date]||[]).push(r);});
+      const dates=Object.keys(byDate).sort((a,b)=>reqDateKey(b)-reqDateKey(a));
+      return `<div class="card">
+        <h3>🏭 ${escA(f)} <span class="more">${fItems.length} รายการ · รวม ${fmt(Math.round(fItems.reduce((s,r)=>s+(Number(r.feedKg)||0),0)))} กก.</span></h3>
+        ${dates.map(d=>{const dItems=byDate[d].slice().sort((a,b)=>byCode({code:a.house},{code:b.house}));
+          return `<div style="margin-top:14px">
+            <div style="font-weight:700;font-size:14px;margin-bottom:6px">📅 ${escA(d)} <span class="sub" style="font-weight:400">· ${dItems.length} รายการ · ${fmt(Math.round(dItems.reduce((s,r)=>s+(Number(r.feedKg)||0),0)))} กก.</span></div>
+            <div style="overflow-x:auto"><table>
+              <thead><tr><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">ปริมาณ (กก.)</th><th>ยาผสมมา</th><th>เลขที่บิล</th><th>🩺 หมอผู้บันทึก</th></tr></thead>
+              <tbody>${dItems.map(r=>`<tr>
+                <td><b>${escA(r.house)}</b></td><td>${r.feedSrc?'<b>'+escA(r.feedSrc)+'</b>':'-'}</td><td><b>${escA(r.feedNo||'-')}</b></td>
+                <td class="num">${fmt(Number(r.feedKg)||0)}</td>
+                <td>${r.feedMed?escA(r.feedMed).replace(/\n/g,'<br>'):'-'}</td><td>${escA(r.feedBill||'-')}</td>
+                <td>${(r.by&&r.hvet&&r.by!==r.hvet)?'<b style="color:#b7791f" title="คนบันทึกไม่ใช่หมอประจำหลังนี้">'+escA(r.by)+'</b><div class="sub">ประจำ: '+escA(r.hvet)+'</div>':'<span class="sub">'+escA(r.by||r.hvet||'-')+'</span>'}</td>
+              </tr>`).join("")}</tbody>
+            </table></div>
+          </div>`;}).join("")}
+      </div>`;
+    }).join("") : '<div class="card"><div class="sub">ยังไม่มีบันทึกการรับอาหาร — เมื่อหมอลง "🌾 การรับอาหาร" ในหน้าบันทึกรายหลัง รายการจะมาแสดงที่นี่</div></div>'}
+  `;
+}
+function exportClerkFeedRecv(){
+  const rows=clerkFeedRecvFiltered(), cmp=cfvCompareRows();
+  if(!rows.length&&!cmp.length){toast('ไม่มีรายการรับอาหารให้ส่งออก');return;}
+  const meta=[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'ขอบเขต',v:cfvFarm?('ฟาร์ม '+cfvFarm):'ทุกฟาร์มที่ดูแล'},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออกรายงาน',v:(CURRENT_USER&&CURRENT_USER.name)||'-'}];
+  let kg=0; const data=rows.slice().sort((a,b)=>reqDateKey(a.date)-reqDateKey(b.date)||byCode({code:a.house},{code:b.house}))
+    .map(r=>{ kg+=Number(r.feedKg)||0; return [r.date,r.farm,r.house,r.feedSrc||'',r.feedNo||'',Number(r.feedKg)||0,r.feedMed||'',r.feedBill||'',r.by||r.hvet||'']; });
+  const sheets=[{name:'รับอาหารรายวัน', html:xlsSheet({ title:'ประวัติการรับอาหารรายวัน (บันทึกของหมอ)', meta,
+    columns:[{label:'วันที่',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'แหล่ง',type:'text',w:90},{label:'เบอร์อาหาร',type:'text',w:100},{label:'ปริมาณ (กก.)',type:'num',w:95},{label:'ยาผสมมา',type:'text',w:170},{label:'เลขที่บิล',type:'text',w:100},{label:'หมอผู้บันทึก',type:'text',w:120}],
+    rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','',kg,'','',''] })}];
+  if(cmp.length){
+    sheets.push({name:'เทียบสั่ง-รับ', html:xlsSheet({ title:'เทียบ สั่งอาหาร vs รับเข้าหลังจริง (จับคู่ หลัง+เบอร์อาหาร)', meta,
+      columns:[{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'เบอร์อาหาร',type:'text',w:100},{label:'สั่ง (กระสอบ)',type:'num',w:100},{label:'สั่ง (กก.)',type:'num',w:95},{label:'รับจริง (กก.)',type:'num',w:100},{label:'ผลต่าง (กก.)',type:'num',w:100},{label:'หมายเหตุ',type:'text',w:170}],
+      rows:cmp.map(r=>[r.farm,r.house,r.no,r.ordSack||'',r.ordKg||'',Math.round(r.recvKg*10)/10,
+        (!r.ordN||!r.recvN||r.ordSack)?'':Math.round((r.recvKg-r.ordKg)*10)/10,
+        !r.ordN?'มีรับ แต่ไม่พบใบสั่งในช่วง':(!r.recvN?'สั่งแล้ว ยังไม่มีบันทึกรับ':(r.ordSack?'สั่งเป็นกระสอบ เทียบ กก. ตรงๆ ไม่ได้':''))]) })});
+  }
+  downloadXlsMulti('รับอาหารรายวัน'+(cfvFarm?'_'+cfvFarm:'')+'.xls', sheets);
+  toast('ส่งออกประวัติรับอาหาร '+rows.length+' รายการ ✓');
 }
 /* ---------- ศูนย์รวมส่งออก Excel (เสมียน): "📤 การดึงข้อมูลรวม" — รวมทุกหลังที่ดูแล ---------- */
 let expFarm='', expFrom='', expTo='', expHouse='', expVet='', expPreset='';
