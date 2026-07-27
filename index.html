@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690727c';
+const APP_BUILD='690727d';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -3257,7 +3257,8 @@ function renderClerkFeedRecv(){ if(vetGuard())return;
         ${vetKeys.map(vk=>{ const rs=byVet[vk], vkg=Math.round(rs.reduce((s,r)=>s+(Number(r.feedKg)||0),0)), vh=[...new Set(rs.map(r=>r.house))];
           return `<div style="background:var(--soft);border-radius:11px;padding:10px 12px">
             <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><b>🩺 ${escA(vk)}</b><span class="sub">${vh.length} หลัง · ${fmt(vkg)} กก.</span></div>
-            <div style="margin-top:6px;line-height:2">${rs.slice().sort((a,b)=>byCode({code:a.house},{code:b.house})).map(r=>`<span style="display:inline-block;background:#fff;border:1px solid var(--line,#dde5ec);border-radius:8px;padding:2px 9px;margin-right:5px;font-size:12.5px"><b>${escA(r.house)}</b> ${escA(r.feedNo||'')} · ${fmt(Number(r.feedKg)||0)} กก.${cfvDateMode==='day'&&cfvDate?'':' <span class=sub>('+escA(r.date)+')</span>'}</span>`).join('')}</div>
+            <div style="margin-top:6px;line-height:2">${rs.slice().sort((a,b)=>byCode({code:a.house},{code:b.house})||(a.ts||0)-(b.ts||0)).map(r=>{ const t=reqTimeStr(r);
+              return `<span style="display:inline-block;background:#fff;border:1px solid var(--line,#dde5ec);border-radius:8px;padding:2px 9px;margin-right:5px;font-size:12.5px"><b>${escA(r.house)}</b> ${escA(r.feedNo||'')}${r.feedSrc?' · 🏭 '+escA(r.feedSrc):''} · ${fmt(Number(r.feedKg)||0)} กก.${t?' · ⏱ '+t+' น.':''}${cfvDateMode==='day'&&cfvDate?'':' <span class=sub>('+escA(r.date)+')</span>'}</span>`; }).join('')}</div>
           </div>`; }).join('')}
       </div>`:`<div class="sub">ยังไม่มีบันทึกรับอาหาร${cfvDateMode==='day'&&cfvDate?'ของ'+(cfvDate===DEMO_DATE_DAY?'วันนี้':'วัน '+escA(cfvDate)):''} — กด "ทุกวัน" หรือเลือกวันอื่นด้านบนเพื่อดูย้อนหลัง</div>`}
     </div>`; })()}
@@ -3281,12 +3282,13 @@ function renderClerkFeedRecv(){ if(vetGuard())return;
       const dates=Object.keys(byDate).sort((a,b)=>reqDateKey(b)-reqDateKey(a));
       return `<div class="card">
         <h3>🏭 ${escA(f)} <span class="more">${fItems.length} รายการ · รวม ${fmt(Math.round(fItems.reduce((s,r)=>s+(Number(r.feedKg)||0),0)))} กก.</span></h3>
-        ${dates.map(d=>{const dItems=byDate[d].slice().sort((a,b)=>byCode({code:a.house},{code:b.house}));
+        ${dates.map(d=>{const dItems=byDate[d].slice().sort((a,b)=>(a.ts||0)-(b.ts||0)||byCode({code:a.house},{code:b.house}));
           return `<div style="margin-top:14px">
             <div style="font-weight:700;font-size:14px;margin-bottom:6px">📅 ${escA(d)} <span class="sub" style="font-weight:400">· ${dItems.length} รายการ · ${fmt(Math.round(dItems.reduce((s,r)=>s+(Number(r.feedKg)||0),0)))} กก.</span></div>
             <div style="overflow-x:auto"><table>
-              <thead><tr><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">ปริมาณ (กก.)</th><th>ยาผสมมา</th><th>เลขที่บิล</th><th>🩺 หมอผู้บันทึก</th></tr></thead>
+              <thead><tr><th>⏱ เวลาลงรับ</th><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">ปริมาณ (กก.)</th><th>ยาผสมมา</th><th>เลขที่บิล</th><th>🩺 หมอผู้บันทึก</th></tr></thead>
               <tbody>${dItems.map(r=>`<tr>
+                <td>${reqTimeCell(r)}</td>
                 <td><b>${escA(r.house)}</b></td><td>${r.feedSrc?'<b>'+escA(r.feedSrc)+'</b>':'-'}</td><td><b>${escA(r.feedNo||'-')}</b></td>
                 <td class="num">${fmt(Number(r.feedKg)||0)}</td>
                 <td>${r.feedMed?escA(r.feedMed).replace(/\n/g,'<br>'):'-'}</td><td>${escA(r.feedBill||'-')}</td>
@@ -3302,11 +3304,11 @@ function exportClerkFeedRecv(){
   const rows=clerkFeedRecvFiltered(), cmp=cfvCompareRows();
   if(!rows.length&&!cmp.length){toast('ไม่มีรายการรับอาหารให้ส่งออก');return;}
   const meta=[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'ขอบเขต',v:cfvFarm?('ฟาร์ม '+cfvFarm):'ทุกฟาร์มที่ดูแล'},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออกรายงาน',v:(CURRENT_USER&&CURRENT_USER.name)||'-'}];
-  let kg=0; const data=rows.slice().sort((a,b)=>reqDateKey(a.date)-reqDateKey(b.date)||byCode({code:a.house},{code:b.house}))
-    .map(r=>{ kg+=Number(r.feedKg)||0; return [r.date,r.farm,r.house,r.feedSrc||'',r.feedNo||'',Number(r.feedKg)||0,r.feedMed||'',r.feedBill||'',r.by||r.hvet||'']; });
+  let kg=0; const data=rows.slice().sort((a,b)=>reqDateKey(a.date)-reqDateKey(b.date)||(a.ts||0)-(b.ts||0)||byCode({code:a.house},{code:b.house}))
+    .map(r=>{ kg+=Number(r.feedKg)||0; return [r.date,reqTimeStr(r)||'-',r.farm,r.house,r.feedSrc||'',r.feedNo||'',Number(r.feedKg)||0,r.feedMed||'',r.feedBill||'',r.by||r.hvet||'']; });
   const sheets=[{name:'รับอาหารรายวัน', html:xlsSheet({ title:'ประวัติการรับอาหารรายวัน (บันทึกของหมอ)', meta,
-    columns:[{label:'วันที่',type:'text',w:90},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'แหล่ง',type:'text',w:90},{label:'เบอร์อาหาร',type:'text',w:100},{label:'ปริมาณ (กก.)',type:'num',w:95},{label:'ยาผสมมา',type:'text',w:170},{label:'เลขที่บิล',type:'text',w:100},{label:'หมอผู้บันทึก',type:'text',w:120}],
-    rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','',kg,'','',''] })}];
+    columns:[{label:'วันที่',type:'text',w:90},{label:'เวลาลงรับ',type:'text',w:80},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'แหล่ง',type:'text',w:90},{label:'เบอร์อาหาร',type:'text',w:100},{label:'ปริมาณ (กก.)',type:'num',w:95},{label:'ยาผสมมา',type:'text',w:170},{label:'เลขที่บิล',type:'text',w:100},{label:'หมอผู้บันทึก',type:'text',w:120}],
+    rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','','',kg,'','',''] })}];
   if(cmp.length){
     sheets.push({name:'เทียบสั่ง-รับ', html:xlsSheet({ title:'เทียบ สั่งอาหาร vs รับเข้าหลังจริง (จับคู่ หลัง+เบอร์อาหาร)', meta,
       columns:[{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'เบอร์อาหาร',type:'text',w:100},{label:'สั่ง (กระสอบ)',type:'num',w:100},{label:'สั่ง (กก.)',type:'num',w:95},{label:'รับจริง (กก.)',type:'num',w:100},{label:'ผลต่าง (กก.)',type:'num',w:100},{label:'หมายเหตุ',type:'text',w:170}],
@@ -6835,13 +6837,13 @@ function vetSubmit(){ if(blockIfReadonly())return;
   const eatNo=val('v_eatNo'),eatKg=val('v_eatKg'),eatNo2=val('v_eatNo2'),eatKg2=val('v_eatKg2');
   currentHouse.vetLog=currentHouse.vetLog||[];
   let added=0;
-  // การรักษา = คนละบันทึก
-  if(sym||fm||inj||note){currentHouse.vetLog.unshift({type:'treat',date:day,by,symptoms:sym,formula:fm,inject:inj,note});added++;}
+  // การรักษา = คนละบันทึก · ⏱ ts = เวลาที่หมอกดบันทึกจริง (27 ก.ค. 69 — โชว์เวลาลงรับในหน้าเสมียน · รายการเก่าไม่มี = "—")
+  if(sym||fm||inj||note){currentHouse.vetLog.unshift({type:'treat',date:day,by,symptoms:sym,formula:fm,inject:inj,note,ts:Date.now()});added++;}
   // การรับอาหาร = คนละบันทึก
-  if(fNo||fKg){currentHouse.vetLog.unshift({type:'feed',date:day,by,feedSrc:fSrc,feedNo:fNo,feedMed:fMed,feedKg:fKg,feedBill:fBill});added++;}
+  if(fNo||fKg){currentHouse.vetLog.unshift({type:'feed',date:day,by,feedSrc:fSrc,feedNo:fNo,feedMed:fMed,feedKg:fKg,feedBill:fBill,ts:Date.now()});added++;}
   // การกินได้ต่อวัน = คนละบันทึก (🍽️ กิน 2 เบอร์พร้อมกัน → แตกเป็น 2 รายการ เบอร์ 1 อยู่บนสุด)
-  if(eatNo2||eatKg2){currentHouse.vetLog.unshift({type:'intake',date:day,by,eatNo:eatNo2,eatKg:eatKg2});added++;}
-  if(eatNo||eatKg){currentHouse.vetLog.unshift({type:'intake',date:day,by,eatNo,eatKg});added++;}
+  if(eatNo2||eatKg2){currentHouse.vetLog.unshift({type:'intake',date:day,by,eatNo:eatNo2,eatKg:eatKg2,ts:Date.now()});added++;}
+  if(eatNo||eatKg){currentHouse.vetLog.unshift({type:'intake',date:day,by,eatNo,eatKg,ts:Date.now()});added++;}
   if(!added){toast('กรุณากรอกข้อมูลอย่างน้อย 1 ช่อง');return;}
   currentHouse.filled=true;
   syncHouseVet(currentHouse); // ซิงก์ช่อง "งานหมอ" (v2) + เก็บลงเครื่อง
