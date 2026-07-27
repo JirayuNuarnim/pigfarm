@@ -975,7 +975,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690727j';
+const APP_BUILD='690727k';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -3218,7 +3218,7 @@ function renderClerkFeedRecv(){ if(vetGuard())return;
         <div class="frow" style="margin-bottom:0"><label>ฟาร์ม</label>
           <select class="cin tl" onchange="cfvFarm=this.value;cfvHouse='';cfvVet='';renderClerkFeedRecv()"><option value="">— ทุกฟาร์ม —</option>${opt(orderedFarms,cfvFarm)}</select></div>
         <div class="frow" style="margin-bottom:0"><label>รหัสหลัง</label>
-          <select class="cin tl" onchange="cfvHouse=this.value;cfvVet='';renderClerkFeedRecv()"><option value="">— ทุกหลัง —</option>${opt(codeOpts.filter(c=>!cfvFarm||(HOUSES.find(h=>h.code===c)||{}).farm===cfvFarm),cfvHouse)}</select></div>
+          <select class="cin tl" onchange="cfvHouse=this.value;cfvVet='';renderClerkFeedRecv()"><option value="">— ทุกหลัง —</option>${opt(codeOpts.filter(c=>!cfvFarm||allRaw.some(r=>r.house===c&&r.farm===cfvFarm)),cfvHouse)}</select></div>
       </div>
       <div class="frow" style="margin-top:10px;margin-bottom:0"><label>ชื่อหมอ <span class="hint">(พิมพ์ค้นหา หรือเลือกจากรายชื่อ)</span></label>
         <input class="cin tl" list="cfvVetList" value="${escA(cfvVet)}" onchange="cfvVet=this.value.trim();renderClerkFeedRecv()" placeholder="— ทุกหมอ —" autocomplete="off" autocapitalize="off">
@@ -7362,13 +7362,13 @@ function exportStockAll(){ // 📊 ดึง Excel รวมคลังเด�
   const sheets=[{name:'ยอดคงเหลือ', html:stockBalTableHTML(farm)}];
   // เคลื่อนไหวทั้งหมดของคลังนี้ (ทุกวัน ไม่อิงตัวกรอง) + คงเหลือสะสมรายรายการ
   const asc=(farmStock(farm).moves||[]).slice().sort((a,b)=>(a.ts||0)-(b.ts||0));
-  const run={}; asc.forEach(m=>{ const k=stockKey(m.cat,m.name); run[k]=(run[k]||0)+(Number(m.delta)||0); m.__aft=run[k]; });
+  const run={}, aftMap=new Map(); asc.forEach(m=>{ const k=stockKey(m.cat,m.name); run[k]=(run[k]||0)+(Number(m.delta)||0); aftMap.set(m,run[k]); });   // ⚠️ ห้ามเขียน __aft ลง move จริง — จะติดไปกับ syncStock ทำก้อน stock บวมถาวร
   const mv=asc.slice().reverse();
   if(mv.length){
     const lbl=t=>t==='in'?'รับเข้า':t==='out'?'เบิกออก':'ปรับยอด';
     sheets.push({name:'เคลื่อนไหว', html:xlsSheet({title:'ประวัติเคลื่อนไหวคลัง — '+farm+' (ทั้งหมด ใหม่→เก่า)', meta,
       columns:[{label:'วันที่',type:'text',w:90},{label:'ชนิด',type:'text',w:80},{label:'หมวด',type:'text',w:120},{label:'รายการ',type:'text',w:200},{label:'หลัง',type:'text',w:64},{label:'หมอ',type:'text',w:110},{label:'จำนวน (+/-)',type:'num',w:90},{label:'คงเหลือสะสม',type:'num',w:95},{label:'โดย',type:'text',w:120},{label:'อ้างอิง',type:'text',w:120},{label:'หมายเหตุ',type:'text',w:170}],
-      rows:mv.map(m=>[m.date||'',lbl(m.type),m.cat||'',m.name||'',m.house||'',m.vet||'',(Number(m.delta)||0),(m.__aft!=null?m.__aft:''),m.by||'',m.ref||'',m.note||''])})});
+      rows:mv.map(m=>[m.date||'',lbl(m.type),m.cat||'',m.name||'',m.house||'',m.vet||'',(Number(m.delta)||0),(aftMap.has(m)?aftMap.get(m):''),m.by||'',m.ref||'',m.note||''])})});
   }
   const ins=mv.filter(m=>m.type==='in');
   if(ins.length){
@@ -8464,7 +8464,9 @@ function sbOverList(b){ // 🛡️ หลังไหนที่จำนวน
     //    (ไม่งั้นเจ้าของกลับมาแก้ราคา/แก้บิล จะโดนเตือนหลอก "ลงขาย 100 > เหลือ 0" ทั้งที่ 0 นั้นเกิดจากบิลนี้เอง)
     let credit=0;
     if(b&&b.postedAt&&b.id){ const H=sbFindHouse(k,(b&&b.farm)||null);
-      if(H) credit=(H.dailyLog||[]).filter(e=>e&&e._fromBill===b.id).reduce((s,e)=>s+(Number(e.soldN)||0)+(Number(e.cullN)||0)+(Number(e.deadN)||0),0); }
+      if(H){ let logs=(H.dailyLog||[]);
+        (H.closedBatches||[]).forEach(rec=>{ logs=logs.concat(rec.dailyLog||[]); });   // 📦 แถวของบิลอาจย้ายไปอยู่ในชุดที่ปิดแล้ว — ต้องนับเครดิตด้วย (กันเตือนหลอกตอนแก้บิลของชุดปิด)
+        credit=logs.filter(e=>e&&e._fromBill===b.id).reduce((s,e)=>s+(Number(e.soldN)||0)+(Number(e.cullN)||0)+(Number(e.deadN)||0),0); } }
     if(cnt[k]>remain+credit) out.push({code:disp[k],key:k,n:cnt[k],remain:remain+credit}); });
   return out;
 }
@@ -8792,8 +8794,9 @@ function sbBandsHTML(){
 function sbDedSet(i,k,v){ // หัก/ลดบิล: เสมียนกรอก กก.×ราคา/กก. เองได้ (ราคาไม่ล็อกกับที่เจ้าของตั้ง) → ระบบคูณเป็นยอดหักให้ · หรือพิมพ์ยอดเงินตรงๆ แบบเดิม
   const d=(SB_D.deducts||[])[i]; if(!d) return; d[k]=v;
   if(k!=='amt'){ const auto=sbNum(d.w)>0&&sbNum(d.p)>0, el=$("#sbDedAmt"+i);
-    if(auto){ d.amt=String(Math.round(sbNum(d.w)*sbNum(d.p)*100)/100); if(el){ el.value=d.amt; el.readOnly=true; el.style.background='var(--soft)'; el.style.fontWeight='700'; } }
-    else if(el){ el.readOnly=false; el.style.background=''; el.style.fontWeight=''; } }
+    if(auto){ d.amt=String(Math.round(sbNum(d.w)*sbNum(d.p)*100)/100); d._auto=true; if(el){ el.value=d.amt; el.readOnly=true; el.style.background='var(--soft)'; el.style.fontWeight='700'; } }
+    else{ if(d._auto){ d.amt=''; d._auto=false; if(el) el.value=''; }   // ลบ กก./ราคาออก → ล้างยอดที่คูณไว้ด้วย (กันยอดหักผีค้างทั้งที่ช่องว่าง)
+      if(el){ el.readOnly=false; el.style.background=''; el.style.fontWeight=''; } } }
   sbRefresh();
 }
 function sbDeductsHTML(){
@@ -9439,9 +9442,18 @@ function sbSyncClosedBatches(b){ // 💰 แก้บิลของชุดท
     const srows=(rec.dailyLog||[]).filter(e=>e&&e._fromBill===b.id);
     const frows=fresh.filter(r=>r.H&&r.H.id===h.id).map(r=>r.e);
     let d={soldN:0,cullN:0,deadN:0,soldW:0,cullW:0,deadW:0,soldV:0,cullV:0,deadV:0};
-    const match=(sr)=>frows.find(fe=>(sr.soldN&&fe.soldN)||(sr.cullN&&fe.cullN)||(sr.deadN&&fe.deadN&&fe.deadType===sr.deadType))||null;
-    srows.forEach(sr=>{ const fe=match(sr); if(!fe) return;
-      const oldV=Number(sr.value)||0, newV=Number(fe.value)||0;
+    // จับคู่แบบ "ใช้แล้วตัดออกจากกอง" — หลังเดียวมีหลายแถวชนิดเดียวกันจะไม่จับซ้ำตัวเดิม (กันเดลต้านับเบิ้ล)
+    const pool=frows.slice();
+    const take=(sr)=>{ const ix=pool.findIndex(fe=>(sr.soldN&&fe.soldN)||(sr.cullN&&fe.cullN)||(sr.deadN&&fe.deadN&&fe.deadType===sr.deadType)); return ix>=0?pool.splice(ix,1)[0]:null; };
+    srows.forEach(sr=>{ const fe=take(sr);
+      const oldV=Number(sr.value)||0;
+      if(!fe){ // แถวนี้ถูกถอดออกจากบิลใหม่ → หักออกจากงบ + ศูนย์แถวในสแนปช็อต (ไม่ปล่อยรายได้ผีค้าง)
+        if(sr.soldN){ d.soldN-=(sr.soldN||0); d.soldW-=(sr.soldW||0); d.soldV-=oldV; sr.soldN=0; sr.soldW=0; sr.soldP=0; }
+        else if(sr.cullN){ d.cullN-=(sr.cullN||0); d.cullW-=(sr.cullW||0); d.cullV-=oldV; sr.cullN=0; sr.cullW=0; sr.cullP=0; }
+        else { d.deadN-=(sr.deadN||0); d.deadW-=(sr.deadW||0); d.deadV-=oldV; sr.deadN=0; sr.deadW=0; sr.deadP=0; sr.dead=0; }
+        sr.value=0; sr.outN=0; return;
+      }
+      const newV=Number(fe.value)||0;
       if(sr.soldN||fe.soldN){ d.soldN+=(fe.soldN||0)-(sr.soldN||0); d.soldW+=(fe.soldW||0)-(sr.soldW||0); d.soldV+=newV-oldV; }
       else if(sr.cullN||fe.cullN){ d.cullN+=(fe.cullN||0)-(sr.cullN||0); d.cullW+=(fe.cullW||0)-(sr.cullW||0); d.cullV+=newV-oldV; }
       else { d.deadN+=(fe.deadN||0)-(sr.deadN||0); d.deadW+=(fe.deadW||0)-(sr.deadW||0); d.deadV+=newV-oldV; }
@@ -9536,7 +9548,13 @@ async function sbPostToHouses(id){
   const blockedCB=[];
   prep.rows=prep.rows.filter(r=>{
     const inClosed=(r.H.closedBatches||[]).some(rec=>(rec.dailyLog||[]).some(e=>e&&e._fromBill===b.id));
-    const newerBatch=!inClosed && r.H.intake && r.H.intake.dateIn && b.dateISO && String(b.dateISO)<String(r.H.intake.dateIn);
+    // ⚠️ dateIn ในระบบมี 2 ฟอร์แมต (ISO '2026-03-16' / ไทย '27 ก.ค.') — ห้ามเทียบ string ข้ามฟอร์แมต (จะบล็อกผิด + ถอนแถวที่ลงไว้แล้วเงียบๆ)
+    let newerBatch=false;
+    if(!inClosed && r.H.intake && r.H.intake.dateIn && b.dateISO){
+      const din=String(r.H.intake.dateIn);
+      if(/^\d{4}-\d{2}-\d{2}/.test(din)) newerBatch=String(b.dateISO)<din.slice(0,10);
+      else{ const dd=parseThaiDate(din), bb=expDate(b.dateISO); newerBatch=!!(dd&&bb&&bb<dd); }
+    }
     if(inClosed||newerBatch){ blockedCB.push(r.code+(inClosed?' (ชุดของบิลปิดไปแล้ว — งบปิดชุดอัปเดตจากบิลให้เองเมื่อกดบันทึกบิล)':' (หลังเปิดชุดใหม่หลังวันที่บิล — บิลเป็นของชุดเก่า)')); return false; }
     return true;
   });
