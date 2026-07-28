@@ -983,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728e';
+const APP_BUILD='690728f';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9412,6 +9412,12 @@ function sbSave(){
   // 📷 กติกาเจ้าของ (26 ก.ค.): เงินเข้าต้องมีหลักฐาน — เลือก "โอนแล้ว" ครั้งแรก (ยังไม่เคยบันทึกรับเงินของบิลนี้) ต้องแนบสลิปก่อน
   const _payDone=(function(){ try{ return !!(LG.entries||[]).find(e=>e.id==='pay_'+SB_D.id&&!e.voided); }catch(e){ return false; } })();
   if(SB_D.payMode==='transfer'&&!SB_D.paySlip&&!_payDone&&c.net!=null){ toast('📷 เลือก "โอนแล้ว" ต้องแนบสลิปโอนก่อนบันทึก — ไม่มีหลักฐานการโอน ปิดบิลไม่ได้ (กติกาเจ้าของ)'); return; }
+  // 🔎 เทียบยอดที่อ่านได้จากสลิปกับยอดบิล (Peter 28 ก.ค.) — ไม่ตรงให้คนยืนยันก่อน (OCR ไม่ 100% จึงเตือน ไม่บล็อกตาย)
+  if(SB_D.payMode==='transfer'&&SB_D.paySlip&&SB_D._slipOcr&&c.net!=null){
+    const _tgt=(String(SB_D.payAmt==null?'':SB_D.payAmt).trim()!==''&&sbNum(SB_D.payAmt)>0)?Math.min(sbNum(SB_D.payAmt),c.net):c.net;
+    if(slipAmtMatch(SB_D._slipOcr.nums,_tgt)===false&&
+       !confirm('⚠️ ยอดที่อ่านได้จากสลิป: '+SB_D._slipOcr.nums.slice(0,4).map(n=>fmt(n)).join(' / ')+' บาท\nแต่ยอดที่กำลังบันทึก = '+fmt(Math.round(_tgt))+' บาท — ไม่ตรงกัน\n\nเช็คสลิป/ช่อง "ยอดโอนจริง" อีกครั้ง · ยืนยันบันทึกต่อหรือไม่?')) return;
+  }
   SB_D.editLog=SB_D.editLog||[];
   SB_D.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',changes:changes,note:(SB_ISNEW?'สร้างบิล':'แก้ไขบิล')+(c.pending?' (ยังไม่ใส่ราคา)':'')});
   if(!SB_D.savedAt) SB_D.savedAt=Date.now();   // 🕐 เวลากดบันทึกครั้งแรก (โชว์ในคลังบิล — แก้ทีหลังไม่เปลี่ยนเวลานี้)
@@ -9947,7 +9953,9 @@ function lgPayCardHTML(){
       ${m==='transfer'?`<div class="frow"><label>ยอดโอนจริง (บาท) <span class="hint">(เว้นว่าง = โอนเต็มยอดบิล · ใส่เมื่อโอนไม่ครบ ส่วนต่างจะขึ้นเป็นยอดค้าง)</span></label>
         <input class="cin tl" type="number" step="1" value="${escA(SB_D.payAmt||'')}" oninput="SB_D.payAmt=this.value;sbRefresh()" placeholder="เว้นว่าง = เต็มยอดบิล"></div>
       <div class="frow" style="grid-column:1/-1"><label>📷 สลิปโอนเงิน <span class="hint" style="color:var(--bad);font-weight:700">(บังคับเมื่อเลือก "โอนแล้ว" — ไม่มีหลักฐานการโอน ปิดบิลไม่ได้)</span></label>
-        ${SB_D.paySlip?(function(){ const ns=String(SB_D.paySlip).split('|').filter(Boolean).length; return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sbchip ok">✓ แนบสลิปแล้ว${ns>1?' ('+ns+' รูป)':''}</span><button class="btn ghost sm" onclick="lgViewSlip('${escA(SB_D.paySlip)}')">📷 ดูรูป</button><button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.paySlip='';renderSaleBillForm()">✕ เอาออก</button></div>`; })()
+        ${SB_D.paySlip?(function(){ const ns=String(SB_D.paySlip).split('|').filter(Boolean).length;
+          const oc=SB_D._slipOcr?(function(){ const cc=sbCalc(SB_D); const tgt=(String(SB_D.payAmt==null?'':SB_D.payAmt).trim()!==''&&sbNum(SB_D.payAmt)>0)?Math.min(sbNum(SB_D.payAmt),cc.net!=null?cc.net:sbNum(SB_D.payAmt)):cc.net; return slipOcrChip(SB_D._slipOcr.nums,tgt); })():'';
+          return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="sbchip ok">✓ แนบสลิปแล้ว${ns>1?' ('+ns+' รูป)':''}</span><span id="sbSlipOcrChip">${oc}</span><button class="btn ghost sm" onclick="lgViewSlip('${escA(SB_D.paySlip)}')">📷 ดูรูป</button><button class="btn ghost sm" style="color:var(--bad)" onclick="SB_D.paySlip='';delete SB_D._slipOcr;renderSaleBillForm()">✕ เอาออก</button></div>`; })()
         :`<input class="cin" type="file" accept="image/*" multiple onchange="sbPaySlipPick(this)">`}</div>`:''}
     </div><div class="sub" style="margin-top:6px">📒 ${hint}</div>${(function(){ const cr=lgCreditOf(SB_D.buyer); return cr>0?`<div class="sbchip warn" style="margin-top:8px;font-size:13px">⚠️ บัญชีลูกค้ารายนี้มียอดเกินค้าง <b>${fmt(Math.round(cr))}</b> บาท — ผิดปกติ (ลูกค้าหมูไม่มีเครดิตกับฟาร์ม) แจ้งเจ้าของตรวจบัญชีลูกค้า · บิลนี้คิดเต็มตามปกติ</div>`:''; })()}</div>`;
 }
@@ -9959,6 +9967,12 @@ async function sbPaySlipPick(inp){ // 📷 แนบสลิปโอนใน�
   if(ps.length!==fs.length){ toast('อัปโหลดไม่ครบ ('+ps.length+'/'+fs.length+') — เช็คอินเทอร์เน็ตแล้วลองใหม่'); inp.value=''; return; }
   SB_D.paySlip=ps.join('|'); toast('✓ แนบสลิปแล้ว'+(ps.length>1?' '+ps.length+' รูป':'')+' — จะติดไปกับบิลเมื่อกดบันทึก');
   renderSaleBillForm();
+  // 🔎 อ่านยอดจากสลิปเบื้องหลัง แล้วเทียบกับยอดบิล (เตือนถ้าไม่ตรง)
+  const bid=SB_D&&SB_D.id;
+  slipReadAmounts(fs).then(nums=>{ if(!SB_D||SB_D.id!==bid) return; SB_D._slipOcr={nums:nums};
+    const chipBox=document.getElementById('sbSlipOcrChip'); if(chipBox){ const cc=sbCalc(SB_D);
+      const tgt=(String(SB_D.payAmt==null?'':SB_D.payAmt).trim()!==''&&sbNum(SB_D.payAmt)>0)?Math.min(sbNum(SB_D.payAmt),cc.net!=null?cc.net:sbNum(SB_D.payAmt)):cc.net;
+      chipBox.innerHTML=slipOcrChip(nums,tgt); } });
 }
 /* ── หน้า 📒 บัญชีลูกค้า / ลูกหนี้ ── */
 function renderLedger(){ if(vetGuard())return;
@@ -10109,7 +10123,7 @@ function renderLgCust(){
         <div class="frow"><label>วันที่รับ</label><input id="lgPayDate" type="date" class="cin" value="${todayISO()}"></div>
         <div class="frow"><label>ผู้ส่งเงิน/คนเก็บมา (เงินสด)</label><input id="lgPayResp" class="cin" placeholder="เช่น ชื่อคนที่ถือเงินมาส่ง"></div>
         <div class="frow" style="grid-column:1/-1"><label>หมายเหตุ</label><input id="lgPayNote" class="cin" placeholder="เช่น ชำระบิล 6 ก.ค. / โอน กสิกร"></div>
-        <div class="frow" style="grid-column:1/-1"><label>📷 รูปหลักฐาน <span class="hint" style="color:var(--bad);font-weight:700">(บังคับ — สลิปโอน/รูปเอกสารรับเงิน · ไม่มีหลักฐาน บันทึกรับเงิน/ปิดบิลไม่ได้)</span> <span class="hint">แนบได้หลายรูป — กดเลือกทีเดียวหลายไฟล์ได้</span></label><input id="lgPaySlip" class="cin" type="file" accept="image/*" multiple></div>
+        <div class="frow" style="grid-column:1/-1"><label>📷 รูปหลักฐาน <span class="hint" style="color:var(--bad);font-weight:700">(บังคับ — สลิปโอน/รูปเอกสารรับเงิน · ไม่มีหลักฐาน บันทึกรับเงิน/ปิดบิลไม่ได้)</span> <span class="hint">แนบได้หลายรูป — กดเลือกทีเดียวหลายไฟล์ได้</span></label><input id="lgPaySlip" class="cin" type="file" accept="image/*" multiple onchange="lgSlipOcrKick(this)"></div>
       </div>
       <div style="margin-top:10px"><button class="btn" onclick="lgDoPay('${c.id}')">💸 บันทึกรับเงิน + ออกใบรับเงิน</button></div></div>
     <div class="card"><h3>➖ ตกลงหักหน้าบิล (เครดิตไว้หักรอบถัดไป)</h3>
@@ -10140,6 +10154,14 @@ async function lgDoPay(custId){
   for(const sf of slipFiles){ try{ slipPaths.push(await lgUploadSlip(sf)); }catch(err){ console.warn('slip',err); } }
   if(slipPaths.length!==slipFiles.length){ toast('❌ อัปโหลดรูปไม่ครบ ('+slipPaths.length+'/'+slipFiles.length+') — เช็คอินเทอร์เน็ตแล้วลองใหม่ (ต้องมีหลักฐานครบจึงบันทึกได้)'); return; }
   slipPath=slipPaths.join('|');
+  // 🔎 เทียบยอดจากสลิป (อ่านล่วงหน้าตั้งแต่เลือกไฟล์) กับยอดที่กำลังบันทึก — ไม่ตรงให้คนยืนยันก่อน
+  try{
+    const _tgtPay=lgPaySel.length?lgPaySel.reduce((s,id)=>s+lgSaleOutstanding(id),0):amt;
+    let _nums=null; if(window._lgSlipOcr&&window._lgSlipOcr.p){ toast('🔎 กำลังอ่านยอดจากสลิป...'); _nums=await Promise.race([window._lgSlipOcr.p,new Promise(r=>setTimeout(()=>r(null),26000))]); }
+    if(slipAmtMatch(_nums,_tgtPay)===false&&
+       !confirm('⚠️ ยอดที่อ่านได้จากสลิป: '+_nums.slice(0,4).map(n=>fmt(n)).join(' / ')+' บาท\nแต่ยอดที่กำลังบันทึกรับเงิน = '+fmt(Math.round(_tgtPay))+' บาท — ไม่ตรงกัน\n\nเช็คสลิปกับยอดอีกครั้ง · ยืนยันบันทึกต่อหรือไม่?')) return;
+  }catch(e){ console.warn('slip ocr cmp',e); }
+  window._lgSlipOcr=null;
   // ☑️ โหมดชำระหลายบิลรวดเดียว (ติ๊กเลือกจากตารางบิลค้าง) — ตัดเต็มยอดค้างของแต่ละบิล ใช้สลิปเดียวกันทุกใบ
   if(lgFinView()&&lgPaySel.length){
     const ids=lgPaySel.slice().filter(id=>lgSaleOutstanding(id)>0.5);
@@ -10231,6 +10253,38 @@ function lgDocPaperHTML(d){
     +'<td style="width:50%">ลงชื่อ ______________________<br>'+(isRC?'ผู้รับเงิน':'ผู้มอบหมาย')+' ('+escA(d.issued_by||'-')+')</td>'
     +'<td>ลงชื่อ ______________________<br>'+(isRC?'ผู้จ่ายเงิน':'ผู้รับมอบหมาย ('+escA(d.responsible||'')+')')+'</td></tr></table></div>';
 }
+/* ── 🔎 อ่านยอดเงินจากรูปสลิป (OCR ในเครื่อง — Peter 28 ก.ค. 69: เตือนเมื่อยอดสลิปมาก/น้อยกว่ายอดบิล)
+   โหลดไลบรารีครั้งแรกเมื่อใช้จริงเท่านั้น · อ่านไม่ได้/ออฟไลน์ = ข้ามเงียบๆ (เป็นตัวช่วยเตือน ไม่ใช่ตัวบล็อก) ── */
+let _ocrLibP=null;
+function ocrLib(){ if(_ocrLibP) return _ocrLibP;
+  _ocrLibP=new Promise((res,rej)=>{ if(window.Tesseract) return res(window.Tesseract);
+    const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload=()=>res(window.Tesseract); s.onerror=()=>{ _ocrLibP=null; rej(new Error('ocr lib')); }; document.head.appendChild(s); });
+  return _ocrLibP; }
+async function slipReadAmounts(files){ // คืน list ยอดเงินที่อ่านเจอในสลิปทุกรูป (ไม่ซ้ำ มาก→น้อย) · null = อ่านไม่ได้เลย
+  try{
+    const T=await ocrLib(); const out=new Set(); let any=false;
+    for(const f of files){
+      const r=await Promise.race([T.recognize(f,'eng'), new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),25000))]).catch(()=>null);
+      const txt=r&&r.data&&r.data.text?String(r.data.text):'';
+      if(txt) any=true;
+      (txt.match(/\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d+\.\d{2}|\d{3,9}/g)||[]).forEach(t=>{ const n=parseFloat(t.replace(/,/g,'')); if(isFinite(n)&&n>=10&&n<100000000) out.add(Math.round(n*100)/100); });
+    }
+    return any?[...out].sort((a,b)=>b-a):null;
+  }catch(e){ console.warn('slip ocr',e); return null; }
+}
+function slipAmtMatch(nums,target){ // true=เจอยอดตรง · false=อ่านได้แต่ไม่เจอ · null=ไม่มีข้อมูลพอ
+  if(!nums||!nums.length||target==null||!(target>0)) return null;
+  const t=Math.round(target*100)/100, ti=Math.round(target);
+  return nums.some(n=>Math.abs(n-t)<0.005||Math.abs(n-ti)<0.005);
+}
+function slipOcrChip(nums,target){ const m=slipAmtMatch(nums,target);
+  if(nums===null) return '<span class="sub">🔎 อ่านยอดจากสลิปไม่ได้ (รูปไม่ชัด/ออฟไลน์) — เช็คด้วยตา</span>';
+  if(m===true) return '<span style="background:#e6f4ea;color:#1e7e4f;border-radius:8px;padding:1px 9px;font-size:12px;font-weight:700">🔎 ยอดในสลิปตรงกับยอดบิล ✓</span>';
+  if(m===false) return '<span style="background:#fdecea;color:#c0392b;border-radius:8px;padding:1px 9px;font-size:12px;font-weight:700">⚠️ ยอดในสลิปไม่ตรง — อ่านได้: '+nums.slice(0,4).map(n=>fmt(n)).join(' / ')+'</span>';
+  return ''; }
+function lgSlipOcrKick(inp){ const fs=(inp&&inp.files)?Array.prototype.slice.call(inp.files):[];
+  window._lgSlipOcr=fs.length?{p:slipReadAmounts(fs)}:null; }   // 🔎 เริ่มอ่านสลิปเบื้องหลังตั้งแต่เลือกไฟล์ — ตอนกดบันทึกผลมักพร้อมแล้ว ไม่ต้องรอ
 async function lgUploadSlip(file){ // 📷 ย่อรูป (ยาวสุด 1400px, JPEG) แล้วอัปขึ้นคลัง payslips → คืน path
   const img=await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=URL.createObjectURL(file); });
   const MAX=1400, sc=Math.min(1, MAX/Math.max(img.width||1, img.height||1));
