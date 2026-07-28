@@ -983,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728a';
+const APP_BUILD='690728b';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -6772,6 +6772,7 @@ function vetForm(){
     <div class="sub">${escA(h.farm||'')} · ${escA(h.zone)} · คงเหลือ ${fmt(h.pigs)} ตัว · ป่วยปัจจุบัน ${h.sick} ตัว · ${respLine(h)}</div>
     <div style="margin:8px 0 4px">${vetRecordedToday(h)?'<span class="tag ok">✅ ลงข้อมูลหมอวันนี้แล้ว</span>':'<span class="tag wait">⬜ ยังไม่ได้ลงข้อมูลวันนี้</span>'}</div>
 
+    ${brMateCardHTML(h)}
     <div class="card">
       <h3>🩺 การรักษา</h3>
       <div class="frow"><label>อาการของหมูป่วยประจำหลัง</label>
@@ -6833,6 +6834,7 @@ function vetForm(){
     ${houseEditLogHTML(h)}
   `;
   restoreVetDraft();
+  brDMFill(h);   // 💕 หลัง ท ของฟาร์มแม่พันธุ์ → โหลดทะเบียนแม่แล้วเติมการ์ดแจ้งผสม (หมอหน้างานลงได้เหมือนเสมียน)
 }
 function addFeedMed(sel){
   const code=sel.value; if(!code) return;
