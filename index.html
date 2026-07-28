@@ -983,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728g';
+const APP_BUILD='690728h';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -10068,12 +10068,12 @@ function renderLgCust(){
   const TY={invoice:['🧾 บิลขาย','var(--bad)'],payment:['💸 รับเงิน','var(--ok)'],deduction:['➖ หักหน้าบิล','var(--info)'],adjustment:['✏️ ปรับปรุง','var(--warn)']};
   const fin=lgFinView();
   // ── 📋 dashboard บิลค้างชำระของลูกค้ารายนี้ (เจ้าของ/ผู้ดูแล) ──
-  const openInvs=fin?rows.filter(e=>e.entry_type==='invoice'&&!e.voided&&e.sale_id&&(+e.amount)>0.5)
+  const openInvs=rows.filter(e=>e.entry_type==='invoice'&&!e.voided&&e.sale_id&&(+e.amount)>0.5)   // 🔒 28 ก.ค. 69: เสมียนก็ต้องเห็นบิลค้าง — เงินทุกก้อนต้องผูกบิล (ปิดประตูรับเงินก้อนรวม)
     .map(e=>({e:e, out:lgSaleOutstanding(e.sale_id), b:SALE_BILLS.find(x=>x.id===e.sale_id)}))
-    .filter(x=>x.out>0.5):[];
+    .filter(x=>x.out>0.5);
   const openSum=openInvs.reduce((s,x)=>s+x.out,0);
   const TD='padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:middle', TH='padding:7px 9px;border-bottom:2px solid var(--line);text-align:left;font-size:12.5px;color:var(--ink-2);white-space:nowrap';
-  const billTable=!fin?'':(openInvs.length?`<div class="card"><h3>📋 บิลค้างชำระของลูกค้ารายนี้ <span class="more">${fmt(openInvs.length)} ใบ · ค้างรวม ${lgMoney(openSum)} บาท</span></h3>
+  const billTable=(openInvs.length?`<div class="card"><h3>📋 บิลค้างชำระของลูกค้ารายนี้ <span class="more">${fmt(openInvs.length)} ใบ · ค้างรวม ${lgMoney(openSum)} บาท</span></h3>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px">
       <tr><th style="${TH}">วันที่ · เลขบิล</th><th style="${TH}">ฟาร์ม</th><th style="${TH}">รายละเอียด</th><th style="${TH};text-align:right">มูลค่าบิล</th><th style="${TH};text-align:right">ค้างอยู่</th><th style="${TH}">สถานะ</th><th style="${TH};text-align:right">จัดการ</th></tr>
       ${openInvs.map(x=>{
@@ -10116,12 +10116,12 @@ function renderLgCust(){
     ${billTable}
     <div class="card"><h3>💸 บันทึกรับเงิน <span class="more">ออกใบรับเงินให้อัตโนมัติ</span></h3>
       <div class="fgrid">
-        ${(fin&&lgPaySel.length)?`<div class="frow" style="grid-column:1/-1"><label>☑️ ชำระหลายบิลรวดเดียว (${fmt(lgPaySel.length)} ใบ) <span class="hint">แตะป้ายบิลเพื่อเอาออก · ระบบตัดเต็มยอดค้างของแต่ละบิล</span></label>
+        ${lgPaySel.length?`<div class="frow" style="grid-column:1/-1"><label>☑️ ชำระหลายบิลรวดเดียว (${fmt(lgPaySel.length)} ใบ) <span class="hint">แตะป้ายบิลเพื่อเอาออก · ระบบตัดเต็มยอดค้างของแต่ละบิล</span></label>
           <div style="display:flex;gap:6px;flex-wrap:wrap">${lgPaySel.map(id=>{const b=SALE_BILLS.find(x=>x.id===id);const o=lgSaleOutstanding(id);return `<button class="sbfchip on" onclick="lgPaySelTgl('${id}')">${b?sbThaiDate(b.dateISO)+(b.billNo?' '+escA(b.billBook||'-')+'/'+escA(b.billNo):''):escA(id)} · ${lgMoney(o)} ✕</button>`;}).join('')}</div></div>`
-        :fin?`<div class="frow" style="grid-column:1/-1"><label>รับเงินสำหรับ <span class="hint">(เลือกบิล = ตัดหนี้เฉพาะบิลนั้น)</span></label><select id="lgPayBill" class="cin tl" onchange="lgPayBillSel(this.value)">
-          <option value="">ยอดรวมของลูกค้า (ไม่ระบุบิล)</option>
+        :`<div class="frow" style="grid-column:1/-1"><label>รับเงินสำหรับบิล <span class="hint" style="color:var(--bad);font-weight:700">(บังคับเลือกบิล — เงินทุกก้อนต้องผูกบิล · โอนรวมหลายบิลให้ติ๊ก "เลือก" ในตารางบิลค้างด้านบน)</span></label><select id="lgPayBill" class="cin tl" onchange="lgPayBillSel(this.value)">
+          <option value="" disabled selected>— เลือกบิลที่รับเงิน —</option>
           ${openInvs.map(x=>{const b=x.b;const ref=b?(sbThaiDate(b.dateISO)+(b.billNo?' เล่ม '+escA(b.billBook||'-')+'/'+escA(b.billNo):(b.webNo?' '+escA(b.webNo):''))):sbThaiDate(x.e.entry_date);return `<option value="${x.e.sale_id}">บิล ${ref} · ค้าง ${lgMoney(x.out)} บาท</option>`;}).join('')}
-        </select></div>`:''}
+        </select></div>`}
         <div class="frow"><label>จำนวนเงิน (บาท)</label><input id="lgPayAmt" type="number" step="1" class="cin" ${lgPaySel.length?'readonly style="background:var(--soft);font-weight:800"':''} value="${lgPaySel.length?Math.round(lgPaySel.reduce((s,id)=>s+lgSaleOutstanding(id),0)):(fin&&bal>0.5?Math.round(bal):'')}" placeholder="ยอดที่รับจริง"></div>
         <div class="frow"><label>วิธีรับ</label><select id="lgPayMethod" class="cin tl"><option value="transfer">🏦 โอนเข้าบัญชี</option><option value="cash">💵 เงินสด</option></select></div>
         <div class="frow"><label>วันที่รับ</label><input id="lgPayDate" type="date" class="cin" value="${todayISO()}"></div>
@@ -10171,7 +10171,7 @@ async function lgDoPay(custId){
   }catch(e){ console.warn('slip ocr cmp',e); }
   window._lgSlipOcr=null;
   // ☑️ โหมดชำระหลายบิลรวดเดียว (ติ๊กเลือกจากตารางบิลค้าง) — ตัดเต็มยอดค้างของแต่ละบิล ใช้สลิปเดียวกันทุกใบ
-  if(lgFinView()&&lgPaySel.length){
+  if(lgPaySel.length){
     const ids=lgPaySel.slice().filter(id=>lgSaleOutstanding(id)>0.5);
     if(!ids.length){ toast('บิลที่เลือกไม่มียอดค้างแล้ว'); lgPaySel=[]; renderLgCust(); return; }
     const total=ids.reduce((s,id)=>s+lgSaleOutstanding(id),0);
@@ -10184,7 +10184,8 @@ async function lgDoPay(custId){
     toast('✅ บันทึกรับเงิน '+fmt(ids.length)+' บิลรวดเดียวแล้ว — ใบรับเงินออกให้ทุกบิล (พิมพ์ได้จากแท็บเอกสาร)');
     renderLgCust(); return;
   }
-  const saleId=lgFinView()?String((($("#lgPayBill")||{}).value)||'').trim()||null:null;   // 💸 เลือกบิล = ตัดหนี้เฉพาะบิลนั้น
+  const saleId=String((($("#lgPayBill")||{}).value)||'').trim()||null;   // 💸 เลือกบิล = ตัดหนี้เฉพาะบิลนั้น
+  if(!saleId){ toast('⛔ ต้องเลือกบิลที่รับเงินก่อน — เลือกจากช่อง "รับเงินสำหรับบิล" หรือติ๊ก "เลือก" หลายบิลในตารางบิลค้าง · เงินทุกก้อนต้องผูกบิล (กติกาเจ้าของ 28 ก.ค. 69 — กันลงเงินซ้ำ)'); return; }
   let note=String((($("#lgPayNote")||{}).value)||'').trim();
   if(saleId){
     const bout=lgSaleOutstanding(saleId);
