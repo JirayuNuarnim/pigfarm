@@ -983,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728d';
+const APP_BUILD='690728e';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -3129,11 +3129,12 @@ function renderClerkFeedReq(){ if(vetGuard())return;
           return `<div style="margin-top:14px">
             <div style="font-weight:700;font-size:14px;margin-bottom:6px">📅 ${escA(d)} <span class="sub" style="font-weight:400">· ${dItems.length} รายการ</span></div>
             <div style="overflow-x:auto"><table>
-              <thead><tr><th>⏱ เวลาสั่ง</th><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th><th>✍️ คนกดสั่ง</th></tr></thead>
+              <thead><tr><th>⏱ เวลาสั่ง</th><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>สถานะรับ</th><th>ยาสูตร</th><th>หมายเหตุ</th><th>✍️ คนกดสั่ง</th></tr></thead>
               <tbody>${dItems.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(r=>`<tr>
                 <td>${reqTimeCell(r)}</td>
                 <td><b>${escA(r.house)}</b></td><td>${r.feedSrc?'<b>'+escA(r.feedSrc)+'</b>':'-'}</td><td><b>${escA(r.feedNo||'-')}</b></td>
                 <td class="num">${fmt(Number(r.qty)||0)}</td><td><span class="sub">${escA(r.unit||'-')}</span></td>
+                <td>${feedReqStatusHTML(r)}</td>
                 <td>${r.formula?'<b>'+escA(r.formula)+'</b>':'-'}</td><td>${escA(r.note||'-')}</td><td>${(r.by&&r.hvet&&r.by!==r.hvet)?'<b style="color:#b7791f" title="คนกดสั่งไม่ใช่หมอประจำหลังนี้">'+escA(r.by)+'</b><div class="sub">ประจำ: '+escA(r.hvet)+'</div>':'<span class="sub">'+escA(r.by||r.hvet||'-')+'</span>'}</td>
               </tr>`).join("")}</tbody>
             </table></div>
@@ -3151,14 +3152,14 @@ function exportClerkFeedReq(){
   Object.keys(byVet).sort((a,b)=>a.localeCompare(b,'th')).forEach(v=>{
     let vq=0;
     byVet[v].slice().sort((a,b)=>reqDateKey(a.date)-reqDateKey(b.date)||(a.ts||0)-(b.ts||0)||String(a.feedNo||'').localeCompare(String(b.feedNo||''),'th'))
-      .forEach(r=>{ vq+=Number(r.qty)||0; data.push([v,r.date,reqTimeStr(r)||'-',r.farm,r.house,r.feedSrc||'',r.feedNo||'',r.qty||0,r.unit||'',r.formula||'',r.note||'']); });
+      .forEach(r=>{ vq+=Number(r.qty)||0; data.push([v,r.date,reqTimeStr(r)||'-',r.farm,r.house,r.feedSrc||'',r.feedNo||'',r.qty||0,r.unit||'',(r.recvAt?(Number(r.recvKg)||0):''),(r.recvAt?('รับแล้ว'+(r.recvDate?' '+r.recvDate:'')):'รอรับ'),r.formula||'',r.note||'']); });
     qty+=vq;
-    data.push(['รวม — '+v+' ('+byVet[v].length+' รายการ)','','','','','','',vq,'','','']);
+    data.push(['รวม — '+v+' ('+byVet[v].length+' รายการ)','','','','','','',vq,'','','','','']);
   });
   const html=xlsSheet({ title:'รายการสั่งอาหาร (แยกตามหมอ)',
     meta:[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'ขอบเขต',v:cfrFarm?('ฟาร์ม '+cfrFarm):'ทุกฟาร์มที่ดูแล'},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออกรายงาน',v:(CURRENT_USER&&CURRENT_USER.name)||'-'}],
-    columns:[{label:'หมอ',type:'text',w:130},{label:'วันที่',type:'text',w:90},{label:'เวลาสั่ง',type:'text',w:80},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'แหล่ง',type:'text',w:80},{label:'เบอร์อาหาร',type:'text',w:100},{label:'จำนวน',type:'num',w:70},{label:'หน่วย',type:'text',w:70},{label:'ยาสูตร',type:'text',w:120},{label:'หมายเหตุ',type:'text',w:150}],
-    rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','','','',qty,'','',''] });
+    columns:[{label:'หมอ',type:'text',w:130},{label:'วันที่',type:'text',w:90},{label:'เวลาสั่ง',type:'text',w:80},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'แหล่ง',type:'text',w:80},{label:'เบอร์อาหาร',type:'text',w:100},{label:'จำนวน',type:'num',w:70},{label:'หน่วย',type:'text',w:70},{label:'รับจริง (กก.)',type:'dec',w:90},{label:'สถานะรับ',type:'text',w:110},{label:'ยาสูตร',type:'text',w:120},{label:'หมายเหตุ',type:'text',w:150}],
+    rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','','','',qty,'','','','',''] });
   downloadXls('รายการสั่งอาหาร'+(cfrFarm?'_'+cfrFarm:'')+'.xls', html);
   toast('ส่งออกรายการสั่งอาหาร '+rows.length+' รายการ ✓');
 }
@@ -3817,10 +3818,11 @@ function renderVetMe(){
       ${feedG.length?feedG.map(g=>`<div style="margin-top:10px">
         <div style="font-weight:700;font-size:13.5px;margin-bottom:5px">📅 ${escA(g.date)} <span class="sub" style="font-weight:400">· ${g.items.length} รายการ</span></div>
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>⏱ เวลาสั่ง</th><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th></tr></thead>
+          <thead><tr><th>⏱ เวลาสั่ง</th><th>หลัง</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>สถานะรับ</th><th>ยาสูตร</th><th>หมายเหตุ</th></tr></thead>
           <tbody>${g.items.map(r=>`<tr>
             <td>${reqTimeCell(r)}</td><td><b>${escA(r.house)}</b></td><td>${r.feedSrc?'<b>'+escA(r.feedSrc)+'</b>':'-'}</td><td><b>${escA(r.feedNo||'-')}</b></td>
             <td class="num">${fmt(Number(r.qty)||0)}</td><td><span class="sub">${escA(r.unit||'-')}</span></td>
+            <td>${feedReqStatusHTML(r)}</td>
             <td>${r.formula?'<b>'+escA(r.formula)+'</b>':'-'}</td><td>${escA(r.note||'-')}</td></tr>`).join('')}</tbody>
         </table></div>
       </div>`).join(''):'<div class="sub">— ไม่มีรายการสั่งอาหารในช่วงที่เลือก —</div>'}
@@ -6766,6 +6768,7 @@ function mustCloseHTML(h){
 /* ---------- VET form ---------- */
 function vetForm(){
   const h=currentHouse; histPush('vform:'+h.id,vetForm); const v=$("#view");
+  vFeedOrderId=null;   // 🕐 เปิดหลังใหม่ = ยังไม่ได้เลือกใบสั่งที่จะรับ
   v.innerHTML=`
     <button class="back" onclick="renderHouseList()">‹ เลือกหลังอื่น</button>
     <h2 class="page">🩺 หลัง ${escA(h.code||'')} <span class="dot ${vetRecordedToday(h)?'ok':'wait'}" style="position:static;display:inline-block;box-shadow:none;vertical-align:middle" title="สถานะการลงข้อมูลของหมอวันนี้"></span></h2>
@@ -6793,6 +6796,7 @@ function vetForm(){
 
     <div class="card">
       <h3>🌾 การรับอาหาร</h3>
+      <div id="vFeedPend">${vetFeedPendHTML(h)}</div>
       <div class="grid2">
         <div class="frow" style="margin-bottom:0"><label>แหล่งรับอาหาร</label>
           <select id="v_feedSrc" class="cin tl">${VET_FEEDSRC.map(s=>`<option>${escA(s)}</option>`).join('')}</select></div>
@@ -6854,7 +6858,10 @@ function vetSubmit(){ if(blockIfReadonly())return;
   // การรักษา = คนละบันทึก · ⏱ ts = เวลาที่หมอกดบันทึกจริง (27 ก.ค. 69 — โชว์เวลาลงรับในหน้าเสมียน · รายการเก่าไม่มี = "—")
   if(sym||fm||inj||note){currentHouse.vetLog.unshift({type:'treat',date:day,by,symptoms:sym,formula:fm,inject:inj,note,ts:Date.now()});added++;}
   // การรับอาหาร = คนละบันทึก
-  if(fNo||fKg){currentHouse.vetLog.unshift({type:'feed',date:day,by,feedSrc:fSrc,feedNo:fNo,feedMed:fMed,feedKg:fKg,feedBill:fBill,ts:Date.now()});added++;}
+  if(fNo||fKg){ const fe={type:'feed',date:day,by,feedSrc:fSrc,feedNo:fNo,feedMed:fMed,feedKg:fKg,feedBill:fBill,ts:Date.now()};
+    if(vFeedOrderId){ const ro=(currentHouse.feedReqs||[]).find(x=>x&&x._id===vFeedOrderId);   // 📥 รับจากใบสั่ง → ปิดใบด้วยน้ำหนักจริง (ผลต่างเก็บอัตโนมัติ)
+      if(ro&&!ro.recvAt){ ro.recvAt=Date.now(); ro.recvDate=day; ro.recvKg=Number(fKg)||0; ro.recvBy=by; fe.orderId=ro._id; } vFeedOrderId=null; }
+    currentHouse.vetLog.unshift(fe); added++; }
   // การกินได้ต่อวัน = คนละบันทึก (🍽️ กิน 2 เบอร์พร้อมกัน → แตกเป็น 2 รายการ เบอร์ 1 อยู่บนสุด)
   if(eatNo2||eatKg2){currentHouse.vetLog.unshift({type:'intake',date:day,by,eatNo:eatNo2,eatKg:eatKg2,ts:Date.now()});added++;}
   if(eatNo||eatKg){currentHouse.vetLog.unshift({type:'intake',date:day,by,eatNo,eatKg,ts:Date.now()});added++;}
@@ -7623,6 +7630,41 @@ function renderFeedRequest(){
 }
 function ensureFeedIds(h){ const seen=new Set(); (h.feedReqs||[]).forEach(e=>{ if(!e) return; if(e._id==null||seen.has(e._id)) e._id=newRecId('f'); seen.add(e._id); }); }   // 🔑 ซ่อมรหัสรายการสั่งอาหาร (มาตรฐานเดียวกับเบิกยา — กันลบ/ผสานผิดตัวข้ามเครื่อง)
 function feedReqSig(e){ return encodeURIComponent([(e&&e.feedNo)||'',(e&&e.date)||'',(e&&e.qty)||''].join('|')); }
+/* ── 🕐→✅ วงจรใบสั่งอาหาร (Peter 28 ก.ค. 69): สั่งวันนี้ ของมาอีก ~4 วัน + น้ำหนักจริงไม่เท่าที่สั่ง (สั่ง 4,000 รับ 4,013)
+   ใบสั่ง = รายการรอรับ · หมอกดรับจากใบสั่ง → ปิดใบด้วยน้ำหนักจริง + เก็บผลต่าง ── */
+function feedReqStatusHTML(r){
+  if(r&&r.recvAt){
+    const diff=(String(r.unit||'')==='กก.'&&Number(r.qty)>0&&Number(r.recvKg)>0)?Math.round((Number(r.recvKg)-Number(r.qty))*10)/10:null;
+    return '<span style="background:#e6f4ea;color:#1e7e4f;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">✅ รับแล้ว '+fmt(Number(r.recvKg)||0)+' กก.'+((diff!=null&&Math.abs(diff)>=0.05)?' ('+(diff>0?'+':'')+fmt(diff)+')':'')+(r.recvDate?' · '+escA(r.recvDate):'')+'</span>';
+  }
+  let d=null;
+  if(r&&r.ts) d=Math.floor((Date.now()-r.ts)/86400000);
+  else if(r&&r.date){ const t=parseThaiDate(r.date); if(t) d=Math.floor((DEMO_DATE-t)/86400000); }
+  const late=d!=null&&d>=4;   // ปกติของมาใน ~4 วัน — เกินนั้นขึ้นแดงให้ตามของ
+  return '<span style="background:'+(late?'#fdecea':'#fdf3e0')+';color:'+(late?'#c0392b':'#b7791f')+';border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">🕐 รอรับ'+(d!=null&&d>0?' '+d+' วัน':'')+(late?' ⚠️':'')+'</span>';
+}
+let vFeedOrderId=null;
+function vetFeedPendHTML(h){
+  if(!h) return ''; ensureFeedIds(h);
+  const pend=(h.feedReqs||[]).filter(r=>r&&!r.recvAt);
+  if(!pend.length) return '';
+  return `<div style="background:var(--soft);border-radius:10px;padding:9px 12px;margin-bottom:10px">
+    <div style="font-weight:700;font-size:13.5px">🕐 ใบสั่งอาหารที่รอรับของหลังนี้ (${pend.length})</div>
+    ${pend.map(r=>`<div class="sub" style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span>• สั่ง ${escA(r.date)} · <b>${escA(r.feedNo||'-')}</b> ${fmt(Number(r.qty)||0)} ${escA(r.unit||'')} ${feedReqStatusHTML(r)}</span>
+      <button class="btn sm" style="padding:4px 12px${vFeedOrderId===r._id?';background:var(--ok)':''}" onclick="vetFeedPickOrder('${escA(r._id)}')">${vFeedOrderId===r._id?'✓ กำลังรับใบนี้':'📥 รับใบนี้'}</button></div>`).join('')}
+    <div class="sub" style="margin-top:7px">แตะ "📥 รับใบนี้" → แก้ช่อง <b>ปริมาณอาหาร</b> เป็น<b>น้ำหนักจริงที่ได้รับ</b> (ไม่ตรงกับที่สั่งได้ เช่น สั่ง 4,000 รับจริง 4,013) → กด 💾 บันทึก ระบบจะปิดใบสั่งพร้อมผลต่างให้</div>
+  </div>`;
+}
+function vetFeedPickOrder(id){ const h=currentHouse; if(!h) return;
+  const r=(h.feedReqs||[]).find(x=>x&&x._id===id); if(!r) return;
+  vFeedOrderId=(vFeedOrderId===id?null:id);
+  if(vFeedOrderId){ const s=$("#v_feedSrc"), n=$("#v_feedNo"), k=$("#v_feedKg");
+    if(s&&r.feedSrc) s.value=r.feedSrc; if(n&&r.feedNo) n.value=r.feedNo;
+    if(k&&!k.value&&String(r.unit||'')==='กก.') k.value=r.qty||'';
+    toast('📥 เลือกใบสั่ง '+(r.feedNo||'')+' แล้ว — แก้ปริมาณเป็นน้ำหนักจริงที่ได้รับ แล้วกด 💾 บันทึก'); }
+  const el=document.getElementById('vFeedPend'); if(el) el.innerHTML=vetFeedPendHTML(h);
+}
 function feedHistHTML(){
   if(!reqHouseCode) return '<div class="sub">เลือกรหัสหลังด้านบนเพื่อดูประวัติการสั่งอาหารของหลังนั้น</div>';
   const h=HOUSES.find(x=>(x.code||'').toUpperCase()===reqHouseCode.toUpperCase());
@@ -7631,13 +7673,14 @@ function feedHistHTML(){
   const canEdit=(effRole()==='vet') && canEditView();
   return `<div style="font-weight:700;font-size:14px;margin-bottom:8px">🧾 ประวัติการสั่งอาหาร · หลัง ${escA(reqHouseCode)} <span class="sub" style="font-weight:400">(${log.length} รายการ)</span></div>
     <div style="overflow-x:auto"><table>
-      <thead><tr><th>วันที่</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>ยาสูตร</th><th>หมายเหตุ</th>${canEdit?'<th></th>':''}</tr></thead>
+      <thead><tr><th>วันที่</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th class="num">จำนวน</th><th>หน่วย</th><th>สถานะ</th><th>ยาสูตร</th><th>หมายเหตุ</th>${canEdit?'<th></th>':''}</tr></thead>
       <tbody>${log.length? log.map((e,i)=>`<tr>
         <td>${escA(e.date)}</td><td>${e.feedSrc?'<b>'+escA(e.feedSrc)+'</b>':'-'}</td><td><b>${escA(e.feedNo||'-')}</b></td>
         <td class="num">${fmt(Number(e.qty)||0)}</td><td><span class="sub">${escA(e.unit||'-')}</span></td>
+        <td>${feedReqStatusHTML(e)}</td>
         <td>${e.formula?'<b>'+escA(e.formula)+'</b>':'-'}</td><td>${escA(e.note||'-')}</td>
         ${canEdit?`<td class="num"><button class="btn ghost sm" style="color:var(--bad)" onclick="delFeedReqById('${e._id}','${feedReqSig(e)}')">ลบ</button></td>`:''}
-      </tr>`).join("") : `<tr><td colspan="${canEdit?8:7}" class="sub">ยังไม่มีการสั่งอาหารของหลังนี้</td></tr>`}</tbody>
+      </tr>`).join("") : `<tr><td colspan="${canEdit?9:8}" class="sub">ยังไม่มีการสั่งอาหารของหลังนี้</td></tr>`}</tbody>
     </table></div>`;
 }
 function updateFeedHist(){const el=$("#feedHist");if(el)el.innerHTML=feedHistHTML();}
