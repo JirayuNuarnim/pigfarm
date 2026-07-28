@@ -983,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728b';
+const APP_BUILD='690728c';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -10846,15 +10846,48 @@ function brDailyHouseKind(h){ if(!h||BR_FARMS.indexOf(h.farm||'')<0) return null
 function brShortOf(h){ const parts=String(h.code||'').split(' '); return parts.length>1?parts.slice(1).join(' '):String(h.code||''); }
 let brDM=[{ear:'',boar:''}], brDMHouseId=null;
 function brMateCardHTML(h){
-  if(brDailyHouseKind(h)!=='ท') return '';
+  const kind=brDailyHouseKind(h); if(!kind) return '';
   if(brDMHouseId!==h.id){ brDM=[{ear:'',boar:''}]; brDMHouseId=h.id; }
-  return `<div class="card" style="border-color:#c2537f">
+  return `<div id="brOvBox"></div>`+(kind!=='ท'?'':`<div class="card" style="border-color:#c2537f">
     <h3>💕 การแจ้งผสม <span class="more">เล้าผสม/อุ้มท้อง — แม่ที่แจ้งจะถูกผูกเข้าหลังนี้อัตโนมัติ</span></h3>
-    <div id="brDMBox"><div class="sub">⏳ กำลังโหลดทะเบียนแม่จากระบบกลาง…</div></div></div>`;
+    <div id="brDMBox"><div class="sub">⏳ กำลังโหลดทะเบียนแม่จากระบบกลาง…</div></div></div>`);
 }
-function brDMFill(h){ if(brDailyHouseKind(h)!=='ท') return;
-  brCloudLoad().then(ok=>{ const el=document.getElementById('brDMBox'); if(!el) return;
+function brDMFill(h){ if(!brDailyHouseKind(h)) return;
+  brCloudLoad().then(ok=>{
+    const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=ok?brHouseOverviewHTML(h):'';
+    const el=document.getElementById('brDMBox'); if(!el) return;
     el.innerHTML=ok?brDMBodyHTML(h):'<div class="sub">⚠️ โหลดทะเบียนแม่ไม่สำเร็จ — เช็คอินเทอร์เน็ตแล้วเปิดหลังนี้ใหม่อีกครั้ง</div>'; });
+}
+/* 📊 ภาพรวมหลังแม่พันธุ์ (Peter 28 ก.ค. 69: "หมอประจำยูนิตเปิดหลังแล้วต้องเห็นภาพรวมทันที")
+   บนสุดของหน้าบันทึกรายวันหลัง ท/ค/ส: องค์ประกอบแม่ตามสถานะ + งานวันนี้จากนาฬิกาแม่ (จับเบอร์ไหนทำอะไร) + งานล่วงหน้า 7 วัน */
+function brHouseOverviewHTML(h){
+  const sc=brShortOf(h);
+  const prevFarm=brFarm; brFarm=h.farm||brFarm;   // ให้ brClock/brCfg ใช้ค่าตั้งนาฬิกาของฟาร์มนี้
+  try{
+    const sows=brDMSows(h).filter(s=>s.house===sc&&s.stage!=='cull');
+    const cnt=k=>sows.filter(s=>s.stage===k).length;
+    const chips=[['🐷 แม่ในหลัง',sows.length,1],['⏳ รอผสม',cnt('open')],['💕 ผสมแล้ว',cnt('mated')],['🤰 อุ้มท้อง',cnt('preg')],['🍼 เลี้ยงลูก',cnt('nurse')],['🌸 สาว',cnt('gilt')]]
+      .filter(c=>c[1]>0||c[2]);
+    const groups={}, urgent={};
+    sows.forEach(s=>{ brClock(s).forEach(c=>{ if(!c.due) return; (groups[c.label]=groups[c.label]||[]).push(s.ear); if(c.label.indexOf('⚠️')>=0) urgent[c.label]=1; }); });
+    const gk=Object.keys(groups).sort((a,b)=>(urgent[b]?1:0)-(urgent[a]?1:0));
+    const totTask=gk.reduce((s,k)=>s+groups[k].length,0);
+    const C=brCfg(); const look={preg:0,farrow:0,wean:0};
+    sows.forEach(s=>{ const m=brLastEv(s,'mate'), f=brLastEv(s,'farrow');
+      if(s.stage==='mated'&&m){ const d=brDays(m.date); if(d!=null&&d<C.pregchk&&d>=C.pregchk-7) look.preg++; }
+      if(s.stage==='preg'&&m){ const d=brDays(m.date); if(d!=null&&d>=C.gest-13&&d<C.gest-6) look.farrow++; }
+      if(s.stage==='nurse'&&f){ const d=brDays(f.date); if(d!=null&&d>=C.lact-14&&d<C.lact-7) look.wean++; }
+    });
+    return `<div class="card" style="border-color:var(--brand)">
+      <h3>📊 ภาพรวมหลัง ${escA(sc)} <span class="more">สดจากทะเบียนแม่ · นาฬิกาตามค่าตั้งฟาร์ม</span></h3>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">${chips.map(c=>`<span class="sbchip" style="font-size:13.5px">${c[0]} <b>${fmt(c[1])}</b></span>`).join('')}</div>
+      <div style="margin-top:11px;font-weight:800;font-size:14px">📋 งานวันนี้${totTask?` <span style="background:var(--brand);color:#fff;border-radius:999px;padding:1px 10px;font-size:12px">${fmt(totTask)} รายการ</span>`:''}</div>
+      ${gk.length?gk.map(k=>`<div style="margin-top:7px"><div style="font-size:13px;font-weight:700;${urgent[k]?'color:var(--bad)':''}">${k} <span class="sub" style="font-weight:400">(${groups[k].length} แม่)</span></div>
+        <div style="line-height:2.1">${groups[k].map(e=>`<span style="display:inline-block;background:${urgent[k]?'#fdecea':'var(--soft)'};border-radius:8px;padding:1px 10px;margin-right:5px;font-size:12.5px"><b>${escA(e)}</b></span>`).join('')}</div></div>`).join('')
+        :'<div class="sub" style="margin-top:5px">✅ วันนี้ไม่มีงานตามนาฬิกาแม่ของหลังนี้</div>'}
+      ${(look.preg||look.farrow||look.wean)?`<div class="sub" style="margin-top:10px">📅 กำลังจะมาใน 7 วัน: ${[look.preg?'🔍 ตรวจท้อง '+fmt(look.preg)+' แม่':'',look.farrow?'🏠 ขึ้นเล้าคลอด '+fmt(look.farrow)+' แม่':'',look.wean?'🍼 หย่านม '+fmt(look.wean)+' แม่':''].filter(Boolean).join(' · ')}</div>`:''}
+    </div>`;
+  } finally { brFarm=prevFarm; }
 }
 function brDMSows(h){ return (BR.all||[]).filter(s=>s.farm===(h.farm||'')&&(s.kind||'')!=='boar'); }
 function brDMBodyHTML(h){
@@ -10877,7 +10910,10 @@ function brDMBodyHTML(h){
       ${matedToday.map(s=>{ const ev=(s.events||[]).find(e=>e&&e.t==='mate'&&e.date===today);
         return `<div class="sub" style="margin-top:4px">• <b>${escA(s.ear)}</b> × พ่อ <b>${escA((ev&&ev.boar)||'-')}</b>${(ev&&ev.round>1)?' (ครั้งที่ '+ev.round+')':''} · ✍️ ${escA((ev&&ev.by)||'-')} <button class="btn ghost sm" style="padding:2px 8px;color:var(--bad)" onclick="brDMDel('${escA(s.ear)}')">ลบ</button></div>`; }).join('')}</div>`:''}`;
 }
-function brDMRe(){ const h=(typeof currentHouse!=='undefined'&&currentHouse)||null; const el=document.getElementById('brDMBox'); if(el&&h) el.innerHTML=brDMBodyHTML(h); }
+function brDMRe(){ const h=(typeof currentHouse!=='undefined'&&currentHouse)||null; if(!h) return;
+  const el=document.getElementById('brDMBox'); if(el) el.innerHTML=brDMBodyHTML(h);
+  const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=brHouseOverviewHTML(h);   // 📊 ภาพรวมอัปเดตตามทันทีหลังแจ้งผสม/ลบ
+}
 async function brDMSave(){
   if(typeof blockIfReadonly==='function'&&blockIfReadonly()) return;
   const h=currentHouse; if(!h) return; const sc=brShortOf(h), today=brTodayISO();
