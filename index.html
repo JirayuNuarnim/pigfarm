@@ -132,6 +132,14 @@
   #gFeedScroll{overflow-y:auto;pointer-events:auto;display:flex;flex-direction:column;gap:5px;overscroll-behavior:contain} /* เลื่อนดูย้อนหลังได้ (ภายใน 2 วัน) */
   #gFeedScroll::-webkit-scrollbar{width:4px} #gFeedScroll::-webkit-scrollbar-thumb{background:rgba(83,234,210,.25);border-radius:4px}
   @media(min-width:900px){#gFeed{display:flex}}
+  #gWd{position:absolute;left:10px;bottom:12px;width:254px;max-height:48%;display:none;flex-direction:column;justify-content:flex-end;gap:5px;z-index:5;pointer-events:none} /* 📦 การ์ดของที่เบิก — ล่างซ้าย */
+  body.gfullmode #gWd{bottom:96px;max-height:44%} /* เต็มจอ: ยกพ้นการ์ดคำใบ้ล่างซ้าย (การ์ดข้อมูลใหญ่ z สูงกว่า ลอยทับชั่วคราวได้ ปิดแล้วกลับมา) */
+  #gWdScroll{overflow-y:auto;pointer-events:auto;display:flex;flex-direction:column;gap:4px;overscroll-behavior:contain;background:rgba(13,22,28,.9);border:1px solid rgba(83,234,210,.16);border-radius:12px;padding:9px 10px}
+  #gWdScroll::-webkit-scrollbar{width:4px} #gWdScroll::-webkit-scrollbar-thumb{background:rgba(83,234,210,.25);border-radius:4px}
+  .gwrow{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.045);border-radius:7px;padding:4px 8px;font-size:11.5px;color:#dfe9e6;cursor:pointer}
+  .gwrow b.q{margin-left:auto;background:rgba(83,234,210,.12);border-radius:999px;padding:1px 9px;font-size:10.8px;color:#8fd8ca;white-space:nowrap}
+  .gwrow.neg{background:rgba(226,75,74,.13)} .gwrow.neg b.q{background:rgba(226,75,74,.2);color:#ff9e9e}
+  @media(min-width:900px){#gWd{display:flex}}
   @keyframes gfin{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
   .gfi{background:rgba(13,26,31,.68);border:1px solid rgba(83,234,210,.14);border-radius:9px;padding:5px 8px;color:#cfe0db;font-size:11px;line-height:1.4;backdrop-filter:blur(3px);animation:gfin .35s ease both;pointer-events:auto} /* การ์ดกดได้ (บินไปหาหลัง) · ช่องว่างระหว่างการ์ดยังลาก/ซูมแผนที่ทะลุได้ */
   .gfi b{color:#8fd8ca}
@@ -984,7 +992,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728l';
+const APP_BUILD='690728m';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -2243,6 +2251,47 @@ function gFeedFill(){ // ฟีดเหตุการณ์ล่าสุด 
     '<div style="text-align:center;opacity:.42;font-size:9.5px;padding:1px 0">— เลื่อนดูย้อนหลังได้ 2 วัน —</div></div>';
 }
 function gFeedToggle(){ try{ localStorage.setItem('gFeedHide', localStorage.getItem('gFeedHide')==='1'?'0':'1'); }catch(e){} gFeedFill(); }
+/* ── 📦 การ์ดล่างซ้าย: ของที่เบิกวันนี้/เมื่อวาน (ยา+อุปกรณ์ออกจากคลัง) — รวมยอดต่อชื่อของ จัดกลุ่มตามคลัง · แตะรายการกางดู หลัง/หมอ/เวลา · เจ้าของ+ผู้ดูแลเท่านั้น ── */
+let _gWdDay=0, _gWdOpen={};
+function gWdDayStr(off){ const d=new Date(DEMO_DATE.getTime()-off*86400000); return d.getDate()+' '+_THMON[d.getMonth()]; }
+function gWdToggle(){ try{ localStorage.setItem('gWdHide', localStorage.getItem('gWdHide')==='1'?'0':'1'); }catch(e){} gWdFill(); }
+function gWdSetDay(o){ _gWdDay=o; _gWdOpen={}; gWdFill(); }
+function gWdRow(k){ _gWdOpen[k]=!_gWdOpen[k]; gWdFill(); }
+function gWdGoStock(b){ gSpotClear&&gSpotClear(); stockFarm=b; gUnfull(); renderStock(); }
+function gWdFill(){
+  const el=document.getElementById('gWd'); if(!el) return;
+  if(!(effRole()==='owner'||effRole()==='admin')){ el.innerHTML=''; el.style.display='none'; return; }
+  let hide=false; try{ hide=localStorage.getItem('gWdHide')==='1'; }catch(e){}
+  if(hide){ el.innerHTML='<div class="gfi" style="align-self:flex-start;cursor:pointer;opacity:.72;pointer-events:auto" onclick="gWdToggle()" title="แสดงของที่เบิก">📦 ของที่เบิก ▸</div>'; return; }
+  const day=gWdDayStr(_gWdDay), nf=q=>(Math.round(q*100)/100).toLocaleString('en-US');
+  const hhmm=ts=>{ if(!ts) return ''; const t=new Date(ts); return String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0'); };
+  const groups=[]; let totalN=0;
+  Object.keys(STOCK||{}).sort((a,b)=>a.localeCompare(b,'th')).forEach(b=>{
+    const m={};
+    ((STOCK[b]&&STOCK[b].moves)||[]).forEach(mv=>{
+      if(mv.type!=='out'||mv.date!==day) return; const q=-(Number(mv.delta)||0); if(q<=0) return;
+      const k=(mv.cat||'')+'␟'+(mv.name||''); const o=m[k]=m[k]||{cat:mv.cat||'',name:mv.name||'',q:0,subs:[]};
+      o.q+=q; o.subs.push({house:mv.house||'',who:mv.vet||mv.by||'',ts:mv.ts||0,q:q,ref:mv.ref||''}); });
+    const rows=Object.values(m).sort((x,y)=>y.q-x.q); if(!rows.length) return;
+    rows.forEach(r=>{ r.neg=stockOnHand(b,r.cat,r.name)<-1e-9; });
+    groups.push({b:b,rows:rows}); totalN+=rows.length;
+  });
+  const colOf=b=>{ const fc=window._gFarmCol||{}; if(fc[b]) return fc[b]; const g=STOCK_GROUPS.find(x=>x.key===b); if(g) for(const mf of g.members){ if(fc[mf]) return fc[mf]; } return '#54ead2'; };
+  const chip=(t,on,o)=>'<span onclick="gWdSetDay('+o+')" style="cursor:pointer;font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 10px;'+(on?'background:rgba(83,234,210,.18);color:#8fd8ca;border:1px solid rgba(83,234,210,.4)':'background:rgba(255,255,255,.05);color:#7f979f;border:1px solid rgba(255,255,255,.08)')+'">'+t+'</span>';
+  el.innerHTML='<div id="gWdScroll">'+
+    '<div style="display:flex;align-items:center;gap:7px"><b style="font-size:12.5px;color:#cfe0db">📦 ของที่เบิก</b>'+chip('วันนี้',_gWdDay===0,0)+chip('เมื่อวาน',_gWdDay===1,1)+
+      '<span style="margin-left:auto;cursor:pointer;font-size:10px;color:#6fa79b" onclick="gWdToggle()" title="ซ่อน">ซ่อน ✕</span></div>'+
+    (groups.length?groups.map(g=>{
+      const col=colOf(g.b);
+      return '<div style="margin-top:4px;font-size:11px;font-weight:800;color:#cfe0db;cursor:pointer" onclick="gWdGoStock(\''+escA(g.b)+'\')" title="เปิดหน้าคลังนี้"><span style="color:'+col+'">●</span> คลัง'+escA(g.b)+' <span style="opacity:.5">›</span></div>'+
+        g.rows.map(r=>{ const k=g.b+'␟'+r.cat+'␟'+r.name;
+          return '<div class="gwrow'+(r.neg?' neg':'')+'" onclick="gWdRow(\''+escA(k)+'\')" title="'+escA(r.cat)+'"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escA(r.name)+(r.neg?' <span style="color:#ff9e9e;font-weight:800">⛔ติดลบ</span>':'')+'</span><b class="q">'+nf(r.q)+'</b></div>'+
+            (_gWdOpen[k]?'<div style="padding:1px 6px 3px 14px;display:flex;flex-direction:column;gap:2px">'+r.subs.map(s=>'<div style="font-size:10.5px;color:#93a8b0">'+(s.house?'หลัง '+escA(s.house)+' · ':'')+escA(s.who)+(hhmm(s.ts)?' · '+hhmm(s.ts):'')+' · '+nf(s.q)+'</div>').join('')+'</div>':'');
+        }).join('');
+    }).join(''):'<div style="font-size:11px;color:#7f979f;padding:4px 2px">— ยังไม่มีการเบิก'+(_gWdDay===0?'วันนี้':'เมื่อวาน')+' —</div>')+
+    (groups.some(g=>g.rows.some(r=>r.neg))?'<div style="font-size:10.3px;color:#ff9e9e;padding-top:2px">⛔ = สต็อกคลังติดลบ — เสมียนเติมด่วน</div>':'')+
+    '<div style="font-size:10.3px;color:#5f7780;padding-top:1px">แตะรายการ = ดูรายหลัง/หมอ/เวลา · แตะหัวคลัง = เปิดคลัง</div></div>';
+}
 function gBurst(x,y){ // เม็ดแสงพุ่งจากเล้าที่มีข้อมูลใหม่ เข้าศูนย์กลาง SJF
   const s=document.getElementById('fgsvg'); if(!s) return;
   const el=document.createElementNS('http://www.w3.org/2000/svg','circle');
@@ -2716,6 +2765,7 @@ function renderFarmGraph(){
         <g id="gOrbitUsers" pointer-events="none">${gOrbitSVG(cx,cy,HH,botPad)}</g>
       </svg>
       <div id="gFeed"></div>
+      <div id="gWd"></div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;padding:9px 14px;border-top:1px solid rgba(83,234,210,.18);color:#9db8b2;font-size:11.5px">
         <span>🟢 กรอกแล้ววันนี้</span><span>🟡→🔴 ยังไม่กรอก (ยิ่งสายยิ่งแดง)</span><span>⚪ ว่าง</span><span>🔵 ล้างคอก</span><span>🟣 หมอ</span><span style="color:#f0908a">⭕ ขอบแดง = มีตายวันนี้</span><span style="color:#ffd166">◔ วงรอบจุด = อายุรุ่น (ทอง = ใกล้จับ)</span><span style="color:#cfe0db">🐖 ป้ายขวา = ผู้ซื้อ 10 วันล่าสุด · แถบสีใต้ชื่อ = ซื้อจากฟาร์มไหน (สีเดียวกับจุดฟาร์ม) · แตะป้าย/จุดฟาร์ม = โชว์เส้นโยง</span><span style="color:#ffb46b">🏮 = มีบิลรอใส่ราคา</span><span style="color:#9fe8d8">☄️ ดาวหาง = คนที่ออนไลน์อยู่ตอนนี้ (สีตามบทบาท)</span>
         ${_gLens==='hp'?'<span style="color:#ff9b93;font-weight:700">🔭 เลนส์สุขภาพ: สีจุด = %ตายสะสมของรุ่น (เขียว ≤2% · เหลือง ≤4% · ส้ม ≤7% · แดง >7%) · วงประม่วง = หมอยังไม่บันทึกวันนี้</span>':''}
@@ -2737,6 +2787,7 @@ function renderFarmGraph(){
   gAlertFill();                   // 🚨 แผงจุดต้องดูวันนี้ (เปิดเองเมื่อมีรายการ)
   _gSnap=gSnapHouses();           // สแนปช็อตไว้เทียบหาเล้าที่มีข้อมูลใหม่ (วาบแสง)
   gFeedFill();                    // ฟีดเหตุการณ์ล่าสุดข้างจอ
+  gWdFill();                      // 📦 การ์ดของที่เบิกวันนี้ (ล่างซ้าย · เจ้าของ/ผู้ดูแล)
   gPartsStart();                  // เม็ดแสงวิ่งตามเส้น
   if(_gWantFull) gFull();         // เปิดหน้าแผนผัง = เต็มจอทันที (ถ้าผู้ใช้เพิ่งกด ✕ ออกไป จะเคารพการเลือกนั้น)
 }
