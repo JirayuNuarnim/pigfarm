@@ -983,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728c';
+const APP_BUILD='690728d';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9064,7 +9064,7 @@ function renderSaleBillForm(){
   const savedEdit=!SB_ISNEW && !!stored;                 // แก้บิลที่บันทึกแล้ว — เข้ม: เฉพาะเจ้าของ/ผู้ดูแล
   const roBill=(locked||savedEdit)&&!canFix;             // เสมียนดูอย่างเดียวสำหรับบิลที่บันทึก/ล็อกแล้ว
   sbDeriveFarm();                                         // ฟาร์มบิล = ฟาร์มจริงของหลังที่เลือก (โชว์ในหัวบิล)
-  const buyers=[...new Set(SB_CUST.map(c=>c.name).concat(SALE_BILLS.map(b=>b.buyer).filter(Boolean)).concat(CUSTOMERS))];
+  const buyers=[...new Set(SB_CUST.map(c=>c.name).concat(CUSTOMERS))].filter(x=>x&&String(x).trim());   // 🔒 แนะนำเฉพาะชื่อจากทะเบียน (ตัดชื่อจากบิลเก่าที่อาจสะกดผิดออก — Peter 28 ก.ค.)
   // ฟาร์มในบิล = เฉพาะฟาร์มที่มีหลังจริง (ในสิทธิ์ที่ดูแล) — กันเลือกฟาร์มว่าง/ชื่อซ้ำแล้ว dropdown หลังไม่ขึ้น
   const scopeH=myHouses(), sellFarms=[...new Set(scopeH.map(h=>h.farm||'').filter(Boolean))];
   const farmList=FARMS.filter(f=>sellFarms.includes(f)).concat(sellFarms.filter(f=>!FARMS.includes(f)));
@@ -9084,7 +9084,7 @@ function renderSaleBillForm(){
       <div class="fgrid">
         <div class="frow"><label>วันที่ขาย</label><input type="date" class="cin" value="${escA(SB_D.dateISO)}" onchange="sbF('dateISO',this.value)"></div>
         <div class="frow"><label>ฟาร์ม <span class="more">(จากหลังที่เลือก)</span></label><div class="cin tl" style="background:var(--soft);min-height:44px;display:flex;align-items:center">${SB_D.farm?escA(SB_D.farm):'<span class="sub" style="margin:0">— แตะเลือกหลังด้านล่าง —</span>'}</div></div>
-        <div class="frow"><label>ผู้ซื้อ</label><input class="cin" list="sbBuyerDL" placeholder="เช่น บ.ราชบุรีค้าสุกร / เฮียมลชัย" value="${escA(SB_D.buyer)}" oninput="SB_D.buyer=this.value;sbRefresh()" onchange="sbBuyerPrefill()"><datalist id="sbBuyerDL">${buyers.map(x=>`<option value="${escA(x)}">`).join('')}</datalist></div>
+        <div class="frow"><label>ผู้ซื้อ <span class="hint">🔒 พิมพ์ค้นแล้วเลือกจากทะเบียนเท่านั้น</span></label><input class="cin" list="sbBuyerDL" placeholder="พิมพ์ 2-3 ตัวอักษรเพื่อค้น แล้วแตะเลือก" value="${escA(SB_D.buyer)}" oninput="SB_D.buyer=this.value;sbRefresh();sbBuyerWarn(this)" onchange="sbBuyerPick(this)"><datalist id="sbBuyerDL">${buyers.map(x=>`<option value="${escA(x)}">`).join('')}</datalist><div id="sbBuyerWarnBox"></div></div>
         <div class="frow"><label>ทะเบียนรถ</label><input class="cin" placeholder="เช่น 83-6009" value="${escA(SB_D.truck)}" oninput="SB_D.truck=this.value;sbRefresh()"></div>
         <div class="frow"><label>บิลกระดาษ เล่มที่</label><input class="cin" placeholder="เช่น 074" value="${escA(SB_D.billBook)}" oninput="SB_D.billBook=this.value;sbRefresh()"></div>
         <div class="frow"><label>เลขที่</label><input class="cin" placeholder="เช่น 18" value="${escA(SB_D.billNo)}" oninput="SB_D.billNo=this.value;sbRefresh()"></div>
@@ -9298,12 +9298,29 @@ function sbDuplicate(id){ // คัดลอกบิลเดิม → บิ�
   SB_D=b; SB_ISNEW=true; renderSaleBillForm();
   toast('⧉ คัดลอกบิล '+(src.buyer||'-')+' แล้ว — ราคาเดิมติดมาให้ กรอกน้ำหนักของวันนี้ได้เลย');
 }
+/* 🔒 ผู้ซื้อจากทะเบียนเท่านั้น (Peter 28 ก.ค. 69: กันเสมียนพิมพ์ชื่อใหม่/สะกดผิด — พิมพ์เพื่อ "ค้น" ได้ แต่ต้องเลือกชื่อที่มีจริง) */
+function sbBuyerValid(name){ const n=gNrm(name); if(!n) return true;
+  return SB_CUST.some(c=>gNrm(c.name)===n)||(CUSTOMERS||[]).some(c=>gNrm(c)===n); }
+function sbBuyerCanon(name){ const n=gNrm(name); const r=SB_CUST.find(c=>gNrm(c.name)===n); if(r) return r.name;
+  const c=(CUSTOMERS||[]).find(x=>gNrm(x)===n); return c||name; }
+function sbBuyerWarn(inp){ const box=document.getElementById('sbBuyerWarnBox'); if(!box) return;
+  const bad=!sbBuyerValid(inp.value);
+  box.innerHTML=bad?'<div style="color:var(--bad);font-size:12px;font-weight:700;margin-top:3px">⛔ ชื่อนี้ไม่อยู่ในทะเบียนลูกค้า — พิมพ์เพื่อค้นแล้ว "แตะเลือก" จากรายการ'+(sbCanEditPrice()?' (เจ้าของ/ผู้ดูแลบันทึกได้ แต่แนะนำเพิ่มในทะเบียนก่อน)':' · ลูกค้าใหม่ให้แจ้งเจ้าของเพิ่มในทะเบียนก่อน')+'</div>':''; }
+function sbBuyerPick(inp){ if(!SB_D) return;
+  if(sbBuyerValid(inp.value)){ SB_D.buyer=sbBuyerCanon(inp.value); inp.value=SB_D.buyer; }   // ✅ ตรงทะเบียน → ปรับตัวสะกดให้ตรงต้นฉบับเป๊ะ (กัน เจ้/เจ๊ เพี้ยน)
+  sbBuyerWarn(inp); sbRefresh(); sbBuyerPrefill(); }
 function sbSave(){
   if(blockIfReadonly())return; if(!sbCanWrite()){toast('บัญชีนี้บันทึกบิลขายไม่ได้');return;}
   if(!SB_D) return;
   const stored=SALE_BILLS.find(x=>x.id===SB_D.id);
   if(stored&&!['owner','admin'].includes(ROLE)){ toast(stored.locked?'🔒 บิลนี้ถูกตรวจ/ล็อกแล้ว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล':'🔒 แก้บิลที่บันทึกแล้วได้เฉพาะเจ้าของ/ผู้ดูแล — แจ้งเจ้าของให้แก้'); return; }   // เข้ม: เสมียนสร้างบิลใหม่ได้ แต่แก้บิลที่บันทึกแล้วไม่ได้
   sbDeriveFarm();   // ฟาร์มบิลคำนวณจากหลังที่เลือก (ไม่ต้องเลือกฟาร์มแยก)
+  { // 🔒 เสมียน: ผู้ซื้อต้องมาจากทะเบียนเท่านั้น (บิลเก่าที่ชื่อเดิมตกทะเบียน แก้ช่องอื่นได้ — บล็อกเฉพาะตอนตั้ง/เปลี่ยนชื่อผู้ซื้อ)
+    const changedBuyer=SB_ISNEW||!stored||gNrm(stored.buyer)!==gNrm(SB_D.buyer);
+    if(!sbCanEditPrice() && changedBuyer && gNrm(SB_D.buyer) && !sbBuyerValid(SB_D.buyer)){
+      toast('⛔ ชื่อผู้ซื้อ "'+SB_D.buyer+'" ไม่อยู่ในทะเบียนลูกค้า — พิมพ์เพื่อค้นแล้วแตะเลือกจากรายการเท่านั้น (กันสะกดผิด) · ลูกค้าใหม่ให้แจ้งเจ้าของเพิ่มในทะเบียนก่อน'); return; }
+    if(sbBuyerValid(SB_D.buyer)) SB_D.buyer=sbBuyerCanon(SB_D.buyer);   // ปรับตัวสะกดให้ตรงทะเบียนเสมอ
+  }
   if((SB_D.dateISO||'')>todayISO() && !confirm('⚠️ วันที่ขายในบิลเป็นวันอนาคต ('+sbThaiDate(SB_D.dateISO)+')\nถ้าลงเข้าหลังด้วยวันที่อนาคต ยอดคงเหลือของหลังจะคำนวณเพี้ยน\n\nยืนยันใช้วันที่นี้ต่อหรือไม่?')) return;
   const c=sbCalc(SB_D);
   if(c.net!=null && c.net<0 && !confirm('⚠️ ยอดสุทธิติดลบ ('+fmt(c.net)+' บาท) — ช่อง "หัก/ลดบิล" มากกว่ายอดขาย\nตรวจตัวเลขก่อน · ยืนยันบันทึกทั้งอย่างนี้หรือไม่?')) return;   // 🟡 กันหักเกินยอดขายเงียบๆ
