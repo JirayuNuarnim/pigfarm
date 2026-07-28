@@ -471,11 +471,12 @@ body.theme-dark .densetbl th{background:#26304e}
 body.theme-dark .densetbl td{border-bottom-color:#2b3554}
 .cfchip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;background:var(--panel,#fff);color:var(--ink-2)}
 .cfchip.on{background:var(--brand);border-color:var(--brand);color:#fff}
-/* ── (SS) แผนผังฟาร์ม: ชั้นผู้ซื้อสไตล์ญี่ปุ่น (เส้นเงินไหล ฟาร์ม→ผู้ซื้อ) ── */
-.gsale{transition:opacity .25s,stroke-width .25s}
+/* ── (SS) แผนผังฟาร์ม: ชั้นผู้ซื้อ — ป้ายเรียบ+แถบสีฟาร์ม · เส้นเงินซ่อนไว้ โชว์เฉพาะเจ้าที่ถูกแตะ ── */
+.gsale{transition:opacity .25s,stroke-width .25s;opacity:0;pointer-events:none}
+.gsale.gson{opacity:.85;pointer-events:auto}
 .gflowline{stroke-dasharray:8 10;animation:gsflow 1.5s linear infinite}
 @keyframes gsflow{to{stroke-dashoffset:-36}}
-.gsalepend{animation:gsflow 1.1s linear infinite,gspend 1.3s ease-in-out infinite alternate}
+.gsalepend.gson{animation:gsflow 1.1s linear infinite,gspend 1.3s ease-in-out infinite alternate}
 @keyframes gspend{from{opacity:.28}to{opacity:.95}}
 .glantern{animation:gspend 1.15s ease-in-out infinite alternate}
 .gbuyg{transition:opacity .25s}
@@ -983,7 +984,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728k';
+const APP_BUILD='690728l';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -2173,6 +2174,15 @@ function gSelect(kind,key){ // แตะจุด → โชว์ข้อม�
   document.querySelectorAll('#fgsvg .gsel').forEach(c=>c.classList.remove('gsel'));
   const wasSpot=(_gSpotVet===key&&kind==='v');
   gSpotClear();
+  if(svg){ // เคลียร์สปอตไลท์ผู้ซื้อทุกครั้งที่แตะจุดใหม่ · แตะฟาร์ม = โชว์เส้นเงินของฟาร์มนั้น + ไฮไลต์ผู้ซื้อ
+    svg.querySelectorAll('.gsale.gson').forEach(e=>e.classList.remove('gson'));
+    svg.querySelectorAll('.gbuyg').forEach(e=>{ e.style.opacity=''; const r=e.querySelector('.gbuycard'); if(r) r.style.stroke=''; });
+    _gSpotBuyer=null;
+    if(kind==='f'&&key){
+      svg.querySelectorAll('.gsale[data-farm="'+gCssEsc(key)+'"]').forEach(e=>e.classList.add('gson'));
+      svg.querySelectorAll('.gbuyg').forEach(e=>{ const fs=(e.getAttribute('data-farms')||'').split('|'); if(!fs.includes(key)) e.style.opacity='.25'; });
+    }
+  }
   if(kind==='v'&&!wasSpot&&svg){ // สปอตไลท์: หรี่ทุกอย่าง เหลือหมอคนนี้ + เล้าของเขา + เส้นโยงเรืองแสง
     _gSpotVet=key; svg.classList.add('spot');
     svg.querySelectorAll('.gvetg[data-vet="'+gCssEsc(key)+'"],.ghouse[data-vet="'+gCssEsc(key)+'"],.gvetline[data-vet="'+gCssEsc(key)+'"]').forEach(e=>e.classList.add('gglow'));
@@ -2426,21 +2436,20 @@ let _gSpotBuyer=null;
 function gBuyerTap(name){
   const svg=document.getElementById('fgsvg'), p=document.getElementById('gInfo'); if(!svg||!p) return;
   const again=(_gSpotBuyer===name);
-  svg.querySelectorAll('.gsale').forEach(e=>{ e.style.opacity=''; e.style.strokeWidth=''; });
-  svg.querySelectorAll('.gbuyg').forEach(e=>{ e.style.opacity=''; });
+  svg.querySelectorAll('.gsale.gson').forEach(e=>e.classList.remove('gson'));
+  svg.querySelectorAll('.gbuyg').forEach(e=>{ e.style.opacity=''; const r=e.querySelector('.gbuycard'); if(r) r.style.stroke=''; });
   _gSpotBuyer=null;
-  if(!again){ // สปอตไลท์เส้นเงินของเจ้านี้ — แตะซ้ำเพื่อกลับ
+  if(!again){ // แตะป้าย → เส้นเงินของเจ้านี้ค่อยวาดขึ้นมา (สีเส้น = สีฟาร์มต้นทาง) · แตะซ้ำเพื่อซ่อน
     _gSpotBuyer=name;
-    svg.querySelectorAll('.gsale').forEach(e=>{ if(e.getAttribute('data-buyer')!==name) e.style.opacity='.07';
-      else e.style.strokeWidth=(parseFloat(e.getAttribute('stroke-width')||'2')*1.7)+'px'; });
-    svg.querySelectorAll('.gbuyg').forEach(e=>{ if(e.getAttribute('data-buyer')!==name) e.style.opacity='.22'; });
+    svg.querySelectorAll('.gsale').forEach(e=>{ if(e.getAttribute('data-buyer')===name) e.classList.add('gson'); });
+    svg.querySelectorAll('.gbuyg').forEach(e=>{ if(e.getAttribute('data-buyer')!==name) e.style.opacity='.25'; else { const r=e.querySelector('.gbuycard'); if(r) r.style.stroke='#54ead2'; } });
   }
   const o=sbGraphBuyers().list.find(x=>x.name===name);
   const bills=(typeof SALE_BILLS!=='undefined'?SALE_BILLS:[]).filter(b=>(gNrm(b.buyer)||'ไม่ระบุผู้ซื้อ')===name)
     .sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||''))).slice(0,8);
-  p.innerHTML=`<b style="font-size:16px">⛩ ${escA(name)}</b> ${_gSpotBuyer===name?'<span style="font-size:11.5px;background:#f6ead0;color:#8a6a20;font-weight:700;padding:2px 9px;border-radius:999px">🔦 สปอตไลท์เส้นเงิน — แตะซ้ำเพื่อกลับ</span>':''}<br>
+  p.innerHTML=`<b style="font-size:16px">🐖 ${escA(name)}</b> ${_gSpotBuyer===name?'<span style="font-size:11.5px;background:#f6ead0;color:#8a6a20;font-weight:700;padding:2px 9px;border-radius:999px">🔦 โชว์เส้นโยงฟาร์ม→เจ้านี้ — แตะซ้ำเพื่อซ่อน</span>':''}<br>
     <span class="sub" style="margin:0">10 วันล่าสุด: <b>${fmt(o?o.bills:0)}</b> บิล · <b>${fmt(Math.round(o?o.kg:0))}</b> กก. · <b style="color:var(--ok)">${fmt(o?o.total:0)}</b> บาท${o&&o.total&&o.kg?' · เฉลี่ย <b>'+(o.total/o.kg).toFixed(1)+'</b> ฿/กก.':''}${o&&o.last?' · ซื้อล่าสุด '+sbThaiDate(o.last):''}${o&&o.pend?' · <span style="color:#b7791f">🏮 รอใส่ราคา '+fmt(o.pend)+' บิล</span>':''}</span>
-    ${o?`<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">${Object.keys(o.perFarm).map(f=>{const pf=o.perFarm[f];return '<span style="background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:11.5px;font-weight:700;color:var(--ink-2)">'+escA(f)+' · '+fmt(Math.round(pf.kg))+' กก.'+(pf.amt?' · '+fmt(pf.amt)+' ฿':'')+'</span>';}).join('')}</div>`:''}
+    ${o?`<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap">${Object.keys(o.perFarm).map(f=>{const pf=o.perFarm[f];return '<span style="background:var(--soft);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:11.5px;font-weight:700;color:var(--ink-2)"><span style="color:'+((window._gFarmCol&&window._gFarmCol[f])||'#b7791f')+'">●</span> '+escA(f)+' · '+fmt(Math.round(pf.kg))+' กก.'+(pf.amt?' · '+fmt(pf.amt)+' ฿':'')+'</span>';}).join('')}</div>`:''}
     <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">${bills.map(b=>{ const c=sbCalc(b), K=SB_KIND[b.kind]||{};
       return `<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:12.5px"><span>${K.ico||''} ${sbThaiDate(b.dateISO)} · ${escA(b.farm||'-')} · ${fmt(c.n)} ตัว/${fmt(Math.round(c.totW))} กก.</span><b style="color:${c.net!=null?'var(--ok)':'#b7791f'}">${c.net!=null?fmt(c.net)+' ฿':'⏳ รอใส่ราคา'}</b><button class="btn ghost sm" style="padding:3px 10px" onclick="gOpenBill('${b.id}')">เปิดบิล ›</button></div>`; }).join('')||'<span class="sub" style="margin:0">— ไม่มีบิล —</span>'}</div>${gSparkBuyer(name)}`;
   gInfoDecorate();
@@ -2450,7 +2459,8 @@ function gOpenBill(id){ gUnfull(); sbEdit(id); }
 function gInfoClose(){
   gSpotClear();
   const svg=document.getElementById('fgsvg');
-  if(svg){ svg.querySelectorAll('.gsale,.gbuyg').forEach(e=>{ e.style.opacity=''; e.style.strokeWidth=''; }); }
+  if(svg){ svg.querySelectorAll('.gsale.gson').forEach(e=>e.classList.remove('gson'));
+    svg.querySelectorAll('.gbuyg').forEach(e=>{ e.style.opacity=''; const r=e.querySelector('.gbuycard'); if(r) r.style.stroke=''; }); }
   _gSpotBuyer=null;
   const p=document.getElementById('gInfo'); if(p) p.innerHTML='<span class="sub" style="margin:0">👆 แตะจุดบนแผนผัง เพื่อดูรายละเอียด ฟาร์ม / เล้า / หมอ / ผู้ซื้อ</span>';
 }
@@ -2498,6 +2508,9 @@ function renderFarmGraph(){
   const _gb=sbGraphBuyers(), hasBuy=_gb.list.length>0;
   const HH=2*(R1+maxExt+185), W=HH+(hasBuy?360:0), H=HH, cx=HH/2, cy=H/2;
   let edges='', nodes='', labels='';
+  // 🎨 สีประจำฟาร์ม — วงแหวนจุดฟาร์ม + แถบสีบนป้ายผู้ซื้อ + เส้นเงิน ใช้สีเดียวกัน (มองสีก็รู้ฟาร์ม ไม่ต้องไล่เส้น)
+  const GFARM_PAL=['#54ead2','#c9b6ff','#ffd166','#ff9ecb','#7cc7ff','#b8e986','#ffb26b','#ff8f8f'];
+  const _fcolMap={}; window._gFarmCol=_fcolMap;
   const gSegs=[], gFarmsArr=[], gHPos={}, vetPos={}, buyPos={}; // เก็บพิกัดไว้ให้เม็ดแสงวิ่ง + โหมดพาชม + จุดวาบข้อมูลใหม่ + ค้นหา/บินไปหา
   // 🔭 เลนส์ต้นทุนยา: หาค่ากลาง (p50) และแพงสุด 20% (p80) ของค่ายา/ตัว ทั้งบริษัท ไว้เทียบสี
   let _medQ=[0,0];
@@ -2576,43 +2589,47 @@ function renderFarmGraph(){
         <circle cx="15" cy="-15" r="10" fill="#c95ab0" stroke="#f3b7e3" stroke-width="1.4"><title>ฟาร์ม ${esc1(f)} มีหมอดูแล ${vetN} คน</title></circle>
         <text x="15" y="-11.2" text-anchor="middle" style="font-size:11.5px;font-weight:800;fill:#fff;pointer-events:none">${vetN}</text>
         <text x="15" y="-26.5" text-anchor="middle" style="font-size:10px;pointer-events:none">🩺</text></g>`:'';
+    const fcol=_fcolMap[f]=_fcolMap[f]||GFARM_PAL[i%GFARM_PAL.length];
     nodes+=`<g class="gfarmg" transform="translate(${fx} ${fy})"><g class="gfloat" style="animation-duration:${(7+i*0.9).toFixed(1)}s;animation-delay:-${(i*1.7).toFixed(1)}s">
-      <circle id="gn_f_${esc1(f)}" class="gnode" r="16" fill="#1f7d6e" stroke="#54ead2" stroke-width="1.6" onclick="gSelect('f','${esc1(f)}')"><title>${esc1(f)} · ${fmt(fpigs)} ตัว · หมอ ${vetN} คน</title></circle>
-      <text x="0" y="-24" class="glab gfarm">${esc1(f)}</text>
+      <circle id="gn_f_${esc1(f)}" class="gnode" r="16" fill="#1f7d6e" stroke="${fcol}" stroke-width="2.4" onclick="gSelect('f','${esc1(f)}')"><title>${esc1(f)} · ${fmt(fpigs)} ตัว · หมอ ${vetN} คน</title></circle>
+      <text x="0" y="-24" class="glab gfarm"><tspan fill="${fcol}">●</tspan> ${esc1(f)}</text>
       <text x="0" y="33" class="glab gnum">${fmt(fpigs)} ตัว</text>
       ${vetN?`<text x="0" y="49" class="glab" style="fill:#e79ad0;font-size:11.5px;font-weight:700;paint-order:stroke;stroke:rgba(10,20,24,.85);stroke-width:3px">🩺 หมอ ${vetN} คน</text>`:''}
       ${vetBadge}</g></g>`;
   });
-  // ── ⛩ ชั้นผู้ซื้อ (บิลแท่นขาย 30 วันล่าสุด) — ป้ายทองสไตล์ไซเบอร์-ญี่ปุ่น + เส้นเงินไหล ฟาร์ม→ผู้ซื้อ ──
+  // ── 🐖 ชั้นผู้ซื้อ (บิลแท่นขาย 10 วันล่าสุด) — ป้ายเรียบ ชื่อเต็ม + แถบสีบอกฟาร์ม · เส้นเงินซ่อนไว้ แตะป้าย/ฟาร์มค่อยโชว์ ──
   if(hasBuy){
     const BL=_gb.list, bx=W-190;
     const spB=BL.length>1?Math.min(175,(H-620)/(BL.length-1)):0;
     const topY=cy-((BL.length-1)*spB)/2;
     const den=Math.max(1,...BL.flatMap(o=>Object.keys(o.perFarm).map(f=>o.perFarm[f].amt||o.perFarm[f].kg*60)));
-    labels+=`<text x="${bx}" y="${topY-104}" text-anchor="middle" class="glab" style="font-size:16.5px;font-weight:800;fill:#eecf8f">⛩ ผู้ซื้อ — 10 วันล่าสุด</text>
-      <text x="${bx}" y="${topY-84}" text-anchor="middle" class="glab" style="fill:#bd9d62">เส้นหนา = ยอดซื้อมาก · 🏮 = รอใส่ราคา · แตะป้ายเพื่อดูบิล</text>`;
+    labels+=`<text x="${bx}" y="${topY-104}" text-anchor="middle" class="glab" style="font-size:16.5px;font-weight:800;fill:#cfe0db">🐖 ผู้ซื้อ — 10 วันล่าสุด</text>
+      <text x="${bx}" y="${topY-84}" text-anchor="middle" class="glab" style="fill:#8fa7b3">แถบสี = ซื้อจากฟาร์มไหน (สีเดียวกับจุดฟาร์ม) · แตะป้ายเพื่อดูเส้นโยง+บิล · 🏮 รอใส่ราคา</text>`;
     BL.forEach((o,i)=>{
-      const by=topY+i*spB, bw=180, bh=56;
-      Object.keys(o.perFarm).forEach(f=>{
+      const by=topY+i*spB, bw=190, bh=64;
+      const farms=Object.keys(o.perFarm).sort((a,b)=>(o.perFarm[b].amt||o.perFarm[b].kg*60)-(o.perFarm[a].amt||o.perFarm[a].kg*60));
+      farms.forEach(f=>{
         const pf=o.perFarm[f], F=gFarmsArr.find(x=>x.f===f);
         const sxx=F?F.fx:cx, syy=F?F.fy:cy;
-        const wd=(1.4+5.6*Math.min(1,(pf.amt||pf.kg*60)/den)).toFixed(1);
+        const wd=(1.8+5.2*Math.min(1,(pf.amt||pf.kg*60)/den)).toFixed(1);
         const mx=(sxx+bx)/2, myy=(syy+by)/2-70;
-        edges+=`<path class="gsale gflowline${pf.pend?' gsalepend':''}" data-buyer="${esc1(o.name)}" d="M ${sxx.toFixed(1)} ${syy.toFixed(1)} Q ${mx.toFixed(1)} ${myy.toFixed(1)} ${bx-bw/2-8} ${by}" fill="none" stroke="#e0b45c" stroke-width="${wd}" opacity=".5"><title>${esc1(f)} → ${esc1(o.name)}${pf.amt?' · '+fmt(pf.amt)+' บาท':''} · ${fmt(Math.round(pf.kg))} กก.${pf.pend?' · 🏮 รอใส่ราคา '+fmt(pf.pend)+' บิล':''}</title></path>`;
-        gSegs.push({x1:sxx,y1:syy,x2:bx-bw/2-8,y2:by});
+        edges+=`<path class="gsale gflowline${pf.pend?' gsalepend':''}" data-buyer="${esc1(o.name)}" data-farm="${esc1(f)}" d="M ${sxx.toFixed(1)} ${syy.toFixed(1)} Q ${mx.toFixed(1)} ${myy.toFixed(1)} ${bx-bw/2-8} ${by}" fill="none" stroke="${_fcolMap[f]||'#e0b45c'}" stroke-width="${wd}"><title>${esc1(f)} → ${esc1(o.name)}${pf.amt?' · '+fmt(pf.amt)+' บาท':''} · ${fmt(Math.round(pf.kg))} กก.${pf.pend?' · 🏮 รอใส่ราคา '+fmt(pf.pend)+' บิล':''}</title></path>`;
       });
       buyPos[o.name]=[bx,by];
-      const nm=o.name.length>13?o.name.slice(0,13)+'…':o.name;
-      nodes+=`<g class="gbuyg" data-buyer="${esc1(o.name)}" transform="translate(${bx} ${by})" style="cursor:pointer" onclick="gBuyerTap('${esc1(o.name)}')">
+      const nm=o.name.length>22?o.name.slice(0,21)+'…':o.name, nfs=o.name.length>15?11:12.5;
+      const barW=bw-24, gap=2, avail=barW-gap*(farms.length-1);
+      const ws=farms.map(f=>Math.max(.05,o.perFarm[f].amt||o.perFarm[f].kg*60)), swT=ws.reduce((a,b)=>a+b,0)||1;
+      let bar='', bxx=-bw/2+12;
+      farms.forEach((f,j)=>{ const pf=o.perFarm[f], w=Math.max(4,avail*ws[j]/swT);
+        bar+=`<rect x="${bxx.toFixed(1)}" y="12" width="${w.toFixed(1)}" height="7" rx="3" fill="${_fcolMap[f]||'#e0b45c'}"><title>${esc1(f)} · ${fmt(Math.round(pf.kg))} กก.${pf.amt?' · '+fmt(pf.amt)+' บาท':''}</title></rect>`;
+        bxx+=w+gap; });
+      nodes+=`<g class="gbuyg" data-buyer="${esc1(o.name)}" data-farms="${esc1(farms.join('|'))}" transform="translate(${bx} ${by})" style="cursor:pointer" onclick="gBuyerTap('${esc1(o.name)}')">
         <g class="gfloat" style="animation-duration:${(6.8+(i%5)*0.7).toFixed(1)}s;animation-delay:-${(i*13%40)/10}s">
-        <rect x="${-bw/2}" y="${-bh/2}" width="${bw}" height="${bh}" rx="11" fill="#182028" stroke="#e0b45c" stroke-width="1.7"><title>⛩ ${esc1(o.name)} · ${fmt(o.bills)} บิล · ${fmt(Math.round(o.kg))} กก.${o.total?' · '+fmt(o.total)+' บาท':''}</title></rect>
-        <rect x="${-bw/2+4.5}" y="${-bh/2+4.5}" width="${bw-9}" height="${bh-9}" rx="7" fill="none" stroke="#e0b45c" stroke-width=".7" opacity=".35"/>
-        <path d="M ${-bw/2-6} ${-bh/2+10} v-10 h10 M ${bw/2+6} ${-bh/2+10} v-10 h-10 M ${-bw/2-6} ${bh/2-10} v10 h10 M ${bw/2+6} ${bh/2-10} v10 h-10" stroke="#f4d491" stroke-width="1.7" fill="none" opacity=".85"/>
-        <circle cx="${-bw/2+25}" cy="0" r="15" fill="#c8452f" stroke="#ffd9c0" stroke-width="1.3"/>
-        <text x="${-bw/2+25}" y="5.5" text-anchor="middle" style="font-size:14.5px;font-weight:800;fill:#fff3e8;pointer-events:none">買</text>
-        <text x="${-bw/2+47}" y="-3" text-anchor="start" style="font-size:12.5px;font-weight:800;fill:#ffe9bd;pointer-events:none">${esc1(nm)}</text>
-        <text x="${-bw/2+47}" y="14" text-anchor="start" style="font-size:10.5px;font-weight:700;fill:#cfa96a;pointer-events:none">${o.total?fmt(o.total)+' ฿':fmt(Math.round(o.kg))+' กก.'} · ${fmt(o.bills)} บิล</text>
-        ${o.pend?`<text x="${bw/2-20}" y="${-bh/2+9}" class="glantern" style="font-size:15px">🏮</text><text x="${bw/2-6}" y="${-bh/2+10}" style="font-size:9.5px;font-weight:800;fill:#ffd166">${fmt(o.pend)}</text>`:''}
+        <rect class="gbuycard" x="${-bw/2}" y="${-bh/2}" width="${bw}" height="${bh}" rx="11" fill="#182028" stroke="#3a4a54" stroke-width="1.2"><title>${esc1(o.name)} · ${fmt(o.bills)} บิล · ${fmt(Math.round(o.kg))} กก.${o.total?' · '+fmt(o.total)+' บาท':''}</title></rect>
+        <text x="${-bw/2+12}" y="-10" text-anchor="start" style="font-size:${nfs}px;font-weight:800;fill:#eef7f4;pointer-events:none">${esc1(nm)}</text>
+        <text x="${-bw/2+12}" y="6" text-anchor="start" style="font-size:10.5px;font-weight:700;fill:#9fb6ad;pointer-events:none">${o.total?fmt(o.total)+' ฿':fmt(Math.round(o.kg))+' กก.'} · ${fmt(o.bills)} บิล</text>
+        ${bar}
+        ${o.pend?`<text x="${bw/2-30}" y="${-bh/2+13}" class="glantern" style="font-size:14px">🏮</text><text x="${bw/2-15}" y="${-bh/2+13}" style="font-size:9.5px;font-weight:800;fill:#ffd166">${fmt(o.pend)}</text>`:''}
         </g></g>`;
     });
   }
@@ -2700,7 +2717,7 @@ function renderFarmGraph(){
       </svg>
       <div id="gFeed"></div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;padding:9px 14px;border-top:1px solid rgba(83,234,210,.18);color:#9db8b2;font-size:11.5px">
-        <span>🟢 กรอกแล้ววันนี้</span><span>🟡→🔴 ยังไม่กรอก (ยิ่งสายยิ่งแดง)</span><span>⚪ ว่าง</span><span>🔵 ล้างคอก</span><span>🟣 หมอ</span><span style="color:#f0908a">⭕ ขอบแดง = มีตายวันนี้</span><span style="color:#ffd166">◔ วงรอบจุด = อายุรุ่น (ทอง = ใกล้จับ)</span><span style="color:#eecf8f">⛩ ป้ายทอง = ผู้ซื้อ (บิลแท่นขาย 10 วันล่าสุด · เส้นทอง = เงินไหลจากฟาร์ม)</span><span style="color:#ffb46b">🏮 = มีบิลรอใส่ราคา</span><span style="color:#9fe8d8">☄️ ดาวหาง = คนที่ออนไลน์อยู่ตอนนี้ (สีตามบทบาท)</span>
+        <span>🟢 กรอกแล้ววันนี้</span><span>🟡→🔴 ยังไม่กรอก (ยิ่งสายยิ่งแดง)</span><span>⚪ ว่าง</span><span>🔵 ล้างคอก</span><span>🟣 หมอ</span><span style="color:#f0908a">⭕ ขอบแดง = มีตายวันนี้</span><span style="color:#ffd166">◔ วงรอบจุด = อายุรุ่น (ทอง = ใกล้จับ)</span><span style="color:#cfe0db">🐖 ป้ายขวา = ผู้ซื้อ 10 วันล่าสุด · แถบสีใต้ชื่อ = ซื้อจากฟาร์มไหน (สีเดียวกับจุดฟาร์ม) · แตะป้าย/จุดฟาร์ม = โชว์เส้นโยง</span><span style="color:#ffb46b">🏮 = มีบิลรอใส่ราคา</span><span style="color:#9fe8d8">☄️ ดาวหาง = คนที่ออนไลน์อยู่ตอนนี้ (สีตามบทบาท)</span>
         ${_gLens==='hp'?'<span style="color:#ff9b93;font-weight:700">🔭 เลนส์สุขภาพ: สีจุด = %ตายสะสมของรุ่น (เขียว ≤2% · เหลือง ≤4% · ส้ม ≤7% · แดง >7%) · วงประม่วง = หมอยังไม่บันทึกวันนี้</span>':''}
         ${_gLens==='med'?'<span style="color:#ffd166;font-weight:700">🔭 เลนส์ต้นทุนยา: สีจุด = ค่ายา/ตัว เทียบทั้งบริษัท (เขียว = ต่ำกว่าค่ากลาง · เหลือง = สูง · แดง = แพงสุด 20%)</span>':''}
         ${_gLens==='age'?'<span style="color:#ffd166;font-weight:700">🔭 เลนส์อายุรุ่น: ฟ้า <60 วัน · เขียว <120 · เหลือง <170 · ทอง ≥170 วัน = ใกล้จับ (วงกระเพื่อม)</span>':''}
