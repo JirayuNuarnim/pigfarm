@@ -983,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728i';
+const APP_BUILD='690728j';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -7511,6 +7511,8 @@ function medDeleteByOwner(houseId,idx,sig){ // 🗑 เจ้าของลบ�
   if(!confirm('ลบรายการเบิก "'+m.name+'" x'+fmt(m.qty)+' ('+(m.date||'-')+') ของหลัง '+h.code+' ?\n\n• สต็อกจะถูกคืนเข้าคลัง +'+fmt(m.qty)+' ทันที\n• การลบถูกบันทึกในประวัติกันโกง')) return;
   h.meds.splice(idx,1);
   if(stockCountable(m.cat)){ stockMoveAdd(h.farm||'ไม่ระบุฟาร์ม',{date:DEMO_DATE_DAY,type:'in',delta:(+m.qty)||0,cat:m.cat,name:m.name,price:m.price,by:whoNow(),house:h.code,vet:m.vet||'',ref:'คืนยา (เจ้าของลบรายการเบิกผิด หลัง '+h.code+')',note:'ยกเลิกรายการเบิกของ '+(m.date||'-')}); syncStock(); }
+  if(Array.isArray(m.mixCut)&&m.mixCut.length){ m.mixCut.forEach(mc=>{ if(mc&&stockCountable(mc.cat)&&(+mc.kg)>0)   // 💊 รายการยาสูตร → คืนตัวยาส่วนผสมที่เคยตัดไว้ครบทุกตัว
+      stockMoveAdd(h.farm||'ไม่ระบุฟาร์ม',{date:DEMO_DATE_DAY,type:'in',delta:+mc.kg,cat:mc.cat,name:mc.name,price:catalogPriceOf(mc.cat,mc.name),by:whoNow(),house:h.code,vet:m.vet||'',ref:'คืนยา (ลบรายการเบิก '+m.name+' หลัง '+h.code+')',note:'คืนส่วนผสมของ '+m.name}); }); syncStock(); }
   h.editLog=h.editLog||[];
   h.editLog.unshift({_dom:'vet',ts:Date.now(),time:nowStamp(),by:whoNow(),changes:[{label:'ลบรายการเบิกยา',from:m.name+' x'+fmt(m.qty)+' ('+(m.date||'-')+')',to:'ลบ + คืนสต็อก'}],note:'เจ้าของลบรายการเบิกที่หมอกดผิด'});
   try{ logAudit('คลัง', (h.farm||'')+' · '+m.name, 'ลบรายการเบิกยา (คืนสต็อก)', [{label:'หลัง '+h.code,from:m.name+' x'+fmt(m.qty),to:'คืนเข้าคลัง'}], m.date||''); }catch(e){}
@@ -7576,13 +7578,30 @@ function requestMedRow(cat,ci,i){ if(blockIfReadonly())return;
     const onHand=stockOnHand(farm,cat,name);
     if(qty>onHand+1e-9){ toast('❌ สต็อกไม่พอ — คลัง '+stockBucketOf(farm)+' มี "'+name+'" เหลือ '+fmt(onHand)+' (ขอเบิก '+fmt(qty)+') · ให้เสมียนรับเข้าคลังก่อน'); return; }   // 🟠 เผื่อเศษทศนิยมสะสมของยาผสม กก.
   }
+  // 💊 เบิกยาสูตร → แตกเป็นตัวยาส่วนผสมแล้วตัดสต็อกจริง (Peter 28 ก.ค. 69: เดิมยาสูตรไม่ตัดเลย ผงยาหายจากคลังเงียบๆ)
+  //    ใช้ f.mix ที่ฝ่ายสูตรยา "ผูกคลัง" ไว้ (ตัวยาในแคทาล็อก + กรัมผงต่อชุด) · ยังไม่ผูก = เบิกได้แต่เตือนดังๆ ว่าไม่ตัด
+  let mixCuts=null, mixUnmapped=false;
+  if(cat==='ยาสูตร'){
+    const fMix=MEDFORMULAS.find(x=>x.code===name);
+    if(fMix&&Array.isArray(fMix.mix)&&fMix.mix.length){
+      mixCuts=fMix.mix.filter(mc=>mc&&mc.name&&(+mc.g)>0).map(mc=>({cat:mc.cat||'ยาผสมอาหาร',name:mc.name,kg:Math.round((+mc.g)*qty)/1000}));
+      const short=mixCuts.filter(mc=>stockCountable(mc.cat)&&mc.kg>stockOnHand(farm,mc.cat,mc.name)+1e-9);
+      if(short.length){ toast('❌ ส่วนผสมในคลังไม่พอสำหรับ '+name+' × '+fmt(qty)+' ชุด — '+short.map(mc=>mc.name+' ต้องใช้ '+mc.kg+' กก. เหลือ '+fmt(stockOnHand(farm,mc.cat,mc.name))+' กก.').join(' · ')+' · ให้เสมียนรับเข้าคลังก่อน'); return; }
+      if(!mixCuts.length){ mixCuts=null; mixUnmapped=true; }
+    } else mixUnmapped=true;
+  }
   const ahead=(reqPickDay==='tomorrow'), useDate=reqPickDateStr();   // ⏭ เบิกล่วงหน้า: ลงวันที่พรุ่งนี้ทุกจุด (ใบเบิก/บันทึกยา/ต้นทุน) · สต็อกจองทันที
   h.meds=h.meds||[];
   h.meds.unshift({date:useDate,cat,name,dose,note,qty,price,total:price*qty,vet:h.vet||'หมอ',by:whoNow()||h.vet||'',ts:Date.now()});   // ⏱ ts = เวลาจริงที่หมอกดส่งเบิก · ✍️ by = คนที่กดเบิกจริง (อาจไม่ใช่หมอประจำหลัง)
+  if(mixCuts){ h.meds[0].mixCut=mixCuts; }   // 🧾 จำไว้กับรายการเบิก — ลบรายการเมื่อไหร่ คืนส่วนผสมได้ถูกตัว
   if(stockCountable(cat)){ stockMoveAdd(farm,{date:useDate,type:'out',delta:-qty,cat,name,price,by:whoNow()||h.vet||'หมอ',house:h.code,vet:h.vet||'',ref:'เบิก'+(ahead?'ล่วงหน้า':'')+' หลัง '+h.code,note:dose||''}); syncStock(); } // ตัดสต็อกออกจากคลังฟาร์ม · by = คนกดเบิกจริง
+  if(mixCuts){ mixCuts.forEach(mc=>{ if(stockCountable(mc.cat)&&mc.kg>0)
+      stockMoveAdd(farm,{date:useDate,type:'out',delta:-mc.kg,cat:mc.cat,name:mc.name,price:catalogPriceOf(mc.cat,mc.name),by:whoNow()||h.vet||'หมอ',house:h.code,vet:h.vet||'',ref:'เบิก'+(ahead?'ล่วงหน้า':'')+' '+name+' ×'+fmt(qty)+' ชุด หลัง '+h.code,note:'ส่วนผสมของ '+name}); });
+    syncStock(); }
   syncHouseVet(h);
   const qtyTxt=mixDesc?mixDesc:('x'+fmt(qty));
-  toast(ahead?('⏭ เบิกล่วงหน้า '+name+' '+qtyTxt+' → หลัง '+h.code+' ของวันพรุ่งนี้ ('+useDate+') ✓ จะขึ้นใบเบิกพรุ่งนี้'):('เบิก '+name+' '+qtyTxt+' → หลัง '+h.code+(stockCountable(cat)?' · คลังเหลือ '+fmt(stockOnHand(farm,cat,name))+(cat==='ยาผสมอาหาร'?' กก.':''):'')+' ✓'));   // ไม่โชว์ราคา/มูลค่าให้หมอ
+  const mixMsg=mixCuts?(' · ตัดส่วนผสมจากคลังแล้ว: '+mixCuts.map(mc=>mc.name+' '+mc.kg+' กก.').join(' + ')):(mixUnmapped?' · ⚠️ สูตรนี้ยังไม่ผูกคลัง สต็อกไม่ถูกตัด — แจ้งฝ่ายสูตรยาผูกที่หน้า 💊 ข้อมูลยาสูตร':'');
+  toast(ahead?('⏭ เบิกล่วงหน้า '+name+' '+qtyTxt+' → หลัง '+h.code+' ของวันพรุ่งนี้ ('+useDate+') ✓ จะขึ้นใบเบิกพรุ่งนี้'+mixMsg):('เบิก '+name+' '+qtyTxt+' → หลัง '+h.code+(stockCountable(cat)?' · คลังเหลือ '+fmt(stockOnHand(farm,cat,name))+(cat==='ยาผสมอาหาร'?' กก.':''):'')+' ✓'+mixMsg));   // ไม่โชว์ราคา/มูลค่าให้หมอ
   ['rq_','rqa_','rqs_'].forEach(p=>{ const el=$("#"+p+ci+"_"+i); if(el) el.value=''; });
   const ht=$("#rqt_"+ci+"_"+i); if(ht) ht.innerHTML='';
   const bcell=$("#rbal_"+ci+"_"+i); if(bcell && stockCountable(cat)) bcell.innerHTML=stockNumBadge(stockOnHand(farm,cat,name),stockMinOf(farm,cat,name)); // อัปเดตคงเหลือสดทันทีให้ตรง stock จริงหลังเบิก
@@ -7836,7 +7855,7 @@ function renderFormulas(){
     ${MEDFORMULAS.map(f=>`<div class="card" style="padding:13px 15px">
       <div style="display:flex;align-items:center;gap:10px">
         <div style="font-weight:800;font-size:15px;color:var(--brand);min-width:54px">${f.code}</div>
-        <div class="sub" style="flex:1">${f.name?escA(f.name):(f.items.length?'':'<span class="tag wait">ยังไม่กำหนดส่วนผสม</span>')}</div>
+        <div class="sub" style="flex:1">${f.name?escA(f.name):(f.items.length?'':'<span class="tag wait">ยังไม่กำหนดส่วนผสม</span>')} ${f.items.length?((f.mix&&f.mix.length)?'<span class="tag ok">✅ ตัดสต็อกอัตโนมัติ</span>':'<span class="tag wait" style="background:#fdecea;color:#c0392b">⚠️ ยังไม่ผูกคลัง — เบิกแล้วไม่ตัดสต็อก</span>'):''}</div>
         <button class="btn ghost sm" style="color:var(--info)" onclick="editFormula('${f.code}')">✏️ แก้ไข</button>
       </div>
       ${f.items.length?`<div style="margin-top:8px;padding-left:4px">${f.items.map(it=>`<div class="sub" style="margin:2px 0;color:var(--ink)">• ${escA(it)}</div>`).join("")}</div>`:''}
@@ -7850,6 +7869,17 @@ function fmItemRow(val){return `<div class="grid2" style="margin-top:8px;grid-te
   <input class="cin tl fmitem" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="เช่น แอมม็อกซี่ 0.5% · 60 ก.">
   <button class="btn ghost sm" style="color:var(--bad)" onclick="this.parentElement.remove()">ลบ</button></div>`;}
 function addFmItem(){$("#fmItems").insertAdjacentHTML('beforeend',fmItemRow(''));}
+/* 🔗 ผูกสูตรกับตัวยาจริงในคลัง (Peter 28 ก.ค. 69) — หมอเบิกสูตรแล้วระบบตัดผงยาส่วนผสมจากคลังอัตโนมัติ */
+function fmMixRow(m){ m=m||{cat:'ยาผสมอาหาร',name:'',g:''};
+  const cats=stockCats();
+  return `<div class="fmmix" style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap;align-items:center">
+    <select class="cin tl fmmcat" style="max-width:150px" onchange="fmMixCat(this)">${cats.map(c=>`<option ${c===m.cat?'selected':''}>${escA(c)}</option>`).join('')}</select>
+    <select class="cin tl fmmname" style="flex:1;min-width:200px"><option value="">— เลือกตัวยาในคลัง —</option>${(REQ_DATA[m.cat]||[]).map(it=>`<option ${it.name===m.name?'selected':''}>${escA(it.name)}</option>`).join('')}</select>
+    <div class="unit" style="max-width:140px"><input class="cin fmmg" type="number" step="0.1" value="${m.g||''}" placeholder="0"><span class="u">ก./ชุด</span></div>
+    <button class="btn ghost sm" style="color:var(--bad)" onclick="this.parentElement.remove()">ลบ</button></div>`;}
+function fmMixCat(sel){ const row=sel.closest('.fmmix'); const ns=row&&row.querySelector('.fmmname'); if(!ns) return;
+  ns.innerHTML='<option value="">— เลือกตัวยาในคลัง —</option>'+(REQ_DATA[sel.value]||[]).map(it=>`<option>${escA(it.name)}</option>`).join(''); }
+function addFmMix(){$("#fmMix").insertAdjacentHTML('beforeend',fmMixRow(null));}
 function editFormulaView(){
   const f=MEDFORMULAS.find(x=>x.code===editFormulaCode); const v=$("#view");
   v.innerHTML=`
@@ -7861,6 +7891,12 @@ function editFormulaView(){
       <label style="display:block;font-weight:600;font-size:13.5px;margin-bottom:2px">ส่วนผสม <span class="hint">(ยา · % · ปริมาณต่ออาหาร 100 กก.)</span></label>
       <div id="fmItems">${(f.items.length?f.items:['']).map(it=>fmItemRow(it)).join("")}</div>
       <button class="btn ghost sm" style="margin-top:10px" onclick="addFmItem()">＋ เพิ่มส่วนผสม</button>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)">
+        <label style="display:block;font-weight:700;font-size:13.5px;margin-bottom:2px">🔗 ผูกคลัง — ตัดสต็อกอัตโนมัติเมื่อหมอเบิกสูตรนี้ <span class="hint">(เลือกตัวยาจริงในคลัง + กรัมผงยาต่อ 1 ชุด)</span></label>
+        <div class="sub" style="margin-bottom:4px">${(f.mix&&f.mix.length)?'✅ ผูกแล้ว — หมอเบิกสูตรนี้ ระบบตัดผงยาจากคลังให้อัตโนมัติ (เช็คของพอก่อนเบิก)':'⚠️ ยังไม่ผูก — ตอนนี้เบิกสูตรนี้ <b>สต็อกไม่ถูกตัด</b> ผูกให้ครบเพื่อให้คลังตรงของจริง'}</div>
+        <div id="fmMix">${(f.mix&&f.mix.length?f.mix:[]).map(m=>fmMixRow(m)).join("")}</div>
+        <button class="btn ghost sm" style="margin-top:8px;color:var(--ok)" onclick="addFmMix()">＋ เพิ่มตัวยาที่ตัดจากคลัง</button>
+      </div>
       <div class="frow" style="margin-top:14px;margin-bottom:0"><label>หมายเหตุ / วิธีการใช้</label>
         <textarea id="fmNote" rows="2" placeholder="เช่น ผสมอาหาร 600 ก. ต่ออาหาร 100 กก. · กินติดต่อ 5-7 วัน">${(f.note||'').replace(/</g,'&lt;')}</textarea></div>
       <div class="actions" style="margin-top:16px">
@@ -7874,6 +7910,7 @@ function saveFormula(){ if(blockIfReadonly())return;
   const f=MEDFORMULAS.find(x=>x.code===editFormulaCode); if(!f) return;
   f.name=$("#fmName").value.trim();
   f.items=Array.from(document.querySelectorAll('#fmItems .fmitem')).map(i=>i.value.trim()).filter(Boolean);
+  f.mix=Array.from(document.querySelectorAll('#fmMix .fmmix')).map(r=>({cat:r.querySelector('.fmmcat').value,name:r.querySelector('.fmmname').value,g:parseFloat(r.querySelector('.fmmg').value)||0})).filter(m=>m.name&&m.g>0);   // 🔗 ผูกคลัง — ตัดสต็อกอัตโนมัติ
   f.note=$("#fmNote").value.trim();
   syncConfig();                // บันทึกถาวร + ซิงก์ตั้งค่ากลาง (v2: app_config)
   toast('บันทึก '+f.code+' แล้ว');
