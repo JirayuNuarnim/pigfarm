@@ -983,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728h';
+const APP_BUILD='690728i';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -10130,13 +10130,7 @@ function renderLgCust(){
         <div class="frow" style="grid-column:1/-1"><label>📷 รูปหลักฐาน <span class="hint" style="color:var(--bad);font-weight:700">(บังคับ — สลิปโอน/รูปเอกสารรับเงิน · ไม่มีหลักฐาน บันทึกรับเงิน/ปิดบิลไม่ได้)</span> <span class="hint">แนบได้หลายรูป — กดเลือกทีเดียวหลายไฟล์ได้</span></label><input id="lgPaySlip" class="cin" type="file" accept="image/*" multiple onchange="lgSlipOcrKick(this)"></div>
       </div>
       <div style="margin-top:10px"><button class="btn" onclick="lgDoPay('${c.id}')">💸 บันทึกรับเงิน + ออกใบรับเงิน</button></div></div>
-    <div class="card"><h3>➖ ตกลงหักหน้าบิล (เครดิตไว้หักรอบถัดไป)</h3>
-      <div class="fgrid">
-        <div class="frow"><label>จำนวนที่ตกลงหัก (บาท)</label><input id="lgDedAmt" type="number" step="1" class="cin" placeholder="เช่น 5000"></div>
-        <div class="frow" style="grid-column:2/-1"><label>เหตุผล/อ้างอิง</label><input id="lgDedNote" class="cin" placeholder="เช่น หมูตายระหว่างขนส่ง 2 ตัว บิล 6 ก.ค."></div>
-      </div>
-      <div class="sub" style="margin-top:6px">เครดิตจะไปลดยอดบิลรอบถัดไปอัตโนมัติ (อยู่ในยอดรวมบัญชีแล้ว ไม่ต้องจำนอกระบบ)</div>
-      <div style="margin-top:10px"><button class="btn ghost" onclick="lgDoDeduct('${c.id}')">➖ บันทึกเครดิตหักหน้าบิล</button></div></div>
+    <!-- ➖ "ตกลงหักหน้าบิล (เครดิตไว้หักรอบถัดไป)" ถอดออก 28 ก.ค. 69 — ขัดกติกา "ลูกค้าไม่มีเครดิต": การหักทุกอย่างต้องจบในบิลผ่านช่อง "หัก/ลดบิล" ของบิลนั้น · กรณีพิเศษเจ้าของใช้ ✏️ ปรับปรุงยอด (มีเหตุผลบังคับ) -->
     ${['owner','admin'].includes(ROLE)?`<div class="card"><h3>✏️ ปรับปรุงยอด (เจ้าของ/ผู้ดูแล)</h3>
       <div class="fgrid"><div class="frow"><label>จำนวน (+เพิ่มหนี้ / −ลดหนี้)</label><input id="lgAdjAmt" type="number" step="1" class="cin" placeholder="เช่น -150 หรือ 300"></div>
       <div class="frow" style="grid-column:2/-1"><label>เหตุผล (บังคับ)</label><input id="lgAdjNote" class="cin" placeholder="เช่น ปัดเศษ/แก้ยอดบันทึกผิด"></div></div>
@@ -10189,10 +10183,10 @@ async function lgDoPay(custId){
   let note=String((($("#lgPayNote")||{}).value)||'').trim();
   if(saleId){
     const bout=lgSaleOutstanding(saleId);
-    if(amt>bout+0.5 && !confirm('ยอดที่รับ ('+lgMoney(amt)+') มากกว่ายอดค้างของบิลนี้ ('+lgMoney(bout)+')\nส่วนเกินจะกลายเป็นเครดิต — ยืนยัน?')) return;
+    if(amt>bout+0.5){ toast('⛔ ยอดที่รับ ('+lgMoney(amt)+') มากกว่ายอดค้างของบิลนี้ ('+lgMoney(bout)+') — รับเกินบิลไม่ได้ (ลูกค้าไม่มีเครดิต) · เงินก้อนครอบหลายบิลให้ติ๊ก "เลือก" หลายใบ · ยอดต่างจริงให้แจ้งเจ้าของใช้ ✏️ ปรับปรุงยอด'); return; }
     if(!note){ const b=SALE_BILLS.find(x=>x.id===saleId); note='ชำระบิล '+(b?(sbThaiDate(b.dateISO)+(b.billNo?' เล่ม '+(b.billBook||'-')+'/'+b.billNo:'')):saleId); }
   }
-  if(lgFinView() && amt>bal+0.5 && !confirm('จำนวนที่รับ ('+lgMoney(amt)+') มากกว่ายอดค้าง ('+lgMoney(bal)+')\nส่วนเกินจะกลายเป็นเครดิตของลูกค้า — ยืนยัน?')) return;
+  if(amt>bal+0.5){ toast('⛔ จำนวนที่รับ ('+lgMoney(amt)+') มากกว่ายอดค้างรวมของลูกค้า ('+lgMoney(bal)+') — รับเกินไม่ได้ (ลูกค้าไม่มีเครดิต)'); return; }
   if(_slipDiffNote) note=(note?note+' · ':'')+'🔎 '+_slipDiffNote;   // เขียนส่วนต่างสลิปลงหมายเหตุอัตโนมัติ (Peter 28 ก.ค.)
   const e=lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'payment', method:method, amount:amt, sale_id:saleId, slip:slipPath,
     entry_date:($("#lgPayDate")||{}).value||todayISO(), responsible:String((($("#lgPayResp")||{}).value)||'').trim(), note:note});
@@ -10213,12 +10207,8 @@ function lgPickBillPay(saleId,amt){ // ปุ่ม "💸 รับเงิน�
   const a=$("#lgPayAmt"); if(a){ a.value=amt; try{ a.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} setTimeout(()=>{ try{ a.focus(); }catch(e){} },350); }
   toast('เลือกบิลแล้ว ✓ เช็ควิธีรับเงิน แล้วกด "บันทึกรับเงิน"');
 }
-function lgDoDeduct(custId){
-  const c=LG.customers.find(x=>x.id===custId); if(!c) return;
-  const amt=parseFloat(($("#lgDedAmt")||{}).value); if(!isFinite(amt)||amt<=0){ toast('ใส่จำนวนที่ตกลงหักก่อน'); return; }
-  const note=String((($("#lgDedNote")||{}).value)||'').trim(); if(!note){ toast('ใส่เหตุผล/อ้างอิงด้วย — สำคัญตอนตรวจย้อน'); return; }
-  lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'deduction', method:'carry_forward', amount:amt, note:note});
-  toast('บันทึกเครดิตหักหน้าบิลแล้ว ✓'); renderLgCust();
+function lgDoDeduct(custId){ // ⛔ ถอดออก 28 ก.ค. 69 — เครดิตหักรอบถัดไปขัดกติกา "ลูกค้าไม่มีเครดิต" (การหักต้องจบในบิลผ่านช่อง "หัก/ลดบิล")
+  toast('⛔ ระบบยกเลิกเครดิตหักรอบถัดไปแล้ว — การหัก/ส่วนลดให้ลงในช่อง "หัก/ลดบิล" ของบิลนั้นๆ · กรณีพิเศษให้เจ้าของใช้ ✏️ ปรับปรุงยอด');
 }
 function lgDoAdjust(custId){
   const c=LG.customers.find(x=>x.id===custId); if(!c) return;
