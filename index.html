@@ -983,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728j';
+const APP_BUILD='690728k';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -3043,7 +3043,7 @@ function renderClerkReq(){ if(vetGuard())return;
                     <td>${reqTimeCell(m)}</td>
                     <td>${(m.by&&String(m.by).trim()&&m.by!==vt)?'<b style="color:#b7791f" title="คนกดเบิกไม่ใช่หมอประจำหลังนี้">'+escA(m.by)+'</b>':'<span class="sub">'+escA(m.by||vt)+'</span>'}</td>
                     <td><b>${escA(m.house)}</b></td><td><span class="sub">${escA(m.cat||'-')}</span></td>
-                    <td>${escA(m.name)}${m.dose?'<div class="sub">โดส: '+escA(m.dose)+'</div>':''}${m.note?'<div class="sub">📝 '+escA(m.note)+'</div>':''}</td>
+                    <td>${escA(m.name)}${m.noStock?'<div><b style="color:var(--bad)">⛔ สต็อกไม่พอ — เติมสต็อกด่วน (ไม่คิดต้นทุนหลัง)</b></div>':''}${m.dose?'<div class="sub">โดส: '+escA(m.dose)+'</div>':''}${m.note?'<div class="sub">📝 '+escA(m.note)+'</div>':''}</td>
                     <td class="num">${m.qty}</td><td class="num">${m.total?fmt(m.total):'-'}</td></tr>`).join("")}</tbody>
                 </table></div>
               </div>`;
@@ -7573,10 +7573,14 @@ function requestMedRow(cat,ci,i){ if(blockIfReadonly())return;
   if(!h){toast('ไม่พบรหัสหลัง '+code);return;}
   const farm=h.farm||'ไม่ระบุฟาร์ม';
   if(!canSeeFarm(farm)){toast('❌ ไม่มีสิทธิ์เบิกในฟาร์มนี้ ('+escA(farm)+')');return;}   // กันเบิก/ตัดสต็อกข้ามฟาร์มที่ไม่ได้ดูแล
-  // คุมสต็อก: บล็อกถ้าคลังฟาร์มนี้ไม่พอ (ยกเว้นหมวดที่ไม่นับสต็อก เช่น ยาสูตร)
+  // 🟠 กติกาเจ้าของ 28 ก.ค. 69: สต็อกไม่พอ "ไม่บล็อก" — หมอเบิกได้ สต็อกตัดจริงจนติดลบ (สัญญาณให้เติม)
+  //    + หมายเหตุแจ้งเสมียนเติมสต็อก + รายการนั้น "ไม่คิดต้นทุนยาของหลัง" (total=0)
+  let noStock=false;
   if(stockCountable(cat)){
     const onHand=stockOnHand(farm,cat,name);
-    if(qty>onHand+1e-9){ toast('❌ สต็อกไม่พอ — คลัง '+stockBucketOf(farm)+' มี "'+name+'" เหลือ '+fmt(onHand)+' (ขอเบิก '+fmt(qty)+') · ให้เสมียนรับเข้าคลังก่อน'); return; }   // 🟠 เผื่อเศษทศนิยมสะสมของยาผสม กก.
+    if(qty>onHand+1e-9){ noStock=true;
+      if(!confirm('⚠️ สต็อก "'+name+'" ไม่พอ — คลัง '+stockBucketOf(farm)+' เหลือ '+fmt(onHand)+' (ขอเบิก '+fmt(qty)+')\n\nระบบจะบันทึกเบิกให้ + แจ้งเสมียนเติมสต็อก (ยอดคลังจะติดลบชั่วคราว)\n⚠️ รายการนี้จะไม่ถูกคิดเป็นต้นทุนยาของหลังนี้ (กติกาเจ้าของ)\n\nยืนยันเบิกต่อหรือไม่?')) return;
+    }
   }
   // 💊 เบิกยาสูตร → แตกเป็นตัวยาส่วนผสมแล้วตัดสต็อกจริง (Peter 28 ก.ค. 69: เดิมยาสูตรไม่ตัดเลย ผงยาหายจากคลังเงียบๆ)
   //    ใช้ f.mix ที่ฝ่ายสูตรยา "ผูกคลัง" ไว้ (ตัวยาในแคทาล็อก + กรัมผงต่อชุด) · ยังไม่ผูก = เบิกได้แต่เตือนดังๆ ว่าไม่ตัด
@@ -7586,13 +7590,17 @@ function requestMedRow(cat,ci,i){ if(blockIfReadonly())return;
     if(fMix&&Array.isArray(fMix.mix)&&fMix.mix.length){
       mixCuts=fMix.mix.filter(mc=>mc&&mc.name&&(+mc.g)>0).map(mc=>({cat:mc.cat||'ยาผสมอาหาร',name:mc.name,kg:Math.round((+mc.g)*qty)/1000}));
       const short=mixCuts.filter(mc=>stockCountable(mc.cat)&&mc.kg>stockOnHand(farm,mc.cat,mc.name)+1e-9);
-      if(short.length){ toast('❌ ส่วนผสมในคลังไม่พอสำหรับ '+name+' × '+fmt(qty)+' ชุด — '+short.map(mc=>mc.name+' ต้องใช้ '+mc.kg+' กก. เหลือ '+fmt(stockOnHand(farm,mc.cat,mc.name))+' กก.').join(' · ')+' · ให้เสมียนรับเข้าคลังก่อน'); return; }
+      if(short.length){ noStock=true;
+        if(!confirm('⚠️ ส่วนผสมในคลังไม่พอสำหรับ '+name+' × '+fmt(qty)+' ชุด — '+short.map(mc=>mc.name+' ต้องใช้ '+mc.kg+' กก. เหลือ '+fmt(stockOnHand(farm,mc.cat,mc.name))+' กก.').join(' · ')+'\n\nระบบจะบันทึกเบิกให้ + แจ้งเสมียนเติมสต็อก (ยอดคลังจะติดลบชั่วคราว)\n⚠️ รายการนี้จะไม่ถูกคิดเป็นต้นทุนยาของหลังนี้ (กติกาเจ้าของ)\n\nยืนยันเบิกต่อหรือไม่?')) return;
+      }
       if(!mixCuts.length){ mixCuts=null; mixUnmapped=true; }
     } else mixUnmapped=true;
   }
+  if(noStock) note=(note?note+' · ':'')+'⛔ สต็อกไม่พอ ณ ตอนเบิก — เสมียนเติมสต็อกด่วน · รายการนี้ไม่คิดต้นทุนหลัง';
   const ahead=(reqPickDay==='tomorrow'), useDate=reqPickDateStr();   // ⏭ เบิกล่วงหน้า: ลงวันที่พรุ่งนี้ทุกจุด (ใบเบิก/บันทึกยา/ต้นทุน) · สต็อกจองทันที
   h.meds=h.meds||[];
-  h.meds.unshift({date:useDate,cat,name,dose,note,qty,price,total:price*qty,vet:h.vet||'หมอ',by:whoNow()||h.vet||'',ts:Date.now()});   // ⏱ ts = เวลาจริงที่หมอกดส่งเบิก · ✍️ by = คนที่กดเบิกจริง (อาจไม่ใช่หมอประจำหลัง)
+  h.meds.unshift({date:useDate,cat,name,dose,note,qty,price,total:(noStock?0:price*qty),vet:h.vet||'หมอ',by:whoNow()||h.vet||'',ts:Date.now()});   // ⏱ ts = เวลาจริงที่หมอกดส่งเบิก · ✍️ by = คนกดเบิกจริง · 🟠 สต็อกไม่พอ = total 0 ไม่เข้าต้นทุนหลัง (กติกาเจ้าของ 28 ก.ค. 69)
+  if(noStock){ h.meds[0].noStock=true; }
   if(mixCuts){ h.meds[0].mixCut=mixCuts; }   // 🧾 จำไว้กับรายการเบิก — ลบรายการเมื่อไหร่ คืนส่วนผสมได้ถูกตัว
   if(stockCountable(cat)){ stockMoveAdd(farm,{date:useDate,type:'out',delta:-qty,cat,name,price,by:whoNow()||h.vet||'หมอ',house:h.code,vet:h.vet||'',ref:'เบิก'+(ahead?'ล่วงหน้า':'')+' หลัง '+h.code,note:dose||''}); syncStock(); } // ตัดสต็อกออกจากคลังฟาร์ม · by = คนกดเบิกจริง
   if(mixCuts){ mixCuts.forEach(mc=>{ if(stockCountable(mc.cat)&&mc.kg>0)
@@ -7600,7 +7608,8 @@ function requestMedRow(cat,ci,i){ if(blockIfReadonly())return;
     syncStock(); }
   syncHouseVet(h);
   const qtyTxt=mixDesc?mixDesc:('x'+fmt(qty));
-  const mixMsg=mixCuts?(' · ตัดส่วนผสมจากคลังแล้ว: '+mixCuts.map(mc=>mc.name+' '+mc.kg+' กก.').join(' + ')):(mixUnmapped?' · ⚠️ สูตรนี้ยังไม่ผูกคลัง สต็อกไม่ถูกตัด — แจ้งฝ่ายสูตรยาผูกที่หน้า 💊 ข้อมูลยาสูตร':'');
+  const mixMsg=(mixCuts?(' · ตัดส่วนผสมจากคลังแล้ว: '+mixCuts.map(mc=>mc.name+' '+mc.kg+' กก.').join(' + ')):(mixUnmapped?' · ⚠️ สูตรนี้ยังไม่ผูกคลัง สต็อกไม่ถูกตัด — แจ้งฝ่ายสูตรยาผูกที่หน้า 💊 ข้อมูลยาสูตร':''))
+    +(noStock?' · ⛔ สต็อกไม่พอ (ติดลบ) — แจ้งเสมียนเติมสต็อกในหมายเหตุแล้ว · รายการนี้ไม่คิดต้นทุนหลัง':'');
   toast(ahead?('⏭ เบิกล่วงหน้า '+name+' '+qtyTxt+' → หลัง '+h.code+' ของวันพรุ่งนี้ ('+useDate+') ✓ จะขึ้นใบเบิกพรุ่งนี้'+mixMsg):('เบิก '+name+' '+qtyTxt+' → หลัง '+h.code+(stockCountable(cat)?' · คลังเหลือ '+fmt(stockOnHand(farm,cat,name))+(cat==='ยาผสมอาหาร'?' กก.':''):'')+' ✓'+mixMsg));   // ไม่โชว์ราคา/มูลค่าให้หมอ
   ['rq_','rqa_','rqs_'].forEach(p=>{ const el=$("#"+p+ci+"_"+i); if(el) el.value=''; });
   const ht=$("#rqt_"+ci+"_"+i); if(ht) ht.innerHTML='';
