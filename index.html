@@ -983,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690727l';
+const APP_BUILD='690728a';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -4824,7 +4824,7 @@ function clerkForm(){
       <button id="segBatch" class="${entryTab==='batch'?'on':''}" onclick="switchTab('batch')">📦 สรุปปิดชุด</button>
       <button id="segVet" class="${entryTab==='vet'?'on':''}" onclick="switchTab('vet')">🩺 ข้อมูลหมอ</button>
     </div>
-    <div id="tabDaily" class="${entryTab==='daily'?'':'hidden'}">${clerkDailyBody(h)}</div>
+    <div id="tabDaily" class="${entryTab==='daily'?'':'hidden'}">${brMateCardHTML(h)}${clerkDailyBody(h)}</div>
     <div id="tabBatch" class="${entryTab==='batch'?'':'hidden'}">${batchHTML(h)}</div>
     <div id="tabVet" class="${entryTab==='vet'?'':'hidden'}">
       <div class="banner info">ℹ️ <div>ประวัติที่หมอบันทึกไว้ของหลังนี้ — รักษา / รับอาหาร / กินได้ต่อวัน / เบิกยา <b>(ดูอย่างเดียว)</b> · แก้ไขได้ในฟอร์มของหมอ และหน้าเจ้าของ</div></div>
@@ -4834,6 +4834,7 @@ function clerkForm(){
     ${houseEditLogHTML(h)}
   `;
   restoreBatch(); calcDaily(); calcBatch(); calcIntake();
+  brDMFill(h);   // 💕 หลัง ท ของฟาร์มแม่พันธุ์ → โหลดทะเบียนแม่แล้วเติมการ์ดแจ้งผสม
 }
 function switchTab(t){
   entryTab=t;
@@ -10835,6 +10836,81 @@ function brBMSave(){
   brBM=[{ear:'',boar:'',round:1}];
   toast('✅ บันทึกผสม '+done+' แม่'+(skip.length?' · ข้าม: '+skip.join(', '):''));
   brHouseDetail();
+}
+
+/* ── 💕 การแจ้งผสมในหน้า "บันทึกรายวัน" ของหลัง ท (Peter 27 ก.ค. 69: เฟสลงทะเบียนรายหลังแบบค่อยเป็นค่อยไป 3 เดือน)
+   หัวใจ: ทีมทำงานปกติ → แจ้งผสมด้วย เบอร์แม่ + เบอร์น้ำเชื้อพ่อ → ระบบผูกแม่เข้าหลังนี้อัตโนมัติ = ทะเบียนรายหลังเต็มเอง ── */
+function brDailyHouseKind(h){ if(!h||BR_FARMS.indexOf(h.farm||'')<0) return null; const c=String(h.code||''); return /ท\d/.test(c)?'ท':(/ค\d/.test(c)?'ค':(/ส\d/.test(c)?'ส':null)); }
+function brShortOf(h){ const parts=String(h.code||'').split(' '); return parts.length>1?parts.slice(1).join(' '):String(h.code||''); }
+let brDM=[{ear:'',boar:''}], brDMHouseId=null;
+function brMateCardHTML(h){
+  if(brDailyHouseKind(h)!=='ท') return '';
+  if(brDMHouseId!==h.id){ brDM=[{ear:'',boar:''}]; brDMHouseId=h.id; }
+  return `<div class="card" style="border-color:#c2537f">
+    <h3>💕 การแจ้งผสม <span class="more">เล้าผสม/อุ้มท้อง — แม่ที่แจ้งจะถูกผูกเข้าหลังนี้อัตโนมัติ</span></h3>
+    <div id="brDMBox"><div class="sub">⏳ กำลังโหลดทะเบียนแม่จากระบบกลาง…</div></div></div>`;
+}
+function brDMFill(h){ if(brDailyHouseKind(h)!=='ท') return;
+  brCloudLoad().then(ok=>{ const el=document.getElementById('brDMBox'); if(!el) return;
+    el.innerHTML=ok?brDMBodyHTML(h):'<div class="sub">⚠️ โหลดทะเบียนแม่ไม่สำเร็จ — เช็คอินเทอร์เน็ตแล้วเปิดหลังนี้ใหม่อีกครั้ง</div>'; });
+}
+function brDMSows(h){ return (BR.all||[]).filter(s=>s.farm===(h.farm||'')&&(s.kind||'')!=='boar'); }
+function brDMBodyHTML(h){
+  const sc=brShortOf(h), sows=brDMSows(h), boars=(BR.all||[]).filter(s=>s.farm===(h.farm||'')&&(s.kind||'')==='boar');
+  const inHouse=sows.filter(s=>s.house===sc&&s.stage!=='cull');
+  const today=brTodayISO();
+  const matedToday=sows.filter(s=>(s.events||[]).some(e=>e&&e.t==='mate'&&e.date===today&&(e.house===sc||s.house===sc)));
+  const rows=brDM.map((r,i)=>`<tr>
+    <td><input class="cin" list="brDMears" style="width:135px;padding:8px 9px" value="${escA(r.ear)}" placeholder="เบอร์แม่" autocomplete="off" oninput="brDM[${i}].ear=this.value"></td>
+    <td><input class="cin" list="brDMboars" style="width:135px;padding:8px 9px" value="${escA(r.boar)}" placeholder="เบอร์น้ำเชื้อพ่อ" autocomplete="off" oninput="brDM[${i}].boar=this.value"></td>
+    <td><button class="btn ghost sm" title="ลบแถว" onclick="brDM.splice(${i},1);brDMRe()">✕</button></td></tr>`).join('');
+  return `<datalist id="brDMears">${sows.filter(s=>s.stage!=='cull').map(s=>`<option value="${escA(s.ear)}">${escA(s.house||'ยังไม่ระบุหลัง')} · ${brStageTxt(s.stage)}</option>`).join('')}</datalist>
+    <datalist id="brDMboars">${boars.map(b=>`<option value="${escA(b.ear)}">${escA(b.breed||'')}</option>`).join('')}</datalist>
+    <div style="overflow-x:auto"><table class="densetbl"><thead><tr><th>เบอร์แม่ที่ผสม</th><th>เบอร์น้ำเชื้อพ่อ</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn ghost sm" onclick="brDM.push({ear:'',boar:brDM.length?brDM[brDM.length-1].boar:''});brDMRe()">＋ เพิ่มแถว</button>
+      <button class="btn sm" onclick="brDMSave()">💾 บันทึกแจ้งผสม</button></div>
+    <div class="sub" style="margin-top:8px">📊 ทะเบียนแม่ในหลังนี้: <b>${fmt(inHouse.length)}</b> ตัว · พิมพ์เบอร์ 2-3 ตัวระบบช่วยค้นจากทะเบียนทั้งฟาร์ม (${fmt(sows.filter(s=>s.stage!=='cull').length)} เบอร์) · แม่ที่อยู่หลังอื่น/ยังไม่ระบุ จะถูก<b>ย้ายเข้าหลังนี้อัตโนมัติ</b>เมื่อบันทึก · ผสมซ้ำภายใน 48 ชม. ระบบนับเป็นครั้งที่ 2 ให้เอง</div>
+    ${matedToday.length?`<div style="margin-top:10px;background:var(--soft);border-radius:10px;padding:9px 12px"><div style="font-weight:700;font-size:13.5px">💕 แจ้งผสมวันนี้ (${matedToday.length} แม่)</div>
+      ${matedToday.map(s=>{ const ev=(s.events||[]).find(e=>e&&e.t==='mate'&&e.date===today);
+        return `<div class="sub" style="margin-top:4px">• <b>${escA(s.ear)}</b> × พ่อ <b>${escA((ev&&ev.boar)||'-')}</b>${(ev&&ev.round>1)?' (ครั้งที่ '+ev.round+')':''} · ✍️ ${escA((ev&&ev.by)||'-')} <button class="btn ghost sm" style="padding:2px 8px;color:var(--bad)" onclick="brDMDel('${escA(s.ear)}')">ลบ</button></div>`; }).join('')}</div>`:''}`;
+}
+function brDMRe(){ const h=(typeof currentHouse!=='undefined'&&currentHouse)||null; const el=document.getElementById('brDMBox'); if(el&&h) el.innerHTML=brDMBodyHTML(h); }
+async function brDMSave(){
+  if(typeof blockIfReadonly==='function'&&blockIfReadonly()) return;
+  const h=currentHouse; if(!h) return; const sc=brShortOf(h), today=brTodayISO();
+  let done=0; const skip=[];
+  for(const r of brDM){ const ear=String(r.ear||'').trim(); if(!ear) continue;
+    const s=brDMSows(h).find(x=>String(x.ear).toLowerCase()===ear.toLowerCase());
+    if(!s){ skip.push(ear+' (ไม่พบในทะเบียน — เช็คเบอร์ หรือแจ้งผู้ดูแลเพิ่มแม่ใหม่ก่อน)'); continue; }
+    if(s.stage==='nurse'){ skip.push(ear+' (ยังเลี้ยงลูกอยู่)'); continue; }
+    if(s.stage==='preg'){ skip.push(ear+' (ท้องอยู่)'); continue; }
+    s.events=s.events||[];
+    const last=brLastEv(s,'mate');
+    const round=(last&&last.date&&brDays(last.date)!=null&&brDays(last.date)<=2)?((+last.round||1)+1):1;   // ผสมซ้ำใน 48 ชม. = ครั้งที่ 2/3 อัตโนมัติ
+    if(s.house!==sc){ s.events.unshift({t:'move',date:today,from:s.house||'',to:sc,by:brBy(),note:'ยืนยันตำแหน่งจากแจ้งผสม'}); s.house=sc; }
+    s.events.unshift({t:'mate',date:today,boar:String(r.boar||'').trim(),round:round,house:sc,by:brBy()});
+    s.stage='mated'; s.hc='';
+    await brPersist(s); done++;
+  }
+  if(!done&&!skip.length){ toast('ยังไม่ได้ใส่เบอร์แม่'); return; }
+  brDM=[{ear:'',boar:''}];
+  toast('✅ แจ้งผสม '+done+' แม่ → ผูกเข้าหลัง '+sc+' แล้ว'+(skip.length?' · ข้าม: '+skip.join(' · '):''));
+  brDMRe();
+}
+function brDMDel(ear){
+  const h=currentHouse; if(!h) return; const today=brTodayISO();
+  const s=brDMSows(h).find(x=>String(x.ear)===String(ear)); if(!s) return;
+  if(!confirm('ลบรายการแจ้งผสมวันนี้ของแม่ '+ear+' ?')) return;
+  const ix=(s.events||[]).findIndex(e=>e&&e.t==='mate'&&e.date===today);
+  if(ix<0) return;
+  s.events.splice(ix,1);
+  const m=brLastEv(s,'mate'), f=brLastEv(s,'farrow'), w=brLastEv(s,'wean');   // คืนสถานะตามเหตุการณ์ล่าสุดที่เหลือ
+  if(m&&(!f||m.date>f.date)) s.stage='mated';
+  else if(f&&(!w||f.date>w.date)) s.stage='nurse';
+  else if(w) s.stage='open';
+  else s.stage=(+s.parity||0)>0?'open':'gilt';
+  brPersist(s); toast('ลบรายการแจ้งผสมวันนี้ของ '+ear+' แล้ว'); brDMRe();
 }
 
 /* ── แท็บ: ทะเบียนแม่ ── */
