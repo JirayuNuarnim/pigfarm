@@ -983,7 +983,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728f';
+const APP_BUILD='690728g';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9412,11 +9412,15 @@ function sbSave(){
   // 📷 กติกาเจ้าของ (26 ก.ค.): เงินเข้าต้องมีหลักฐาน — เลือก "โอนแล้ว" ครั้งแรก (ยังไม่เคยบันทึกรับเงินของบิลนี้) ต้องแนบสลิปก่อน
   const _payDone=(function(){ try{ return !!(LG.entries||[]).find(e=>e.id==='pay_'+SB_D.id&&!e.voided); }catch(e){ return false; } })();
   if(SB_D.payMode==='transfer'&&!SB_D.paySlip&&!_payDone&&c.net!=null){ toast('📷 เลือก "โอนแล้ว" ต้องแนบสลิปโอนก่อนบันทึก — ไม่มีหลักฐานการโอน ปิดบิลไม่ได้ (กติกาเจ้าของ)'); return; }
-  // 🔎 เทียบยอดที่อ่านได้จากสลิปกับยอดบิล (Peter 28 ก.ค.) — ไม่ตรงให้คนยืนยันก่อน (OCR ไม่ 100% จึงเตือน ไม่บล็อกตาย)
+  // 🔎 เทียบยอดที่อ่านได้จากสลิปกับยอดบิล (Peter 28 ก.ค.) — ไม่ตรง: บอกส่วนต่าง มาก/น้อยกว่า กี่บาท + เขียนลงหมายเหตุอัตโนมัติ ให้เสมียนพิมพ์เหตุผลกำกับ
   if(SB_D.payMode==='transfer'&&SB_D.paySlip&&SB_D._slipOcr&&c.net!=null){
     const _tgt=(String(SB_D.payAmt==null?'':SB_D.payAmt).trim()!==''&&sbNum(SB_D.payAmt)>0)?Math.min(sbNum(SB_D.payAmt),c.net):c.net;
-    if(slipAmtMatch(SB_D._slipOcr.nums,_tgt)===false&&
-       !confirm('⚠️ ยอดที่อ่านได้จากสลิป: '+SB_D._slipOcr.nums.slice(0,4).map(n=>fmt(n)).join(' / ')+' บาท\nแต่ยอดที่กำลังบันทึก = '+fmt(Math.round(_tgt))+' บาท — ไม่ตรงกัน\n\nเช็คสลิป/ช่อง "ยอดโอนจริง" อีกครั้ง · ยืนยันบันทึกต่อหรือไม่?')) return;
+    if(slipAmtMatch(SB_D._slipOcr.nums,_tgt)===false){
+      const dtx=slipDiffTxt(SB_D._slipOcr.nums,_tgt);
+      if(!confirm('⚠️ '+(dtx?dtx:'ยอดที่อ่านได้จากสลิป: '+SB_D._slipOcr.nums.slice(0,4).map(n=>fmt(n)).join(' / ')+' บาท ไม่ตรงกับยอดที่บันทึก '+fmt(Math.round(_tgt))+' บาท')+'\n\nถ้ายืนยันบันทึกต่อ ระบบจะเขียนส่วนต่างลงช่องหมายเหตุของบิลให้ — กรุณาพิมพ์เหตุผลกำกับด้วย\nยืนยันบันทึกต่อหรือไม่?')) return;
+      const noteAdd='🔎 '+(dtx||('ยอดสลิปที่อ่านได้ '+SB_D._slipOcr.nums.slice(0,3).map(n=>fmt(n)).join('/')+' ไม่ตรงยอดที่ลง '+fmt(Math.round(_tgt))));
+      if(String(SB_D.note||'').indexOf(noteAdd)<0) SB_D.note=(SB_D.note?SB_D.note+' · ':'')+noteAdd;
+    }
   }
   SB_D.editLog=SB_D.editLog||[];
   SB_D.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',changes:changes,note:(SB_ISNEW?'สร้างบิล':'แก้ไขบิล')+(c.pending?' (ยังไม่ใส่ราคา)':'')});
@@ -10154,12 +10158,16 @@ async function lgDoPay(custId){
   for(const sf of slipFiles){ try{ slipPaths.push(await lgUploadSlip(sf)); }catch(err){ console.warn('slip',err); } }
   if(slipPaths.length!==slipFiles.length){ toast('❌ อัปโหลดรูปไม่ครบ ('+slipPaths.length+'/'+slipFiles.length+') — เช็คอินเทอร์เน็ตแล้วลองใหม่ (ต้องมีหลักฐานครบจึงบันทึกได้)'); return; }
   slipPath=slipPaths.join('|');
-  // 🔎 เทียบยอดจากสลิป (อ่านล่วงหน้าตั้งแต่เลือกไฟล์) กับยอดที่กำลังบันทึก — ไม่ตรงให้คนยืนยันก่อน
+  // 🔎 เทียบยอดจากสลิป (อ่านล่วงหน้าตั้งแต่เลือกไฟล์) กับยอดที่กำลังบันทึก — ไม่ตรงให้คนยืนยัน + เขียนส่วนต่างลงหมายเหตุอัตโนมัติ
+  var _slipDiffNote='';
   try{
     const _tgtPay=lgPaySel.length?lgPaySel.reduce((s,id)=>s+lgSaleOutstanding(id),0):amt;
     let _nums=null; if(window._lgSlipOcr&&window._lgSlipOcr.p){ toast('🔎 กำลังอ่านยอดจากสลิป...'); _nums=await Promise.race([window._lgSlipOcr.p,new Promise(r=>setTimeout(()=>r(null),26000))]); }
-    if(slipAmtMatch(_nums,_tgtPay)===false&&
-       !confirm('⚠️ ยอดที่อ่านได้จากสลิป: '+_nums.slice(0,4).map(n=>fmt(n)).join(' / ')+' บาท\nแต่ยอดที่กำลังบันทึกรับเงิน = '+fmt(Math.round(_tgtPay))+' บาท — ไม่ตรงกัน\n\nเช็คสลิปกับยอดอีกครั้ง · ยืนยันบันทึกต่อหรือไม่?')) return;
+    if(slipAmtMatch(_nums,_tgtPay)===false){
+      const dtx=slipDiffTxt(_nums,_tgtPay);
+      if(!confirm('⚠️ '+(dtx?dtx:'ยอดที่อ่านได้จากสลิป: '+_nums.slice(0,4).map(n=>fmt(n)).join(' / ')+' บาท ไม่ตรงกับยอดที่บันทึก '+fmt(Math.round(_tgtPay))+' บาท')+'\n\nถ้ายืนยันบันทึกต่อ ระบบจะเขียนส่วนต่างลงช่องหมายเหตุให้ — กรุณาพิมพ์เหตุผลกำกับด้วย\nยืนยันบันทึกต่อหรือไม่?')) return;
+      _slipDiffNote=dtx||('ยอดสลิปที่อ่านได้ '+_nums.slice(0,3).map(n=>fmt(n)).join('/')+' ไม่ตรงยอดที่ลง '+fmt(Math.round(_tgtPay)));
+    }
   }catch(e){ console.warn('slip ocr cmp',e); }
   window._lgSlipOcr=null;
   // ☑️ โหมดชำระหลายบิลรวดเดียว (ติ๊กเลือกจากตารางบิลค้าง) — ตัดเต็มยอดค้างของแต่ละบิล ใช้สลิปเดียวกันทุกใบ
@@ -10171,7 +10179,7 @@ async function lgDoPay(custId){
     const dt=($("#lgPayDate")||{}).value||todayISO(), resp=String((($("#lgPayResp")||{}).value)||'').trim(), n0=String((($("#lgPayNote")||{}).value)||'').trim();
     ids.forEach(id=>{ const b=SALE_BILLS.find(x=>x.id===id); const out=lgSaleOutstanding(id);
       lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'payment', method:method, amount:out, sale_id:id, slip:slipPath,
-        entry_date:dt, responsible:resp, note:(n0?n0+' · ':'')+'โอนรวม '+ids.length+' บิล · ชำระบิล '+(b?(sbThaiDate(b.dateISO)+(b.billNo?' เล่ม '+(b.billBook||'-')+'/'+b.billNo:'')):id)}); });
+        entry_date:dt, responsible:resp, note:(n0?n0+' · ':'')+'โอนรวม '+ids.length+' บิล · ชำระบิล '+(b?(sbThaiDate(b.dateISO)+(b.billNo?' เล่ม '+(b.billBook||'-')+'/'+b.billNo:'')):id)+(_slipDiffNote?' · 🔎 '+_slipDiffNote:'')}); });
     lgPaySel=[];
     toast('✅ บันทึกรับเงิน '+fmt(ids.length)+' บิลรวดเดียวแล้ว — ใบรับเงินออกให้ทุกบิล (พิมพ์ได้จากแท็บเอกสาร)');
     renderLgCust(); return;
@@ -10184,6 +10192,7 @@ async function lgDoPay(custId){
     if(!note){ const b=SALE_BILLS.find(x=>x.id===saleId); note='ชำระบิล '+(b?(sbThaiDate(b.dateISO)+(b.billNo?' เล่ม '+(b.billBook||'-')+'/'+b.billNo:'')):saleId); }
   }
   if(lgFinView() && amt>bal+0.5 && !confirm('จำนวนที่รับ ('+lgMoney(amt)+') มากกว่ายอดค้าง ('+lgMoney(bal)+')\nส่วนเกินจะกลายเป็นเครดิตของลูกค้า — ยืนยัน?')) return;
+  if(_slipDiffNote) note=(note?note+' · ':'')+'🔎 '+_slipDiffNote;   // เขียนส่วนต่างสลิปลงหมายเหตุอัตโนมัติ (Peter 28 ก.ค.)
   const e=lgAddEntryLocal({customer:c, customer_name:c.name, entry_type:'payment', method:method, amount:amt, sale_id:saleId, slip:slipPath,
     entry_date:($("#lgPayDate")||{}).value||todayISO(), responsible:String((($("#lgPayResp")||{}).value)||'').trim(), note:note});
   toast('บันทึกรับเงินแล้ว ✓ กำลังออกใบรับเงิน…');
@@ -10278,10 +10287,21 @@ function slipAmtMatch(nums,target){ // true=เจอยอดตรง · false
   const t=Math.round(target*100)/100, ti=Math.round(target);
   return nums.some(n=>Math.abs(n-t)<0.005||Math.abs(n-ti)<0.005);
 }
+function slipBestAmt(nums,target){ // เลขในสลิปที่ "น่าจะเป็นยอดโอนจริง" = ตัวที่ใกล้ยอดบิลสุด (ภายใน 20% กันหยิบเลขปี/เลขอื่นมาเทียบมั่ว)
+  if(!nums||!nums.length||!(target>0)) return null;
+  let best=null,bd=Infinity; nums.forEach(n=>{ const d=Math.abs(n-target); if(d<bd){ bd=d; best=n; } });
+  return (best!=null&&bd<=Math.max(50,target*0.2))?best:null;
+}
+function slipDiffTxt(nums,target){ // "ยอดสลิป X มากกว่า/น้อยกว่ายอดที่ลง +/-Y บาท" · '' = บอกไม่ได้/ตรงพอดี
+  const b=slipBestAmt(nums,target); if(b==null) return '';
+  const d=Math.round((b-target)*100)/100; if(Math.abs(d)<0.005) return '';
+  return 'ยอดสลิป '+fmt(b)+' '+(d>0?'มากกว่า':'น้อยกว่า')+'ยอดที่ลง '+(d>0?'+':'−')+fmt(Math.abs(d))+' บาท';
+}
 function slipOcrChip(nums,target){ const m=slipAmtMatch(nums,target);
   if(nums===null) return '<span class="sub">🔎 อ่านยอดจากสลิปไม่ได้ (รูปไม่ชัด/ออฟไลน์) — เช็คด้วยตา</span>';
   if(m===true) return '<span style="background:#e6f4ea;color:#1e7e4f;border-radius:8px;padding:1px 9px;font-size:12px;font-weight:700">🔎 ยอดในสลิปตรงกับยอดบิล ✓</span>';
-  if(m===false) return '<span style="background:#fdecea;color:#c0392b;border-radius:8px;padding:1px 9px;font-size:12px;font-weight:700">⚠️ ยอดในสลิปไม่ตรง — อ่านได้: '+nums.slice(0,4).map(n=>fmt(n)).join(' / ')+'</span>';
+  if(m===false){ const dtx=slipDiffTxt(nums,target);
+    return '<span style="background:#fdecea;color:#c0392b;border-radius:8px;padding:1px 9px;font-size:12px;font-weight:700">⚠️ '+(dtx?dtx+' — อธิบายในช่องหมายเหตุ':'ยอดในสลิปไม่ตรง — อ่านได้: '+nums.slice(0,4).map(n=>fmt(n)).join(' / '))+'</span>'; }
   return ''; }
 function lgSlipOcrKick(inp){ const fs=(inp&&inp.files)?Array.prototype.slice.call(inp.files):[];
   window._lgSlipOcr=fs.length?{p:slipReadAmounts(fs)}:null; }   // 🔎 เริ่มอ่านสลิปเบื้องหลังตั้งแต่เลือกไฟล์ — ตอนกดบันทึกผลมักพร้อมแล้ว ไม่ต้องรอ
