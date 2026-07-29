@@ -992,7 +992,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690728m';
+const APP_BUILD='690729a';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -8666,7 +8666,7 @@ function sbCalc(b){
   }else{
     const ws=b.weights||[]; c.n=ws.length; c.totW=ws.reduce((s,x)=>s+sbNum(x),0);
     const p=b.pricePerKg;
-    if(c.totW>0){ if(p===''||p==null) c.pending=true; else c.gross=Math.round(c.totW*sbNum(p)); }
+    if(c.totW>0){ if(p===''||p==null||sbNum(p)<=0) c.pending=true; else c.gross=Math.round(c.totW*sbNum(p)); } // 🟡 ราคา 0/ติดลบ = ยังไม่ใส่ราคา (กันบิลถูกตั้งหนี้ 0 บาททับหนี้จริง — เคสเรดเฟรซเชอร์ 29 ก.ค.)
   }
   c.avg=c.n?(c.totW/c.n):0;
   const si=sbNum(b.scaleIn), so=sbNum(b.scaleOut);
@@ -9951,7 +9951,19 @@ function lgSaleOutstanding(saleId){ return LG.entries.filter(e=>e.sale_id===sale
 function lgOnBillSaved(b){
   if(!b||!lgCanUse()) return;
   const nm=String(b.buyer||'').trim(); if(!nm) return;
-  const c=sbCalc(b); if(c.net==null) return; // ราคายังไม่ครบ — จะเข้าบัญชีตอนเติมราคาแล้วบันทึกอีกครั้ง
+  const c=sbCalc(b);
+  if(c.net==null){ // ราคายังไม่ครบ — จะเข้าบัญชีตอนเติมราคาแล้วบันทึกอีกครั้ง · แต่ถ้าบิลเคยมีราคาแล้วถูกลบออก ต้องล้างยอดเก่าไม่ให้ค้างในบัญชี (เคสเรดเฟรซเชอร์ 29 ก.ค.)
+    const inv=LG.entries.find(x=>x.id==='inv_'+b.id);
+    if(inv&&!inv.voided&&Math.abs(+inv.amount||0)>0.005){
+      inv.amount=0; inv.note=String(inv.note||'').replace(/ · รอใส่ราคา.*$/,'')+' · รอใส่ราคา';
+      const pay=LG.entries.find(x=>x.id==='pay_'+b.id);
+      if(pay&&!pay.voided){ pay.voided=true; pay.void_note='บิลกลับเป็นรอใส่ราคา';
+        const d=LG.docs.find(x=>x.ledger_id===('pay_'+b.id)||x.id===('doc_pay_'+b.id)||(pay.receipt_id&&x.id===pay.receipt_id)); if(d) d.voided=true; }
+      lgPersist();
+      lgQueue('ledger_sync_invoice',{p_sale_id:b.id, p_customer_name:nm, p_amount:0, p_entry_date:(b.dateISO||todayISO()), p_responsible:null, p_note:inv.note}, 'inv:'+b.id);
+      if(pay&&['owner','admin'].includes(ROLE)) lgQueue('ledger_sync_bill_pay',{p:{sale_id:b.id, customer_name:nm, pay_mode:(b.payMode||'credit'), amount:0, entry_date:(b.dateISO||todayISO()), responsible:''}}, 'payfix:'+b.id);
+    }
+    return; }
   const cust=lgCustomerByName(nm), invId='inv_'+b.id;
   const resp=(b.payMode==='cash_later')?String(b.payResp||'').trim():null;
   let e=LG.entries.find(x=>x.id===invId);
@@ -10036,7 +10048,10 @@ function lgAutoHeal(){ // 🩹 ซ่อมบัญชีอัตโนมั�
     let n=0;
     SALE_BILLS.forEach(b=>{
       if(n>=10) return;                                             // เพดานรอบละ 10 บิล (ที่เหลือรอบหน้า)
-      const c=sbCalc(b); if(c.net==null||!String(b.buyer||'').trim()) return;
+      const c=sbCalc(b); if(!String(b.buyer||'').trim()) return;
+      if(c.net==null){ const sinv=LG.entries.find(e=>e.id==='inv_'+b.id); // บิลรอใส่ราคา แต่ invoice ค้างยอดเก่า → ล้างเป็น 0 (lgOnBillSaved จัดการ)
+        if(sinv&&!sinv.voided&&Math.abs(+sinv.amount||0)>0.5){ try{ lgOnBillSaved(b); n++; }catch(e){} }
+        return; }
       const inv=LG.entries.find(e=>e.id==='inv_'+b.id);
       if(!inv||inv.voided||Math.abs((+inv.amount||0)-c.net)>0.5){ try{ lgOnBillSaved(b); n++; }catch(e){} return; }
       if(b.payMode==='transfer'){ const pay=LG.entries.find(e=>e.id==='pay_'+b.id);
