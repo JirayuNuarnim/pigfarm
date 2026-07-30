@@ -892,6 +892,7 @@ const VET_INJECT_LIST=['AMOXY GENTA','AMOXYCILLIN L.A.20%','AD3E','CEFOTEXIMEZ',
 const VET_INJECTS=VET_INJECT_LIST;
 const VET_FEEDSRC=['VCF','SJF','JBF'];
 const VET_FEEDNO=['100','105','108','110','120','130','111G'];
+let FEED_SACK={def:0,byNo:{}};   // 🌾 น้ำหนักอาหาร 1 กระสอบ (def = ทุกเบอร์ · byNo = ระบุรายเบอร์) — เจ้าของตั้งเองในหน้ารับอาหารรายวัน · 0 = ยังไม่ตั้ง
 function genVetLog(){
   HOUSES.forEach(h=>{
     if(h.vetLog&&h.vetLog.length) return;
@@ -992,7 +993,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690729a';
+const APP_BUILD='690730a';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -3235,6 +3236,99 @@ function exportClerkFeedReq(){
 let cfvFarm='', cfvHouse='', cfvVet='', cfvDate=DEMO_DATE_DAY, cfvDateMode='day', cfvDateFrom='', cfvDateTo='';   // 📅 เปิดหน้ามา = วันนี้ (Peter สั่ง 27 ก.ค.: "วันนี้ใครรับอาหารบ้าง หลังไหนรับ เลือกวันที่ได้")
 function cfvDayStr(off){ const d=new Date(DEMO_DATE.getFullYear(),DEMO_DATE.getMonth(),DEMO_DATE.getDate()+(off||0)); return d.getDate()+' '+_THMON[d.getMonth()]; }
 function clerkFeedRecvAll(){return myHouses().flatMap(h=>(h.vetLog||[]).filter(e=>e&&e.type==='feed').map(r=>Object.assign({},r,{house:h.code,farm:h.farm||'ไม่ระบุฟาร์ม',hvet:h.vet||''})));}
+/* ══ 🚚 ตามรอยใบสั่งอาหาร → ของเข้าหลัง (กติกาเจ้าของ 30 ก.ค.: อาหารที่เข้าหลังไหน "ชนยอด" ใบสั่งของหลังนั้นได้เลย ไม่ยึดเบอร์
+      — เจ้าของสั่งเปลี่ยนเบอร์กลางทางได้ เบอร์ต่างกันจึงเป็นแค่ข้อมูลบอก ไม่ใช่ข้อผิดพลาด) ══ */
+let cfoDays=14, cfoFarm='', cfoHouse='', cfoSort='code', cfoOnly='';
+function feedNoKey(s){ return String(s||'').trim().split(/[\s·\/]+/)[0]||''; }   // "105 อนุบาล1" → "105" (ใบสั่งเก่าพิมพ์สั้น ใบใหม่พิมพ์เต็ม = อาหารตัวเดียวกัน)
+function feedSackKg(no){ const k=feedNoKey(no); const b=(FEED_SACK&&FEED_SACK.byNo)||{}; return Number(b[k])>0?Number(b[k]):(Number(FEED_SACK&&FEED_SACK.def)>0?Number(FEED_SACK.def):0); }
+function cfoWinStart(){ if(cfoDays==='all') return null; const t=reqToday(); return new Date(t.getFullYear(),t.getMonth(),t.getDate()-(Number(cfoDays)-1)); }
+function cfoBuild(){ // คืนข้อมูลรายหลัง: ใบสั่ง + ของที่เข้ามาชนยอดแล้ว + ของนอกใบสั่ง
+  const start=cfoWinStart(), today=reqToday(), out=[];
+  myHouses().forEach(h=>{
+    const farm=h.farm||'ไม่ระบุฟาร์ม';
+    try{ ensureFeedIds(h); }catch(e){}
+    const orders=(h.feedReqs||[]).map(r=>{ const dt=parseThaiDate(r.date); return dt?{r:r,dt:dt}:null; }).filter(Boolean)
+      .filter(o=>!start||o.dt>=start).sort((a,b)=>a.dt-b.dt);
+    const arrs=(h.vetLog||[]).filter(e=>e&&e.type==='feed').map(e=>{ const dt=parseThaiDate(e.date), kg=Number(e.feedKg)||0; return dt?{e:e,dt:dt,kg:kg,left:kg}:null; }).filter(Boolean)
+      .filter(a=>!start||a.dt>=start).sort((a,b)=>a.dt-b.dt||((a.e.ts||0)-(b.e.ts||0)));
+    if(!orders.length&&!arrs.length) return;
+    orders.forEach(o=>{ const q=Number(o.r.qty)||0, u=String(o.r.unit||'');
+      o.no=feedNoKey(o.r.feedNo); o.noFull=String(o.r.feedNo||'');
+      if(u==='กระสอบ'){ o.sack=q; const sk=feedSackKg(o.no); o.target=sk>0?Math.round(q*sk):null; o.sackKg=sk; }
+      else o.target=q;
+      o.got=0; o.parts=[]; });
+    arrs.forEach(a=>{ if(!a.e.orderId) return; const o=orders.find(x=>x.r&&x.r._id===a.e.orderId); // 1) หมอกด "📥 รับใบนี้" = ผูกตรง เชื่อก่อนเสมอ
+      if(!o||a.left<=0.001) return; o.got+=a.left; o.parts.push({a:a,kg:a.left,linked:true}); a.left=0; });
+    orders.forEach(o=>{ if(o.target==null) return;      // 2) ชนยอดตามเวลา: ของที่มาวันเดียวกันหรือหลังวันสั่ง · ใบเก่าได้ก่อน · ไม่สนเบอร์
+      arrs.forEach(a=>{ if(a.left<=0.001||a.dt<o.dt||o.got>=o.target-0.5) return;
+        const need=o.target-o.got;
+        const use=(a.left<=need*1.1+50)?a.left:need;    // ของมาเกินยอดเล็กน้อย (เช่น สั่ง 4,000 มา 4,013) = นับเข้าใบนี้ทั้งเที่ยว โชว์เป็น (+13) · มาเกินมากถึงตัดแบ่งให้ใบถัดไป
+        if(use<=0.001) return;
+        o.got+=use; a.left-=use; o.parts.push({a:a,kg:use}); }); });
+    orders.forEach(o=>{
+      o.days=Math.round((today-o.dt)/86400000);
+      o.st=(o.target==null)?'sack':(o.got>=o.target-0.5?'full':(o.got>0.001?'partial':'wait'));
+      o.miss=(o.target==null)?null:Math.max(0,Math.round((o.target-o.got)*10)/10);
+      o.over=(o.target==null)?null:Math.round((o.got-o.target)*10)/10;
+      o.changed=[...new Set(o.parts.map(p=>feedNoKey(p.a.e.feedNo)).filter(nk=>nk&&o.no&&nk!==o.no))];
+      o.late=(o.st==='wait'||o.st==='partial')&&o.days>=4;
+    });
+    const extra=arrs.filter(a=>a.left>0.5);
+    const ordKg=orders.reduce((s,o)=>s+(o.target||0),0), gotKg=orders.reduce((s,o)=>s+o.got,0);
+    const waitN=orders.filter(o=>o.st==='wait'||o.st==='partial').length, lateN=orders.filter(o=>o.late).length;
+    const worst=orders.filter(o=>o.st==='wait'||o.st==='partial').reduce((m,o)=>Math.max(m,o.days),0);
+    out.push({farm:farm,house:h.code,hid:h.id,vet:h.vet||'',orders:orders,extra:extra,ordKg:ordKg,gotKg:Math.round(gotKg*10)/10,
+      miss:Math.max(0,Math.round((ordKg-gotKg)*10)/10),waitN:waitN,lateN:lateN,worst:worst,
+      sackPend:orders.filter(o=>o.st==='sack').length,changedN:orders.filter(o=>o.changed.length).length,
+      st:(!orders.length?'none':(lateN?'late':(waitN?'wait':'full')))});
+  });
+  return out.sort((a,b)=>String(a.farm).localeCompare(String(b.farm),'th')||(cfoSort==='worst'?(b.worst-a.worst||b.miss-a.miss):0)||byCode({code:a.house},{code:b.house}));
+}
+const CFO_ST={full:{bg:'#e9f5ee',bd:'#9fd0b5',fg:'#1a5c3f',sub:'#2c6b4a'},wait:{bg:'#fdf3e0',bd:'#e5b96e',fg:'#8a6a20',sub:'#b7791f'},
+  late:{bg:'#fbe9e7',bd:'#e0a0a0',fg:'#8f2f2f',sub:'#c0392b'},none:{bg:'#eef1f0',bd:'#d2dbd8',fg:'#5f7570',sub:'#8a9a94'}};
+function cfoTileTxt(r){
+  if(r.st==='none') return 'ไม่มีใบสั่ง';
+  if(r.st==='late') return (r.miss>0?'ขาด '+fmt(r.miss)+' · ':'ค้าง ')+r.worst+' ว';
+  if(r.st==='wait') return r.miss>0?('ขาด '+fmt(r.miss)):'รอรับ';
+  return fmt(Math.round(r.ordKg))+'→'+fmt(Math.round(r.gotKg));
+}
+function cfoPick(k){ cfoHouse=(cfoHouse===k)?'':k; renderClerkFeedRecv(); if(cfoHouse){ setTimeout(()=>{ const el=document.getElementById('cfoDetail'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); },40); } }
+function cfoSet(k,v){ if(k==='days') cfoDays=v; else if(k==='farm'){ cfoFarm=v; cfoHouse=''; } else if(k==='sort') cfoSort=v; else if(k==='only') cfoOnly=(cfoOnly===v?'':v); renderClerkFeedRecv(); }
+function cfoSackSave(v){ // 🌾 เจ้าของ/ผู้ดูแลตั้ง "1 กระสอบ = กี่กิโล" → ใบสั่งหน่วยกระสอบจึงชนยอดกับของที่รับเป็นกิโลได้
+  const n=Number(v)||0; if(!FEED_SACK||typeof FEED_SACK!=='object') FEED_SACK={def:0,byNo:{}};
+  FEED_SACK.def=n>0?n:0; syncConfig(); toast(n>0?('ตั้งไว้ 1 กระสอบ = '+fmt(n)+' กก. ✓ ใบสั่งหน่วยกระสอบจะชนยอดให้อัตโนมัติ'):'ล้างค่า กก./กระสอบ แล้ว — ใบสั่งหน่วยกระสอบจะรอตั้งค่า');
+  renderClerkFeedRecv();
+}
+let _cfoIdx=null, _cfoIdxAt=0;
+function cfoIndex(){ // ดัชนี ใบสั่ง(_id) → ผลชนยอด (ช่วง "ทั้งหมด") ใช้ร่วมทุกหน้า · แคช 3 วิ กันคำนวณซ้ำตอนวาดตารางยาว
+  if(_cfoIdx&&Date.now()-_cfoIdxAt<3000) return _cfoIdx;
+  const save=cfoDays, m={}; cfoDays='all';
+  try{ cfoBuild().forEach(r=>r.orders.forEach(o=>{ if(o.r&&o.r._id!=null) m[o.r._id]=o; })); }catch(e){}
+  cfoDays=save; _cfoIdx=m; _cfoIdxAt=Date.now(); return m;
+}
+function cfoOpenHouse(id){ const h=HOUSES.find(x=>x.id===id); if(!h) return; if(ROLE==='owner'||ROLE==='admin') viewRole='clerk'; openForm(id); }
+function cfoStTxt(o){ return o.st==='full'?('ยอดชนครบ'+((o.over&&Math.abs(o.over)>=0.5)?' ('+(o.over>0?'+':'')+o.over+')':''))
+  :o.st==='sack'?'หน่วยกระสอบ — ยังไม่ตั้ง กก./กระสอบ':o.st==='partial'?('ได้บางส่วน ขาด '+o.miss+' กก. · '+o.days+' วัน'):('รอรับ '+o.days+' วัน'+(o.late?' (เกิน 4 วัน)':'')); }
+function cfoOrderLine(o){ // แถวใบสั่ง 1 ใบ พร้อมของที่มาชน
+  const chip=(t,bg,fg)=>'<span style="background:'+bg+';color:'+fg+';border-radius:8px;padding:1px 8px;font-size:11.5px;font-weight:700;white-space:nowrap">'+t+'</span>';
+  const st=o.st==='full'?chip('✅ ยอดชนครบ'+((o.over&&Math.abs(o.over)>=0.5)?' ('+(o.over>0?'+':'')+fmt(o.over)+')':''),'#e9f5ee','#1d7a53')
+    :o.st==='sack'?chip('📦 หน่วยกระสอบ — ยังไม่ตั้ง กก./กระสอบ','#eef1f0','#5f7570')
+    :o.st==='partial'?chip((o.late?'⚠️ ':'')+'🕐 ได้บางส่วน ขาด '+fmt(o.miss)+' กก. · '+o.days+' วัน',o.late?'#fbe9e7':'#fdf3e0',o.late?'#c0392b':'#b7791f')
+    :chip((o.late?'⚠️ ':'')+'🕐 รอรับ '+o.days+' วัน',o.late?'#fbe9e7':'#fdf3e0',o.late?'#c0392b':'#b7791f');
+  const ordTxt=(o.sack!=null)?(fmt(o.sack)+' กระสอบ'+(o.target!=null?' (= '+fmt(o.target)+' กก.)':'')):fmt(Number(o.r.qty)||0)+' กก.';
+  return '<div style="border-left:3px solid '+(o.st==='full'?'#9fd0b5':o.late?'#e0a0a0':o.st==='sack'?'#d2dbd8':'#e5b96e')+';padding:7px 0 7px 10px;margin-bottom:9px">'
+    +'<div style="display:flex;gap:9px;align-items:baseline;flex-wrap:wrap">'
+    +'<b style="font-size:13px">📅 '+escA(o.r.date)+'</b><span class="sub" style="margin:0">สั่ง <b>'+ordTxt+'</b>'+(o.noFull?' · เบอร์ <b>'+escA(o.noFull)+'</b>':'')+(o.r.feedSrc?' · 🏭 '+escA(o.r.feedSrc):'')+(reqTimeStr(o.r)?' · ⏱ '+reqTimeStr(o.r)+' น.':'')+'</span>'+st+'</div>'
+    +(o.parts.length?'<div style="margin-top:5px;display:flex;flex-direction:column;gap:3px">'+o.parts.map(p=>{
+        const nk=feedNoKey(p.a.e.feedNo), diff=nk&&o.no&&nk!==o.no;
+        return '<div style="font-size:12.5px;color:var(--ink-2)">↳ <b>'+escA(p.a.e.date)+'</b> ของเข้า <b>'+fmt(Math.round(p.kg*10)/10)+'</b> กก.'
+          +(p.a.e.feedNo?' · '+escA(p.a.e.feedNo):'')+(p.a.e.feedSrc?' · 🏭 '+escA(p.a.e.feedSrc):'')
+          +'<span class="sub" style="margin:0"> · '+escA(p.a.e.by||'-')+(reqTimeStr(p.a.e)?' '+reqTimeStr(p.a.e)+' น.':'')+'</span>'
+          +(p.linked?' <span style="font-size:11px;color:var(--ok)">🔗 กดรับจากใบนี้</span>':'')
+          +(diff?' <span style="background:#eaf1f8;color:#2d5f8a;border-radius:7px;padding:1px 7px;font-size:11px;font-weight:700">เปลี่ยนเบอร์ '+escA(o.no)+' → '+escA(nk)+'</span>':'')+'</div>'; }).join('')+'</div>'
+      :'<div class="sub" style="margin-top:4px">— ยังไม่มีของเข้าหลังนี้หลังวันสั่ง —</div>')
+    +'</div>';
+}
 function cfvDateMatch(r){
   if(cfvDateMode==='range'){
     if(!cfvDateFrom && !cfvDateTo) return true;
@@ -3281,7 +3375,7 @@ function renderClerkFeedRecv(){ if(vetGuard())return;
   const vetOpts=[...new Set(vetScopeHouses.map(h=>h.vet).filter(Boolean))].sort();
   const dateOpts=[...new Set([DEMO_DATE_DAY,cfvDayStr(-1)].concat(allRaw.map(r=>r.date)).concat(clerkFeedReqAll().map(r=>r.date)))].sort((a,b)=>reqDateKey(b)-reqDateKey(a));
   const all=clerkFeedRecvFiltered();
-  const cmp=cfvCompareRows();
+  const cmp=cfoBuild();
   const farmsToShow=cfvFarm?orderedFarms.filter(f=>f===cfvFarm):orderedFarms;
   const opt=(arr,sel)=>arr.map(o=>`<option ${o===sel?'selected':''}>${escA(o)}</option>`).join("");
   const v=$("#view");
@@ -3339,20 +3433,60 @@ function renderClerkFeedRecv(){ if(vetGuard())return;
           </div>`; }).join('')}
       </div>`:`<div class="sub">ยังไม่มีบันทึกรับอาหาร${cfvDateMode==='day'&&cfvDate?'ของ'+(cfvDate===DEMO_DATE_DAY?'วันนี้':'วัน '+escA(cfvDate)):''} — กด "ทุกวัน" หรือเลือกวันอื่นด้านบนเพื่อดูย้อนหลัง</div>`}
     </div>`; })()}
-    <div class="card">
-      <h3>⚖️ เทียบ สั่งอาหาร vs รับเข้าหลังจริง <span class="more">จับคู่ หลัง + เบอร์อาหาร · ตามตัวกรอง/ช่วงวันที่ด้านบน</span></h3>
-      ${cmp.length?`<div style="overflow-x:auto"><table>
-        <thead><tr><th>ฟาร์ม</th><th>หลัง</th><th>เบอร์อาหาร</th><th class="num">สั่งรวม</th><th class="num">รับจริงรวม (กก.)</th><th class="num">ผลต่าง</th></tr></thead>
-        <tbody>${cmp.map(r=>`<tr>
-          <td><span class="sub">${escA(r.farm)}</span></td><td><b>${escA(r.house)}</b></td><td><b>${escA(r.no)}</b></td>
-          <td class="num">${cfvOrdStr(r)}${r.ordN?'<div class="sub">'+r.ordN+' ใบสั่ง</div>':''}</td>
-          <td class="num">${r.recvN?'<b>'+fmt(Math.round(r.recvKg*10)/10)+'</b><div class="sub">'+r.recvN+' ครั้ง</div>':'—'}</td>
-          <td class="num">${cfvDiffCell(r)}</td>
-        </tr>`).join('')}</tbody>
-      </table></div>
-      <div class="sub" style="margin-top:8px">💡 สั่งวันนี้ อาหารอาจเข้าหลังวันถัดไป — ถ้าเทียบรายวันแล้วไม่ตรง ให้เลือก "↔️ ช่วงวันที่" คร่อมไว้ · หน่วย "กระสอบ" น้ำหนักต่อกระสอบไม่แน่นอน ระบบจึงโชว์คู่กันให้เทียบด้วยตา ไม่คำนวณผลต่างให้</div>`
-      :'<div class="sub">ยังไม่มีทั้งใบสั่งอาหารและบันทึกรับอาหารในช่วงที่เลือก</div>'}
-    </div>
+    ${(function(){ // 🚚 ตามรอยใบสั่ง → ของเข้าหลัง · มองหลายหลังพร้อมกัน (กติกา "ยอดชนกัน" ไม่ยึดเบอร์)
+      const rows=cfoBuild();
+      const farmsAll=[...new Set(rows.map(r=>r.farm))].sort((a,b)=>{const i=orderedFarms.indexOf(a),j=orderedFarms.indexOf(b);return (i<0?99:i)-(j<0?99:j);});
+      const shown=rows.filter(r=>(!cfoFarm||r.farm===cfoFarm)&&(!cfoOnly||(cfoOnly==='late'?r.lateN>0:cfoOnly==='wait'?r.waitN>0:cfoOnly==='chg'?r.changedN>0:cfoOnly==='sack'?r.sackPend>0:true)));
+      const tot=rows.reduce((a,r)=>{a.wait+=r.waitN;a.late+=r.lateN;a.chg+=r.changedN;a.sack+=r.sackPend;a.full+=r.orders.filter(o=>o.st==='full').length;return a;},{wait:0,late:0,chg:0,sack:0,full:0});
+      const dayBtn=(v,t)=>`<button type="button" class="btn sm${String(cfoDays)===String(v)?'':' ghost'}" onclick="cfoSet('days','${v}')">${t}</button>`;
+      const chipBtn=(k,t,bg,fg,n)=>n?`<span onclick="cfoSet('only','${k}')" style="cursor:pointer;background:${cfoOnly===k?fg:bg};color:${cfoOnly===k?'#fff':fg};border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:700">${t} ${fmt(n)}</span>`:'';
+      const sel=cfoHouse?rows.find(r=>(r.farm+'|'+r.house)===cfoHouse):null;
+      return `<div class="card">
+      <h3>🚚 ตามรอยใบสั่งอาหาร → ของเข้าหลัง <span class="more">อาหารที่เข้าหลังไหน ชนยอดใบสั่งของหลังนั้น (ใบเก่าก่อน) · เปลี่ยนเบอร์กลางทางได้</span></h3>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+        <span class="sub" style="margin:0">ย้อนหลัง</span>${dayBtn(7,'7 วัน')}${dayBtn(14,'14 วัน')}${dayBtn(30,'30 วัน')}${dayBtn('all','ทั้งหมด')}
+        <span style="width:10px"></span><span class="sub" style="margin:0">เรียง</span>
+        <button type="button" class="btn sm${cfoSort==='code'?'':' ghost'}" onclick="cfoSet('sort','code')">รหัสหลัง</button>
+        <button type="button" class="btn sm${cfoSort==='worst'?'':' ghost'}" onclick="cfoSet('sort','worst')">ค้างนานสุด</button>
+      </div>
+      ${farmsAll.length>1?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">
+        <button type="button" class="btn sm${cfoFarm?' ghost':''}" onclick="cfoSet('farm','')">ทุกฟาร์ม · ${fmt(rows.length)} หลัง</button>
+        ${farmsAll.map(f=>`<button type="button" class="btn sm${cfoFarm===f?'':' ghost'}" onclick="cfoSet('farm','${escA(f)}')">${escA(f)} · ${fmt(rows.filter(r=>r.farm===f).length)}</button>`).join('')}</div>`:''}
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">
+        ${chipBtn('late','⚠️ ค้างเกิน 4 วัน','#fbe9e7','#c0392b',tot.late)}
+        ${chipBtn('wait','🕐 รอรับ/ยังขาด','#fdf3e0','#b7791f',tot.wait)}
+        ${chipBtn('chg','🔵 เปลี่ยนเบอร์','#eaf1f8','#2d5f8a',tot.chg)}
+        ${chipBtn('sack','📦 กระสอบรอตั้งค่า','#eef1f0','#5f7570',tot.sack)}
+        ${tot.full?`<span style="background:#e9f5ee;color:#1d7a53;border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:700">✅ ยอดชนครบ ${fmt(tot.full)}</span>`:''}
+        ${cfoOnly?`<a href="#" onclick="cfoSet('only','${cfoOnly}');return false" style="align-self:center;font-size:12.5px;color:var(--info)">ล้างตัวกรองสถานะ</a>`:''}
+      </div>
+      ${['owner','admin'].includes(effRole())?`<div class="frow" style="margin-top:11px;margin-bottom:0"><label>🌾 อาหาร 1 กระสอบ = กี่กิโล <span class="hint">(ใส่แล้วใบสั่งหน่วย "กระสอบ" จะชนยอดกับของที่รับเป็นกิโลได้อัตโนมัติ · เว้น 0 = ไม่แปลง)</span></label>
+        <div style="display:flex;gap:8px;align-items:center"><input class="cin tl" id="cfoSackIn" type="number" step="0.1" style="max-width:130px" value="${FEED_SACK&&Number(FEED_SACK.def)>0?Number(FEED_SACK.def):''}" placeholder="เช่น 30">
+        <button class="btn sm" onclick="cfoSackSave(document.getElementById('cfoSackIn').value)">บันทึกค่านี้</button></div></div>`:''}
+      ${shown.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:12px">
+        ${shown.map(r=>{ const k=r.farm+'|'+r.house, c=CFO_ST[r.st]||CFO_ST.none, on=(cfoHouse===k);
+          return `<div onclick="cfoPick('${escA(k)}')" title="${escA(r.farm+' · '+r.house+(r.vet?' · 🩺 '+r.vet:''))}" style="cursor:pointer;background:${c.bg};border:${on?'2px':'1px'} solid ${on?c.sub:c.bd};border-radius:10px;padding:7px 8px;text-align:center">
+            <div style="font-size:13px;font-weight:800;color:${c.fg}">${escA(r.house)}</div>
+            <div style="font-size:10.5px;font-weight:700;color:${c.sub};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cfoTileTxt(r)}</div>
+            ${(r.changedN||r.sackPend)?`<div style="font-size:9.5px;color:#2d5f8a;margin-top:1px">${r.changedN?'เปลี่ยนเบอร์':''}${(r.changedN&&r.sackPend)?' · ':''}${r.sackPend?'กระสอบ':''}</div>`:''}
+          </div>`; }).join('')}
+      </div>
+      <div class="sub" style="margin-top:9px">แตะช่องหลังเพื่อดูไทม์ไลน์ · <b style="color:#1a5c3f">เขียว</b> = ของมาครบยอดที่สั่ง · <b style="color:#8a6a20">เหลือง</b> = ยังขาด/รอรับ · <b style="color:#8f2f2f">แดง</b> = ค้างเกิน 4 วัน · <b style="color:#5f7570">เทา</b> = ไม่มีใบสั่งในช่วงนี้</div>`
+      :`<div class="sub" style="margin-top:12px">ไม่มีหลังที่ตรงเงื่อนไข — ลองขยายช่วงวันหรือล้างตัวกรองสถานะ</div>`}
+      ${sel?`<div id="cfoDetail" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+        <div style="display:flex;gap:9px;align-items:baseline;flex-wrap:wrap">
+          <b style="font-size:15px">🏠 ${escA(sel.house)}</b><span class="sub" style="margin:0">${escA(sel.farm)}${sel.vet?' · 🩺 '+escA(sel.vet):''} · ใบสั่ง ${fmt(sel.orders.length)} ใบ · สั่งรวม ${fmt(Math.round(sel.ordKg))} กก. · ของเข้าชนยอด ${fmt(Math.round(sel.gotKg))} กก.${sel.miss>0?' · <b style="color:var(--bad)">ยังขาด '+fmt(sel.miss)+' กก.</b>':''}</span>
+          <button class="btn ghost sm" style="margin-left:auto" onclick="cfoPick('${escA(cfoHouse)}')">✕ ปิด</button>
+          <button class="btn ghost sm" onclick="cfoOpenHouse(${sel.hid})">เปิดหน้าเล้านี้ ›</button>
+        </div>
+        <div style="margin-top:10px">${sel.orders.length?sel.orders.slice().reverse().map(cfoOrderLine).join(''):'<div class="sub">ไม่มีใบสั่งในช่วงที่เลือก</div>'}</div>
+        ${sel.extra.length?`<div style="margin-top:8px;background:var(--soft);border-radius:10px;padding:9px 11px">
+          <b style="font-size:12.5px">📥 ของเข้าที่ไม่ได้ชนใบสั่งไหน (${fmt(sel.extra.length)} ครั้ง · ${fmt(Math.round(sel.extra.reduce((s,a)=>s+a.left,0)))} กก.)</b>
+          <div class="sub" style="margin:3px 0 0">ของมาก่อนวันสั่ง หรือมาเกินยอดที่สั่งไว้ — ระบบไม่นำไปปิดใบสั่ง</div>
+          <div style="margin-top:5px;line-height:1.9">${sel.extra.map(a=>`<span style="display:inline-block;background:#fff;border:1px solid var(--line);border-radius:8px;padding:1px 9px;margin-right:5px;font-size:12px">${escA(a.e.date)} · ${fmt(Math.round(a.left*10)/10)} กก.${a.e.feedNo?' · '+escA(a.e.feedNo):''}</span>`).join('')}</div>
+        </div>`:''}
+      </div>`:''}
+    </div>`; })()}
     ${all.length? farmsToShow.map(f=>{
       const fItems=all.filter(r=>r.farm===f); if(!fItems.length) return '';
       const byDate={}; fItems.forEach(r=>{(byDate[r.date]=byDate[r.date]||[]).push(r);});
@@ -3378,7 +3512,7 @@ function renderClerkFeedRecv(){ if(vetGuard())return;
   `;
 }
 function exportClerkFeedRecv(){
-  const rows=clerkFeedRecvFiltered(), cmp=cfvCompareRows();
+  const rows=clerkFeedRecvFiltered(), cmp=cfoBuild();
   if(!rows.length&&!cmp.length){toast('ไม่มีรายการรับอาหารให้ส่งออก');return;}
   const meta=[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'ขอบเขต',v:cfvFarm?('ฟาร์ม '+cfvFarm):'ทุกฟาร์มที่ดูแล'},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออกรายงาน',v:(CURRENT_USER&&CURRENT_USER.name)||'-'}];
   let kg=0; const data=rows.slice().sort((a,b)=>reqDateKey(a.date)-reqDateKey(b.date)||(a.ts||0)-(b.ts||0)||byCode({code:a.house},{code:b.house}))
@@ -3386,12 +3520,23 @@ function exportClerkFeedRecv(){
   const sheets=[{name:'รับอาหารรายวัน', html:xlsSheet({ title:'ประวัติการรับอาหารรายวัน (บันทึกของหมอ)', meta,
     columns:[{label:'วันที่',type:'text',w:90},{label:'เวลาลงรับ',type:'text',w:80},{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'แหล่ง',type:'text',w:90},{label:'เบอร์อาหาร',type:'text',w:100},{label:'ปริมาณ (กก.)',type:'num',w:95},{label:'ยาผสมมา',type:'text',w:170},{label:'เลขที่บิล',type:'text',w:100},{label:'หมอผู้บันทึก',type:'text',w:120}],
     rows:data, totals:['รวมทั้งหมด '+rows.length+' รายการ','','','','','',kg,'','',''] })}];
-  if(cmp.length){
-    sheets.push({name:'เทียบสั่ง-รับ', html:xlsSheet({ title:'เทียบ สั่งอาหาร vs รับเข้าหลังจริง (จับคู่ หลัง+เบอร์อาหาร)', meta,
-      columns:[{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'เบอร์อาหาร',type:'text',w:100},{label:'สั่ง (กระสอบ)',type:'num',w:100},{label:'สั่ง (กก.)',type:'num',w:95},{label:'รับจริง (กก.)',type:'num',w:100},{label:'ผลต่าง (กก.)',type:'num',w:100},{label:'หมายเหตุ',type:'text',w:170}],
-      rows:cmp.map(r=>[r.farm,r.house,r.no,r.ordSack||'',r.ordKg||'',Math.round(r.recvKg*10)/10,
-        (!r.ordN||!r.recvN||r.ordSack)?'':Math.round((r.recvKg-r.ordKg)*10)/10,
-        !r.ordN?'มีรับ แต่ไม่พบใบสั่งในช่วง':(!r.recvN?'สั่งแล้ว ยังไม่มีบันทึกรับ':(r.ordSack?'สั่งเป็นกระสอบ เทียบ กก. ตรงๆ ไม่ได้':''))]) })});
+  { // 🚚 ตามรอยใบสั่ง → ของเข้าหลัง (ยอดชนกัน ไม่ยึดเบอร์) · 2 ชีต: รายใบสั่ง + สรุปรายหลัง
+    const hs=cmp, oRows=[], hRows=[];
+    hs.forEach(r=>{
+      hRows.push([r.farm,r.house,r.vet,r.orders.length,Math.round(r.ordKg),Math.round(r.gotKg),r.miss||'',r.waitN||'',r.lateN||'',r.changedN||'',
+        r.st==='full'?'ครบทุกใบ':r.st==='late'?('ค้างนานสุด '+r.worst+' วัน'):r.st==='wait'?'ยังมีใบรอรับ':'ไม่มีใบสั่งในช่วง']);
+      r.orders.forEach(o=>{ oRows.push([r.farm,r.house,o.r.date,reqTimeStr(o.r)||'',o.noFull,(o.sack!=null?o.sack:''),(o.sack!=null?'กระสอบ':'กก.'),
+        (o.target!=null?o.target:''),Math.round(o.got*10)/10,(o.miss!=null?o.miss:''),
+        o.parts.map(p=>p.a.e.date+' '+Math.round(p.kg*10)/10+'กก.'+(p.a.e.feedNo?' ('+p.a.e.feedNo+')':'')).join(' | '),
+        o.changed.length?('เปลี่ยนเบอร์ '+o.no+' → '+o.changed.join(',')):'', cfoStTxt(o), o.r.by||'']); });
+    });
+    const wStr=(cfoDays==='all'?'ทั้งหมด':'ย้อนหลัง '+cfoDays+' วัน');
+    if(oRows.length) sheets.push({name:'ตามรอยใบสั่งอาหาร', html:xlsSheet({ title:'ตามรอยใบสั่งอาหาร → ของเข้าหลัง ('+wStr+') · ยอดชนกันไม่ยึดเบอร์', meta,
+      columns:[{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'วันสั่ง',type:'text',w:80},{label:'เวลาสั่ง',type:'text',w:72},{label:'เบอร์ที่สั่ง',type:'text',w:100},{label:'จำนวน',type:'num',w:80},{label:'หน่วย',type:'text',w:70},{label:'เป็น กก.',type:'num',w:85},{label:'ของเข้าชนยอด (กก.)',type:'num',w:120},{label:'ยังขาด (กก.)',type:'num',w:100},{label:'ของเข้า (วัน/กก./เบอร์)',type:'text',w:250},{label:'เปลี่ยนเบอร์',type:'text',w:130},{label:'สถานะ',type:'text',w:150},{label:'ผู้สั่ง',type:'text',w:110}],
+      rows:oRows }) });
+    if(hRows.length) sheets.push({name:'สรุปรายหลัง', html:xlsSheet({ title:'สรุปสั่ง vs ของเข้า รายหลัง ('+wStr+')', meta,
+      columns:[{label:'ฟาร์ม',type:'text',w:120},{label:'หลัง',type:'text',w:64},{label:'หมอประจำ',type:'text',w:110},{label:'ใบสั่ง',type:'num',w:70},{label:'สั่งรวม (กก.)',type:'num',w:100},{label:'ของเข้าชนยอด (กก.)',type:'num',w:120},{label:'ยังขาด (กก.)',type:'num',w:100},{label:'ใบรอรับ',type:'num',w:80},{label:'ค้างเกิน 4 วัน',type:'num',w:100},{label:'ใบที่เปลี่ยนเบอร์',type:'num',w:110},{label:'สถานะ',type:'text',w:150}],
+      rows:hRows }) });
   }
   downloadXlsMulti('รับอาหารรายวัน'+(cfvFarm?'_'+cfvFarm:'')+'.xls', sheets);
   toast('ส่งออกประวัติรับอาหาร '+rows.length+' รายการ ✓');
@@ -4778,7 +4923,7 @@ function custRateForWeight(custName,w,type){ // ราคา/กก. จาก�
 }
 let VAXPROG=[]; // 📋 โปรแกรมวัคซีนของฟาร์ม (เอกสารกลาง หมอเปิดดู เจ้าของ/ผู้ดูแลเขียน — 18 ก.ค. 69) · [{id,title,ref,rows:[{no,age,name,dose,brand,strain,medium,note}]}]
 let BRCFG={}; // ⚙️ ตัวแปรนาฬิกาแม่พันธุ์ต่อฟาร์ม (รอบสัด/ตั้งท้อง/ตรวจท้อง/ให้นม/อายุสาว) — ซิงก์ผ่าน options
-function snapOpts(){return {death:DEATH_TYPES,cull:CULL_TYPES,cust:CUSTOMERS,source:SOURCE_OPTIONS,price:PRICE_TABLE,scust:SB_CUST,feedsrc:VET_FEEDSRC,feedno:VET_FEEDNO,vaxprog:VAXPROG,brcfg:BRCFG};}
+function snapOpts(){return {death:DEATH_TYPES,cull:CULL_TYPES,cust:CUSTOMERS,source:SOURCE_OPTIONS,price:PRICE_TABLE,scust:SB_CUST,feedsrc:VET_FEEDSRC,feedno:VET_FEEDNO,vaxprog:VAXPROG,brcfg:BRCFG,sackkg:FEED_SACK};}
 function applyOpts(o){ if(!o) return;
   if(Array.isArray(o.death)) DEATH_TYPES=o.death;
   if(Array.isArray(o.cull))  CULL_TYPES=o.cull;
@@ -4790,6 +4935,7 @@ function applyOpts(o){ if(!o) return;
   if(Array.isArray(o.feedno)&&o.feedno.length){ VET_FEEDNO.length=0; o.feedno.forEach(x=>VET_FEEDNO.push(x)); }
   if(Array.isArray(o.vaxprog)) VAXPROG=o.vaxprog;   // 📋 โปรแกรมวัคซีน — ซิงก์ทุกเครื่องผ่าน app_config 'options'
   if(o.brcfg&&typeof o.brcfg==='object'&&!Array.isArray(o.brcfg)) BRCFG=o.brcfg;   // ⚙️ นาฬิกาแม่พันธุ์ต่อฟาร์ม
+  if(o.sackkg&&typeof o.sackkg==='object'&&!Array.isArray(o.sackkg)) FEED_SACK=Object.assign({def:0,byNo:{}},o.sackkg); // 🌾 น้ำหนักอาหาร 1 กระสอบ (แปลงกระสอบ→กก. เวลาชนยอดใบสั่ง)
 }
 let entryTab='daily';
 let editIdx=-1; // index in dailyLog being edited, -1 = new entry
@@ -7729,6 +7875,14 @@ function feedReqSig(e){ return encodeURIComponent([(e&&e.feedNo)||'',(e&&e.date)
 /* ── 🕐→✅ วงจรใบสั่งอาหาร (Peter 28 ก.ค. 69): สั่งวันนี้ ของมาอีก ~4 วัน + น้ำหนักจริงไม่เท่าที่สั่ง (สั่ง 4,000 รับ 4,013)
    ใบสั่ง = รายการรอรับ · หมอกดรับจากใบสั่ง → ปิดใบด้วยน้ำหนักจริง + เก็บผลต่าง ── */
 function feedReqStatusHTML(r){
+  const o=(r&&r._id!=null)?cfoIndex()[r._id]:null;   // 🚚 ใช้ตัวชนยอดชุดเดียวกับหน้ารับอาหารรายวัน — ทุกหน้าจึงบอกสถานะตรงกัน (ไม่ต้องรอหมอกด "รับใบนี้")
+  if(o&&o.st!=='sack'){
+    const chg=o.changed.length?' <span style="background:#eaf1f8;color:#2d5f8a;border-radius:7px;padding:1px 6px;font-size:11px;font-weight:700">เปลี่ยนเบอร์ '+escA(o.changed[0])+'</span>':'';
+    if(o.st==='full') return '<span style="background:#e6f4ea;color:#1e7e4f;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">✅ ของเข้าครบ '+fmt(Math.round(o.got*10)/10)+' กก.'+((o.over&&Math.abs(o.over)>=0.5)?' ('+(o.over>0?'+':'')+fmt(o.over)+')':'')+(o.parts.length?' · '+escA(o.parts[o.parts.length-1].a.e.date):'')+'</span>'+chg;
+    const bg=o.late?'#fdecea':'#fdf3e0', fg=o.late?'#c0392b':'#b7791f';
+    if(o.st==='partial') return '<span style="background:'+bg+';color:'+fg+';border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">🕐 ได้ '+fmt(Math.round(o.got*10)/10)+' ขาด '+fmt(o.miss)+' กก. · '+o.days+' วัน'+(o.late?' ⚠️':'')+'</span>'+chg;
+    return '<span style="background:'+bg+';color:'+fg+';border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">🕐 รอรับ'+(o.days>0?' '+o.days+' วัน':'')+(o.late?' ⚠️':'')+'</span>';
+  }
   if(r&&r.recvAt){
     const diff=(String(r.unit||'')==='กก.'&&Number(r.qty)>0&&Number(r.recvKg)>0)?Math.round((Number(r.recvKg)-Number(r.qty))*10)/10:null;
     return '<span style="background:#e6f4ea;color:#1e7e4f;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">✅ รับแล้ว '+fmt(Number(r.recvKg)||0)+' กก.'+((diff!=null&&Math.abs(diff)>=0.05)?' ('+(diff>0?'+':'')+fmt(diff)+')':'')+(r.recvDate?' · '+escA(r.recvDate):'')+'</span>';
@@ -7742,7 +7896,8 @@ function feedReqStatusHTML(r){
 let vFeedOrderId=null;
 function vetFeedPendHTML(h){
   if(!h) return ''; ensureFeedIds(h);
-  const pend=(h.feedReqs||[]).filter(r=>r&&!r.recvAt);
+  const ix=cfoIndex();   // ใบที่ของเข้าครบยอดแล้ว (ชนยอดอัตโนมัติ) ไม่ต้องโชว์ให้กดรับซ้ำ
+  const pend=(h.feedReqs||[]).filter(r=>{ if(!r||r.recvAt) return false; const o=ix[r._id]; return !(o&&o.st==='full'); });
   if(!pend.length) return '';
   return `<div style="background:var(--soft);border-radius:10px;padding:9px 12px;margin-bottom:10px">
     <div style="font-weight:700;font-size:13.5px">🕐 ใบสั่งอาหารที่รอรับของหลังนี้ (${pend.length})</div>
