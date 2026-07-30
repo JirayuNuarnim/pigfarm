@@ -1007,7 +1007,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690730k';
+const APP_BUILD='690730l';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -2809,8 +2809,12 @@ function renderFarmGraph(){
 
 /* ---------- OWNER dashboard ---------- */
 // efficiency score per house from FCR, mortality, data completeness
+// ⚰️ ตาย%/สูญเสีย% คิดจากบันทึกรายวันจริง (deadN/cullN ÷ รับเข้า) — เดิมอ่านช่อง h.mortality ที่ไม่มีใครกรอก เลยขึ้น 0 ทุกหลัง (Peter 30 ก.ค.)
+function houseRecvN(h){ return Number(h&&h.received)||((h&&h.intake&&Number(h.intake.inN))||0); }
+function houseMortPct(h){ const r=houseRecvN(h); if(!(r>0)) return null; try{ return (dailyAgg(h).deadN||0)/r*100; }catch(e){ return null; } }
+function houseLossPct(h){ const r=houseRecvN(h); if(!(r>0)) return null; try{ const a=dailyAgg(h); return ((a.deadN||0)+(a.cullN||0))/r*100; }catch(e){ return null; } }
 function houseScore(h){
-  const fcr=parseFloat(h.fcr)||2.5, mort=parseFloat(h.mortality)||1.5;
+  const fcr=parseFloat(h.fcr)||2.5, mp=houseMortPct(h), mort=(mp!=null?mp:(parseFloat(h.mortality)||1.5));
   let s=100 - Math.max(0,(fcr-2.0))*30 - mort*8 - (h.filled?0:8);
   return Math.max(40,Math.min(99,Math.round(s)));
 }
@@ -3980,7 +3984,7 @@ function renderVetHouses(vt){
           <thead><tr><th>หลัง</th><th>สถานะเล้า</th><th>โซน</th><th class="num">หมู</th><th class="num">ตายวันนี้</th><th class="num">FCR</th><th class="num">ตาย%</th><th></th></tr></thead>
           <tbody>${fh.map(h=>`<tr class="clk" onclick="ownerHouse(${h.id})">
             <td><b>${escA(h.code)}</b></td><td>${penStatus(h)}</td><td>${escA(h.zone)}</td>
-            <td class="num">${fmt(h.pigs)}</td><td class="num">${h.deadToday||0}</td><td class="num">${h.fcr}</td><td class="num">${h.mortality}%</td>
+            <td class="num">${fmt(h.pigs)}</td><td class="num">${h.deadToday||0}</td><td class="num">${h.fcr||'-'}</td><td class="num">${(function(){ const m=houseMortPct(h); return m==null?'-':('<b style="color:'+(m>=3?'var(--bad)':m>=1.5?'var(--warn)':'var(--ok)')+'">'+m.toFixed(2)+'%</b>'); })()}</td>
             <td class="num"><span class="sub">ดู ›</span></td></tr>`).join("")}</tbody>
         </table></div>
       </div>`;
@@ -4061,7 +4065,10 @@ function renderVetMe(){
       <div class="kpi"><div class="lab"><span class="logo-ico"></span> หมูที่ดูแล</div><div class="val">${fmt(pigs)}</div></div>
       <div class="kpi"><div class="lab">📈 คะแนนเฉลี่ย</div><div class="val">${score}%</div></div>
       <div class="kpi"><div class="lab">🔁 FCR เฉลี่ย</div><div class="val">${fcrAvg(active,h=>h.fcr)?fcrAvg(active,h=>h.fcr).toFixed(2):'-'}</div></div>
-      <div class="kpi"><div class="lab">⚰️ ตาย% เฉลี่ย</div><div class="val">${avg(active,h=>h.mortality).toFixed(1)}%</div></div>
+      <div class="kpi"><div class="lab">⚰️ ตาย% เฉลี่ย</div><div class="val">${(function(){ const r=active.reduce((s,h)=>s+houseRecvN(h),0); if(!(r>0)) return '-';
+        const d=active.reduce((s,h)=>{ try{ return s+(dailyAgg(h).deadN||0); }catch(e){ return s; } },0); return (d/r*100).toFixed(2)+'%'; })()}</div>
+        <div class="sub" style="margin:2px 0 0;font-size:11px">${(function(){ const r=active.reduce((s,h)=>s+houseRecvN(h),0); if(!(r>0)) return '';
+        const c=active.reduce((s,h)=>{ try{ const a=dailyAgg(h); return s+(a.deadN||0)+(a.cullN||0); }catch(e){ return s; } },0); return 'รวมคัด = สูญเสีย '+(c/r*100).toFixed(2)+'%'; })()}</div></div>
       <div class="kpi"><div class="lab">💊 ต้นทุนยารวม</div><div class="val">${fmt(medCost)}</div></div>
     </div>
     ${(best&&worst&&active.length>1)?`<div class="sub" style="margin:10px 2px">⭐ หลังเด่นสุด: <b>${escA(best.code)}</b> (${houseScore(best)}%) · ⚠️ ควรดูแลเป็นพิเศษ: <b>${escA(worst.code)}</b> (${houseScore(worst)}%)</div>`:''}
@@ -4070,7 +4077,9 @@ function renderVetMe(){
       ${active.length?`<div style="overflow-x:auto"><table>
         <thead><tr><th>หลัง</th><th>ฟาร์ม</th><th class="num">วันเลี้ยง</th><th class="num">คงเหลือ/รับเข้า</th><th class="num">FCR</th><th class="num">ตาย%</th><th class="num">คะแนน</th><th></th></tr></thead>
         <tbody>${active.map(h=>`<tr class="clk" onclick="openForm(${h.id})">
-          <td><b>${escA(h.code)}</b></td><td>${escA(h.farm||'-')}</td><td class="num">${vmDays(h)||'-'}</td><td class="num"><b>${fmt(h.pigs)}</b><span class="sub">/${fmt(h.received||(h.intake&&h.intake.inN)||0)}</span></td><td class="num">${h.fcr||'-'}</td><td class="num">${h.mortality||0}%</td><td class="num">${sc(houseScore(h))}</td><td class="num"><span class="sub">เปิด ›</span></td></tr>`).join('')}</tbody>
+          <td><b>${escA(h.code)}</b></td><td>${escA(h.farm||'-')}</td><td class="num">${vmDays(h)||'-'}</td><td class="num"><b>${fmt(h.pigs)}</b><span class="sub">/${fmt(h.received||(h.intake&&h.intake.inN)||0)}</span></td><td class="num">${h.fcr||'-'}</td><td class="num">${(function(){ const m=houseMortPct(h), l=houseLossPct(h); if(m==null) return '-';
+            const col=m>=3?'var(--bad)':m>=1.5?'var(--warn)':'var(--ok)';
+            return '<b style="color:'+col+'">'+m.toFixed(2)+'%</b>'+((l!=null&&l-m>0.005)?'<div class="sub" style="font-size:11px">รวมคัด '+l.toFixed(2)+'%</div>':''); })()}</td><td class="num">${sc(houseScore(h))}</td><td class="num"><span class="sub">เปิด ›</span></td></tr>`).join('')}</tbody>
       </table></div>`:'<div class="sub">ยังไม่มีหลังที่กำลังเลี้ยง</div>'}
     </div>
 
