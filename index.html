@@ -893,6 +893,20 @@ const VET_INJECTS=VET_INJECT_LIST;
 const VET_FEEDSRC=['VCF','SJF','JBF'];
 const VET_FEEDNO=['100','105','108','110','120','130','111G'];
 let FEED_SACK={def:0,byNo:{}};   // 🌾 น้ำหนักอาหาร 1 กระสอบ (def = ทุกเบอร์ · byNo = ระบุรายเบอร์) — เจ้าของตั้งเองในหน้ารับอาหารรายวัน · 0 = ยังไม่ตั้ง
+// 📏 เกณฑ์การกินต่อวัน (กก./ตัว/วัน) ตามวันหลังรับเข้า — ค่าตั้งต้นจากบันทึกจริงของฟาร์ม ก.ค. 69 (มัธยฐาน 2,145 ครั้ง) เทียบ NRC 2012 แล้วอยู่ในเกณฑ์
+const FEED_STD_DEF=[
+  {a:0,b:14,w:'8 – 13 กก.',no:'100 / 105',kg:0.39},
+  {a:15,b:29,w:'13 – 22 กก.',no:'105 อนุบาล1',kg:0.87},
+  {a:30,b:44,w:'22 – 33 กก.',no:'105 / 108',kg:1.22},
+  {a:45,b:59,w:'33 – 45 กก.',no:'110 หมูเล็ก',kg:1.62},
+  {a:60,b:74,w:'45 – 58 กก.',no:'110 / 120',kg:2.02},
+  {a:75,b:89,w:'58 – 72 กก.',no:'120 หมูรุ่น',kg:2.35},
+  {a:90,b:104,w:'72 – 86 กก.',no:'120 หมูรุ่น',kg:2.68},
+  {a:105,b:119,w:'86 – 100 กก.',no:'120 / 130',kg:3.00},
+  {a:120,b:134,w:'100 – 112 กก.',no:'130 หมูใหญ่',kg:3.28},
+  {a:135,b:null,w:'112 กก. ขึ้นไป',no:'130 หมูใหญ่',kg:3.28}
+];
+let FEED_STD=FEED_STD_DEF.slice(), feedStdOpen=false;
 function genVetLog(){
   HOUSES.forEach(h=>{
     if(h.vetLog&&h.vetLog.length) return;
@@ -993,7 +1007,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690730j';
+const APP_BUILD='690730k';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -4982,7 +4996,7 @@ function custRateForWeight(custName,w,type){ // ราคา/กก. จาก�
 }
 let VAXPROG=[]; // 📋 โปรแกรมวัคซีนของฟาร์ม (เอกสารกลาง หมอเปิดดู เจ้าของ/ผู้ดูแลเขียน — 18 ก.ค. 69) · [{id,title,ref,rows:[{no,age,name,dose,brand,strain,medium,note}]}]
 let BRCFG={}; // ⚙️ ตัวแปรนาฬิกาแม่พันธุ์ต่อฟาร์ม (รอบสัด/ตั้งท้อง/ตรวจท้อง/ให้นม/อายุสาว) — ซิงก์ผ่าน options
-function snapOpts(){return {death:DEATH_TYPES,cull:CULL_TYPES,cust:CUSTOMERS,source:SOURCE_OPTIONS,price:PRICE_TABLE,scust:SB_CUST,feedsrc:VET_FEEDSRC,feedno:VET_FEEDNO,vaxprog:VAXPROG,brcfg:BRCFG,sackkg:FEED_SACK};}
+function snapOpts(){return {death:DEATH_TYPES,cull:CULL_TYPES,cust:CUSTOMERS,source:SOURCE_OPTIONS,price:PRICE_TABLE,scust:SB_CUST,feedsrc:VET_FEEDSRC,feedno:VET_FEEDNO,vaxprog:VAXPROG,brcfg:BRCFG,sackkg:FEED_SACK,feedstd:FEED_STD};}
 function applyOpts(o){ if(!o) return;
   if(Array.isArray(o.death)) DEATH_TYPES=o.death;
   if(Array.isArray(o.cull))  CULL_TYPES=o.cull;
@@ -4994,7 +5008,8 @@ function applyOpts(o){ if(!o) return;
   if(Array.isArray(o.feedno)&&o.feedno.length){ VET_FEEDNO.length=0; o.feedno.forEach(x=>VET_FEEDNO.push(x)); }
   if(Array.isArray(o.vaxprog)) VAXPROG=o.vaxprog;   // 📋 โปรแกรมวัคซีน — ซิงก์ทุกเครื่องผ่าน app_config 'options'
   if(o.brcfg&&typeof o.brcfg==='object'&&!Array.isArray(o.brcfg)) BRCFG=o.brcfg;   // ⚙️ นาฬิกาแม่พันธุ์ต่อฟาร์ม
-  if(o.sackkg&&typeof o.sackkg==='object'&&!Array.isArray(o.sackkg)) FEED_SACK=Object.assign({def:0,byNo:{}},o.sackkg); // 🌾 น้ำหนักอาหาร 1 กระสอบ (แปลงกระสอบ→กก. เวลาชนยอดใบสั่ง)
+  if(o.sackkg&&typeof o.sackkg==='object'&&!Array.isArray(o.sackkg)) FEED_SACK=Object.assign({def:0,byNo:{}},o.sackkg);
+  if(Array.isArray(o.feedstd)&&o.feedstd.length) FEED_STD=o.feedstd;   // 📏 เกณฑ์การกินต่อวัน — เจ้าของแก้แล้วซิงก์ทุกเครื่อง // 🌾 น้ำหนักอาหาร 1 กระสอบ (แปลงกระสอบ→กก. เวลาชนยอดใบสั่ง)
 }
 let entryTab='daily';
 let editIdx=-1; // index in dailyLog being edited, -1 = new entry
@@ -7094,7 +7109,7 @@ function vetForm(){
 
     <div class="card">
       <h3>🍽️ การกินได้ต่อวัน <span class="more">หมูกิน 2 เบอร์พร้อมกัน ลงได้ในรอบเดียว</span></h3>
-      ${feedTankHTML(h)}
+      ${feedStdHTML(h)}${feedTankHTML(h)}
       <div class="grid2">
         <div class="frow" style="margin-bottom:0"><label>กินอาหาร 1 — เบอร์ <span class="hint">(กดเลือกเท่านั้น)</span></label>
           <select id="v_eatNo" class="cin tl"><option value="">— เลือกเบอร์ —</option>${VET_FEEDNO.map(n=>`<option>${escA(n)}</option>`).join("")}</select></div>
@@ -7956,6 +7971,38 @@ function ensureFeedIds(h){ const seen=new Set(); (h.feedReqs||[]).forEach(e=>{ i
 function feedReqSig(e){ return encodeURIComponent([(e&&e.feedNo)||'',(e&&e.date)||'',(e&&e.qty)||''].join('|')); }
 /* ── 🕐→✅ วงจรใบสั่งอาหาร (Peter 28 ก.ค. 69): สั่งวันนี้ ของมาอีก ~4 วัน + น้ำหนักจริงไม่เท่าที่สั่ง (สั่ง 4,000 รับ 4,013)
    ใบสั่ง = รายการรอรับ · หมอกดรับจากใบสั่ง → ปิดใบด้วยน้ำหนักจริง + เก็บผลต่าง ── */
+/* 📏 ตารางมาตรฐานการกินต่อวัน (กก./ตัว/วัน) ตามวันหลังรับเข้า — ค่าตั้งต้นมาจากบันทึกจริงของฟาร์ม ก.ค. 69 (2,145 ครั้ง)
+   เทียบกับ NRC 2012 แล้วอยู่ในเกณฑ์ · เจ้าของ/ผู้ดูแลแก้ตัวเลขเองได้ (ซิงก์ผ่าน options key 'feedstd') */
+function feedStdRows(){ return (Array.isArray(FEED_STD)&&FEED_STD.length)?FEED_STD:FEED_STD_DEF; }
+function feedStdFor(days){ if(days==null) return null; return feedStdRows().find(r=>days>=r.a&&(r.b==null||days<=r.b))||null; }
+function feedStdHTML(h){
+  const days=(typeof gAgeDaysH==='function')?gAgeDaysH(h):null;
+  const rows=feedStdRows(), cur=feedStdFor(days);
+  const pigs=Number(h&&h.pigs)||0;
+  const today=(h&&h.vetLog||[]).filter(e=>e&&e.type==='intake'&&e.date===DEMO_DATE_DAY&&(Number(e.eatKg)||0)>0);
+  const eatToday=today.reduce((s,e)=>s+(Number(e.eatKg)||0),0);
+  const ia=(typeof intakeAgg==='function')?intakeAgg(h):null;
+  const usedKg=eatToday>0?eatToday:(ia?ia.latestKg:0), usedIsToday=eatToday>0;
+  const perPig=(pigs>0&&usedKg>0)?usedKg/pigs:0;
+  const pct=(cur&&cur.kg>0&&perPig>0)?Math.round((perPig-cur.kg)/cur.kg*100):null;
+  const tone=pct==null?['#eef1f0','#d2dbd8','#5f7570']:(Math.abs(pct)<=10?['#e9f5ee','#9fd0b5','#1a5c3f']:(pct<0?['#fdf3e0','#e5b96e','#8a6a20']:['#eaf1f8','#a9c4de','#22506f']));
+  const head=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <b style="font-size:13px">📏 เกณฑ์การกินต่อวัน</b>
+    <span class="sub" style="margin:0">${days!=null?('อายุรุ่น <b>'+fmt(days)+'</b> วัน'):'ยังไม่ระบุวันรับเข้า — เทียบไม่ได้'}${cur?' · น้ำหนักโดยประมาณ '+escA(cur.w||'-'):''}</span></div>`;
+  const cmp=cur?`<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px">
+      <span style="background:#eef4f1;border:1px solid #c9d8d2;border-radius:9px;padding:4px 11px;font-size:12.5px;font-weight:700;color:#41615a">เกณฑ์อายุนี้ <b>${cur.kg.toFixed(2)}</b> กก./ตัว${pigs>0?' · ทั้งหลังราว <b>'+fmt(Math.round(cur.kg*pigs))+'</b> กก./วัน':''}</span>
+      ${perPig>0?`<span style="background:${tone[0]};border:1px solid ${tone[1]};border-radius:9px;padding:4px 11px;font-size:12.5px;font-weight:700;color:${tone[2]}">${usedIsToday?'วันนี้':'ล่าสุด'}กิน <b>${perPig.toFixed(2)}</b> กก./ตัว${pct!=null?' · '+(pct>0?'สูงกว่าเกณฑ์ ':pct<0?'ต่ำกว่าเกณฑ์ ':'ตรงเกณฑ์ ')+Math.abs(pct)+'%'+(Math.abs(pct)<=10?' ✓':' ⚠️'):''}</span>`
+        :`<span class="sub" style="margin:0;align-self:center">— ยังไม่ได้ลงกินได้ของวันนี้ —</span>`}
+    </div>`:'';
+  const tbl=`<div style="overflow-x:auto;margin-top:9px"><table class="densetbl" style="font-size:12.5px">
+    <thead><tr><th>วันหลังรับเข้า</th><th>น้ำหนักโดยประมาณ</th><th>เบอร์ที่ใช้</th><th class="num">กก./ตัว/วัน</th>${pigs>0?'<th class="num">ทั้งหลัง (กก./วัน)</th>':''}</tr></thead>
+    <tbody>${rows.map(r=>{ const on=(cur&&r.a===cur.a);
+      return `<tr${on?' style="background:#e9f5ee;font-weight:800"':''}><td>${on?'👉 ':''}${fmt(r.a)}${r.b==null?' ขึ้นไป':' – '+fmt(r.b)}</td><td><span class="sub">${escA(r.w||'-')}</span></td><td>${escA(r.no||'-')}</td><td class="num">${r.kg.toFixed(2)}</td>${pigs>0?'<td class="num">'+fmt(Math.round(r.kg*pigs))+'</td>':''}</tr>`; }).join('')}</tbody></table></div>`;
+  return `<div style="background:var(--soft);border-radius:11px;padding:10px 12px;margin-bottom:11px">${head}${cmp}
+    <div style="margin-top:8px"><a href="#" onclick="feedStdOpen=!feedStdOpen;vetForm();return false" style="font-size:12px;color:var(--info)">${feedStdOpen?'▾ ซ่อนตารางเต็ม':'▸ ดูตารางเต็ม (ทุกช่วงอายุ)'}</a></div>
+    ${feedStdOpen?tbl:''}
+    <div class="sub" style="margin:7px 0 0">ตัวเลขเกณฑ์มาจากค่ากลางของฟาร์มเราเอง (บันทึกจริง ก.ค. 69) เทียบมาตรฐาน NRC แล้วอยู่ในช่วง · เป็นแนวทางดูเฉยๆ ไม่บล็อกการบันทึก${['owner','admin'].includes(effRole())?' · เจ้าของแก้ตัวเลขได้ที่ ⚙️ จัดการเล้า':''}</div></div>`;
+}
 /* 🥫 อาหารคงเหลือในถัง (ประมาณ) = รับเข้าหลัง − กินได้รายวัน · แยกตามเบอร์อาหาร
    กติกาเจ้าของ 30 ก.ค.: เป็นแค่ "แนวทาง" ให้หมอดู — ไม่บล็อกอะไรทั้งนั้น ไม่มีสต็อกก็ลงกินได้ตามปกติ
    · ลงกินได้แต่ไม่เคยลงรับอาหารเบอร์นั้น = หมออาจลืมลงรับ (บอกเตือนเฉยๆ)
