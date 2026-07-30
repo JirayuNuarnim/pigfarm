@@ -993,7 +993,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690730h';
+const APP_BUILD='690730i';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -10094,6 +10094,87 @@ function lgDocRowHTML(d){
     <div style="display:flex;gap:6px;white-space:nowrap">${d.sale_id?`<button class="btn ghost sm" title="ดูรูปบิลที่เอกสารนี้อ้างอิง" onclick="lgViewBill('${d.sale_id}')">🧾 บิล</button>`:''}${(d.data&&d.data.slip)?`<button class="btn ghost sm" title="ดูรูปหลักฐานการรับเงิน" onclick="lgViewSlip('${escA(d.data.slip)}')">📷</button>`:''}<button class="btn ghost sm" title="เปิดดูเอกสารเต็มแผ่นก่อน — มีปุ่มพิมพ์ในหน้าดู" onclick="lgPrintDoc('${d.id}')">👁 ดู / พิมพ์</button></div></div>`;
 }
 function lgDocsRe(){ const el=document.getElementById('lgDocsBox'); if(el) el.innerHTML=lgDocsHTML(); } // วาดเฉพาะกล่องรายการ — ช่องค้นหาอยู่นอกกล่อง โฟกัสไม่หลุด
+/* ── 📊 คลังเอกสารแบบแดชบอร์ด (Peter 30 ก.ค.: "ย้อนดูได้ว่าใครจ่ายบิลอะไร วันไหน ยอดเท่าไหร่") ── */
+let lgDocView='day', lgDocOpenCust='';
+function lgDocBill(d){ // ข้อมูลบิลที่เอกสารนี้อ้างอิง (เล่ม/เลขที่ · ฟาร์ม · เลขเว็บ)
+  const b=(d&&d.sale_id&&typeof SALE_BILLS!=='undefined')?SALE_BILLS.find(x=>x.id===d.sale_id):null;
+  if(b) return {no:(b.billBook&&b.billNo)?(b.billBook+'/'+b.billNo):(b.webNo||''), farm:b.farm||'', web:b.webNo||'', dateISO:b.dateISO||''};
+  const dd=(d&&d.data)||{};
+  return {no:String(dd.bill||''), farm:'', web:'', dateISO:String(dd.dateISO||'')};
+}
+function lgDocDay(d){ return String(d.issued_at||'').slice(0,10); }
+function lgDocTime(d){ try{ const t=new Date(d.issued_at); if(isNaN(t)) return ''; return String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0'); }catch(e){ return ''; } }
+function lgDocActs(d){
+  return `<div style="display:flex;gap:6px;white-space:nowrap">${d.sale_id?`<button class="btn ghost sm" title="ดูบิลที่เอกสารนี้อ้างอิง" onclick="lgViewBill('${d.sale_id}')">🧾 บิล</button>`:''}${(d.data&&d.data.slip)?`<button class="btn ghost sm" title="ดูสลิป/หลักฐาน" onclick="lgViewSlip('${escA(d.data.slip)}')">📷</button>`:''}<button class="btn ghost sm" title="เปิดเอกสารเต็มแผ่น" onclick="lgPrintDoc('${d.id}')">👁 ดู / พิมพ์</button></div>`;
+}
+function lgDocLine(d){ // แถวรายการแบบละเอียด: ใครจ่าย · บิลไหน · ยอด · วิธี · เวลา · คนออกเอกสาร
+  const bi=lgDocBill(d), pay=d.method==='cash'?'💵 เงินสด':d.method==='transfer'?'🏦 โอน':'';
+  return `<div class="fieldrow" style="${d.voided?'opacity:.5':''}">
+    <div class="fmeta">
+      <div class="fn">${d.doc_type==='receipt'?'🧾':'🤝'} <b>${escA(d.customer_name||'-')}</b>${d.voided?' <span style="color:var(--bad);font-weight:700">· ยกเลิกแล้ว</span>':''}</div>
+      <div class="sub" style="margin:2px 0 0">${escA(d.doc_no||'-')}${bi.no?' · บิล <b>'+escA(bi.no)+'</b>':''}${bi.farm?' · '+escA(bi.farm):''}${d.responsible?' · ผู้รับผิดชอบ '+escA(d.responsible):''} · ออกโดย ${escA(d.issued_by||'-')}${lgDocTime(d)?' · '+lgDocTime(d)+' น.':''}</div>
+    </div>
+    <div style="text-align:right;margin-left:auto;padding-right:9px;white-space:nowrap">
+      <b style="font-size:15.5px;color:${d.voided?'var(--muted)':'var(--ok)'}">${lgMoney(d.amount)}</b> <span class="more">บาท</span>
+      ${pay?`<div class="sub" style="margin:0">${pay}</div>`:''}</div>
+    ${lgDocActs(d)}</div>`;
+}
+function lgDocDash(docs){ // การ์ดสรุปช่วงที่เลือก
+  const ok=docs.filter(d=>!d.voided);
+  const rc=ok.filter(d=>d.doc_type==='receipt'), rp=ok.filter(d=>d.doc_type!=='receipt');
+  const sum=a=>a.reduce((s,d)=>s+(+d.amount||0),0);
+  const tf=sum(rc.filter(d=>d.method==='transfer')), cs=sum(rc.filter(d=>d.method==='cash'));
+  const custs=[...new Set(ok.map(d=>String(d.customer_name||'').trim()).filter(Boolean))];
+  const days=[...new Set(ok.map(lgDocDay).filter(Boolean))];
+  const card=(t,v,sub,col)=>`<div style="flex:1;min-width:148px;background:var(--soft);border-radius:11px;padding:9px 12px">
+    <div class="sub" style="margin:0">${t}</div><div style="font-size:19px;font-weight:800;color:${col||'var(--ink)'}">${v}</div>${sub?`<div class="sub" style="margin:1px 0 0">${sub}</div>`:''}</div>`;
+  return `<div style="display:flex;gap:9px;flex-wrap:wrap;margin:2px 0 10px">
+    ${card('💰 รับเงินรวม (ใบรับเงิน)',lgMoney(sum(rc))+' บาท',fmt(rc.length)+' ใบ · '+fmt(custs.length)+' ราย · '+fmt(days.length)+' วัน','var(--ok)')}
+    ${card('🏦 โอน',lgMoney(tf)+' บาท',fmt(rc.filter(d=>d.method==='transfer').length)+' ใบ')}
+    ${card('💵 เงินสด',lgMoney(cs)+' บาท',fmt(rc.filter(d=>d.method==='cash').length)+' ใบ')}
+    ${rp.length?card('🤝 มอบหมายเก็บเงิน',lgMoney(sum(rp))+' บาท',fmt(rp.length)+' ใบ','#b7791f'):''}
+  </div>`;
+}
+function lgDocByDayHTML(docs){ // 📅 มุมมองรายวัน — ใครจ่ายอะไรวันไหน
+  const g={}, order=[];
+  docs.forEach(d=>{ const k=lgDocDay(d)||'?'; if(!g[k]){ g[k]=[]; order.push(k); } g[k].push(d); });
+  if(!order.length) return '';
+  return order.map(k=>{ const items=g[k], ok=items.filter(x=>!x.voided), sum=ok.reduce((s,x)=>s+(+x.amount||0),0);
+    const cn=[...new Set(ok.map(x=>String(x.customer_name||'').trim()).filter(Boolean))].length;
+    return `<div style="display:flex;gap:9px 14px;align-items:center;flex-wrap:wrap;background:var(--brand);color:#fff;border-radius:10px;padding:7px 13px;margin:14px 0 7px;font-size:13.5px;font-weight:800">
+      📅 ${k==='?'?'ไม่ระบุวัน':escA(sbThaiDate(k))} <span style="opacity:.85">${fmt(items.length)} ใบ · ${fmt(cn)} ราย</span><span style="margin-left:auto">💰 ${lgMoney(sum)} บาท</span></div>`
+      +items.map(lgDocLine).join(''); }).join('');
+}
+function lgDocByCustHTML(docs){ // 👤 มุมมองรายลูกค้า — เจ้าไหนจ่ายมาแล้วรวมเท่าไหร่ กี่ครั้ง
+  const g={}, order=[];
+  docs.forEach(d=>{ const k=String(d.customer_name||'(ไม่ระบุชื่อ)').trim()||'(ไม่ระบุชื่อ)'; if(!g[k]){ g[k]=[]; order.push(k); } g[k].push(d); });
+  const rows=order.map(k=>{ const items=g[k], ok=items.filter(x=>!x.voided);
+    return {k:k,items:items,sum:ok.reduce((s,x)=>s+(+x.amount||0),0),n:items.length,
+      last:items.map(lgDocDay).filter(Boolean).sort().slice(-1)[0]||''}; }).sort((a,b)=>b.sum-a.sum);
+  if(!rows.length) return '';
+  return rows.map(r=>`<div class="fieldrow" style="cursor:pointer" onclick="lgDocOpenCust=(lgDocOpenCust==='${escA(r.k)}'?'':'${escA(r.k)}');lgDocsRe()">
+      <div class="fmeta"><div class="fn">👤 <b>${escA(r.k)}</b> <span class="more">${lgDocOpenCust===r.k?'▾':'▸'}</span></div>
+      <div class="sub" style="margin:2px 0 0">${fmt(r.n)} ใบ${r.last?' · ล่าสุด '+escA(sbThaiDate(r.last)):''}</div></div>
+      <div style="text-align:right;margin-left:auto"><b style="font-size:16px;color:var(--ok)">${lgMoney(r.sum)}</b> <span class="more">บาท</span></div></div>`
+    +(lgDocOpenCust===r.k?`<div style="margin:0 0 10px 14px;border-left:2px solid var(--line);padding-left:10px">${r.items.map(lgDocLine).join('')}</div>`:'')).join('');
+}
+function lgDocExport(){ // 📊 ดึง Excel ตามช่วง/ตัวกรองที่เลือก — ไว้ย้อนดูทั้งหมด
+  const docs=(window._lgDocsShown||[]);
+  if(!docs.length){ toast('ไม่มีเอกสารตามตัวกรอง'); return; }
+  let tot=0;
+  const rows=docs.map(d=>{ const bi=lgDocBill(d), amt=+d.amount||0; if(!d.voided) tot+=amt;
+    return [String(d.issued_at||'').slice(0,10)?sbThaiDate(String(d.issued_at||'').slice(0,10)):'-', lgDocTime(d)||'-',
+      d.doc_type==='receipt'?'ใบรับเงิน':'มอบหมายเก็บเงิน', d.doc_no||'-', d.customer_name||'-',
+      bi.no||'-', bi.farm||'-', amt, d.method==='cash'?'เงินสด':d.method==='transfer'?'โอน':'-',
+      d.responsible||'-', d.issued_by||'-', d.voided?'ยกเลิกแล้ว':'ใช้งาน']; });
+  downloadXls('คลังเอกสารรับเงิน.xls', xlsSheet({
+    title:'คลังเอกสาร — ใบรับเงิน / มอบหมายเก็บเงิน',
+    meta:[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'ช่วงที่ดึง',v:(window._lgDocsLabel||'ทุกช่วงเวลา')},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออกรายงาน',v:(CURRENT_USER&&CURRENT_USER.name)||'-'}],
+    columns:[{label:'วันที่',type:'text',w:95},{label:'เวลา',type:'text',w:60},{label:'ประเภท',type:'text',w:120},{label:'เลขที่เอกสาร',type:'text',w:110},{label:'ลูกค้า',type:'text',w:170},{label:'บิลอ้างอิง',type:'text',w:110},{label:'ฟาร์ม',type:'text',w:150},{label:'ยอดเงิน',type:'money',w:110},{label:'วิธีรับ',type:'text',w:80},{label:'ผู้รับผิดชอบ',type:'text',w:120},{label:'ออกโดย',type:'text',w:110},{label:'สถานะ',type:'text',w:90}],
+    rows:rows, totals:['รวม '+docs.length+' ใบ','','','','','',tot,'','','','','']
+  }));
+  toast('ส่งออกคลังเอกสาร '+docs.length+' ใบ ✓');
+}
 function lgDocsHTML(){
   const all=lgDocSorted(), q=String(lgDocSearch||'').trim().toLowerCase();
   // ── 📅 ช่วงเวลา (แบบเดียวกับคลังบิล) — ค้นหา = ค้นทุกช่วงเวลา ──
@@ -10125,6 +10206,19 @@ function lgDocsHTML(){
   const sumBar=`<div style="display:flex;gap:9px 14px;align-items:center;flex-wrap:wrap;background:var(--brand);color:#fff;border-radius:10px;padding:7px 13px;margin:2px 0 8px;font-size:13.5px;font-weight:800">📅 ${escA(scopeLabel)} <span style="opacity:.85">${fmt(docs.length)} ใบ</span><span>💰 ${lgMoney(sumAmt)} บาท</span></div>`;
   const chips=[['','ทั้งหมด',scope.length],['rc','🧾 ใบรับเงิน',cnt.rc],['rp','🤝 มอบหมายเก็บเงิน',cnt.rp],['vd','❌ ยกเลิกแล้ว',cnt.vd]]
     .map(s=>`<button class="sbfchip${lgDocType===s[0]?' on':''}"${s[2]||s[0]===''?'':' style="opacity:.45"'} onclick="lgDocType='${s[0]}';lgDocsRe()">${s[1]} (${fmt(s[2])})</button>`).join('');
+  window._lgDocsShown=docs; window._lgDocsLabel=scopeLabel;   // ไว้ให้ปุ่มดึง Excel ใช้ชุดเดียวกับที่เห็นบนจอ
+  const vChips=`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin:8px 0 4px"><span class="sub" style="margin:0 4px 6px 0">👁 มุมมอง:</span>${
+    [['day','📅 รายวัน'],['cust','👤 รายลูกค้า'],['doc','🧾 รายการเอกสาร']].map(v=>`<button class="sbfchip${lgDocView===v[0]?' on':''}" onclick="lgDocView='${v[0]}';lgDocsRe()">${v[1]}</button>`).join('')
+    }<button class="btn ghost sm" style="margin:0 0 6px 6px" onclick="lgDocExport()">📊 ดึง Excel</button></div>`;
+  if(lgDocView!=='doc'){
+    const CAPV=400, shownV=docs.slice(0,CAPV);
+    const body=(lgDocView==='cust')?lgDocByCustHTML(shownV):lgDocByDayHTML(shownV);
+    return rChips+mChips+customRow+sumBar
+      +`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">${chips}</div>`+vChips
+      +lgDocDash(shownV)
+      +(body||`<div class="sub" style="margin-top:10px">— ${q?'ไม่พบเอกสารที่ตรงกับ "'+escA(q)+'"':'ยังไม่มีเอกสารในช่วงเวลา/กลุ่มนี้ — ลองกด "ทั้งหมด" หรือเปลี่ยนช่วงวันที่'} —</div>`)
+      +(docs.length>CAPV?`<div class="sub" style="margin-top:10px">— แสดง ${fmt(CAPV)} ใบแรกจาก ${fmt(docs.length)} — แคบช่วงวันที่ หรือกด 📊 ดึง Excel เพื่อดูครบ —</div>`:'');
+  }
   // แบ่งกลุ่มตามเดือน — เอกสารเก่าไม่ปนกับของใหม่ · หัวเดือนสรุปจำนวน+ยอดเงิน (ไม่นับใบที่ยกเลิก)
   const CAP=300, shown=docs.slice(0,CAP), groups=[], gIdx={};
   shown.forEach(d=>{ const m=String(d.issued_at||'').slice(0,7)||'?'; let g=gIdx[m]; if(!g){ g={m:m,items:[]}; gIdx[m]=g; groups.push(g); } g.items.push(d); });
@@ -10133,7 +10227,7 @@ function lgDocsHTML(){
     return `<div style="display:flex;gap:9px 14px;align-items:center;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:7px 12px;margin:13px 0 8px;font-size:13px;font-weight:800">📅 ${g.m==='?'?'ไม่ระบุวัน':sbMonthLabel(g.m)} <span class="more">${fmt(g.items.length)} ใบ</span><span style="color:var(--ok)">💰 ${lgMoney(sum)} บาท</span></div>`+g.items.map(lgDocRowHTML).join('');
   }).join('')+(docs.length>CAP?`<div class="sub" style="margin-top:10px">— แสดง ${fmt(CAP)} ใบแรกจาก ${fmt(docs.length)} — พิมพ์ค้นหาให้แคบลง —</div>`:'');
   return rChips+mChips+customRow+sumBar
-    +`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">${chips}</div>`
+    +`<div style="display:flex;gap:0 6px;flex-wrap:wrap;align-items:center;margin-bottom:4px">${chips}</div>`+vChips
     +(rows||`<div class="sub" style="margin-top:10px">— ${q?'ไม่พบเอกสารที่ตรงกับ "'+escA(q)+'"':'ยังไม่มีเอกสารในช่วงเวลา/กลุ่มนี้ — ลองกด "ทั้งหมด" หรือเปลี่ยนช่วงวันที่'} —</div>`);
 }
 function lgPersist(){ try{ localStorage.setItem('sjfLedger', JSON.stringify(LG)); }catch(e){} }
