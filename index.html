@@ -993,7 +993,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690730e';
+const APP_BUILD='690730f';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -7127,7 +7127,14 @@ function vetSubmit(){ if(blockIfReadonly())return;
   // การรับอาหาร = คนละบันทึก
   // 🌾 บังคับใส่น้ำหนักเมื่อบันทึกรับอาหาร (30 ก.ค. — เดิมกรอกแต่เบอร์ ไม่ใส่ กก. 195 รายการ ทำให้ชนยอดใบสั่งไม่ได้ + ต้นทุนอาหารเพี้ยน)
   if((fNo||fKg)&&!(Number(fKg)>0)){ alert('⚠️ กรอก "ปริมาณอาหาร (กก.)" ที่รับเข้าจริงด้วย\n\nยอดนี้ใช้ชนกับใบสั่งอาหารและคิดต้นทุนของหลัง — ถ้าไม่ใส่ ระบบจะขึ้นว่ายังไม่ได้รับของ\n(ถ้ายังไม่รู้น้ำหนักจริง ให้เว้นทั้งช่องเบอร์และช่องน้ำหนัก แล้วมาบันทึกทีหลัง)'); const _k=$("#v_feedKg"); if(_k) _k.focus(); return; }
-  if(fNo||fKg){ const fe={type:'feed',date:day,by,feedSrc:fSrc,feedNo:fNo,feedMed:fMed,feedKg:fKg,feedBill:fBill,ts:Date.now()};
+  // 🔁 กันกดรับซ้ำ (30 ก.ค. — ตรวจเจอ 7 รายการซ้ำเป๊ะ 22,490 กก. เช่น A4/A5 กดห่างกัน 1 ชม.): วันนี้หลังนี้เคยลงเบอร์เดียวกัน น้ำหนักใกล้กัน → ให้ยืนยันว่าเป็นเที่ยวที่ 2 จริง
+  if(fNo||fKg){ const _nk=String(fNo||'').trim().split(/[\s·\/]+/)[0], _kg=Number(fKg)||0;
+    const _same=(currentHouse.vetLog||[]).filter(e=>e&&e.type==='feed'&&e.date===day
+      && String(e.feedNo||'').trim().split(/[\s·\/]+/)[0]===_nk
+      && (Number(e.feedKg)||0)>0 && Math.abs((Number(e.feedKg)||0)-_kg)<=Math.max(50,_kg*0.03));
+    if(_same.length){ const _e=_same[0];
+      if(!confirm('🔁 หลัง '+(currentHouse.code||'')+' วันนี้ลงรับอาหารเบอร์นี้ไปแล้ว\n\nของเดิม: '+escA(_e.feedNo||'-')+' · '+fmt(Number(_e.feedKg)||0)+' กก.'+(reqTimeStr(_e)?' · เวลา '+reqTimeStr(_e)+' น.':'')+' · โดย '+escA(_e.by||'-')+'\nกำลังจะลง: '+escA(fNo||'-')+' · '+fmt(_kg)+' กก.\n\nถ้าเป็นรถเที่ยวที่ 2 จริง กด "ตกลง" เพื่อบันทึกเพิ่ม\nถ้าเพิ่งกดไปแล้ว/กดซ้ำ กด "ยกเลิก" (ยอดเดิมบันทึกไว้แล้ว ไม่หาย)')) return; }
+    const fe={type:'feed',date:day,by,feedSrc:fSrc,feedNo:fNo,feedMed:fMed,feedKg:fKg,feedBill:fBill,ts:Date.now()};
     if(vFeedOrderId){ const ro=(currentHouse.feedReqs||[]).find(x=>x&&x._id===vFeedOrderId);   // 📥 รับจากใบสั่ง → ปิดใบด้วยน้ำหนักจริง (ผลต่างเก็บอัตโนมัติ)
       if(ro&&!ro.recvAt){ ro.recvAt=Date.now(); ro.recvDate=day; ro.recvKg=Number(fKg)||0; ro.recvBy=by; fe.orderId=ro._id; } vFeedOrderId=null; }
     currentHouse.vetLog.unshift(fe); added++; }
