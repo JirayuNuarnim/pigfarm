@@ -832,7 +832,7 @@ function setStockExp(farm,cat,name,iso){ const m=farmExpMap(farm), k=stockKey(ca
 // ── ล็อตคงเหลือรายรายการ (FEFO) — สร้างจาก moves: ล็อตรับเข้า(delta>0) เรียงวันหมดอายุเร็วสุดก่อน แล้วหักยอดเบิก/ปรับลดออกตามลำดับ → ของหลายล็อต/หลายวันหมดอายุไม่ถูกยุบรวม ──
 function stockLotsOf(farm,cat,name){
   const moves=(farmStock(farm).moves||[]).filter(m=>m.cat===cat&&m.name===name);
-  let lots=moves.filter(m=>(Number(m.delta)||0)>0).map(m=>({qty:Number(m.delta)||0,exp:m.exp||'',date:m.date||'',ref:m.ref||'',ts:m.ts||0}));
+  let lots=moves.filter(m=>(Number(m.delta)||0)>0).map(m=>({qty:Number(m.delta)||0,exp:m.exp||'',mfg:m.mfg||'',lot:m.lot||'',date:m.date||'',ref:m.ref||'',ts:m.ts||0}));
   lots.sort((a,b)=>{ if(a.exp&&b.exp) return a.exp<b.exp?-1:(a.exp>b.exp?1:(a.ts-b.ts)); if(a.exp) return -1; if(b.exp) return 1; return a.ts-b.ts; }); // มีวันหมดอายุ→เร็วสุดก่อน · ไม่ระบุ→ท้าย
   let out=moves.reduce((s,m)=>{const d=Number(m.delta)||0; return s+(d<0?-d:0);},0);   // ยอดเบิก+ปรับลดรวม → หักแบบ FEFO
   for(let i=0;i<lots.length&&out>0;i++){ const take=Math.min(lots[i].qty,out); lots[i].qty-=take; out-=take; }
@@ -843,8 +843,8 @@ function stockSoonestExp(farm,cat,name){ const ex=stockLotsOf(farm,cat,name).map
 function stockLotsDetailHTML(farm,cat,name){
   const lots=stockLotsOf(farm,cat,name);
   if(!lots.length) return '<span class="sub">ไม่มีล็อตคงเหลือ</span>';
-  return '<div style="font-size:12px"><b>📦 ล็อตคงเหลือ '+fmt(lots.length)+' ล็อต — เบิกล็อตที่หมดอายุก่อน (FEFO):</b><table style="margin-top:6px;width:auto;border-collapse:collapse"><thead><tr><th style="text-align:right">คงเหลือ</th><th>วันหมดอายุ</th><th>รับเมื่อ</th><th>บิล/อ้างอิง</th></tr></thead><tbody>'+
-    lots.map(l=>'<tr><td class="num"><b>'+fmt(l.qty)+'</b></td><td>'+(l.exp?expCellHTML(l.exp):'<span class="sub">ไม่ระบุ</span>')+'</td><td>'+escA(l.date||'-')+'</td><td>'+escA(l.ref||'-')+'</td></tr>').join('')+
+  return '<div style="font-size:12px"><b>📦 ล็อตคงเหลือ '+fmt(lots.length)+' ล็อต — เบิกล็อตที่หมดอายุก่อน (FEFO):</b><table style="margin-top:6px;width:auto;border-collapse:collapse"><thead><tr><th style="text-align:right">คงเหลือ</th><th>วันผลิต</th><th>วันหมดอายุ</th><th>เลขล็อต</th><th>รับเมื่อ</th><th>บิล/อ้างอิง</th></tr></thead><tbody>'+
+    lots.map(l=>'<tr><td class="num"><b>'+fmt(l.qty)+'</b></td><td>'+(l.mfg?escA(sbThaiDate(l.mfg)):'<span class="sub">ไม่ระบุ</span>')+'</td><td>'+(l.exp?expCellHTML(l.exp):'<span class="sub">ไม่ระบุ</span>')+'</td><td>'+(l.lot?escA(l.lot):'<span class="sub">-</span>')+'</td><td>'+escA(l.date||'-')+'</td><td>'+escA(l.ref||'-')+'</td></tr>').join('')+
     '</tbody></table></div>';
 }
 function toggleStockLots(idx){ const el=document.getElementById('lots_'+idx); if(el) el.style.display=(el.style.display==='none'||!el.style.display)?'table-row':'none'; }
@@ -993,7 +993,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690730g';
+const APP_BUILD='690730h';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -7205,7 +7205,7 @@ let stkTfCat='', stkTfTo='';
 function tfNameOpts(){ return (REQ_DATA[stkTfCat]||[]).map(it=>`<option value="${escA(it.name)}">${escA(it.name)}</option>`).join(''); }
 function refreshTfNames(){ const s=$("#stkTfName"); if(s) s.innerHTML=tfNameOpts(); updateTfOnHand(); }
 function updateTfOnHand(){ const el=$("#stkTfOnHand"); if(el){ const n=(($("#stkTfName")||{}).value||'').trim(); el.textContent=n?fmt(stockOnHand(stockFarm,stkTfCat,n)):'-'; } }
-function stockTakeLots(farm,cat,name,qty){ const lots=stockLotsOf(farm,cat,name), out=[]; let need=qty; for(let i=0;i<lots.length&&need>0;i++){ const take=Math.min(lots[i].qty,need); out.push({qty:take,exp:lots[i].exp}); need-=take; } return out; }
+function stockTakeLots(farm,cat,name,qty){ const lots=stockLotsOf(farm,cat,name), out=[]; let need=qty; for(let i=0;i<lots.length&&need>0;i++){ const take=Math.min(lots[i].qty,need); out.push({qty:take,exp:lots[i].exp,mfg:lots[i].mfg||'',lot:lots[i].lot||''}); need-=take; } return out; }
 function stockTransferSubmit(){
   if(!stockCanEdit()){toast('เฉพาะเสมียน/ผู้ดูแล/เจ้าของ');return;}
   const from=stockFarm, cat=(($("#stkTfCat")||{}).value||''), name=(($("#stkTfName")||{}).value||'').trim();
@@ -7219,7 +7219,7 @@ function stockTransferSubmit(){
   if(qty>onHand+1e-9){toast('❌ สต็อกไม่พอ — '+from+' มี "'+name+'" เหลือ '+fmt(onHand)+' (ขอโอน '+fmt(qty)+')');return;}
   const lots=stockTakeLots(from,cat,name,qty), price=catalogPriceOf(cat,name), by=(CURRENT_USER&&CURRENT_USER.name)||'-';
   stockMoveAdd(from,{date:DEMO_DATE_DAY,type:'out',delta:-qty,cat,name,price,by,ref:'โอนไป '+to,note:('โอนออกไป '+to)+(note?' · '+note:'')});
-  lots.forEach(lot=>{ stockMoveAdd(to,{date:DEMO_DATE_DAY,type:'in',delta:lot.qty,cat,name,price,by,ref:'รับโอนจาก '+from,note:('รับโอนจาก '+from)+(note?' · '+note:''),exp:lot.exp||''}); }); // in รายล็อต คงวันหมดอายุเดิม (FEFO)
+  lots.forEach(lot=>{ stockMoveAdd(to,{date:DEMO_DATE_DAY,type:'in',delta:lot.qty,cat,name,price,by,ref:'รับโอนจาก '+from,note:('รับโอนจาก '+from)+(note?' · '+note:''),exp:lot.exp||'',mfg:lot.mfg||'',lot:lot.lot||''}); }); // in รายล็อต คงวันหมดอายุเดิม (FEFO)
   logAudit('คลัง', name, 'โอนสต็อกข้ามฟาร์ม', [{label:'จำนวนที่โอน',from:from,to:to+' · '+fmt(qty)+' หน่วย'}], note);
   syncStock();
   toast('🔄 โอน '+name+' '+fmt(qty)+' → '+to+' · '+from+' เหลือ '+fmt(stockOnHand(from,cat,name))+' ✓');
@@ -7283,8 +7283,12 @@ function renderStock(){ if(vetGuard())return;
         <div class="frow" style="margin-bottom:8px"><label>ราคา/หน่วย (บาท) ${canEditPrice()?'':'<span class="hint">🔒 เจ้าของตั้ง</span>'}</label><input id="stkInPrice" class="cin" type="number" placeholder="0" ${canEditPrice()?'':'readonly style="background:var(--soft)"'}></div>
       </div>
       <div class="grid2">
+        <div class="frow" style="margin-bottom:8px"><label>วันผลิต (ยา/วัคซีน)</label><input id="stkInMfg" class="cin tl" type="date" title="ไม่บังคับ — วันผลิตของล็อตนี้"></div>
         <div class="frow" style="margin-bottom:8px"><label>วันหมดอายุ (ยา/วัคซีน)</label><input id="stkInExp" class="cin tl" type="date" title="ไม่บังคับ — สำหรับยา/วัคซีนที่มีวันหมดอายุ"></div>
+      </div>
+      <div class="grid2">
         <div class="frow" style="margin-bottom:8px"><label>เลขที่บิล/อ้างอิง</label><input id="stkInRef" class="cin tl" placeholder="เช่น INV-001 (ไม่บังคับ)"></div>
+        <div class="frow" style="margin-bottom:8px"><label>เลขล็อต (Lot/Batch)</label><input id="stkInLot" class="cin tl" placeholder="ไม่บังคับ — เลขล็อตข้างขวด/กล่อง"></div>
       </div>
       <div class="grid2">
         <div class="frow" style="margin-bottom:8px"><label>🏭 บริษัท/ร้านที่ส่งของ <span class="hint">(พิมพ์ครั้งเดียว ครั้งหน้าเลือกได้เลย)</span></label><input id="stkInSup" class="cin tl" list="stkSupDL" placeholder="เช่น เบทาโกร / ซีพีเอฟ / ร้านยา ก."><datalist id="stkSupDL">${stockSupplierList().map(s=>`<option value="${escA(s)}">`).join('')}</datalist></div>
@@ -7344,9 +7348,11 @@ function stockReceiveSubmit(){
   const qty=parseFloat($("#stkInQty").value)||0, price=parseFloat($("#stkInPrice").value);
   const ref=($("#stkInRef").value||'').trim(), note=($("#stkInNote").value||'').trim();
   const exp=(($("#stkInExp")||{}).value||'').trim(), sup=(($("#stkInSup")||{}).value||'').trim();
+  const mfg=(($("#stkInMfg")||{}).value||'').trim(), lot=(($("#stkInLot")||{}).value||'').trim();
+  if(mfg&&exp&&mfg>exp){ toast('⚠️ วันผลิตอยู่หลังวันหมดอายุ — ตรวจวันที่อีกครั้ง'); return; }
   if(!name){toast('เลือกรายการที่รับเข้า');return;}
   if(qty<=0){toast('ระบุจำนวนที่รับเข้า (มากกว่า 0)');return;}
-  stockMoveAdd(farm,{date:DEMO_DATE_DAY,type:'in',delta:qty,cat,name,price:isNaN(price)?catalogPriceOf(cat,name):price,by:(CURRENT_USER&&CURRENT_USER.name)||'เสมียน',ref:ref||'รับเข้า',note,exp:exp||'',sup:sup||''});
+  stockMoveAdd(farm,{date:DEMO_DATE_DAY,type:'in',delta:qty,cat,name,price:isNaN(price)?catalogPriceOf(cat,name):price,by:(CURRENT_USER&&CURRENT_USER.name)||'เสมียน',ref:ref||'รับเข้า',note,exp:exp||'',mfg:mfg||'',lot:lot||'',sup:sup||''});
   // วันหมดอายุเก็บที่ "ล็อต" (move) นี้ — ไม่ทับค่ารวมราย item อีกต่อไป · ของหลายล็อตวันหมดอายุต่างกันจะแสดงแยกล็อตได้
   logAudit('คลัง', farm+' · '+name, 'รับเข้า +'+fmt(qty), [{label:'รับเข้าคลัง',from:'-',to:'+'+fmt(qty)}], (sup?('บริษัท '+sup+' · '):'')+(ref?('บิล '+ref):'')+(note?(' · '+note):''));
   syncStock();
@@ -7414,7 +7420,7 @@ function renderStockIntake(){ if(vetGuard())return;
           <td style="${TD};white-space:nowrap">${escA(m.date||'-')}</td>
           <td style="${TD};font-weight:700">${escA(String(m.sup||'').trim()||(isTransfer(m)?'🔄 '+escA(m.ref):'-'))}</td>
           <td style="${TD}"><span class="sub">${REQ_ICON[m.cat]||''} ${escA(m.cat||'-')}</span></td>
-          <td style="${TD}">${escA(m.name||'-')}${m.exp?` <span class="sub" style="white-space:nowrap">⏰ ${escA(m.exp)}</span>`:''}</td>
+          <td style="${TD}">${escA(m.name||'-')}${m.mfg?` <span class="sub" style="white-space:nowrap">🏭 ผลิต ${escA(m.mfg)}</span>`:''}${m.exp?` <span class="sub" style="white-space:nowrap">⏰ หมดอายุ ${escA(m.exp)}</span>`:''}${m.lot?` <span class="sub" style="white-space:nowrap">🔖 ${escA(m.lot)}</span>`:''}</td>
           <td style="${TD};${R};font-weight:800;color:var(--ok)">+${fmt(m.delta||0)}</td>
           <td style="${TD};${R}">${fmt(m.price||0)}</td>
           <td style="${TD};${R};font-weight:800">${fmt(Math.round((Number(m.delta)||0)*(Number(m.price)||0)))}</td>
@@ -7430,12 +7436,12 @@ function exportStockIntake(){
   const rows=stockIntakeRows(); if(!rows.length){toast('ไม่มีรายการรับเข้าตามตัวกรอง');return;}
   let totalVal=0;
   const data=rows.map(m=>{ const v=(Number(m.delta)||0)*(Number(m.price)||0); totalVal+=v;
-    return [m.date||'-', String(m.sup||'').trim()||'-', m.cat||'-', m.name||'-', m.delta||0, m.price||0, Math.round(v), m.ref||'-', m.exp||'-', m.by||'-', m.note||'']; });
+    return [m.date||'-', String(m.sup||'').trim()||'-', m.cat||'-', m.name||'-', m.delta||0, m.price||0, Math.round(v), m.ref||'-', m.mfg||'-', m.exp||'-', m.lot||'-', m.by||'-', m.note||'']; });
   downloadXls('ทะเบียนรับเข้า_'+stockFarm+'.xls', xlsSheet({
     title:'ทะเบียนรับเข้าคลัง — '+stockFarm,
     meta:[{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'คลัง',v:stockFarm},{k:'ตัวกรอง',v:(stkInkSup||'ทุกบริษัท')+' · '+({'7d':'7 วันล่าสุด','30d':'30 วันล่าสุด','all':'ทั้งหมด','custom':(stkInkFrom||'ต้น')+' ถึง '+(stkInkTo||'ล่าสุด')}[stkInkRange]||'')},{k:'ออกเอกสาร',v:DEMO_DATE_SHORT},{k:'ผู้ออก',v:(CURRENT_USER&&CURRENT_USER.name)||'-'}],
-    columns:[{label:'วันที่',type:'text',w:80},{label:'บริษัท/แหล่งที่มา',type:'text',w:160},{label:'หมวด',type:'text',w:110},{label:'รายการ',type:'text',w:200},{label:'จำนวน',type:'num',w:70},{label:'ราคา/หน่วย',type:'money',w:85},{label:'มูลค่า',type:'money',w:95},{label:'เลขบิล',type:'text',w:100},{label:'วันหมดอายุ',type:'text',w:90},{label:'ผู้รับ',type:'text',w:100},{label:'หมายเหตุ',type:'text',w:140}],
-    rows:data, totals:['รวม '+rows.length+' รายการ','','','','','',Math.round(totalVal),'','','','']
+    columns:[{label:'วันที่',type:'text',w:80},{label:'บริษัท/แหล่งที่มา',type:'text',w:160},{label:'หมวด',type:'text',w:110},{label:'รายการ',type:'text',w:200},{label:'จำนวน',type:'num',w:70},{label:'ราคา/หน่วย',type:'money',w:85},{label:'มูลค่า',type:'money',w:95},{label:'เลขบิล',type:'text',w:100},{label:'วันผลิต',type:'text',w:90},{label:'วันหมดอายุ',type:'text',w:90},{label:'เลขล็อต',type:'text',w:100},{label:'ผู้รับ',type:'text',w:100},{label:'หมายเหตุ',type:'text',w:140}],
+    rows:data, totals:['รวม '+rows.length+' รายการ','','','','','',Math.round(totalVal),'','','','','','']
   }));
   toast('ส่งออกทะเบียนรับเข้า '+rows.length+' รายการ ✓');
 }
@@ -7680,10 +7686,10 @@ function exportStockAll(){ // 📊 ดึง Excel รวมคลังเด�
   const ins=mv.filter(m=>m.type==='in');
   if(ins.length){
     sheets.push({name:'ทะเบียนรับเข้า', html:xlsSheet({title:'ทะเบียนรับเข้าคลัง — '+farm, meta,
-      columns:[{label:'วันที่',type:'text',w:90},{label:'หมวด',type:'text',w:120},{label:'รายการ',type:'text',w:200},{label:'จำนวน',type:'num',w:80},{label:'ราคา/หน่วย',type:'money',w:90},{label:'มูลค่า',type:'money',w:100},{label:'วันหมดอายุล็อต',type:'text',w:110},{label:'บริษัท/ร้าน',type:'text',w:140},{label:'บิล/อ้างอิง',type:'text',w:110},{label:'ผู้รับเข้า',type:'text',w:110}],
+      columns:[{label:'วันที่',type:'text',w:90},{label:'หมวด',type:'text',w:120},{label:'รายการ',type:'text',w:200},{label:'จำนวน',type:'num',w:80},{label:'ราคา/หน่วย',type:'money',w:90},{label:'มูลค่า',type:'money',w:100},{label:'วันผลิตล็อต',type:'text',w:110},{label:'วันหมดอายุล็อต',type:'text',w:110},{label:'เลขล็อต',type:'text',w:100},{label:'บริษัท/ร้าน',type:'text',w:140},{label:'บิล/อ้างอิง',type:'text',w:110},{label:'ผู้รับเข้า',type:'text',w:110}],
       rows:ins.map(m=>{ const q=Number(m.delta)||0, p=Number(m.price)||0;
-        return [m.date||'',m.cat||'',m.name||'',q,p,Math.round(q*p*100)/100,(m.exp?fmtISOThai(m.exp):''),m.sup||'',m.ref||'',m.by||'']; }),
-      totals:['รวม','','',ins.reduce((s,m)=>s+(Number(m.delta)||0),0),'',Math.round(ins.reduce((s,m)=>s+(Number(m.delta)||0)*(Number(m.price)||0),0)),'','','','']})});
+        return [m.date||'',m.cat||'',m.name||'',q,p,Math.round(q*p*100)/100,(m.mfg?fmtISOThai(m.mfg):''),(m.exp?fmtISOThai(m.exp):''),m.lot||'',m.sup||'',m.ref||'',m.by||'']; }),
+      totals:['รวม','','',ins.reduce((s,m)=>s+(Number(m.delta)||0),0),'',Math.round(ins.reduce((s,m)=>s+(Number(m.delta)||0)*(Number(m.price)||0),0)),'','','','','','']})});
   }
   if(stockReorderRows(farm).length) sheets.push({name:'รายการต้องซื้อ', html:stockReorderTableHTML(farm)});
   downloadXlsMulti(('คลังยา_'+farm+'_รวม').replace(/[\\\/:*?"<>|]/g,'-')+'.xls', sheets);
