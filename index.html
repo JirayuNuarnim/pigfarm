@@ -1007,7 +1007,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690730l';
+const APP_BUILD='690730m';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -4031,6 +4031,74 @@ function vmDailyGroups(rows,days){ // จัดกลุ่มรายวัน
   return Object.keys(byDate).sort((a,b)=>reqDateKey(b)-reqDateKey(a)).map(d=>({date:d,items:byDate[d].slice().sort((a,b)=>(a.ts||0)-(b.ts||0))}));
 }
 function vmDays(h){ const d=h&&h.intake&&h.intake.dateIn; if(!d) return ''; const p=String(d).split('-'); if(p.length<3) return ''; const dt=new Date(+p[0],+p[1]-1,+p[2]); const n=Math.round((reqToday()-dt)/86400000); return n>0?n:''; }
+/* 📋 สรุปงานประจำวันของหมอ → คัดลอกไปวางใน LINE (Peter 30 ก.ค.) · ตาย/คัด/ขาย + การรักษา + กินได้ · โชว์ คงเหลือ/รับเข้า */
+let vmSumDate='', vmSumShort=false;
+function vmSumDays(){ const s=new Set([DEMO_DATE_DAY]); HOUSES.forEach(h=>{ (h.dailyLog||[]).forEach(e=>{ if(e&&e.date) s.add(e.date); }); (h.vetLog||[]).forEach(e=>{ if(e&&e.date) s.add(e.date); }); });
+  return [...s].sort((a,b)=>reqDateKey(b)-reqDateKey(a)).slice(0,30); }
+function vmDailyText(mine,me,day,short){
+  const N=n=>fmt(Math.round((Number(n)||0)*10)/10);
+  const farms=[...new Set(mine.map(h=>h.farm||'-'))];
+  const out=['🩺 '+me+' · '+day+' '+(DEMO_DATE.getFullYear()+543), farms.join(' · ')+' · '+fmt(mine.length)+' หลัง',''];
+  // ⚰️ ตาย/คัด/ขาย รายหลัง (รวมหลายแถวของวันเดียวกัน) — โชว์ คงเหลือ/รับเข้า
+  const dd=[]; let td=0,tc=0,ts=0;
+  mine.forEach(h=>{ const rs=(h.dailyLog||[]).filter(e=>e&&e.date===day); if(!rs.length) return;
+    const d=rs.reduce((s,e)=>s+(+e.deadN||0),0), c=rs.reduce((s,e)=>s+(+e.cullN||0),0), so=rs.reduce((s,e)=>s+(+e.soldN||0),0);
+    if(!(d||c||so)) return; td+=d; tc+=c; ts+=so;
+    const parts=[]; if(d) parts.push('ตาย '+N(d)); if(c) parts.push('คัด '+N(c)); if(so) parts.push('ขาย '+N(so));
+    dd.push(h.code+' · '+parts.join(' · ')+' → เหลือ '+fmt(h.pigs||0)+'/'+fmt(houseRecvN(h))); });
+  out.push('⚰️ ตาย / คัด / ขาย');
+  if(dd.length){ if(!short) out.push(...dd); out.push('รวม: '+[td?'ตาย '+N(td):'',tc?'คัด '+N(tc):'',ts?'ขาย '+N(ts):''].filter(Boolean).join(' · ')+' ตัว'); }
+  else out.push('— ไม่มีตาย/คัด/ขายวันนี้ —');
+  // 💉 การรักษา — ยุบหลังที่อาการ+ยาเหมือนกัน
+  const tg={}, tOrder=[];
+  mine.forEach(h=>{ (h.vetLog||[]).filter(e=>e&&e.type==='treat'&&e.date===day).forEach(e=>{
+    const key=[String(e.symptoms||'').trim(),String(e.formula||'').trim(),String(e.inject||'').trim(),String(e.note||'').trim()].join('|');
+    if(!tg[key]){ tg[key]={e:e,codes:[]}; tOrder.push(key); } tg[key].codes.push(h.code); }); });
+  if(tOrder.length&&!short){ out.push('','💉 การรักษา');
+    tOrder.forEach(k=>{ const g=tg[k], e=g.e;
+      const head=g.codes.join(' ')+' · '+[String(e.symptoms||'').trim(),String(e.formula||'').trim(),String(e.inject||'').trim()].filter(Boolean).join(' · ');
+      out.push(head||g.codes.join(' '));
+      const nt=String(e.note||'').trim(); if(nt) nt.split('\n').forEach(l=>{ if(l.trim()) out.push('   '+l.trim()); }); }); }
+  else if(tOrder.length) out.push('','💉 การรักษา '+tOrder.reduce((s,k)=>s+tg[k].codes.length,0)+' หลัง');
+  // 🍽️ กินได้ + 🌾 รับอาหารเข้า
+  const eat=[]; let te=0;
+  mine.forEach(h=>{ (h.vetLog||[]).filter(e=>e&&e.type==='intake'&&e.date===day&&(+e.eatKg||0)>0).forEach(e=>{ te+=(+e.eatKg||0); eat.push({c:h.code,no:String(e.eatNo||'').trim(),kg:+e.eatKg||0}); }); });
+  eat.sort((a,b)=>b.kg-a.kg);
+  if(eat.length){ out.push('','🍽️ กินได้วันนี้ รวม '+N(te)+' กก.'); if(!short) eat.forEach(x=>out.push(x.c+' · '+(x.no||'-')+' '+N(x.kg))); }
+  const rc=[]; let tr=0;
+  mine.forEach(h=>{ (h.vetLog||[]).filter(e=>e&&e.type==='feed'&&e.date===day&&(+e.feedKg||0)>0).forEach(e=>{ tr+=(+e.feedKg||0); rc.push({c:h.code,no:String(e.feedNo||'').trim(),kg:+e.feedKg||0}); }); });
+  if(rc.length){ out.push('','🌾 รับอาหารเข้าวันนี้ รวม '+N(tr)+' กก.'); if(!short) rc.forEach(x=>out.push(x.c+' · '+(x.no||'-')+' '+N(x.kg))); }
+  return out.join('\n');
+}
+function vmCopyDaily(){
+  const me=(CURRENT_USER&&CURRENT_USER.name)||'', mine=HOUSES.filter(h=>h.vet===me&&(h.pigs>0||(h.dailyLog||[]).some(e=>e&&e.date===(vmSumDate||DEMO_DATE_DAY))));
+  const day=vmSumDate||DEMO_DATE_DAY;
+  if(!mine.length){ toast('ยังไม่มีหลังที่คุณดูแล'); return; }
+  const txt=vmDailyText(mine,me,day,vmSumShort);
+  const done=()=>toast('📋 คัดลอกสรุป '+day+' แล้ว — ไปวางในไลน์ได้เลย ✓');
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,()=>vmCopyFallback(txt,done)); return; } }catch(e){}
+  vmCopyFallback(txt,done);
+}
+function vmCopyFallback(txt,done){ // เครื่องที่ไม่รองรับ clipboard API (iOS เก่า/หน้าไม่ปลอดภัย) → เลือกข้อความให้กดคัดลอกเอง
+  try{ const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select();
+    const ok=document.execCommand&&document.execCommand('copy'); ta.remove(); if(ok){ done(); return; } }catch(e){}
+  const box=document.getElementById('vmSumPre'); if(box){ box.style.display='block'; box.textContent=txt; try{ const r=document.createRange(); r.selectNodeContents(box); const s=getSelection(); s.removeAllRanges(); s.addRange(r); }catch(e){} }
+  toast('คัดลอกอัตโนมัติไม่ได้ — เลือกข้อความด้านล่างแล้วกดคัดลอกเองได้เลย');
+}
+function vmSumSet(k,v){ if(k==='date') vmSumDate=v; else if(k==='short') vmSumShort=!vmSumShort; renderVetMe(); }
+function vmSumCardHTML(mine,me){
+  const day=vmSumDate||DEMO_DATE_DAY, days=vmSumDays();
+  const txt=mine.length?vmDailyText(mine,me,day,vmSumShort):'';
+  return `<div class="card"><h3>📋 สรุปงานประจำวัน — คัดลอกส่งไลน์ <span class="more">${escA(day)}${vmSumShort?' · แบบสั้น':''}</span></h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn sm" onclick="vmCopyDaily()">📋 คัดลอกสรุป${vmSumDate&&vmSumDate!==DEMO_DATE_DAY?'':'วันนี้'}</button>
+      <select class="cin tl" style="max-width:150px" onchange="vmSumSet('date',this.value)">${days.map(d=>`<option value="${escA(d)}" ${d===day?'selected':''}>${escA(d)}${d===DEMO_DATE_DAY?' (วันนี้)':''}</option>`).join('')}</select>
+      <button class="btn ghost sm" onclick="vmSumSet('short')">${vmSumShort?'📄 แบบเต็ม':'📝 แบบสั้น'}</button>
+    </div>
+    <div style="margin-top:10px;background:var(--soft);border-radius:11px;padding:11px 13px;white-space:pre-wrap;font-size:12.5px;line-height:1.6;max-height:340px;overflow:auto">${escA(txt||'— ยังไม่มีข้อมูลของวันนี้ —')}</div>
+    <pre id="vmSumPre" style="display:none;white-space:pre-wrap;font-size:12.5px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:8px"></pre>
+    <div class="sub" style="margin-top:7px">ข้อความสร้างจากบันทึกของวันที่เลือก — ตาย/คัด/ขาย (พร้อม คงเหลือ/รับเข้า) · การรักษา (หลังที่อาการเหมือนกันยุบรวมบรรทัดเดียว) · กินได้ · รับอาหารเข้า</div></div>`;
+}
 function renderVetMe(){
   histPush('vetme',renderVetMe);
   const me=(CURRENT_USER&&CURRENT_USER.name)||'';
@@ -4072,6 +4140,7 @@ function renderVetMe(){
       <div class="kpi"><div class="lab">💊 ต้นทุนยารวม</div><div class="val">${fmt(medCost)}</div></div>
     </div>
     ${(best&&worst&&active.length>1)?`<div class="sub" style="margin:10px 2px">⭐ หลังเด่นสุด: <b>${escA(best.code)}</b> (${houseScore(best)}%) · ⚠️ ควรดูแลเป็นพิเศษ: <b>${escA(worst.code)}</b> (${houseScore(worst)}%)</div>`:''}
+    ${mine.length?vmSumCardHTML(mine,me):''}
 
     <div class="card"><h3>🟢 หลังที่กำลังเลี้ยง <span class="more">${fmt(active.length)} หลัง</span></h3>
       ${active.length?`<div style="overflow-x:auto"><table>
