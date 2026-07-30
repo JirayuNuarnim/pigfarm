@@ -993,7 +993,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690730b';
+const APP_BUILD='690730c';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -3235,7 +3235,8 @@ function exportClerkFeedReq(){
 /* ---------- 🚚 รับอาหารรายวัน (เสมียน): ประวัติการรับอาหารเข้าหลังจริง (บันทึก "การรับอาหาร" ของหมอ) + เทียบกับใบสั่งอาหาร ---------- */
 let cfvFarm='', cfvHouse='', cfvVet='', cfvDate=DEMO_DATE_DAY, cfvDateMode='day', cfvDateFrom='', cfvDateTo='';   // 📅 เปิดหน้ามา = วันนี้ (Peter สั่ง 27 ก.ค.: "วันนี้ใครรับอาหารบ้าง หลังไหนรับ เลือกวันที่ได้")
 function cfvDayStr(off){ const d=new Date(DEMO_DATE.getFullYear(),DEMO_DATE.getMonth(),DEMO_DATE.getDate()+(off||0)); return d.getDate()+' '+_THMON[d.getMonth()]; }
-function clerkFeedRecvAll(){return myHouses().flatMap(h=>(h.vetLog||[]).filter(e=>e&&e.type==='feed').map(r=>Object.assign({},r,{house:h.code,farm:h.farm||'ไม่ระบุฟาร์ม',hvet:h.vet||''})));}
+function vetRecBlank(e){ return !!e&&(VET_EDIT_FIELDS[e.type]||[]).length>0&&(VET_EDIT_FIELDS[e.type]||[]).every(([k])=>String(e[k]==null?'':e[k]).trim()===''); }  // 👻 แถวเปล่า = ผู้ใช้ล้างข้อมูลออกหมด (เจตนาลบ) จากเครื่องรุ่นเก่า → ไม่นับเป็นเหตุการณ์
+function clerkFeedRecvAll(){return myHouses().flatMap(h=>(h.vetLog||[]).filter(e=>e&&e.type==='feed'&&!vetRecBlank(e)).map(r=>Object.assign({},r,{house:h.code,farm:h.farm||'ไม่ระบุฟาร์ม',hvet:h.vet||''})));}
 /* ══ 🚚 ตามรอยใบสั่งอาหาร → ของเข้าหลัง (กติกาเจ้าของ 30 ก.ค.: อาหารที่เข้าหลังไหน "ชนยอด" ใบสั่งของหลังนั้นได้เลย ไม่ยึดเบอร์
       — เจ้าของสั่งเปลี่ยนเบอร์กลางทางได้ เบอร์ต่างกันจึงเป็นแค่ข้อมูลบอก ไม่ใช่ข้อผิดพลาด) ══ */
 let cfoDays=14, cfoFarm='', cfoHouse='', cfoSort='code', cfoOnly='';
@@ -3249,7 +3250,7 @@ function cfoBuild(){ // คืนข้อมูลรายหลัง: ใบ
     try{ ensureFeedIds(h); ensureVetIds(h); }catch(e){}
     const orders=(h.feedReqs||[]).map(r=>{ const dt=parseThaiDate(r.date); return dt?{r:r,dt:dt}:null; }).filter(Boolean)
       .filter(o=>!start||o.dt>=start).sort((a,b)=>a.dt-b.dt);
-    const arrs=(h.vetLog||[]).filter(e=>e&&e.type==='feed').map(e=>{ const dt=parseThaiDate(e.date), kg=Number(e.feedKg)||0;
+    const arrs=(h.vetLog||[]).filter(e=>e&&e.type==='feed'&&!vetRecBlank(e)).map(e=>{ const dt=parseThaiDate(e.date), kg=Number(e.feedKg)||0;
         return dt?{e:e,dt:dt,kg:kg,left:kg,noKg:!(String(e.feedKg==null?'':e.feedKg).trim()!==''&&kg>0)}:null; }).filter(Boolean)   // 🟠 ของมาแล้วแต่หมอไม่กรอก กก. → ชนยอดไม่ได้ ต้องแยกให้เห็น (ไม่ใช่ "ยังไม่ได้รับ")
       .filter(a=>!start||a.dt>=start).sort((a,b)=>a.dt-b.dt||((a.e.ts||0)-(b.e.ts||0)));
     if(!orders.length&&!arrs.length) return;
@@ -5035,7 +5036,14 @@ function saveMedEdit(hid,id){ if(blockIfReadonly())return;
     }
     if(touched) syncStock();
   }
-  if(changes.length){ logHouseEdit(h,changes,'แก้ไขรายการเบิกยา — '+(rec.name||'')+' · '+(rec.date||'')); syncHouseVet(h); toast('บันทึกการแก้ไขรายการเบิกยาแล้ว ('+changes.length+' ช่อง) ✓'); }
+  // 🗑 ล้างชื่อยา+จำนวนออกหมด = เจตนาลบรายการเบิก (กติกาเจ้าของ 30 ก.ค.) → ลบทิ้งจริง · สต็อกถูกคืนไปแล้วในขั้นปรับยอดด้านบน (qty ใหม่ = 0)
+  if(String(rec.name||'').trim()===''&&!(Number(rec.qty)>0)){
+    const idx=(h.meds||[]).findIndex(m=>m&&m._id===id); if(idx>=0) h.meds.splice(idx,1);
+    logHouseEdit(h,[{label:'ลบรายการเบิกยา',from:(rec.date||'-')+' · '+(oldName||'-')+' '+fmt(oldQty),to:'ลบออก (ล้างข้อมูลครบทุกช่อง)'}],'ลบรายการเบิกยา — ผู้ใช้ล้างข้อมูลออกหมด ระบบถือเป็นเจตนาลบ · คืนสต็อกแล้ว');
+    try{ logAudit('รายการเบิกยา',(h.farm||'')+' · '+h.code,'ลบรายการเบิก (ล้างข้อมูลออกหมด)',[{label:'รายการ',from:(oldName||'-')+' '+fmt(oldQty),to:'ลบ'}],''); }catch(x){}
+    syncHouseVet(h); toast('🗑 ล้างข้อมูลออกหมด = ลบรายการเบิกยาให้แล้ว ✓ (คืนสต็อก · ดูของเดิมในประวัติแก้ไข)');
+  }
+  else if(changes.length){ logHouseEdit(h,changes,'แก้ไขรายการเบิกยา — '+(rec.name||'')+' · '+(rec.date||'')); syncHouseVet(h); toast('บันทึกการแก้ไขรายการเบิกยาแล้ว ('+changes.length+' ช่อง) ✓'); }
   else toast('ไม่มีการเปลี่ยนแปลง');
   medEdit={hid:null,id:null};
   rerenderCurrent();
@@ -8049,10 +8057,25 @@ function saveVetEdit(hid,id){ if(blockIfReadonly())return;
     }
   });
   if(changes.length){
-    h.editLog=h.editLog||[];
-    h.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',_dom:'vet',changes:changes,note:'แก้ไขประวัติหมอ — '+(VET_TYPE_LABEL[rec.type]||'')+' · '+(rec.date||'')});
-    syncHouseVet(h); // ซิงก์ช่อง "งานหมอ" (v2) — เก็บการแก้ไขประวัติหมอ + ประวัติแก้ลงช่อง vet
-    toast('บันทึกการแก้ไขแล้ว ('+changes.length+' ช่อง) ✓');
+    // 🗑 ล้างข้อมูลออกหมดทุกช่อง = เจตนาลบรายการ (กติกาเจ้าของ 30 ก.ค.) → ลบทิ้งจริง ไม่ทิ้งแถวเปล่าค้างตาราง · ค่าเดิมเก็บครบในประวัติแก้ไข กู้ได้
+    const blank=(VET_EDIT_FIELDS[rec.type]||[]).every(([key])=>String(rec[key]==null?'':rec[key]).trim()==='');
+    if(blank){ const lbl=VET_TYPE_LABEL[rec.type]||'ประวัติหมอ';
+      const was=changes.map(c=>c.label+' '+c.from).join(' · ');
+      const idx=(h.vetLog||[]).findIndex(e=>e&&e._id===id); if(idx>=0) h.vetLog.splice(idx,1);
+      if(rec.orderId){ const ro=(h.feedReqs||[]).find(x=>x&&x._id===rec.orderId); if(ro){ delete ro.recvAt; delete ro.recvDate; delete ro.recvKg; delete ro.recvBy; } }  // ปิดใบสั่งด้วยรายการนี้ไว้ → คืนใบเป็นรอรับ
+      h.editLog=h.editLog||[];
+      h.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',_dom:'vet',
+        changes:[{label:'ลบ'+lbl,from:(rec.date||'-')+' · '+was,to:'ลบออก (ล้างข้อมูลครบทุกช่อง)'}],
+        note:'ลบ'+lbl+' — ผู้ใช้ล้างข้อมูลออกหมด ระบบถือเป็นเจตนาลบ · '+(rec.date||'')});
+      try{ logAudit('ประวัติหมอ',(h.farm||'')+' · '+h.code,'ลบ'+lbl+' (ล้างข้อมูลออกหมด)',[{label:lbl,from:(rec.date||'-')+' · '+was,to:'ลบ'}],''); }catch(x){}
+      _cfoIdx=null; syncHouseVet(h);
+      toast('🗑 ล้างข้อมูลออกหมด = ลบรายการ'+lbl+'ให้แล้ว ✓ (ดูของเดิมได้ในประวัติแก้ไข)');
+    } else {
+      h.editLog=h.editLog||[];
+      h.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',_dom:'vet',changes:changes,note:'แก้ไขประวัติหมอ — '+(VET_TYPE_LABEL[rec.type]||'')+' · '+(rec.date||'')});
+      _cfoIdx=null; syncHouseVet(h); // ซิงก์ช่อง "งานหมอ" (v2) — เก็บการแก้ไขประวัติหมอ + ประวัติแก้ลงช่อง vet
+      toast('บันทึกการแก้ไขแล้ว ('+changes.length+' ช่อง) ✓');
+    }
   } else toast('ไม่มีการเปลี่ยนแปลง');
   vetEdit={hid:null,id:null};
   rerenderCurrent();
@@ -8077,7 +8100,7 @@ function vetLogDeleteByOwner(hid,id,sig){ // 🗑 เจ้าของลบป
 // ตารางประวัติของหมอ — การรักษา / รับอาหาร / กินได้ (withEdit=true → แก้ไขในแถวได้ · เจ้าของมี 🗑 ลบรายการที่ลงผิด)
 function vetLogHTML(h,withEdit){
   ensureVetIds(h);
-  const log=h.vetLog||[];
+  const log=(h.vetLog||[]).filter(e=>!vetRecBlank(e));   // ไม่โชว์แถวเปล่าที่มาจากเครื่องรุ่นเก่า (ล้างข้อมูลออกหมด = เจตนาลบ)
   const treat=log.filter(e=>e.type==='treat');
   const feed=log.filter(e=>e.type==='feed');
   const intake=log.filter(e=>e.type==='intake');
