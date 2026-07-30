@@ -993,7 +993,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690730f';
+const APP_BUILD='690730g';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -3262,7 +3262,12 @@ function cfoBuild(){ // คืนข้อมูลรายหลัง: ใบ
       o.got=0; o.parts=[]; });
     arrs.forEach(a=>{ if(!a.e.orderId) return; const o=orders.find(x=>x.r&&x.r._id===a.e.orderId); // 1) หมอกด "📥 รับใบนี้" = ผูกตรง เชื่อก่อนเสมอ
       if(!o||a.left<=0.001) return; o.got+=a.left; o.parts.push({a:a,kg:a.left,linked:true}); a.left=0; });
-    orders.forEach(o=>{ if(o.target==null) return;      // 2) ชนยอดตามเวลา: ของที่มาวันเดียวกันหรือหลังวันสั่ง · ใบเก่าได้ก่อน · ไม่สนเบอร์
+    orders.forEach(o=>{      // 2) ชนยอดตามเวลา: ของที่มาวันเดียวกันหรือหลังวันสั่ง · ใบเก่าได้ก่อน · ไม่สนเบอร์
+      if(o.target==null){    // 📦 สั่งเป็น "กระสอบ" แต่รับเป็นกิโล = ถูกต้องตามงานจริง (ฟาร์มคิดราคาด้วยกิโล) → ของที่เข้ามาเที่ยวแรกหลังวันสั่ง ถือว่าปิดใบนี้ ไม่ต้องแปลงหน่วย
+        if(o.parts.length) return;
+        const a=arrs.find(x=>x.left>0.001&&x.dt>=o.dt);
+        if(a){ o.got+=a.left; o.parts.push({a:a,kg:a.left}); a.left=0; o.unitDiff=true; }
+        return; }
       arrs.forEach(a=>{ if(a.left<=0.001||a.dt<o.dt||o.got>=o.target-0.5) return;
         const need=o.target-o.got;
         const use=(a.left<=need*1.1+50)?a.left:need;    // ของมาเกินยอดเล็กน้อย (เช่น สั่ง 4,000 มา 4,013) = นับเข้าใบนี้ทั้งเที่ยว โชว์เป็น (+13) · มาเกินมากถึงตัดแบ่งให้ใบถัดไป
@@ -3271,7 +3276,9 @@ function cfoBuild(){ // คืนข้อมูลรายหลัง: ใบ
     orders.forEach(o=>{
       o.days=Math.round((today-o.dt)/86400000);
       o.noKgArr=arrs.filter(a=>a.noKg&&a.dt>=o.dt);   // ของเข้าที่ยังไม่มีน้ำหนัก (หลังวันสั่ง) — สาเหตุจริงของ "ค้างนาน" ส่วนใหญ่
-      o.st=(o.target==null)?'sack':(o.got>=o.target-0.5?'full':(o.noKgArr.length?'nokg':(o.got>0.001?'partial':'wait')));
+      o.st=(o.target==null)
+        ? (o.got>0.001?'full':(o.noKgArr.length?'nokg':'wait'))          // 📦 ใบหน่วยกระสอบ: ของเข้าแล้ว = ปิดใบ (ไม่คิดขาด/เกิน เพราะคนละหน่วย)
+        : (o.got>=o.target-0.5?'full':(o.noKgArr.length?'nokg':(o.got>0.001?'partial':'wait')));
       o.miss=(o.target==null)?null:Math.max(0,Math.round((o.target-o.got)*10)/10);
       o.over=(o.target==null)?null:Math.round((o.got-o.target)*10)/10;
       o.changed=[...new Set(o.parts.map(p=>feedNoKey(p.a.e.feedNo)).filter(nk=>nk&&o.no&&nk!==o.no))];
@@ -3280,12 +3287,13 @@ function cfoBuild(){ // คืนข้อมูลรายหลัง: ใบ
     const extra=arrs.filter(a=>a.left>0.5);
     const noKgArr=arrs.filter(a=>a.noKg);
     const ordKg=orders.reduce((s,o)=>s+(o.target||0),0), gotKg=orders.reduce((s,o)=>s+o.got,0);
+    const missKg=orders.filter(o=>o.target!=null).reduce((s,o)=>s+(o.miss||0),0);   // ขาดจริงคิดเฉพาะใบที่สั่งเป็นกิโล (ใบกระสอบเทียบกิโลตรงๆ ไม่ได้ ปิดด้วยของที่รับ)
     const waitN=orders.filter(o=>o.st==='wait'||o.st==='partial').length, lateN=orders.filter(o=>o.late).length;
     const noKgN=orders.filter(o=>o.st==='nokg').length;
     const worst=orders.filter(o=>o.st==='wait'||o.st==='partial').reduce((m,o)=>Math.max(m,o.days),0);
     out.push({farm:farm,house:h.code,hid:h.id,vet:h.vet||'',orders:orders,extra:extra,noKgArr:noKgArr,ordKg:ordKg,gotKg:Math.round(gotKg*10)/10,
-      miss:Math.max(0,Math.round((ordKg-gotKg)*10)/10),waitN:waitN,lateN:lateN,noKgN:noKgN,worst:worst,
-      sackPend:orders.filter(o=>o.st==='sack').length,changedN:orders.filter(o=>o.changed.length).length,
+      miss:Math.round(missKg*10)/10,waitN:waitN,lateN:lateN,noKgN:noKgN,worst:worst,sackN2:orders.filter(o=>o.unitDiff).length,
+      sackN:orders.filter(o=>o.sack!=null).length,changedN:orders.filter(o=>o.changed.length).length,
       st:(!orders.length?'none':(lateN?'late':(noKgN?'nokg':(waitN?'wait':'full'))))});
   });
   return out.sort((a,b)=>String(a.farm).localeCompare(String(b.farm),'th')||(cfoSort==='worst'?(b.worst-a.worst||b.miss-a.miss):0)||byCode({code:a.house},{code:b.house}));
@@ -3298,6 +3306,7 @@ function cfoTileTxt(r){
   if(r.st==='late') return (r.miss>0?'ขาด '+fmt(r.miss)+' · ':'ค้าง ')+r.worst+' ว';
   if(r.st==='nokg') return 'รอใส่ กก. '+r.noKgN;
   if(r.st==='wait') return r.miss>0?('ขาด '+fmt(r.miss)):'รอรับ';
+  if(!(r.ordKg>0)) return 'รับ '+fmt(Math.round(r.gotKg))+' กก.';   // ทั้งหลังสั่งเป็นกระสอบ → โชว์ยอดที่รับจริง (เทียบกิโลกับกระสอบตรงๆ ไม่ได้)
   return fmt(Math.round(r.ordKg))+'→'+fmt(Math.round(r.gotKg));
 }
 function cfoPick(k){ cfoHouse=(cfoHouse===k)?'':k; renderClerkFeedRecv(); if(cfoHouse){ setTimeout(()=>{ const el=document.getElementById('cfoDetail'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); },40); } }
@@ -3333,18 +3342,23 @@ function cfoFixKg(hid,id){ // ✍️ เติมน้ำหนักให้�
   renderClerkFeedRecv();
 }
 function cfoOpenHouse(id){ const h=HOUSES.find(x=>x.id===id); if(!h) return; if(ROLE==='owner'||ROLE==='admin') viewRole='clerk'; openForm(id); }
-function cfoStTxt(o){ return o.st==='full'?('ยอดชนครบ'+((o.over&&Math.abs(o.over)>=0.5)?' ('+(o.over>0?'+':'')+o.over+')':''))
-  :o.st==='nokg'?('ของมาแล้ว แต่ยังไม่ใส่น้ำหนัก '+o.noKgArr.length+' ครั้ง')
-  :o.st==='sack'?'หน่วยกระสอบ — ยังไม่ตั้ง กก./กระสอบ':o.st==='partial'?('ได้บางส่วน ขาด '+o.miss+' กก. · '+o.days+' วัน'):('รอรับ '+o.days+' วัน'+(o.late?' (เกิน 4 วัน)':'')); }
+function cfoStTxt(o){
+  if(o.st==='full') return o.unitDiff?('ของเข้าแล้ว '+Math.round(o.got)+' กก. (สั่ง '+o.sack+' กระสอบ)')
+    :('ยอดชนครบ'+((o.over&&Math.abs(o.over)>=0.5)?' ('+(o.over>0?'+':'')+o.over+')':''));
+  if(o.st==='nokg') return 'ของมาแล้ว แต่ยังไม่ใส่น้ำหนัก '+o.noKgArr.length+' ครั้ง';
+  if(o.st==='partial') return 'ได้บางส่วน ขาด '+o.miss+' กก. · '+o.days+' วัน';
+  return 'รอรับ '+o.days+' วัน'+(o.late?' (เกิน 4 วัน)':'');
+}
 function cfoOrderLine(o){ // แถวใบสั่ง 1 ใบ พร้อมของที่มาชน
   const chip=(t,bg,fg)=>'<span style="background:'+bg+';color:'+fg+';border-radius:8px;padding:1px 8px;font-size:11.5px;font-weight:700;white-space:nowrap">'+t+'</span>';
-  const st=o.st==='full'?chip('✅ ยอดชนครบ'+((o.over&&Math.abs(o.over)>=0.5)?' ('+(o.over>0?'+':'')+fmt(o.over)+')':''),'#e9f5ee','#1d7a53')
+  const st=(o.st==='full'&&o.unitDiff)?chip('✅ ของเข้าแล้ว '+fmt(Math.round(o.got))+' กก. (สั่ง '+fmt(o.sack)+' กระสอบ)','#e9f5ee','#1d7a53')
+    :o.st==='full'?chip('✅ ยอดชนครบ'+((o.over&&Math.abs(o.over)>=0.5)?' ('+(o.over>0?'+':'')+fmt(o.over)+')':''),'#e9f5ee','#1d7a53')
     :o.st==='nokg'?chip('📥 ของมาแล้ว แต่ยังไม่ใส่น้ำหนัก ('+o.noKgArr.length+' ครั้ง)','#eaf1f8','#2d5f8a')
-    :o.st==='sack'?chip('📦 หน่วยกระสอบ — ยังไม่ตั้ง กก./กระสอบ','#eef1f0','#5f7570')
+    
     :o.st==='partial'?chip((o.late?'⚠️ ':'')+'🕐 ได้บางส่วน ขาด '+fmt(o.miss)+' กก. · '+o.days+' วัน',o.late?'#fbe9e7':'#fdf3e0',o.late?'#c0392b':'#b7791f')
     :chip((o.late?'⚠️ ':'')+'🕐 รอรับ '+o.days+' วัน',o.late?'#fbe9e7':'#fdf3e0',o.late?'#c0392b':'#b7791f');
   const ordTxt=(o.sack!=null)?(fmt(o.sack)+' กระสอบ'+(o.target!=null?' (= '+fmt(o.target)+' กก.)':'')):fmt(Number(o.r.qty)||0)+' กก.';
-  return '<div style="border-left:3px solid '+(o.st==='full'?'#9fd0b5':o.late?'#e0a0a0':o.st==='nokg'?'#a9c4de':o.st==='sack'?'#d2dbd8':'#e5b96e')+';padding:7px 0 7px 10px;margin-bottom:9px">'
+  return '<div style="border-left:3px solid '+(o.st==='full'?'#9fd0b5':o.late?'#e0a0a0':o.st==='nokg'?'#a9c4de':'#e5b96e')+';padding:7px 0 7px 10px;margin-bottom:9px">'
     +'<div style="display:flex;gap:9px;align-items:baseline;flex-wrap:wrap">'
     +'<b style="font-size:13px">📅 '+escA(o.r.date)+'</b><span class="sub" style="margin:0">สั่ง <b>'+ordTxt+'</b>'+(o.noFull?' · เบอร์ <b>'+escA(o.noFull)+'</b>':'')+(o.r.feedSrc?' · 🏭 '+escA(o.r.feedSrc):'')+(reqTimeStr(o.r)?' · ⏱ '+reqTimeStr(o.r)+' น.':'')+'</span>'+st+'</div>'
     +(o.parts.length?'<div style="margin-top:5px;display:flex;flex-direction:column;gap:3px">'+o.parts.map(p=>{
@@ -3471,8 +3485,8 @@ function renderClerkFeedRecv(){ if(vetGuard())return;
     ${(function(){ // 🚚 ตามรอยใบสั่ง → ของเข้าหลัง · มองหลายหลังพร้อมกัน (กติกา "ยอดชนกัน" ไม่ยึดเบอร์)
       const rows=cfoBuild();
       const farmsAll=[...new Set(rows.map(r=>r.farm))].sort((a,b)=>{const i=orderedFarms.indexOf(a),j=orderedFarms.indexOf(b);return (i<0?99:i)-(j<0?99:j);});
-      const shown=rows.filter(r=>(!cfoFarm||r.farm===cfoFarm)&&(!cfoOnly||(cfoOnly==='late'?r.lateN>0:cfoOnly==='wait'?r.waitN>0:cfoOnly==='chg'?r.changedN>0:cfoOnly==='sack'?r.sackPend>0:cfoOnly==='nokg'?r.noKgN>0:true)));
-      const tot=rows.reduce((a,r)=>{a.wait+=r.waitN;a.late+=r.lateN;a.chg+=r.changedN;a.sack+=r.sackPend;a.nokg+=r.noKgN;a.full+=r.orders.filter(o=>o.st==='full').length;return a;},{wait:0,late:0,chg:0,sack:0,nokg:0,full:0});
+      const shown=rows.filter(r=>(!cfoFarm||r.farm===cfoFarm)&&(!cfoOnly||(cfoOnly==='late'?r.lateN>0:cfoOnly==='wait'?r.waitN>0:cfoOnly==='chg'?r.changedN>0:cfoOnly==='nokg'?r.noKgN>0:true)));
+      const tot=rows.reduce((a,r)=>{a.wait+=r.waitN;a.late+=r.lateN;a.chg+=r.changedN;a.nokg+=r.noKgN;a.full+=r.orders.filter(o=>o.st==='full').length;return a;},{wait:0,late:0,chg:0,nokg:0,full:0});
       const noKgList=rows.flatMap(r=>(r.noKgArr||[]).map(a=>({farm:r.farm,house:r.house,hid:r.hid,a:a}))).sort((x,y)=>y.a.dt-x.a.dt);
       const dayBtn=(v,t)=>`<button type="button" class="btn sm${String(cfoDays)===String(v)?'':' ghost'}" onclick="cfoSet('days','${v}')">${t}</button>`;
       const chipBtn=(k,t,bg,fg,n)=>n?`<span onclick="cfoSet('only','${k}')" style="cursor:pointer;background:${cfoOnly===k?fg:bg};color:${cfoOnly===k?'#fff':fg};border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:700">${t} ${fmt(n)}</span>`:'';
@@ -3493,11 +3507,10 @@ function renderClerkFeedRecv(){ if(vetGuard())return;
         ${chipBtn('late','⚠️ ของยังไม่มา เกิน 4 วัน','#fbe9e7','#c0392b',tot.late)}
         ${chipBtn('wait','🕐 รอรับ/ยังขาด','#fdf3e0','#b7791f',tot.wait)}
         ${chipBtn('chg','🔵 เปลี่ยนเบอร์','#eaf1f8','#2d5f8a',tot.chg)}
-        ${chipBtn('sack','📦 กระสอบรอตั้งค่า','#eef1f0','#5f7570',tot.sack)}
         ${tot.full?`<span style="background:#e9f5ee;color:#1d7a53;border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:700">✅ ยอดชนครบ ${fmt(tot.full)}</span>`:''}
         ${cfoOnly?`<a href="#" onclick="cfoSet('only','${cfoOnly}');return false" style="align-self:center;font-size:12.5px;color:var(--info)">ล้างตัวกรองสถานะ</a>`:''}
       </div>
-      ${['owner','admin'].includes(effRole())?`<div class="frow" style="margin-top:11px;margin-bottom:0"><label>🌾 อาหาร 1 กระสอบ = กี่กิโล <span class="hint">(ใส่แล้วใบสั่งหน่วย "กระสอบ" จะชนยอดกับของที่รับเป็นกิโลได้อัตโนมัติ · เว้น 0 = ไม่แปลง)</span></label>
+      ${['owner','admin'].includes(effRole())?`<div class="frow" style="margin-top:11px;margin-bottom:0"><label>🌾 อาหาร 1 กระสอบ = กี่กิโล <span class="hint">(ไม่ใส่ก็ได้ — ใบสั่งหน่วยกระสอบปิดด้วยของที่รับเป็นกิโลอยู่แล้ว · ใส่ไว้เพื่อดูค่าเทียบ กก. บนใบสั่งเฉยๆ)</span></label>
         <div style="display:flex;gap:8px;align-items:center"><input class="cin tl" id="cfoSackIn" type="number" step="0.1" style="max-width:130px" value="${FEED_SACK&&Number(FEED_SACK.def)>0?Number(FEED_SACK.def):''}" placeholder="เช่น 30">
         <button class="btn sm" onclick="cfoSackSave(document.getElementById('cfoSackIn').value)">บันทึกค่านี้</button></div></div>`:''}
       ${shown.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-top:12px">
@@ -3505,7 +3518,7 @@ function renderClerkFeedRecv(){ if(vetGuard())return;
           return `<div onclick="cfoPick('${escA(k)}')" title="${escA(r.farm+' · '+r.house+(r.vet?' · 🩺 '+r.vet:''))}" style="cursor:pointer;background:${c.bg};border:${on?'2px':'1px'} solid ${on?c.sub:c.bd};border-radius:10px;padding:7px 8px;text-align:center">
             <div style="font-size:13px;font-weight:800;color:${c.fg}">${escA(r.house)}</div>
             <div style="font-size:10.5px;font-weight:700;color:${c.sub};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cfoTileTxt(r)}</div>
-            ${(r.changedN||r.sackPend)?`<div style="font-size:9.5px;color:#2d5f8a;margin-top:1px">${r.changedN?'เปลี่ยนเบอร์':''}${(r.changedN&&r.sackPend)?' · ':''}${r.sackPend?'กระสอบ':''}</div>`:''}
+            ${r.changedN?`<div style="font-size:9.5px;color:#2d5f8a;margin-top:1px">เปลี่ยนเบอร์</div>`:''}
           </div>`; }).join('')}
       </div>
       <div class="sub" style="margin-top:9px">แตะช่องหลังเพื่อดูไทม์ไลน์ · <b style="color:#1a5c3f">เขียว</b> = ของมาครบยอดที่สั่ง · <b style="color:#22506f">ฟ้า</b> = ของมาแล้วแต่ยังไม่ใส่น้ำหนัก · <b style="color:#8a6a20">เหลือง</b> = ยังขาด/รอรับ · <b style="color:#8f2f2f">แดง</b> = ของยังไม่มาเกิน 4 วัน · <b style="color:#5f7570">เทา</b> = ไม่มีใบสั่งในช่วงนี้</div>`
@@ -7938,9 +7951,10 @@ function feedReqSig(e){ return encodeURIComponent([(e&&e.feedNo)||'',(e&&e.date)
    ใบสั่ง = รายการรอรับ · หมอกดรับจากใบสั่ง → ปิดใบด้วยน้ำหนักจริง + เก็บผลต่าง ── */
 function feedReqStatusHTML(r){
   const o=(r&&r._id!=null)?cfoIndex()[r._id]:null;   // 🚚 ใช้ตัวชนยอดชุดเดียวกับหน้ารับอาหารรายวัน — ทุกหน้าจึงบอกสถานะตรงกัน (ไม่ต้องรอหมอกด "รับใบนี้")
-  if(o&&o.st!=='sack'){
+  if(o){
     const chg=o.changed.length?' <span style="background:#eaf1f8;color:#2d5f8a;border-radius:7px;padding:1px 6px;font-size:11px;font-weight:700">เปลี่ยนเบอร์ '+escA(o.changed[0])+'</span>':'';
     if(o.st==='nokg') return '<span style="background:#eaf1f8;color:#2d5f8a;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">📥 ของมาแล้ว รอใส่น้ำหนัก</span>';
+    if(o.st==='full'&&o.unitDiff) return '<span style="background:#e6f4ea;color:#1e7e4f;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">✅ ของเข้าแล้ว '+fmt(Math.round(o.got))+' กก.</span>';
     if(o.st==='full') return '<span style="background:#e6f4ea;color:#1e7e4f;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">✅ ของเข้าครบ '+fmt(Math.round(o.got*10)/10)+' กก.'+((o.over&&Math.abs(o.over)>=0.5)?' ('+(o.over>0?'+':'')+fmt(o.over)+')':'')+(o.parts.length?' · '+escA(o.parts[o.parts.length-1].a.e.date):'')+'</span>'+chg;
     const bg=o.late?'#fdecea':'#fdf3e0', fg=o.late?'#c0392b':'#b7791f';
     if(o.st==='partial') return '<span style="background:'+bg+';color:'+fg+';border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">🕐 ได้ '+fmt(Math.round(o.got*10)/10)+' ขาด '+fmt(o.miss)+' กก. · '+o.days+' วัน'+(o.late?' ⚠️':'')+'</span>'+chg;
