@@ -907,6 +907,30 @@ const FEED_STD_DEF=[
   {a:135,b:null,w:'112 กก. ขึ้นไป',no:'130 หมูใหญ่',kg:3.28}
 ];
 let FEED_STD=FEED_STD_DEF.slice(), feedStdOpen=false;
+/* 💰 ตารางราคาอาหารรายเบอร์ เทียบทุกเจ้า (บ./กก.) — ค่าตั้งต้นจากใบเสนอราคาจริง ก.ค. 69
+   เจ้าของแก้ได้เท่านั้น (Peter สั่ง 31 ก.ค. 69) · ซิงก์ทุกเครื่องผ่าน options key 'feedprice' */
+const FEED_PRICE_DEF={
+  upd:'31 ก.ค. 69',
+  cols:[
+    {k:'SJF',n:'SJF ผสมเอง',d:'29 ก.ค. 69 · ค่าวัตถุดิบล้วน'},
+    {k:'VCF',n:'VCF',d:'15 มิ.ย. 69 · สุทธิหลังหักส่วนลด'},
+    {k:'JBF',n:'JBF',d:'13 ก.ค. 69 · bulk รวมยาในสูตร'},
+    {k:'NB',n:'หนองบัว',d:'เริ่ม 3 ส.ค. 69 · bulk ไม่รวมค่าส่ง'}
+  ],
+  rows:[
+    {no:'100',name:'เลียราง',p:{VCF:20.83,JBF:20.14},note:'VCF ยังไม่รวมยาเพิ่ม (~+0.65)'},
+    {no:'105',name:'หมูนม',p:{VCF:20.35,JBF:19.84},note:'VCF ยังไม่รวมยาเพิ่ม (~+0.56)'},
+    {no:'108',name:'นมปลาย',p:{SJF:14.61,VCF:16.75,JBF:17.54,NB:15.95},note:'หนองบัว = NB PIG 003 (15-25 กก.)'},
+    {no:'110',name:'หมูเล็ก',p:{SJF:13.09,VCF:15.45,JBF:15.74,NB:15.50},note:''},
+    {no:'120',name:'หมูรุ่น',p:{SJF:12.12,VCF:13.85,JBF:14.94,NB:13.45},note:'120S ของ VCF = 13.35'},
+    {no:'130',name:'หมูใหญ่',p:{SJF:11.12,VCF:13.15,JBF:14.74,NB:12.45},note:''},
+    {no:'160',name:'',p:{VCF:14.60},note:''},
+    {no:'180',name:'แม่อุ้มท้อง',p:{SJF:10.38,VCF:12.45},note:''},
+    {no:'193',name:'แม่เลี้ยงลูก',p:{SJF:12.30,VCF:14.50},note:''},
+    {no:'195',name:'',p:{VCF:15.20},note:''}
+  ]
+};
+let FEED_PRICE=JSON.parse(JSON.stringify(FEED_PRICE_DEF)), fpEditMode=false;
 function genVetLog(){
   HOUSES.forEach(h=>{
     if(h.vetLog&&h.vetLog.length) return;
@@ -1007,7 +1031,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690730m';
+const APP_BUILD='690731a';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -1842,6 +1866,7 @@ const HOME_MENU = {
   admin:   [ {icon:'🏠', t:'จัดการเล้า',        d:'เพิ่ม/แก้/ลบ หลัง + ตั้งค่าฟอร์ม',      fn:'renderAdmin'},
              {icon:'🐷', t:'ระบบแม่พันธุ์',     d:'ฐานข้อมูลแม่รายตัว 3 ฟาร์มแม่พันธุ์ · คิวงานอัตโนมัติ', fn:'renderBreeding'},
              {icon:'📋', t:'โปรแกรมวัคซีน',    d:'เขียน/แก้แผนวัคซีนของฟาร์ม — หมอทุกคนเห็นเอกสารนี้', fn:'renderVaxProgram'},
+             {icon:'💰', t:'ราคาอาหาร',        d:'ตารางราคาอาหารรายเบอร์ เทียบทุกเจ้า (บ./กก.) — เจ้าของแก้ได้เท่านั้น', fn:'renderFeedPrice'},
              {icon:'📺', t:'มอนิเตอร์แท่นขาย',  d:'ดูสดทุกแท่น — ใครกำลังกรอกบิลไหน · เด้งเองทุก 5 วิ', fn:'renderStandMonitor'},
              {icon:'📒', t:'บัญชีลูกค้า / ลูกหนี้', d:'ยอดค้างรายลูกค้า · รับเงิน+ใบรับเงิน · เงินสดค้างเก็บ', fn:'renderLedger'},
              {icon:'👥', t:'จัดการผู้ใช้',      d:'เปิด/แก้/ปิด บัญชีทีม + ตั้งรหัสผ่าน',   fn:'renderUsers'},
@@ -5074,7 +5099,7 @@ function custRateForWeight(custName,w,type){ // ราคา/กก. จาก�
 }
 let VAXPROG=[]; // 📋 โปรแกรมวัคซีนของฟาร์ม (เอกสารกลาง หมอเปิดดู เจ้าของ/ผู้ดูแลเขียน — 18 ก.ค. 69) · [{id,title,ref,rows:[{no,age,name,dose,brand,strain,medium,note}]}]
 let BRCFG={}; // ⚙️ ตัวแปรนาฬิกาแม่พันธุ์ต่อฟาร์ม (รอบสัด/ตั้งท้อง/ตรวจท้อง/ให้นม/อายุสาว) — ซิงก์ผ่าน options
-function snapOpts(){return {death:DEATH_TYPES,cull:CULL_TYPES,cust:CUSTOMERS,source:SOURCE_OPTIONS,price:PRICE_TABLE,scust:SB_CUST,feedsrc:VET_FEEDSRC,feedno:VET_FEEDNO,vaxprog:VAXPROG,brcfg:BRCFG,sackkg:FEED_SACK,feedstd:FEED_STD};}
+function snapOpts(){return {death:DEATH_TYPES,cull:CULL_TYPES,cust:CUSTOMERS,source:SOURCE_OPTIONS,price:PRICE_TABLE,scust:SB_CUST,feedsrc:VET_FEEDSRC,feedno:VET_FEEDNO,vaxprog:VAXPROG,brcfg:BRCFG,sackkg:FEED_SACK,feedstd:FEED_STD,feedprice:FEED_PRICE};}
 function applyOpts(o){ if(!o) return;
   if(Array.isArray(o.death)) DEATH_TYPES=o.death;
   if(Array.isArray(o.cull))  CULL_TYPES=o.cull;
@@ -5088,6 +5113,7 @@ function applyOpts(o){ if(!o) return;
   if(o.brcfg&&typeof o.brcfg==='object'&&!Array.isArray(o.brcfg)) BRCFG=o.brcfg;   // ⚙️ นาฬิกาแม่พันธุ์ต่อฟาร์ม
   if(o.sackkg&&typeof o.sackkg==='object'&&!Array.isArray(o.sackkg)) FEED_SACK=Object.assign({def:0,byNo:{}},o.sackkg);
   if(Array.isArray(o.feedstd)&&o.feedstd.length) FEED_STD=o.feedstd;   // 📏 เกณฑ์การกินต่อวัน — เจ้าของแก้แล้วซิงก์ทุกเครื่อง // 🌾 น้ำหนักอาหาร 1 กระสอบ (แปลงกระสอบ→กก. เวลาชนยอดใบสั่ง)
+  if(o.feedprice&&Array.isArray(o.feedprice.rows)&&o.feedprice.rows.length) FEED_PRICE=o.feedprice;   // 💰 ตารางราคาอาหาร — เจ้าของแก้แล้วซิงก์ทุกเครื่อง
 }
 let entryTab='daily';
 let editIdx=-1; // index in dailyLog being edited, -1 = new entry
@@ -5679,6 +5705,116 @@ function renderVaxProgram(){
     ${canEdit&&!vpHeadForm&&!vpRowForm?`<button class="btn" onclick="vpHeadForm='_new';renderVaxProgram()">➕ สร้างโปรแกรมวัคซีน</button>`:''}
     ${vpHeadForm==='_new'?`<div class="card">${vpHeadFormHTML(null)}</div>`:''}
   `;
+}
+/* ---------- 💰 ตารางราคาอาหาร (มุมผู้ดูแล — เจ้าของแก้ได้เท่านั้น · Peter สั่ง 31 ก.ค. 69)
+   ราคา บ./กก. รายเบอร์ เทียบทุกเจ้า · เก็บใน FEED_PRICE → ซิงก์ผ่าน options key 'feedprice' ทุกเครื่องเห็นชุดเดียวกัน ---------- */
+function fpCanEdit(){ return ROLE==='owner'; }
+function fpData(){ return (FEED_PRICE&&Array.isArray(FEED_PRICE.rows)&&FEED_PRICE.rows.length&&Array.isArray(FEED_PRICE.cols)&&FEED_PRICE.cols.length)?FEED_PRICE:JSON.parse(JSON.stringify(FEED_PRICE_DEF)); }
+function fpNum(v){ const n=parseFloat(String(v==null?'':v).replace(/[^0-9.]/g,'')); return (isFinite(n)&&n>0)?Math.round(n*100)/100:null; }
+function fpPriceOf(no,src){ // ราคา บ./กก. ของเบอร์+เจ้า (เผื่อหน้าอื่นเอาไปคิดต้นทุน) · null = ไม่มีราคา
+  const P=fpData(), key=(typeof feedNoKey==='function')?(feedNoKey(no)||String(no||'').trim()):String(no||'').trim();
+  const r=P.rows.find(x=>String(x.no).trim()===key); if(!r) return null;
+  const v=r.p&&r.p[src]; return (isFinite(v)&&v>0)?v:null;
+}
+function fpCollect(){ // อ่านค่าที่พิมพ์ในโหมดแก้จาก DOM → {cols,rows,upd} (ยังไม่บันทึก)
+  const P=fpData();
+  const cols=P.cols.map((c,i)=>({k:c.k,
+    n:((document.getElementById('fp_cn'+i)||{}).value||c.n||c.k).trim()||c.k,
+    d:((document.getElementById('fp_cd'+i)||{}).value||'').trim()}));
+  const rows=[];
+  document.querySelectorAll('#fpTbl tr[data-fp]').forEach(tr=>{
+    const g=cls=>{ const el=tr.querySelector(cls); return el?String(el.value||'').trim():''; };
+    const no=g('.fp_no'); if(!no) return;
+    const p={};
+    cols.forEach(c=>{ const el=tr.querySelector('.fp_p[data-k="'+c.k+'"]'); const v=el?fpNum(el.value):null; if(v!=null) p[c.k]=v; });
+    rows.push({no,name:g('.fp_name'),p,note:g('.fp_note')});
+  });
+  const upd=((document.getElementById('fp_upd')||{}).value||'').trim();
+  return {cols,rows,upd};
+}
+function fpSave(){
+  if(!fpCanEdit()){ toast('แก้ได้เฉพาะเจ้าของเท่านั้น'); return; }
+  const d=fpCollect();
+  if(!d.rows.length){ toast('ต้องมีอย่างน้อย 1 เบอร์'); return; }
+  FEED_PRICE={upd:d.upd||DEMO_DATE_DAY,cols:d.cols,rows:d.rows};
+  fpEditMode=false;
+  syncConfig(); try{ logAudit('ราคาอาหาร','-','เจ้าของแก้ตารางราคาอาหาร ('+d.rows.length+' เบอร์ · '+d.cols.length+' เจ้า)',null,''); }catch(e){}
+  toast('💾 บันทึกราคาอาหารแล้ว — ซิงก์ทุกเครื่อง'); renderFeedPrice();
+}
+function fpAddRow(){
+  const P=fpData(), tb=document.getElementById('fpBody'); if(!tb) return;
+  tb.insertAdjacentHTML('beforeend',fpEditRowHTML({no:'',name:'',p:{},note:''},P.cols));
+}
+function fpDelRow(btn){ const tr=btn.closest('tr'); if(tr) tr.remove(); }
+function fpAddCol(){
+  if(!fpCanEdit()) return;
+  const name=prompt('ชื่อเจ้า/แหล่งอาหารใหม่ (เช่น เบทาโกร)'); if(!name||!name.trim()) return;
+  const d=fpCollect(); const k='C'+Date.now().toString(36);
+  d.cols.push({k,n:name.trim(),d:''});
+  FEED_PRICE={upd:d.upd||fpData().upd||'',cols:d.cols,rows:d.rows.length?d.rows:fpData().rows};
+  renderFeedPrice();
+}
+function fpDelCol(i){
+  if(!fpCanEdit()) return;
+  const d=fpCollect(); const c=d.cols[i]; if(!c) return;
+  if(!confirm('ลบเจ้า "'+c.n+'" ออกจากตาราง? ราคาช่องนี้ทุกเบอร์จะหายไป (มีผลเมื่อกด 💾 บันทึก)')) return;
+  d.cols.splice(i,1); d.rows.forEach(r=>{ if(r.p) delete r.p[c.k]; });
+  FEED_PRICE={upd:d.upd||fpData().upd||'',cols:d.cols,rows:d.rows.length?d.rows:fpData().rows};
+  renderFeedPrice();
+}
+function fpEditRowHTML(r,cols){
+  return `<tr data-fp>
+    <td><input class="cin fp_no" value="${escA(r.no||'')}" placeholder="เบอร์" style="width:64px;padding:6px 8px"></td>
+    <td><input class="cin fp_name" value="${escA(r.name||'')}" placeholder="ชื่อ/ระยะ" style="width:96px;padding:6px 8px"></td>
+    ${cols.map(c=>`<td class="num"><input class="cin fp_p" data-k="${escA(c.k)}" inputmode="decimal" value="${(r.p&&isFinite(r.p[c.k])&&r.p[c.k]>0)?r.p[c.k]:''}" placeholder="—" style="width:70px;padding:6px 8px;text-align:right"></td>`).join('')}
+    <td><input class="cin fp_note" value="${escA(r.note||'')}" placeholder="หมายเหตุ" style="min-width:130px;padding:6px 8px"></td>
+    <td><button class="btn sm ghost" onclick="fpDelRow(this)">🗑</button></td>
+  </tr>`;
+}
+function renderFeedPrice(){
+  if(!['owner','admin'].includes(ROLE)){ toast('เฉพาะเจ้าของ/ผู้ดูแล'); return; }
+  histPush('feedprice',renderFeedPrice);
+  const P=fpData(), canEdit=fpCanEdit(), v=$("#view");
+  const sorted=P.rows.slice().sort((a,b)=>String(a.no).localeCompare(String(b.no),'th',{numeric:true}));
+  let body='';
+  if(fpEditMode&&canEdit){
+    body=`<div style="overflow-x:auto"><table class="densetbl" id="fpTbl" style="font-size:13px">
+      <thead><tr><th>เบอร์</th><th>ชื่อ/ระยะ</th>
+        ${P.cols.map((c,i)=>`<th class="num" style="min-width:86px"><input id="fp_cn${i}" class="cin" value="${escA(c.n||c.k)}" style="width:86px;padding:5px 7px;font-weight:800"><br><input id="fp_cd${i}" class="cin" value="${escA(c.d||'')}" placeholder="วันที่/เงื่อนไข" style="width:120px;padding:4px 7px;font-size:11px;margin-top:3px"><br><a href="#" onclick="fpDelCol(${i});return false" style="font-size:11px;color:var(--danger,#c0392b)">✕ ลบเจ้า</a></th>`).join('')}
+        <th>หมายเหตุ</th><th></th></tr></thead>
+      <tbody id="fpBody">${sorted.map(r=>fpEditRowHTML(r,P.cols)).join('')}</tbody></table></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">
+        <button class="btn sm ghost" onclick="fpAddRow()">➕ เพิ่มเบอร์</button>
+        <button class="btn sm ghost" onclick="fpAddCol()">➕ เพิ่มเจ้า</button>
+        <span style="flex:1"></span>
+        <label style="font-size:12.5px;color:var(--mut)">ราคาอัปเดตวันที่ <input id="fp_upd" class="cin" value="${escA(P.upd||'')}" style="width:100px;padding:5px 8px"></label>
+      </div>
+      <div class="actions" style="margin-top:11px">
+        <button class="btn ghost" onclick="fpEditMode=false;renderFeedPrice()">ยกเลิก</button>
+        <button class="btn" onclick="fpSave()">💾 บันทึกราคา</button>
+      </div>
+      <div class="sub" style="margin-top:8px">ช่องไหนไม่มีราคา เว้นว่างไว้ · ราคาเป็น บาท/กก. ทั้งหมด</div>`;
+  }else{
+    body=`<div style="overflow-x:auto"><table class="densetbl" style="font-size:13px">
+      <thead><tr><th>เบอร์</th><th>ชื่อ/ระยะ</th>
+        ${P.cols.map(c=>`<th class="num">${escA(c.n||c.k)}${c.d?`<br><span style="font-weight:400;font-size:10.5px;color:var(--mut)">${escA(c.d)}</span>`:''}</th>`).join('')}
+        <th>หมายเหตุ</th></tr></thead>
+      <tbody>${sorted.map(r=>{
+        const vals=P.cols.map(c=>(r.p&&isFinite(r.p[c.k])&&r.p[c.k]>0)?r.p[c.k]:null);
+        const buy=vals.filter((x,i)=>x!=null&&P.cols[i].k!=='SJF');           // ⭐ ถูกสุดเทียบเฉพาะ "เจ้าที่ซื้อ" — SJF ผสมเองเป็นค่าวัตถุดิบ เทียบตรงๆ ไม่แฟร์
+        const best=buy.length?Math.min.apply(null,buy):null;
+        return `<tr><td style="font-weight:800">${escA(r.no)}</td><td><span class="sub">${escA(r.name||'-')}</span></td>
+          ${vals.map((x,i)=>{ if(x==null) return '<td class="num" style="color:var(--mut)">—</td>';
+            const isBest=(best!=null&&P.cols[i].k!=='SJF'&&Math.abs(x-best)<0.005);
+            return `<td class="num" style="${isBest?'background:#e6f4ea;color:#1e7e4f;font-weight:800':''}">${x.toFixed(2)}${isBest?' ⭐':''}</td>`; }).join('')}
+          <td><span class="sub">${escA(r.note||'')}</span></td></tr>`; }).join('')}</tbody></table></div>
+      <div class="sub" style="margin-top:9px">⭐ = ราคาถูกสุดของเบอร์นั้น (เทียบเฉพาะเจ้าที่ซื้อ — SJF ผสมเองคือค่าวัตถุดิบล้วน ยังไม่รวมค่าผสม/ขนส่ง) · ทุกราคาเป็น บาท/กก.</div>
+      ${canEdit?`<div class="actions" style="margin-top:11px"><button class="btn" onclick="fpEditMode=true;renderFeedPrice()">✏️ แก้ราคา (เจ้าของ)</button></div>`:''}`;
+  }
+  v.innerHTML=`
+    <h2 class="page">💰 ราคาอาหาร</h2>
+    <div class="sub">ตารางเทียบราคาอาหารรายเบอร์ ทุกเจ้า · อัปเดตล่าสุด <b>${escA(P.upd||'-')}</b>${canEdit?' · แก้ได้เฉพาะเจ้าของ':' · ดูอย่างเดียว — แก้ได้เฉพาะเจ้าของ'}</div>
+    <div class="card">${body}</div>`;
 }
 /* ---- DAILY entry ---- */
 function dailyHTML(h){
