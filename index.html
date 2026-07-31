@@ -1065,7 +1065,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690731g';
+const APP_BUILD='690731h';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -7475,6 +7475,8 @@ function vetForm(){
         <textarea id="v_feedMed" rows="3" placeholder="เลือกสูตรด้านบน หรือพิมพ์เอง — บรรทัดละรายการ เช่น&#10;สูตร5 (เซฟฟา+แอมม็อกซี่)&#10;Amoxy เพิ่ม 1 ซอง"></textarea></div>
     </div>
 
+    ${houseFeedLinkHTML(h)}
+
     <div class="card">
       <h3>🍽️ การกินได้ต่อวัน <span class="more">หมูกิน 2 เบอร์พร้อมกัน ลงได้ในรอบเดียว</span></h3>
       ${feedStdHTML(h)}${feedTankHTML(h)}
@@ -8396,6 +8398,89 @@ function vFeedMedInfo(){
   const box=document.getElementById('vFeedMedBox'); if(!box) return;
   const s=document.getElementById('v_feedSrc'), n=document.getElementById('v_feedNo');
   box.innerHTML=vFeedMedBoxHTML(s?s.value:'', n?n.value:'');
+}
+/* 🔗 ผูกข้อมูลตารางราคา/ยา เข้ากับของที่แต่ละหลังรับเข้าจริง (Peter สั่ง 31 ก.ค. 69)
+   ชื่อยาที่หมอพิมพ์สะกดหลายแบบ + บางตัวเป็นชื่อการค้า — เทียบด้วยรายการชื่อพ้อง ไม่ใช่ตรงตัวอักษร */
+const FP_DRUG_ALIAS={
+  'แอมม็อกซี่':['แอมม็อกซี่','แอมม๊อกซี่','แอมมีอกซี่','อะม็อกซี่','amox'],
+  'โคลิสติน':['โคลิสติน','colistin','colistine','เมดิสติน'],
+  'ไทอะมูลิน':['ไทอะมูลิน','ไทอามูลิน','tiamulin'],
+  'ทิลมิโคซิน':['ทิลมิโคซิน','ทิลมีโคซิน','tilmicosin','ทิลโคกาด','ทิลโคการ์ด','ทิโคการ์ด','เรสเพล็ค'],
+  'CTC':['ctc','ซีทีซี','คลอเตตร้า'],
+  'ด็อกซี่ไซคลีน':['ด็อกซี','doxy','ฟาร์มาด๊อก','ฟาร์มาด็อก'],
+  'ไอเวอร์เมคติน':['ไอเวอร์','ivermec'],
+  'ซิงค์':['ซิงค์','ซิ้ง','zinc'],
+  'ฟลอเฟนิคอล':['ฟลอเฟ','florfen'],
+  'เพ็นนิซิลิน':['เพ็นวี','เพ็นนิซิ','เพ็นซิลิน','penicill'],
+  'วาโรซิน':['วาโรซิน','valnemulin'],
+  'เซฟฟา':['เซฟฟา','cefa'],
+  'ไซโปรฟล็อกซาซิน':['ไซโปร','cipro']
+};
+function fpDrugKey(s){ const t=String(s||'').toLowerCase(); for(const k in FP_DRUG_ALIAS){ if(FP_DRUG_ALIAS[k].some(a=>t.indexOf(a.toLowerCase())>=0)) return k; } return null; }
+function fpMedFor(no,src){   // สูตรยาโรงงานของ (เบอร์ × เจ้า) — ใช้ตัวจับคอลัมน์ชุดเดียวกับ fpAutoPrice
+  const P=fpData(), key=(typeof feedNoKey==='function')?(feedNoKey(no)||String(no||'').trim()):String(no||'').trim();
+  const row=P.rows.find(x=>String(x.no).trim()===key); if(!row) return null;
+  const srcs=String(src||'').split('/').map(s=>s.trim()).filter(Boolean);
+  for(const s of srcs){
+    const col=P.cols.find(c=>c.k===s||String(c.n||'').trim()===s||String(c.n||'').indexOf(s)>=0||s.indexOf(c.k)>=0);
+    if(col){ const m=fpMedOf(row,col.k); if(m) return Object.assign({},m,{colName:col.n||col.k}); }
+  }
+  return null;
+}
+function houseFeedLots(h){   // รวมของที่รับเข้าจริงตาม (เบอร์ × เจ้า) แล้วผูกราคา+ยาจากตาราง 💰 ราคาอาหาร
+  const map={};
+  (h&&h.vetLog||[]).forEach(e=>{
+    if(!e||e.type!=='feed') return;
+    const kg=Number(e.feedKg)||0; if(!(kg>0)) return;
+    const no=feedNoKey(e.feedNo)||String(e.feedNo||'').trim()||'-';
+    const src=String(e.feedSrc||'').trim()||'-';
+    const k=no+'|'+src, o=map[k]=map[k]||{no,src,kg:0,n:0,meds:[],last:''};
+    o.kg+=kg; o.n++;
+    if(e.feedMed&&String(e.feedMed).trim()) o.meds.push(String(e.feedMed).trim());
+    if(e.date&&!o.last) o.last=e.date;
+  });
+  return Object.values(map).map(o=>{
+    const price=fpAutoPrice(o.no,o.src), mill=fpMedFor(o.no,o.src);
+    const millKeys=mill?[...new Set(mill.d.map(d=>fpDrugKey(d.n)).filter(Boolean))]:[];
+    const vetText=o.meds.join(' ').toLowerCase();
+    const dup=millKeys.filter(k=>FP_DRUG_ALIAS[k].some(a=>vetText.indexOf(a.toLowerCase())>=0));
+    return Object.assign(o,{price,cost:(price!=null)?Math.round(o.kg*price):null,mill,dup});
+  }).sort((a,b)=>b.kg-a.kg);
+}
+function houseFeedLinkHTML(h){
+  const lots=houseFeedLots(h); if(!lots.length) return '';
+  const totKg=lots.reduce((s,o)=>s+o.kg,0), totCost=lots.reduce((s,o)=>s+(o.cost||0),0);
+  const noPrice=lots.filter(o=>o.price==null);
+  const dupAll=[...new Set(lots.reduce((a,o)=>a.concat(o.dup),[]))];
+  const row=o=>`<div style="border-top:1px dashed var(--line);padding:9px 0 3px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:baseline">
+      <b style="font-size:13.5px">เบอร์ ${escA(o.no)}</b>
+      <span class="sub" style="margin:0">🏭 ${escA(o.src==='-'?'ไม่ระบุเจ้า':o.src)}${o.mill&&o.mill.code?' · '+escA(String(o.mill.code).split('·')[0].trim()):''} · รับ ${o.n} ครั้ง${o.last?' · ล่าสุด '+escA(o.last):''}</span>
+      <span style="flex:1"></span>
+      <b style="font-size:13.5px">${fmt(Math.round(o.kg))} กก.</b>
+      ${o.price!=null?`<span style="background:#e9f5ee;border:1px solid #9fd0b5;border-radius:8px;padding:2px 9px;font-size:12.5px;font-weight:700;color:#1a5c3f">× ${o.price.toFixed(2)} = ${fmt(o.cost)} บาท</span>`
+        :`<span style="background:#fdf3e0;border:1px solid #e5b96e;border-radius:8px;padding:2px 9px;font-size:12px;font-weight:700;color:#8a6a20">ยังไม่มีราคาในตาราง</span>`}
+    </div>
+    ${o.mill?(o.mill.d.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">
+        <span class="sub" style="margin:0;font-size:11.5px;align-self:center">💊 ยาที่ติดมากับอาหาร:</span>
+        ${o.mill.d.map(d=>`<span style="background:#fff;border:1px solid #cfe0d8;border-radius:8px;padding:2px 8px;font-size:11.5px;font-weight:700">${escA(d.n)}${d.ppm!=null?' · '+fmt(d.ppm)+' ppm':''}</span>`).join('')}</div>`
+      :`<div class="sub" style="margin-top:5px;font-size:11.5px">💊 โรงงานแจ้งว่าไม่ใส่ยามาในเบอร์นี้</div>`)
+      :`<div class="sub" style="margin-top:5px;font-size:11.5px">💊 ยังไม่มีข้อมูลยาของเบอร์นี้จากเจ้านี้ — เจ้าของกรอกได้ที่หน้า 💰 ราคาอาหาร</div>`}
+    ${o.dup.length?`<div style="margin-top:6px;background:#fdecea;border:1px solid #f0b8b0;border-radius:9px;padding:6px 10px;font-size:12px;color:#a5342a">
+        ⚠️ <b>ยาซ้ำ:</b> อาหารมี <b>${o.dup.map(escA).join(' · ')}</b> มาแล้ว แต่หมอบันทึกว่าผสมเพิ่มอีก — หมูอาจได้ยาเกินขนาด และเสียค่ายาซ้ำ</div>`:''}
+  </div>`;
+  return `<div class="card">
+    <h3>🔗 อาหารที่รับเข้าหลังนี้ <span class="more">${lots.length} รายการ · ${fmt(Math.round(totKg))} กก.${totCost>0?' · '+fmt(totCost)+' บาท':''}</span></h3>
+    <div class="sub" style="margin:-2px 0 4px">ผูกกับตาราง 💰 ราคาอาหาร อัตโนมัติ — ได้ราคาต่อกิโล ยาที่โรงงานผสมมา และจับยาซ้ำให้</div>
+    ${lots.map(row).join('')}
+    <div style="border-top:2px solid var(--line);margin-top:9px;padding-top:9px;display:flex;gap:9px;flex-wrap:wrap;align-items:baseline">
+      <b style="font-size:13.5px">รวมทั้งหลัง</b><span style="flex:1"></span>
+      <b style="font-size:14px">${fmt(Math.round(totKg))} กก.</b>
+      ${totCost>0?`<b style="font-size:14px;color:var(--brand-d,#18655a)">${fmt(totCost)} บาท</b>`:''}
+    </div>
+    ${noPrice.length?`<div class="sub" style="margin-top:7px;color:#8a6a20">⚠️ ยังคิดเงินไม่ได้ ${noPrice.length} รายการ (${noPrice.map(o=>escA(o.no)+'·'+escA(o.src==='-'?'ไม่ระบุเจ้า':o.src)).join(' , ')}) — ยอดเงินด้านบนจึงยังไม่ครบ · เติมราคาที่หน้า 💰 ราคาอาหาร แล้วเลขจะขึ้นเอง</div>`:''}
+    ${dupAll.length?`<div class="sub" style="margin-top:5px;color:#a5342a">⚠️ หลังนี้มียาซ้ำซ้อน ${dupAll.length} ตัว: <b>${dupAll.map(escA).join(' · ')}</b></div>`:''}
+  </div>`;
 }
 function feedTankOf(h){
   const m={}, add=(no,k,v)=>{ const key=feedNoKey(no)||'-'; const o=m[key]=m[key]||{no:key,full:'',inKg:0,eatKg:0,lastIn:'',lastEat:''}; o[k]+=(Number(v)||0); return o; };
