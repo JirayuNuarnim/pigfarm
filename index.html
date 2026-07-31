@@ -918,18 +918,51 @@ const FEED_PRICE_DEF={
     {k:'NB',n:'หนองบัว',d:'เริ่ม 3 ส.ค. 69 · bulk ไม่รวมค่าส่ง'}
   ],
   rows:[
-    {no:'100',name:'เลียราง',p:{VCF:20.83,JBF:20.14},note:'VCF ยังไม่รวมยาเพิ่ม (~+0.65)'},
-    {no:'105',name:'หมูนม',p:{VCF:20.35,JBF:19.84},note:'VCF ยังไม่รวมยาเพิ่ม (~+0.56)'},
-    {no:'108',name:'นมปลาย',p:{SJF:14.61,VCF:16.75,JBF:17.54,NB:15.95},note:'หนองบัว = NB PIG 003 (15-25 กก.)'},
-    {no:'110',name:'หมูเล็ก',p:{SJF:13.09,VCF:15.45,JBF:15.74,NB:15.50},note:''},
-    {no:'120',name:'หมูรุ่น',p:{SJF:12.12,VCF:13.85,JBF:14.94,NB:13.45},note:'120S ของ VCF = 13.35'},
-    {no:'130',name:'หมูใหญ่',p:{SJF:11.12,VCF:13.15,JBF:14.74,NB:12.45},note:''},
+    {no:'100',name:'เลียราง',p:{VCF:20.83,JBF:20.14},note:'VCF ยังไม่รวมยาเพิ่ม (~+0.65)',
+      m:{VCF:{b:'ผสมรอบละ 5 ตัน',d:[
+          {n:'แอมม็อกซี่ 10%',ppm:400,note:'20.5 กก./5 ตัน · โรงงานใส่มาให้'},
+          {n:'ไทอะมูลิน 10%',ppm:200,note:'10 กก./5 ตัน · โรงงาน 6 กก. + คิดเงินเพิ่ม 4 กก.'},
+          {n:'โคลิสติน 40%',ppm:300,note:'3.75 กก./5 ตัน · คิดเงินเพิ่ม'},
+          {n:'ทิลโคกาด 20%',ppm:200,note:'5 กก./5 ตัน · คิดเงินเพิ่ม · ป่วยหนักใส่ 2 เท่า = 400 ppm'},
+          {n:'ซิงค์ออกไซด์',ppm:2000,note:'11 กก./5 ตัน · โรงงานใส่มาให้'}]},
+        JBF:{b:'ใบเสนอราคาระบุ ppm ตรง',code:'110G / 110GL',d:[
+          {n:'แอมม็อกซี่',ppm:600,note:''},{n:'โคลิสติน',ppm:320,note:''}]}}},
+    {no:'105',name:'หมูนม',p:{VCF:20.35,JBF:19.84},note:'VCF ยังไม่รวมยาเพิ่ม (~+0.56)',
+      m:{VCF:{b:'ผสมรอบละ 5 ตัน',d:[
+          {n:'แอมม็อกซี่ 10%',ppm:400,note:'20.5 กก./5 ตัน · โรงงานใส่มาให้'},
+          {n:'ไทอะมูลิน 10%',ppm:200,note:'10 กก./5 ตัน · โรงงานใส่มาให้'},
+          {n:'โคลิสติน 40%',ppm:300,note:'3.75 กก./5 ตัน · คิดเงินเพิ่ม'},
+          {n:'ทิลโคกาด 20%',ppm:200,note:'5 กก./5 ตัน · คิดเงินเพิ่ม'},
+          {n:'ซิงค์ออกไซด์',ppm:2000,note:'11 กก./5 ตัน · โรงงานใส่มาให้'}]},
+        JBF:{b:'ใบเสนอราคาระบุ ppm ตรง',code:'111G / 111GL',d:[
+          {n:'แอมม็อกซี่',ppm:600,note:''},{n:'โคลิสติน',ppm:320,note:''}]}}},
+    {no:'108',name:'นมปลาย',p:{SJF:14.61,VCF:16.75,JBF:17.54,NB:15.95},note:'หนองบัว = NB PIG 003 (15-25 กก.)',
+      m:{VCF:{b:'ผสมรอบละ 5 ตัน',d:[
+          {n:'โคลิสติน 40%',ppm:200,note:'2.5 กก./5 ตัน · โรงงานใส่มาให้'},
+          {n:'แอมม็อกซี่ 10%',ppm:400,note:'20.5 กก./5 ตัน · คิดเงินเพิ่ม'},
+          {n:'ไทอะมูลิน 10%',ppm:200,note:'10 กก./5 ตัน · คิดเงินเพิ่ม'},
+          {n:'ทิลโคกาด 20%',ppm:200,note:'5 กก./5 ตัน · คิดเงินเพิ่ม'}]},
+        JBF:{b:'ใบเสนอราคาระบุ ppm ตรง',code:'112G / 112GL',d:[
+          {n:'แอมม็อกซี่',ppm:300,note:''},{n:'ไทอะมูลิน',ppm:200,note:''},{n:'โคลิสติน',ppm:200,note:''}]}}},
+    {no:'110',name:'หมูเล็ก',p:{SJF:13.09,VCF:15.45,JBF:15.74,NB:15.50},note:'',
+      m:{VCF:{b:'ผสมรอบละ 5 ตัน',d:[
+          {n:'ไทอะมูลิน 10%',ppm:200,note:'10 กก./5 ตัน · คิดเงินเพิ่ม'},
+          {n:'แอมม็อกซี่ 10%',ppm:400,note:'20 กก./5 ตัน · คิดเงินเพิ่ม'}]},
+        JBF:{b:'ใบเสนอราคาระบุ ppm ตรง',code:'113GT',d:[
+          {n:'ทิลมิโคซิน',ppm:200,note:''},{n:'โคลิสติน',ppm:200,note:''}]}}},
+    {no:'120',name:'หมูรุ่น',p:{SJF:12.12,VCF:13.85,JBF:14.94,NB:13.45},note:'120S ของ VCF = 13.35',
+      m:{JBF:{b:'ใบเสนอราคาระบุ ppm ตรง',code:'114GT',d:[{n:'ทิลมิโคซิน',ppm:100,note:''}]}}},
+    {no:'130',name:'หมูใหญ่',p:{SJF:11.12,VCF:13.15,JBF:14.74,NB:12.45},note:'',
+      m:{JBF:{b:'ใบเสนอราคาระบุ ppm ตรง',code:'115GC',d:[]}}},
     {no:'160',name:'',p:{VCF:14.60},note:''},
     {no:'180',name:'แม่อุ้มท้อง',p:{SJF:10.38,VCF:12.45},note:''},
     {no:'193',name:'แม่เลี้ยงลูก',p:{SJF:12.30,VCF:14.50},note:''},
     {no:'195',name:'',p:{VCF:15.20},note:''}
   ]
 };
+// 💊 ระยะหยุดยาก่อนขาย (วัน) ตามฉลากสากล — ใช้เตือนเฉยๆ ต้องยืนยันกับฉลากจริงที่ฟาร์มใช้
+const FEED_MED_WD={'ทิลมิโคซิน':28,'ทิลโคกาด':28,'CTC':5,'ซีทีซี':5,'คลอเตตร้า':5,'แอมม็อกซี่':7,'อะม็อกซี่':7,'ไทอะมูลิน':2,'ฟลอเฟ':11,'ด็อกซี':7,'โคลิสติน':7,'เพ็นวี':7,'เพ็นนิซิ':7};
+function fpMedWd(name){ const s=String(name||''); for(const k in FEED_MED_WD){ if(s.indexOf(k)>=0) return FEED_MED_WD[k]; } return null; }
 let FEED_PRICE=JSON.parse(JSON.stringify(FEED_PRICE_DEF)), fpEditMode=false;
 function genVetLog(){
   HOUSES.forEach(h=>{
@@ -1031,7 +1064,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690731b';
+const APP_BUILD='690731c';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -5113,7 +5146,7 @@ function applyOpts(o){ if(!o) return;
   if(o.brcfg&&typeof o.brcfg==='object'&&!Array.isArray(o.brcfg)) BRCFG=o.brcfg;   // ⚙️ นาฬิกาแม่พันธุ์ต่อฟาร์ม
   if(o.sackkg&&typeof o.sackkg==='object'&&!Array.isArray(o.sackkg)) FEED_SACK=Object.assign({def:0,byNo:{}},o.sackkg);
   if(Array.isArray(o.feedstd)&&o.feedstd.length) FEED_STD=o.feedstd;   // 📏 เกณฑ์การกินต่อวัน — เจ้าของแก้แล้วซิงก์ทุกเครื่อง // 🌾 น้ำหนักอาหาร 1 กระสอบ (แปลงกระสอบ→กก. เวลาชนยอดใบสั่ง)
-  if(o.feedprice&&Array.isArray(o.feedprice.rows)&&o.feedprice.rows.length) FEED_PRICE=o.feedprice;   // 💰 ตารางราคาอาหาร — เจ้าของแก้แล้วซิงก์ทุกเครื่อง
+  if(o.feedprice&&Array.isArray(o.feedprice.rows)&&o.feedprice.rows.length) FEED_PRICE=fpFillDefMed(o.feedprice);   // 💰 ตารางราคาอาหาร — เจ้าของแก้แล้วซิงก์ทุกเครื่อง (+ เติมสูตรยาตั้งต้นให้ตารางรุ่นก่อนมีฟีเจอร์ยา)
 }
 let entryTab='daily';
 let editIdx=-1; // index in dailyLog being edited, -1 = new entry
@@ -5710,6 +5743,17 @@ function renderVaxProgram(){
    ราคา บ./กก. รายเบอร์ เทียบทุกเจ้า · เก็บใน FEED_PRICE → ซิงก์ผ่าน options key 'feedprice' ทุกเครื่องเห็นชุดเดียวกัน ---------- */
 function fpCanEdit(){ return ROLE==='owner'; }
 function fpData(){ return (FEED_PRICE&&Array.isArray(FEED_PRICE.rows)&&FEED_PRICE.rows.length&&Array.isArray(FEED_PRICE.cols)&&FEED_PRICE.cols.length)?FEED_PRICE:JSON.parse(JSON.stringify(FEED_PRICE_DEF)); }
+// 💊 ตารางราคาที่บันทึกไว้ก่อนมีฟีเจอร์ยา (หรือของเครื่องรุ่นเก่า) จะไม่มีคีย์ m — เติมสูตรยาตั้งต้นให้เฉพาะเบอร์/เจ้าที่ยัง "ว่างจริง" เท่านั้น ไม่ทับของที่เจ้าของกรอกเอง
+function fpFillDefMed(P){
+  if(!P||!Array.isArray(P.rows)) return P;
+  FEED_PRICE_DEF.rows.forEach(dr=>{
+    if(!dr.m) return;
+    const r=P.rows.find(x=>String(x.no).trim()===String(dr.no).trim()); if(!r) return;
+    r.m=r.m||{};
+    Object.keys(dr.m).forEach(k=>{ if(!r.m[k]) r.m[k]=JSON.parse(JSON.stringify(dr.m[k])); });
+  });
+  return P;
+}
 function fpNum(v){ const n=parseFloat(String(v==null?'':v).replace(/[^0-9.]/g,'')); return (isFinite(n)&&n>0)?Math.round(n*100)/100:null; }
 function fpPriceOf(no,src){ // ราคา บ./กก. ของเบอร์+เจ้า (เผื่อหน้าอื่นเอาไปคิดต้นทุน) · null = ไม่มีราคา
   const P=fpData(), key=(typeof feedNoKey==='function')?(feedNoKey(no)||String(no||'').trim()):String(no||'').trim();
@@ -5737,7 +5781,8 @@ function fpCollect(){ // อ่านค่าที่พิมพ์ในโ�
     const no=g('.fp_no'); if(!no) return;
     const p={};
     cols.forEach(c=>{ const el=tr.querySelector('.fp_p[data-k="'+c.k+'"]'); const v=el?fpNum(el.value):null; if(v!=null) p[c.k]=v; });
-    rows.push({no,name:g('.fp_name'),p,note:g('.fp_note')});
+    let m={}; try{ m=JSON.parse(decodeURIComponent(tr.getAttribute('data-m')||'%7B%7D'))||{}; }catch(e){ m={}; }   // 💊 สูตรยาเดินทางไปกับแถวเสมอ — แก้ราคาแล้วยาต้องไม่หาย
+    rows.push({no,name:g('.fp_name'),p,note:g('.fp_note'),m});
   });
   const upd=((document.getElementById('fp_upd')||{}).value||'').trim();
   return {cols,rows,upd};
@@ -5768,12 +5813,65 @@ function fpDelCol(i){
   if(!fpCanEdit()) return;
   const d=fpCollect(); const c=d.cols[i]; if(!c) return;
   if(!confirm('ลบเจ้า "'+c.n+'" ออกจากตาราง? ราคาช่องนี้ทุกเบอร์จะหายไป (มีผลเมื่อกด 💾 บันทึก)')) return;
-  d.cols.splice(i,1); d.rows.forEach(r=>{ if(r.p) delete r.p[c.k]; });
+  d.cols.splice(i,1); d.rows.forEach(r=>{ if(r.p) delete r.p[c.k]; if(r.m) delete r.m[c.k]; });
   FEED_PRICE={upd:d.upd||fpData().upd||'',cols:d.cols,rows:d.rows.length?d.rows:fpData().rows};
   renderFeedPrice();
 }
+/* 💊 สูตรยาประจำเบอร์อาหาร รายแหล่ง — ยาที่โรงงานผสมมาให้ในอาหารเบอร์นั้น (ppm = ตัวยาจริง มก./อาหาร 1 กก.)
+   ที่มา: ใบเสนอราคา/สเปคของโรงงานเอง · VCF แจ้งเป็น "ผงกี่ กก. ต่อรอบผสม 5 ตัน" ระบบแปลงเป็น ppm ให้แล้ว · JBF แจ้ง ppm ตรง */
+let fpMedRow=null, fpMedEdit=null;
+function fpMedOf(r,k){ const m=r&&r.m&&r.m[k]; return (m&&Array.isArray(m.d))?m:null; }
+function fpMedCount(r){ let n=0; if(r&&r.m) Object.keys(r.m).forEach(k=>{ const m=r.m[k]; if(m&&Array.isArray(m.d)) n+=m.d.length; }); return n; }
+function fpMedLines(m){ return (m&&m.d||[]).map(d=>[d.n,(d.ppm==null?'':d.ppm),(d.note||'')].join(' | ')).join('\n'); }
+function fpMedParse(txt){
+  return String(txt||'').split('\n').map(l=>{
+    const a=l.split('|').map(s=>s.trim()); if(!a[0]) return null;
+    const ppm=parseFloat(String(a[1]||'').replace(/[^0-9.]/g,''));
+    return {n:a[0],ppm:(isFinite(ppm)&&ppm>0)?ppm:null,note:a[2]||''};
+  }).filter(Boolean);
+}
+function fpMedSave(no,k){
+  if(!fpCanEdit()){ toast('แก้ได้เฉพาะเจ้าของ'); return; }
+  const ta=document.getElementById('fpMedTa'), bt=document.getElementById('fpMedBatch');
+  const row=fpData().rows.find(x=>String(x.no).trim()===String(no).trim()); if(!row) return;
+  row.m=row.m||{}; const prev=row.m[k]||{};
+  row.m[k]=Object.assign({},prev,{b:bt?bt.value.trim():(prev.b||''),d:fpMedParse(ta?ta.value:'')});
+  FEED_PRICE=fpData(); fpMedEdit=null;
+  syncConfig(); try{ logAudit('ราคาอาหาร','-','แก้สูตรยาในอาหาร เบอร์ '+no+' ('+k+') '+row.m[k].d.length+' ตัว',null,''); }catch(e){}
+  toast('💾 บันทึกสูตรยาแล้ว'); renderFeedPrice();
+}
+function fpMedPanelHTML(r,cols,canEdit){
+  const cells=cols.map(c=>{
+    const m=fpMedOf(r,c.k), key=String(r.no)+'|'+c.k;
+    if(fpMedEdit===key) return `<div style="background:#fff;border:1px solid var(--line,#dde5ec);border-radius:10px;padding:10px 12px;min-width:250px;flex:1">
+      <div style="font-weight:800;font-size:13px;margin-bottom:6px">✏️ ${escA(c.n||c.k)} — เบอร์ ${escA(r.no)}</div>
+      <input id="fpMedBatch" class="cin" value="${escA(m&&m.b||'')}" placeholder="รอบผสม เช่น ผสมรอบละ 5 ตัน" style="width:100%;padding:6px 8px;margin-bottom:6px;font-size:12.5px">
+      <textarea id="fpMedTa" class="cin" rows="6" style="width:100%;padding:7px 9px;font-size:12.5px" placeholder="ชื่อยา | ppm | หมายเหตุ">${escA(fpMedLines(m))}</textarea>
+      <div class="sub" style="margin:5px 0 7px;font-size:11px">พิมพ์บรรทัดละ 1 ตัวยา คั่นด้วย | เช่น <b>แอมม็อกซี่ 10% | 400 | 20.5 กก./5 ตัน · โรงงานใส่มาให้</b></div>
+      <div style="display:flex;gap:7px"><button class="btn sm ghost" onclick="fpMedEdit=null;renderFeedPrice()">ยกเลิก</button>
+        <button class="btn sm" onclick="fpMedSave(${escA(JSON.stringify(String(r.no)))},${escA(JSON.stringify(c.k))})">💾 บันทึก</button></div></div>`;
+    const has=m&&m.d.length;
+    const chips=has?m.d.map(d=>{
+      const wd=fpMedWd(d.n);
+      return `<div style="background:#fff;border:1px solid #cfe0d8;border-radius:9px;padding:6px 10px;margin-bottom:5px">
+        <div style="font-size:12.5px;font-weight:700">${escA(d.n)} ${d.ppm!=null?`<span style="color:#1e7e4f">· ${fmt(d.ppm)} ppm</span>`:''}</div>
+        ${d.note?`<div class="sub" style="font-size:11px;margin-top:1px">${escA(d.note)}</div>`:''}
+        ${wd?`<div class="sub" style="font-size:11px;margin-top:1px;color:#b7791f">⏳ หยุดยาก่อนขาย ${wd} วัน</div>`:''}</div>`;}).join('')
+      : `<div class="sub" style="font-size:12px">${m?'— โรงงานแจ้งว่าไม่ใส่ยา —':(c.k==='SJF'?'ผสมเอง = ไม่มียาในสูตรอาหาร · หมอเติมเองตามสูตร 1-24':'ยังไม่มีข้อมูลยาจากโรงงาน — ขอสเปคมากรอกได้')}</div>`;
+    return `<div style="background:var(--soft);border-radius:10px;padding:9px 11px;min-width:210px;flex:1">
+      <div style="font-weight:800;font-size:12.5px;margin-bottom:6px">${escA(c.n||c.k)}${(m&&m.code)?` <span class="sub" style="font-weight:400">· ${escA(m.code)}</span>`:''}</div>
+      ${(m&&m.b)?`<div class="sub" style="font-size:11px;margin:-3px 0 6px">📐 ${escA(m.b)}</div>`:''}
+      ${chips}
+      ${canEdit?`<a href="#" onclick="fpMedEdit=${escA(JSON.stringify(String(r.no)+'|'+c.k))};renderFeedPrice();return false" style="font-size:11.5px;color:var(--info)">✏️ แก้ยาของเจ้านี้</a>`:''}</div>`;
+  }).join('');
+  return `<tr><td colspan="${cols.length+3}" style="background:#f4f8f6;padding:11px 13px">
+    <div style="font-weight:800;font-size:13px;margin-bottom:8px">💊 ยาที่มากับอาหารเบอร์ ${escA(r.no)} — แยกตามเจ้า</div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:flex-start">${cells}</div>
+    <div class="sub" style="margin-top:8px;font-size:11.5px">ppm = ตัวยาจริง มิลลิกรัม ต่ออาหาร 1 กิโลกรัม · ถ้าหมอจะเติมยาเพิ่มเอง ต้องบวกกับตัวเลขนี้ (ยาซ้ำกันจะเกินขนาด) · วันหยุดยาเป็นค่าอ้างอิงจากฉลากสากล ให้ยืนยันกับฉลากจริงของยาที่ใช้</div>
+  </td></tr>`;
+}
 function fpEditRowHTML(r,cols){
-  return `<tr data-fp>
+  return `<tr data-fp data-m="${escA(encodeURIComponent(JSON.stringify(r.m||{})))}">
     <td><input class="cin fp_no" value="${escA(r.no||'')}" placeholder="เบอร์" style="width:64px;padding:6px 8px"></td>
     <td><input class="cin fp_name" value="${escA(r.name||'')}" placeholder="ชื่อ/ระยะ" style="width:96px;padding:6px 8px"></td>
     ${cols.map(c=>`<td class="num"><input class="cin fp_p" data-k="${escA(c.k)}" inputmode="decimal" value="${(r.p&&isFinite(r.p[c.k])&&r.p[c.k]>0)?r.p[c.k]:''}" placeholder="—" style="width:70px;padding:6px 8px;text-align:right"></td>`).join('')}
@@ -5808,17 +5906,20 @@ function renderFeedPrice(){
     body=`<div style="overflow-x:auto"><table class="densetbl" style="font-size:13px">
       <thead><tr><th>เบอร์</th><th>ชื่อ/ระยะ</th>
         ${P.cols.map(c=>`<th class="num">${escA(c.n||c.k)}${c.d?`<br><span style="font-weight:400;font-size:10.5px;color:var(--mut)">${escA(c.d)}</span>`:''}</th>`).join('')}
-        <th>หมายเหตุ</th></tr></thead>
+        <th>หมายเหตุ</th><th>💊 ยาในอาหาร</th></tr></thead>
       <tbody>${sorted.map(r=>{
         const vals=P.cols.map(c=>(r.p&&isFinite(r.p[c.k])&&r.p[c.k]>0)?r.p[c.k]:null);
         const buy=vals.filter((x,i)=>x!=null&&P.cols[i].k!=='SJF');           // ⭐ ถูกสุดเทียบเฉพาะ "เจ้าที่ซื้อ" — SJF ผสมเองเป็นค่าวัตถุดิบ เทียบตรงๆ ไม่แฟร์
         const best=buy.length?Math.min.apply(null,buy):null;
-        return `<tr><td style="font-weight:800">${escA(r.no)}</td><td><span class="sub">${escA(r.name||'-')}</span></td>
+        const nMed=fpMedCount(r), open=(fpMedRow===String(r.no));
+        return `<tr${open?' style="background:#eef4f1"':''}><td style="font-weight:800">${escA(r.no)}</td><td><span class="sub">${escA(r.name||'-')}</span></td>
           ${vals.map((x,i)=>{ if(x==null) return '<td class="num" style="color:var(--mut)">—</td>';
             const isBest=(best!=null&&P.cols[i].k!=='SJF'&&Math.abs(x-best)<0.005);
             return `<td class="num" style="${isBest?'background:#e6f4ea;color:#1e7e4f;font-weight:800':''}">${x.toFixed(2)}${isBest?' ⭐':''}</td>`; }).join('')}
-          <td><span class="sub">${escA(r.note||'')}</span></td></tr>`; }).join('')}</tbody></table></div>
-      <div class="sub" style="margin-top:9px">⭐ = ราคาถูกสุดของเบอร์นั้น (เทียบเฉพาะเจ้าที่ซื้อ — SJF ผสมเองคือค่าวัตถุดิบล้วน ยังไม่รวมค่าผสม/ขนส่ง) · ทุกราคาเป็น บาท/กก.</div>
+          <td><span class="sub">${escA(r.note||'')}</span></td>
+          <td style="white-space:nowrap"><button class="btn sm ghost" onclick="fpMedRow=${open?'null':escA(JSON.stringify(String(r.no)))};fpMedEdit=null;renderFeedPrice()">${open?'▾ ปิด':(nMed?'💊 '+nMed+' ตัว':'＋ ใส่ยา')}</button></td></tr>`
+          +(open?fpMedPanelHTML(r,P.cols,canEdit):''); }).join('')}</tbody></table></div>
+      <div class="sub" style="margin-top:9px">⭐ = ราคาถูกสุดของเบอร์นั้น (เทียบเฉพาะเจ้าที่ซื้อ — SJF ผสมเองคือค่าวัตถุดิบล้วน ยังไม่รวมค่าผสม/ขนส่ง) · ทุกราคาเป็น บาท/กก. · กด 💊 ดูว่าอาหารเบอร์นั้นของแต่ละเจ้าใส่ยาอะไรมาแล้วบ้าง</div>
       ${canEdit?`<div class="actions" style="margin-top:11px"><button class="btn" onclick="fpEditMode=true;renderFeedPrice()">✏️ แก้ราคา (เจ้าของ)</button></div>`:''}`;
   }
   v.innerHTML=`
@@ -7319,10 +7420,11 @@ function vetForm(){
       <div id="vFeedPend">${vetFeedPendHTML(h)}</div>
       <div class="grid2">
         <div class="frow" style="margin-bottom:0"><label>แหล่งรับอาหาร</label>
-          <select id="v_feedSrc" class="cin tl">${VET_FEEDSRC.map(s=>`<option>${escA(s)}</option>`).join('')}</select></div>
+          <select id="v_feedSrc" class="cin tl" onchange="vFeedMedInfo()">${VET_FEEDSRC.map(s=>`<option>${escA(s)}</option>`).join('')}</select></div>
         <div class="frow" style="margin-bottom:0"><label>เบอร์อาหาร <span class="hint">(กดเลือกเท่านั้น — เจ้าของเพิ่มตัวเลือกได้ที่ "จัดการเล้า")</span></label>
-          <select id="v_feedNo" class="cin tl"><option value="">— เลือกเบอร์ —</option>${VET_FEEDNO.map(n=>`<option>${escA(n)}</option>`).join("")}</select></div>
+          <select id="v_feedNo" class="cin tl" onchange="vFeedMedInfo()"><option value="">— เลือกเบอร์ —</option>${VET_FEEDNO.map(n=>`<option>${escA(n)}</option>`).join("")}</select></div>
       </div>
+      <div id="vFeedMedBox">${vFeedMedBoxHTML('','')}</div>
       <div class="grid2" style="margin-top:10px">
         <div class="frow" style="margin-bottom:0"><label>ปริมาณอาหาร</label><div class="unit"><input id="v_feedKg" class="cin tl" type="number" placeholder="0"><span class="u">กก.</span></div></div>
         <div class="frow" style="margin-bottom:0"><label>เลขที่บิล</label><input id="v_feedBill" class="cin tl" placeholder="เช่น BF-0042"></div>
@@ -8232,6 +8334,29 @@ function feedStdHTML(h){
    กติกาเจ้าของ 30 ก.ค.: เป็นแค่ "แนวทาง" ให้หมอดู — ไม่บล็อกอะไรทั้งนั้น ไม่มีสต็อกก็ลงกินได้ตามปกติ
    · ลงกินได้แต่ไม่เคยลงรับอาหารเบอร์นั้น = หมออาจลืมลงรับ (บอกเตือนเฉยๆ)
    · หมอเพิ่งเริ่มใช้ระบบ ยังไม่มีของรับเข้า = ปกติ ไม่ต้องเตือนเป็นความผิด */
+/* 💊 กล่องบอกหมอว่า "อาหารเบอร์นี้ของเจ้านี้ มียาอะไรมาแล้ว" ตอนกำลังลงรับอาหาร
+   ข้อมูลจากหน้า 💰 ราคาอาหาร (เจ้าของกรอกจากใบเสนอราคาโรงงาน) — ให้หมอรู้ก่อนเติมยาเพิ่ม จะได้ไม่ซ้ำซ้อน/เกินขนาด */
+function vFeedMedBoxHTML(src,no){
+  if(!no) return '';
+  const P=(typeof fpData==='function')?fpData():null; if(!P) return '';
+  const key=feedNoKey(no)||String(no||'').trim();
+  const row=P.rows.find(x=>String(x.no).trim()===key); if(!row) return '';
+  const col=P.cols.find(c=>c.k===src||String(c.n||'').trim()===src||(src&&String(c.n||'').indexOf(src)>=0));
+  const m=col?fpMedOf(row,col.k):null;
+  if(!m) return `<div class="sub" style="margin:9px 0 0;font-size:11.5px">💊 ยังไม่มีข้อมูลยาของอาหารเบอร์ ${escA(key)}${col?' จาก '+escA(col.n||col.k):''} — เจ้าของกรอกได้ที่หน้า 💰 ราคาอาหาร</div>`;
+  if(!m.d.length) return `<div style="background:#e9f5ee;border:1px solid #9fd0b5;border-radius:10px;padding:8px 11px;margin-top:9px;font-size:12.5px;font-weight:700;color:#1a5c3f">💊 อาหารเบอร์ ${escA(key)} ของ ${escA(col.n||col.k)} — โรงงานไม่ใส่ยามา</div>`;
+  const maxWd=m.d.reduce((s,d)=>{ const w=fpMedWd(d.n); return (w!=null&&w>s)?w:s; },0);
+  return `<div style="background:#fdf3e0;border:1px solid #e5b96e;border-radius:10px;padding:9px 12px;margin-top:9px">
+    <div style="font-size:12.5px;font-weight:800;color:#8a6a20">💊 อาหารเบอร์ ${escA(key)} ของ ${escA(col.n||col.k)} มียามาแล้ว ${m.d.length} ตัว</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+      ${m.d.map(d=>`<span style="background:#fff;border:1px solid #e5c891;border-radius:8px;padding:3px 9px;font-size:12px;font-weight:700">${escA(d.n)}${d.ppm!=null?' · '+fmt(d.ppm)+' ppm':''}</span>`).join('')}</div>
+    <div class="sub" style="margin:7px 0 0;font-size:11.5px">ถ้าจะเติมยาเพิ่มเอง ให้ดูว่าซ้ำกับตัวข้างบนไหม — ยาตัวเดียวกันซ้อนกันจะเกินขนาด${maxWd?' · ⏳ อาหารชุดนี้ควรหยุดให้ก่อนขายอย่างน้อย <b>'+maxWd+' วัน</b>':''}</div></div>`;
+}
+function vFeedMedInfo(){
+  const box=document.getElementById('vFeedMedBox'); if(!box) return;
+  const s=document.getElementById('v_feedSrc'), n=document.getElementById('v_feedNo');
+  box.innerHTML=vFeedMedBoxHTML(s?s.value:'', n?n.value:'');
+}
 function feedTankOf(h){
   const m={}, add=(no,k,v)=>{ const key=feedNoKey(no)||'-'; const o=m[key]=m[key]||{no:key,full:'',inKg:0,eatKg:0,lastIn:'',lastEat:''}; o[k]+=(Number(v)||0); return o; };
   (h&&h.vetLog||[]).forEach(e=>{
@@ -8302,6 +8427,7 @@ function vetFeedPickOrder(id){ const h=currentHouse; if(!h) return;
     if(k&&!k.value&&String(r.unit||'')==='กก.') k.value=r.qty||'';
     toast('📥 เลือกใบสั่ง '+(r.feedNo||'')+' แล้ว — แก้ปริมาณเป็นน้ำหนักจริงที่ได้รับ แล้วกด 💾 บันทึก'); }
   const el=document.getElementById('vFeedPend'); if(el) el.innerHTML=vetFeedPendHTML(h);
+  try{ vFeedMedInfo(); }catch(e){}   // 💊 อัปเดตกล่อง "ยาที่มากับอาหาร" ให้ตรงกับเบอร์/แหล่งที่เพิ่งเติมเข้าช่อง
 }
 function feedHistHTML(){
   if(!reqHouseCode) return '<div class="sub">เลือกรหัสหลังด้านบนเพื่อดูประวัติการสั่งอาหารของหลังนั้น</div>';
