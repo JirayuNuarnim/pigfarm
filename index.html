@@ -960,9 +960,8 @@ const FEED_PRICE_DEF={
     {no:'195',name:'',p:{VCF:15.20},note:''}
   ]
 };
-// 💊 ระยะหยุดยาก่อนขาย (วัน) ตามฉลากสากล — ใช้เตือนเฉยๆ ต้องยืนยันกับฉลากจริงที่ฟาร์มใช้
-const FEED_MED_WD={'ทิลมิโคซิน':28,'ทิลโคกาด':28,'CTC':5,'ซีทีซี':5,'คลอเตตร้า':5,'แอมม็อกซี่':7,'อะม็อกซี่':7,'ไทอะมูลิน':2,'ฟลอเฟ':11,'ด็อกซี':7,'โคลิสติน':7,'เพ็นวี':7,'เพ็นนิซิ':7};
-function fpMedWd(name){ const s=String(name||''); for(const k in FEED_MED_WD){ if(s.indexOf(k)>=0) return FEED_MED_WD[k]; } return null; }
+/* หมายเหตุ: ไม่มีระบบ "ระยะหยุดยาก่อนขาย" ในแอป — กติกาเจ้าของ 31 ก.ค. 69: ฟาร์มให้ยาต่อเนื่องถึงวันขายจริง
+   ป้ายวันหยุดยาจึงไม่ตรงกับงานจริง เอาออกแล้ว · สิ่งที่เก็บไว้คือการกันยาซ้ำซ้อน/เกินขนาด ซึ่งสำคัญกว่าเมื่อให้ยายาว */
 let FEED_PRICE=JSON.parse(JSON.stringify(FEED_PRICE_DEF)), fpEditMode=false;
 function genVetLog(){
   HOUSES.forEach(h=>{
@@ -1064,7 +1063,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690731c';
+const APP_BUILD='690731d';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -5851,12 +5850,9 @@ function fpMedPanelHTML(r,cols,canEdit){
       <div style="display:flex;gap:7px"><button class="btn sm ghost" onclick="fpMedEdit=null;renderFeedPrice()">ยกเลิก</button>
         <button class="btn sm" onclick="fpMedSave(${escA(JSON.stringify(String(r.no)))},${escA(JSON.stringify(c.k))})">💾 บันทึก</button></div></div>`;
     const has=m&&m.d.length;
-    const chips=has?m.d.map(d=>{
-      const wd=fpMedWd(d.n);
-      return `<div style="background:#fff;border:1px solid #cfe0d8;border-radius:9px;padding:6px 10px;margin-bottom:5px">
+    const chips=has?m.d.map(d=>`<div style="background:#fff;border:1px solid #cfe0d8;border-radius:9px;padding:6px 10px;margin-bottom:5px">
         <div style="font-size:12.5px;font-weight:700">${escA(d.n)} ${d.ppm!=null?`<span style="color:#1e7e4f">· ${fmt(d.ppm)} ppm</span>`:''}</div>
-        ${d.note?`<div class="sub" style="font-size:11px;margin-top:1px">${escA(d.note)}</div>`:''}
-        ${wd?`<div class="sub" style="font-size:11px;margin-top:1px;color:#b7791f">⏳ หยุดยาก่อนขาย ${wd} วัน</div>`:''}</div>`;}).join('')
+        ${d.note?`<div class="sub" style="font-size:11px;margin-top:1px">${escA(d.note)}</div>`:''}</div>`).join('')
       : `<div class="sub" style="font-size:12px">${m?'— โรงงานแจ้งว่าไม่ใส่ยา —':(c.k==='SJF'?'ผสมเอง = ไม่มียาในสูตรอาหาร · หมอเติมเองตามสูตร 1-24':'ยังไม่มีข้อมูลยาจากโรงงาน — ขอสเปคมากรอกได้')}</div>`;
     return `<div style="background:var(--soft);border-radius:10px;padding:9px 11px;min-width:210px;flex:1">
       <div style="font-weight:800;font-size:12.5px;margin-bottom:6px">${escA(c.n||c.k)}${(m&&m.code)?` <span class="sub" style="font-weight:400">· ${escA(m.code)}</span>`:''}</div>
@@ -5867,7 +5863,7 @@ function fpMedPanelHTML(r,cols,canEdit){
   return `<tr><td colspan="${cols.length+3}" style="background:#f4f8f6;padding:11px 13px">
     <div style="font-weight:800;font-size:13px;margin-bottom:8px">💊 ยาที่มากับอาหารเบอร์ ${escA(r.no)} — แยกตามเจ้า</div>
     <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:flex-start">${cells}</div>
-    <div class="sub" style="margin-top:8px;font-size:11.5px">ppm = ตัวยาจริง มิลลิกรัม ต่ออาหาร 1 กิโลกรัม · ถ้าหมอจะเติมยาเพิ่มเอง ต้องบวกกับตัวเลขนี้ (ยาซ้ำกันจะเกินขนาด) · วันหยุดยาเป็นค่าอ้างอิงจากฉลากสากล ให้ยืนยันกับฉลากจริงของยาที่ใช้</div>
+    <div class="sub" style="margin-top:8px;font-size:11.5px">ppm = ตัวยาจริง มิลลิกรัม ต่ออาหาร 1 กิโลกรัม · ถ้าหมอจะเติมยาเพิ่มเอง ต้องบวกกับตัวเลขนี้ — ยาตัวเดียวกันซ้อนกันจะเกินขนาด และเสียค่ายาซ้ำฟรี</div>
   </td></tr>`;
 }
 function fpEditRowHTML(r,cols){
@@ -8345,12 +8341,11 @@ function vFeedMedBoxHTML(src,no){
   const m=col?fpMedOf(row,col.k):null;
   if(!m) return `<div class="sub" style="margin:9px 0 0;font-size:11.5px">💊 ยังไม่มีข้อมูลยาของอาหารเบอร์ ${escA(key)}${col?' จาก '+escA(col.n||col.k):''} — เจ้าของกรอกได้ที่หน้า 💰 ราคาอาหาร</div>`;
   if(!m.d.length) return `<div style="background:#e9f5ee;border:1px solid #9fd0b5;border-radius:10px;padding:8px 11px;margin-top:9px;font-size:12.5px;font-weight:700;color:#1a5c3f">💊 อาหารเบอร์ ${escA(key)} ของ ${escA(col.n||col.k)} — โรงงานไม่ใส่ยามา</div>`;
-  const maxWd=m.d.reduce((s,d)=>{ const w=fpMedWd(d.n); return (w!=null&&w>s)?w:s; },0);
   return `<div style="background:#fdf3e0;border:1px solid #e5b96e;border-radius:10px;padding:9px 12px;margin-top:9px">
     <div style="font-size:12.5px;font-weight:800;color:#8a6a20">💊 อาหารเบอร์ ${escA(key)} ของ ${escA(col.n||col.k)} มียามาแล้ว ${m.d.length} ตัว</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
       ${m.d.map(d=>`<span style="background:#fff;border:1px solid #e5c891;border-radius:8px;padding:3px 9px;font-size:12px;font-weight:700">${escA(d.n)}${d.ppm!=null?' · '+fmt(d.ppm)+' ppm':''}</span>`).join('')}</div>
-    <div class="sub" style="margin:7px 0 0;font-size:11.5px">ถ้าจะเติมยาเพิ่มเอง ให้ดูว่าซ้ำกับตัวข้างบนไหม — ยาตัวเดียวกันซ้อนกันจะเกินขนาด${maxWd?' · ⏳ อาหารชุดนี้ควรหยุดให้ก่อนขายอย่างน้อย <b>'+maxWd+' วัน</b>':''}</div></div>`;
+    <div class="sub" style="margin:7px 0 0;font-size:11.5px">ถ้าจะเติมยาเพิ่มเอง ให้ดูว่าซ้ำกับตัวข้างบนไหม — ยาตัวเดียวกันซ้อนกันจะเกินขนาด และเสียค่ายาซ้ำฟรี</div></div>`;
 }
 function vFeedMedInfo(){
   const box=document.getElementById('vFeedMedBox'); if(!box) return;
