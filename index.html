@@ -911,11 +911,12 @@ let FEED_STD=FEED_STD_DEF.slice(), feedStdOpen=false;
    เจ้าของแก้ได้เท่านั้น (Peter สั่ง 31 ก.ค. 69) · ซิงก์ทุกเครื่องผ่าน options key 'feedprice' */
 const FEED_PRICE_DEF={
   upd:'31 ก.ค. 69',
+  // dlv = ค่าขนส่งถึงฟาร์ม บาท/กก. (null = ยังไม่รู้ ต้องถามโรงงาน) — ใช้ตอนกดเทียบ "ราคาถึงฟาร์ม"
   cols:[
-    {k:'SJF',n:'SJF ผสมเอง',d:'29 ก.ค. 69 · ค่าวัตถุดิบล้วน'},
-    {k:'VCF',n:'VCF',d:'15 มิ.ย. 69 · สุทธิหลังหักส่วนลด'},
-    {k:'JBF',n:'JBF',d:'13 ก.ค. 69 · bulk รวมยาในสูตร'},
-    {k:'NB',n:'หนองบัว',d:'เริ่ม 3 ส.ค. 69 · bulk ไม่รวมค่าส่ง'}
+    {k:'SJF',n:'SJF ผสมเอง',d:'29 ก.ค. 69 · ค่าวัตถุดิบล้วน',dlv:0},
+    {k:'VCF',n:'VCF',d:'15 มิ.ย. 69 · สุทธิหลังหักส่วนลด',dlv:null},
+    {k:'JBF',n:'JBF',d:'13 ก.ค. 69 · bulk รับเอง',dlv:0.43},
+    {k:'NB',n:'หนองบัว',d:'เริ่ม 3 ส.ค. 69 · bulk รับเอง',dlv:null}
   ],
   rows:[
     {no:'100',name:'เลียราง',p:{VCF:20.83,JBF:20.14},note:'VCF ยังไม่รวมยาเพิ่ม (~+0.65)',
@@ -942,8 +943,9 @@ const FEED_PRICE_DEF={
           {n:'แอมม็อกซี่ 10%',ppm:400,note:'20.5 กก./5 ตัน · คิดเงินเพิ่ม'},
           {n:'ไทอะมูลิน 10%',ppm:200,note:'10 กก./5 ตัน · คิดเงินเพิ่ม'},
           {n:'ทิลโคกาด 20%',ppm:200,note:'5 กก./5 ตัน · คิดเงินเพิ่ม'}]},
-        JBF:{b:'ใบเสนอราคาระบุ ppm ตรง',code:'112G / 112GL',d:[
-          {n:'แอมม็อกซี่',ppm:300,note:''},{n:'ไทอะมูลิน',ppm:200,note:''},{n:'โคลิสติน',ppm:200,note:''}]}}},
+        JBF:{b:'ใบเสนอราคาระบุ ppm ตรง',code:'112G / 112GL · รุ่น 112GI ราคาเท่ากันแต่มียาถ่ายพยาธิเพิ่ม',d:[
+          {n:'แอมม็อกซี่',ppm:300,note:''},{n:'ไทอะมูลิน',ppm:200,note:''},{n:'โคลิสติน',ppm:200,note:''},
+          {n:'ไอเวอร์เมคติน',ppm:54,note:'มีเฉพาะรุ่น 112GI / 112GI-L (ยาถ่ายพยาธิ) · ราคาเท่ากับ 112G'}]}}},
     {no:'110',name:'หมูเล็ก',p:{SJF:13.09,VCF:15.45,JBF:15.74,NB:15.50},note:'',
       m:{VCF:{b:'ผสมรอบละ 5 ตัน',d:[
           {n:'ไทอะมูลิน 10%',ppm:200,note:'10 กก./5 ตัน · คิดเงินเพิ่ม'},
@@ -962,7 +964,7 @@ const FEED_PRICE_DEF={
 };
 /* หมายเหตุ: ไม่มีระบบ "ระยะหยุดยาก่อนขาย" ในแอป — กติกาเจ้าของ 31 ก.ค. 69: ฟาร์มให้ยาต่อเนื่องถึงวันขายจริง
    ป้ายวันหยุดยาจึงไม่ตรงกับงานจริง เอาออกแล้ว · สิ่งที่เก็บไว้คือการกันยาซ้ำซ้อน/เกินขนาด ซึ่งสำคัญกว่าเมื่อให้ยายาว */
-let FEED_PRICE=JSON.parse(JSON.stringify(FEED_PRICE_DEF)), fpEditMode=false;
+let FEED_PRICE=JSON.parse(JSON.stringify(FEED_PRICE_DEF)), fpEditMode=false, fpDlvOn=false;
 function genVetLog(){
   HOUSES.forEach(h=>{
     if(h.vetLog&&h.vetLog.length) return;
@@ -1063,7 +1065,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690731d';
+const APP_BUILD='690731e';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -5745,6 +5747,8 @@ function fpData(){ return (FEED_PRICE&&Array.isArray(FEED_PRICE.rows)&&FEED_PRIC
 // 💊 ตารางราคาที่บันทึกไว้ก่อนมีฟีเจอร์ยา (หรือของเครื่องรุ่นเก่า) จะไม่มีคีย์ m — เติมสูตรยาตั้งต้นให้เฉพาะเบอร์/เจ้าที่ยัง "ว่างจริง" เท่านั้น ไม่ทับของที่เจ้าของกรอกเอง
 function fpFillDefMed(P){
   if(!P||!Array.isArray(P.rows)) return P;
+  if(Array.isArray(P.cols)) P.cols.forEach(c=>{           // 🚚 ค่าขนส่งรายเจ้า — ตารางรุ่นก่อนไม่มีคีย์นี้ (undefined) ต่างจาก null ที่แปลว่า "เจ้าของบอกว่ายังไม่รู้"
+    if(c&&c.dlv===undefined){ const dc=FEED_PRICE_DEF.cols.find(x=>x.k===c.k); c.dlv=dc?dc.dlv:null; } });
   FEED_PRICE_DEF.rows.forEach(dr=>{
     if(!dr.m) return;
     const r=P.rows.find(x=>String(x.no).trim()===String(dr.no).trim()); if(!r) return;
@@ -5771,9 +5775,11 @@ function fpAutoPrice(no,srcStr){ // 🔗 ราคาอัตโนมัติ
 }
 function fpCollect(){ // อ่านค่าที่พิมพ์ในโหมดแก้จาก DOM → {cols,rows,upd} (ยังไม่บันทึก)
   const P=fpData();
-  const cols=P.cols.map((c,i)=>({k:c.k,
-    n:((document.getElementById('fp_cn'+i)||{}).value||c.n||c.k).trim()||c.k,
-    d:((document.getElementById('fp_cd'+i)||{}).value||'').trim()}));
+  const cols=P.cols.map((c,i)=>{ const de=document.getElementById('fp_cdl'+i), dv=de?fpNum(de.value):undefined;
+    return {k:c.k,
+      n:((document.getElementById('fp_cn'+i)||{}).value||c.n||c.k).trim()||c.k,
+      d:((document.getElementById('fp_cd'+i)||{}).value||'').trim(),
+      dlv:de?(de.value.trim()===''?null:(dv==null?0:dv)):(c.dlv===undefined?null:c.dlv)};});
   const rows=[];
   document.querySelectorAll('#fpTbl tr[data-fp]').forEach(tr=>{
     const g=cls=>{ const el=tr.querySelector(cls); return el?String(el.value||'').trim():''; };
@@ -5884,7 +5890,7 @@ function renderFeedPrice(){
   if(fpEditMode&&canEdit){
     body=`<div style="overflow-x:auto"><table class="densetbl" id="fpTbl" style="font-size:13px">
       <thead><tr><th>เบอร์</th><th>ชื่อ/ระยะ</th>
-        ${P.cols.map((c,i)=>`<th class="num" style="min-width:86px"><input id="fp_cn${i}" class="cin" value="${escA(c.n||c.k)}" style="width:86px;padding:5px 7px;font-weight:800"><br><input id="fp_cd${i}" class="cin" value="${escA(c.d||'')}" placeholder="วันที่/เงื่อนไข" style="width:120px;padding:4px 7px;font-size:11px;margin-top:3px"><br><a href="#" onclick="fpDelCol(${i});return false" style="font-size:11px;color:var(--danger,#c0392b)">✕ ลบเจ้า</a></th>`).join('')}
+        ${P.cols.map((c,i)=>`<th class="num" style="min-width:86px"><input id="fp_cn${i}" class="cin" value="${escA(c.n||c.k)}" style="width:86px;padding:5px 7px;font-weight:800"><br><input id="fp_cd${i}" class="cin" value="${escA(c.d||'')}" placeholder="วันที่/เงื่อนไข" style="width:120px;padding:4px 7px;font-size:11px;margin-top:3px"><br><input id="fp_cdl${i}" class="cin" inputmode="decimal" value="${(c.dlv==null?'':c.dlv)}" placeholder="ค่าส่ง บ./กก." title="ค่าขนส่งถึงฟาร์ม บาท/กก. · ใส่ 0 = ราคารวมส่งแล้ว · เว้นว่าง = ยังไม่รู้" style="width:120px;padding:4px 7px;font-size:11px;margin-top:3px"><br><a href="#" onclick="fpDelCol(${i});return false" style="font-size:11px;color:var(--danger,#c0392b)">✕ ลบเจ้า</a></th>`).join('')}
         <th>หมายเหตุ</th><th></th></tr></thead>
       <tbody id="fpBody">${sorted.map(r=>fpEditRowHTML(r,P.cols)).join('')}</tbody></table></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">
@@ -5901,10 +5907,11 @@ function renderFeedPrice(){
   }else{
     body=`<div style="overflow-x:auto"><table class="densetbl" style="font-size:13px">
       <thead><tr><th>เบอร์</th><th>ชื่อ/ระยะ</th>
-        ${P.cols.map(c=>`<th class="num">${escA(c.n||c.k)}${c.d?`<br><span style="font-weight:400;font-size:10.5px;color:var(--mut)">${escA(c.d)}</span>`:''}</th>`).join('')}
+        ${P.cols.map(c=>`<th class="num">${escA(c.n||c.k)}${c.d?`<br><span style="font-weight:400;font-size:10.5px;color:var(--mut)">${escA(c.d)}</span>`:''}${fpDlvOn?`<br><span style="font-weight:400;font-size:10.5px;color:${c.dlv==null?'#b7791f':'#2d5f8a'}">${c.dlv==null?'⚠️ ยังไม่รู้ค่าส่ง':(c.dlv>0?'+ ค่าส่ง '+c.dlv.toFixed(2):'รวมค่าส่งแล้ว')}</span>`:''}</th>`).join('')}
         <th>หมายเหตุ</th><th>💊 ยาในอาหาร</th></tr></thead>
       <tbody>${sorted.map(r=>{
-        const vals=P.cols.map(c=>(r.p&&isFinite(r.p[c.k])&&r.p[c.k]>0)?r.p[c.k]:null);
+        const vals=P.cols.map(c=>{ let x=(r.p&&isFinite(r.p[c.k])&&r.p[c.k]>0)?r.p[c.k]:null;
+          if(x!=null&&fpDlvOn&&isFinite(c.dlv)&&c.dlv>0) x=Math.round((x+c.dlv)*100)/100; return x; });
         const buy=vals.filter((x,i)=>x!=null&&P.cols[i].k!=='SJF');           // ⭐ ถูกสุดเทียบเฉพาะ "เจ้าที่ซื้อ" — SJF ผสมเองเป็นค่าวัตถุดิบ เทียบตรงๆ ไม่แฟร์
         const best=buy.length?Math.min.apply(null,buy):null;
         const nMed=fpMedCount(r), open=(fpMedRow===String(r.no));
@@ -5916,11 +5923,14 @@ function renderFeedPrice(){
           <td style="white-space:nowrap"><button class="btn sm ghost" onclick="fpMedRow=${open?'null':escA(JSON.stringify(String(r.no)))};fpMedEdit=null;renderFeedPrice()">${open?'▾ ปิด':(nMed?'💊 '+nMed+' ตัว':'＋ ใส่ยา')}</button></td></tr>`
           +(open?fpMedPanelHTML(r,P.cols,canEdit):''); }).join('')}</tbody></table></div>
       <div class="sub" style="margin-top:9px">⭐ = ราคาถูกสุดของเบอร์นั้น (เทียบเฉพาะเจ้าที่ซื้อ — SJF ผสมเองคือค่าวัตถุดิบล้วน ยังไม่รวมค่าผสม/ขนส่ง) · ทุกราคาเป็น บาท/กก. · กด 💊 ดูว่าอาหารเบอร์นั้นของแต่ละเจ้าใส่ยาอะไรมาแล้วบ้าง</div>
-      ${canEdit?`<div class="actions" style="margin-top:11px"><button class="btn" onclick="fpEditMode=true;renderFeedPrice()">✏️ แก้ราคา (เจ้าของ)</button></div>`:''}`;
+      <div class="sub" style="margin-top:5px">🚚 ราคาที่กรอกไว้เป็นราคา<b>ซื้อขายตามใบเสนอราคา</b> — บางเจ้าเป็นราคารับเองที่โรงงาน ยังไม่รวมค่าขนส่ง กด "ราคาถึงฟาร์ม" เพื่อบวกค่าส่งก่อนเทียบ · ซื้อแบบ bulk คิดตาม<b>น้ำหนักต้นทางที่โรงงาน</b> (หายระหว่างทางฟาร์มรับเอง) ส่วนแบบถุงคิดตาม<b>จำนวนถุง × น้ำหนักบรรจุ</b></div>
+      <div class="actions" style="margin-top:11px">
+        <button class="btn ghost" onclick="fpDlvOn=!fpDlvOn;renderFeedPrice()">${fpDlvOn?'🏭 ดูราคาตามใบเสนอราคา':'🚚 ดูราคาถึงฟาร์ม (บวกค่าส่ง)'}</button>
+        ${canEdit?`<button class="btn" onclick="fpEditMode=true;renderFeedPrice()">✏️ แก้ราคา (เจ้าของ)</button>`:''}</div>`;
   }
   v.innerHTML=`
     <h2 class="page">💰 ราคาอาหาร</h2>
-    <div class="sub">ตารางเทียบราคาอาหารรายเบอร์ ทุกเจ้า · อัปเดตล่าสุด <b>${escA(P.upd||'-')}</b>${canEdit?' · แก้ได้เฉพาะเจ้าของ':' · ดูอย่างเดียว — แก้ได้เฉพาะเจ้าของ'}</div>
+    <div class="sub">ตารางเทียบราคาอาหารรายเบอร์ ทุกเจ้า · อัปเดตล่าสุด <b>${escA(P.upd||'-')}</b>${canEdit?' · แก้ได้เฉพาะเจ้าของ':' · ดูอย่างเดียว — แก้ได้เฉพาะเจ้าของ'}${fpDlvOn?' · <b style="color:#2d5f8a">🚚 กำลังแสดงราคาถึงฟาร์ม (บวกค่าขนส่งแล้ว)</b>':''}</div>
     <div class="card">${body}</div>`;
 }
 /* ---- DAILY entry ---- */
