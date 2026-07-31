@@ -1065,7 +1065,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690731f';
+const APP_BUILD='690731g';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -5951,11 +5951,13 @@ function renderFeedPrice(){
         return `<tr${open?' style="background:#eef4f1"':''}><td style="font-weight:800">${escA(r.no)}</td><td><span class="sub">${escA(r.name||'-')}</span></td>
           ${vals.map((x,i)=>{ if(x==null) return '<td class="num" style="color:var(--mut)">—</td>';
             const isBest=(best!=null&&P.cols[i].k!=='SJF'&&Math.abs(x-best)<0.005);
-            return `<td class="num" style="${isBest?'background:#e6f4ea;color:#1e7e4f;font-weight:800':''}">${x.toFixed(2)}${isBest?' ⭐':''}</td>`; }).join('')}
+            const mm=fpMedOf(r,P.cols[i].k), code=(mm&&mm.code)?String(mm.code).split('·')[0].trim():'';   // 🏷️ รหัสสินค้าของโรงงาน (เช่น JBF เรียกเบอร์ 100 ว่า 110G) — โชว์ในตารางเลย จะได้ไม่ต้องกดเปิดหา
+            return `<td class="num" style="${isBest?'background:#e6f4ea;color:#1e7e4f;font-weight:800':''}">${x.toFixed(2)}${isBest?' ⭐':''}${code?`<div class="sub" style="font-size:10.5px;font-weight:400;margin-top:1px">🏷️ ${escA(code)}</div>`:''}</td>`; }).join('')}
           <td><span class="sub">${escA(r.note||'')}</span></td>
           <td style="white-space:nowrap"><button class="btn sm ghost" onclick="fpMedRow=${open?'null':escA(JSON.stringify(String(r.no)))};fpMedEdit=null;renderFeedPrice()">${open?'▾ ปิด':(nMed?'💊 '+nMed+' ตัว':(fpHasPx(r)?'🧾 ดูรายละเอียด':'＋ ใส่ยา'))}</button></td></tr>`
           +(open?fpMedPanelHTML(r,P.cols,canEdit):''); }).join('')}</tbody></table></div>
       <div class="sub" style="margin-top:9px">⭐ = ราคาถูกสุดของเบอร์นั้น (เทียบเฉพาะเจ้าที่ซื้อ — SJF ผสมเองคือค่าวัตถุดิบล้วน ยังไม่รวมค่าผสม/ขนส่ง) · ทุกราคาเป็น บาท/กก. · กด 💊 ดูว่าอาหารเบอร์นั้นของแต่ละเจ้าใส่ยาอะไรมาแล้วบ้าง</div>
+      <div class="sub" style="margin-top:5px">🏷️ = รหัสสินค้าที่โรงงานเรียก — <b>ชื่อคนละแบบกับเบอร์ของฟาร์ม</b> เช่น <b>JBF 110G = เบอร์ 100 ของเรา (ไม่ใช่เบอร์ 110)</b> · การจับคู่นี้เทียบจากระดับราคาและชนิดยา <b style="color:#b7791f">ให้เจ้าของ/หมอยืนยันอีกที</b> ถ้าจับคู่ผิดแก้ได้ที่ ✏️ ในแผงของเบอร์นั้น</div>
       <div class="sub" style="margin-top:5px">🚚 ราคาที่กรอกไว้เป็นราคา<b>ซื้อขายตามใบเสนอราคา</b> — บางเจ้าเป็นราคารับเองที่โรงงาน ยังไม่รวมค่าขนส่ง กด "ราคาถึงฟาร์ม" เพื่อบวกค่าส่งก่อนเทียบ · ซื้อแบบ bulk คิดตาม<b>น้ำหนักต้นทางที่โรงงาน</b> (หายระหว่างทางฟาร์มรับเอง) ส่วนแบบถุงคิดตาม<b>จำนวนถุง × น้ำหนักบรรจุ</b></div>
       <div class="actions" style="margin-top:11px">
         <button class="btn ghost" onclick="fpDlvOn=!fpDlvOn;renderFeedPrice()">${fpDlvOn?'🏭 ดูราคาตามใบเสนอราคา':'🚚 ดูราคาถึงฟาร์ม (บวกค่าส่ง)'}</button>
