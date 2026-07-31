@@ -1031,7 +1031,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690731a';
+const APP_BUILD='690731b';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -5716,6 +5716,16 @@ function fpPriceOf(no,src){ // ราคา บ./กก. ของเบอร�
   const r=P.rows.find(x=>String(x.no).trim()===key); if(!r) return null;
   const v=r.p&&r.p[src]; return (isFinite(v)&&v>0)?v:null;
 }
+function fpAutoPrice(no,srcStr){ // 🔗 ราคาอัตโนมัติสำหรับงบปิดชุด — จับเบอร์+แหล่งที่หมอบันทึก ("VCF/SJF" ลองทีละเจ้า เอาเจ้าแรกที่มีราคา · "หนองบัว" จับคอลัมน์จากชื่อ)
+  const P=fpData(), key=(typeof feedNoKey==='function')?(feedNoKey(no)||String(no||'').trim()):String(no||'').trim();
+  const row=P.rows.find(x=>String(x.no).trim()===key); if(!row||!row.p) return null;
+  const srcs=String(srcStr||'').split('/').map(s=>s.trim()).filter(Boolean);
+  for(const s of srcs){
+    const col=P.cols.find(c=>c.k===s||String(c.n||'').trim()===s||String(c.n||'').indexOf(s)>=0||s.indexOf(c.k)>=0);
+    if(col){ const v=row.p[col.k]; if(isFinite(v)&&v>0) return v; }
+  }
+  return null;
+}
 function fpCollect(){ // อ่านค่าที่พิมพ์ในโหมดแก้จาก DOM → {cols,rows,upd} (ยังไม่บันทึก)
   const P=fpData();
   const cols=P.cols.map((c,i)=>({k:c.k,
@@ -6764,7 +6774,8 @@ function restoreBatch(){
   const b=currentHouse&&currentHouse.batch; if(!b) return;
   // ช่อง "ตาย/คัด/ขาย (จำนวน·นน.·มูลค่า)" ให้ดึงจากบันทึกรายวันล่าสุดเสมอ (batchHTML prefill จาก dailyAgg แล้ว) — ไม่เอาค่าจากร่างเก่ามาทับ กันสรุป③ ไม่ตรงกับบันทึกรายวัน⑤
   const SKIP={b_deadN:1,b_deadW:1,b_deadVal:1,b_cullN:1,b_cullW:1,b_cullVal:1,b_outN:1,b_outW:1,b_outVal:1};
-  Object.keys(b).forEach(id=>{if(SKIP[id])return;const el=document.getElementById(id);if(el)el.value=b[id];});
+  // ช่องราคาอาหาร f_pr_*: ร่างเก่าที่เว้นว่างไว้ ห้ามมาลบราคาที่เติมอัตโนมัติจากตาราง 💰 ราคาอาหาร — ทับเฉพาะราคาที่เสมียนเคยพิมพ์จริง
+  Object.keys(b).forEach(id=>{if(SKIP[id])return;if(/^f_pr_/.test(id)&&String(b[id]==null?'':b[id]).trim()==='')return;const el=document.getElementById(id);if(el)el.value=b[id];});
 }
 function batchLogHTML(h){
   const log=h.batchLog||[];
@@ -6894,16 +6905,16 @@ function batchHTML(h){
 
   <div class="card">
     <h3>🌾 อาหารที่ใช้</h3>
-    <div class="banner info">🔗 <div>ปริมาณอาหารแต่ละเบอร์ดึงจากบันทึก <b>"การรับอาหาร" ของหมอ</b> (รวมตามเบอร์) — ใส่ราคา/กก. เพื่อคิดต้นทุน</div></div>
+    <div class="banner info">🔗 <div>ปริมาณอาหารแต่ละเบอร์ดึงจากบันทึก <b>"การรับอาหาร" ของหมอ</b> (รวมตามเบอร์) — ราคา/กก. เติมอัตโนมัติจากหน้า <b>💰 ราคาอาหาร</b> ตามเบอร์+แหล่ง (แก้ทับได้)</div></div>
     <div style="overflow-x:auto"><table>
       <thead><tr><th>เบอร์อาหาร</th><th>แหล่ง</th><th>เลขที่บิล</th><th class="num">จำนวน(กก.)</th><th class="num">ราคา/กก.</th><th class="num">เป็นเงิน</th></tr></thead>
-      <tbody>${(function(){const fa=feedAgg(h);return fa.length? fa.map((r,i)=>`<tr>
+      <tbody>${(function(){const fa=feedAgg(h);return fa.length? fa.map((r,i)=>{const ap=fpAutoPrice(r.no,r.src);return `<tr>
         <td><b>${escA(r.no)}</b></td><td><span class="sub">${escA(r.src||'-')}</span></td><td><span class="sub">${escA(r.bill||'-')}</span></td>
         <td class="num"><b id="f_kg_${i}">${fmt(r.kg)}</b></td>
-        <td><input class="cin" id="f_pr_${i}" placeholder="0" oninput="calcBatch()"></td>
-        <td class="num" id="f_amt_${i}">0</td></tr>`).join("") : '<tr><td colspan="6" class="sub">ยังไม่มีบันทึกการรับอาหารจากหมอ</td></tr>';})()}</tbody>
+        <td><input class="cin" id="f_pr_${i}" placeholder="0" value="${ap!=null?ap:''}" oninput="calcBatch()">${ap!=null?'<div class="sub" style="font-size:10.5px;margin-top:2px">💰 จากตารางราคา · แก้ได้</div>':'<div class="sub" style="font-size:10.5px;margin-top:2px;color:#b7791f">ไม่มีในตารางราคา — ใส่เอง</div>'}</td>
+        <td class="num" id="f_amt_${i}">0</td></tr>`;}).join("") : '<tr><td colspan="6" class="sub">ยังไม่มีบันทึกการรับอาหารจากหมอ</td></tr>';})()}</tbody>
     </table></div>
-    <div class="sub" style="margin:8px 0 0">รวมอาหาร: <b id="s_feed">—</b></div>
+    <div class="sub" style="margin:8px 0 0">รวมอาหาร: <b id="s_feed">—</b> · ราคาอัตโนมัติมาจากตาราง 💰 ราคาอาหาร (มุมผู้ดูแล) — ถ้าราคาชุดนี้ต่างจากตาราง พิมพ์ทับได้เลย ระบบจะจำค่าที่พิมพ์
   </div>
 
   <div class="card">
