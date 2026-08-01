@@ -1065,7 +1065,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690731j';
+const APP_BUILD='690731k';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -7254,11 +7254,13 @@ function calcBatch(){
     const a2=document.getElementById('s_moveVal'); if(a2) a2.textContent=moveVal?fmt(Math.round(moveVal))+' บาท':'—'; }
   const revenue=deadVal+cullVal+outVal+moveVal;
   const profit=revenue-totalCost;
-  const avgIn=inN?inW/inN:0, avgOut=outN?outW/outN:0;
+  // 🔄 หมูที่ย้ายออกก็ "ออกจากหลังแบบมีชีวิต" และมีน้ำหนักชั่งไว้ → ต้องนับใน นน.ออก/ADG/FCR ไม่งั้นหลังที่ย้ายทั้งรุ่นขึ้น "—" หมด (J2)
+  const exitN=outN+movedN, exitW=outW+movedW;
+  const avgIn=inN?inW/inN:0, avgOut=exitN?exitW/exitN:0;
   const loss=inN?(deadN+cullN)/inN*100:0;
   let adg=(days&&avgOut&&avgIn)?(avgOut-avgIn)/days:0;
   const adgOdd=adg!==0&&(adg<0||adg>1.4); if(adgOdd) adg=0; // ADG ติดลบ/เกิน 1.4 กก./วัน = วันรับเข้าหรือน้ำหนักผิด (เคส J2 โชว์ 4.3) — โชว์ — พร้อมคำเตือน ไม่เก็บเลขหลอก
-  const gainW=(outW+cullW)-avgIn*(outN+cullN); // นน.ที่โตขึ้นของหมูที่ออกแบบมีชีวิต (ขาย+คัด) — เดิมนับเฉพาะขาย ทำให้ FCR เพี้ยน
+  const gainW=(outW+cullW+movedW)-avgIn*(outN+cullN+movedN); // นน.ที่โตขึ้นของหมูที่ออกแบบมีชีวิต (ขาย+คัด+ย้ายออก)
   const eatKg=intakeAgg(currentHouse).totalKg;  // อาหารที่ "กินจริง" (จากบันทึกการกินได้ของหมอ)
   const eatComplete=eatKg>0&&(feedKg<=0||eatKg>=feedKg*0.5); // ใช้กินจริงเฉพาะเมื่อบันทึกครอบคลุมพอ (≥ครึ่งของอาหารรับเข้า) — กันเคสหมอจดกินได้แค่บางวันแล้ว FCR ต่ำผิดโลก (B4: กินได้ 885 กก. vs รับ 175,470 กก. → 0.01)
   const fcrFeed=eatComplete?eatKg:feedKg;       // ไม่ครบ → ใช้อาหารรับเข้า (อาจสูงกว่าจริงเล็กน้อยเพราะมีอาหารเหลือในถัง)
