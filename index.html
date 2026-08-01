@@ -1065,7 +1065,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690731k';
+const APP_BUILD='690801a';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -4360,6 +4360,23 @@ function allClosedBatches(){
 // กำไรเฉลี่ย/ตัว — หารด้วยหมูที่ "ออกจากหลังแบบมีชีวิต" = ขายขุน + คัดขาย + ย้ายออกไปหลังอื่น
 // (เดิมไม่นับตัวที่ย้ายออก ทำให้หลังที่ย้ายหมูออกทั้งรุ่นเอาต้นทุนทั้งก้อนไปหารด้วยหมูไม่กี่ตัว → ติดลบเป็นแสน เคส J2 31 ก.ค. 69)
 function batchPerPig(b){ if(!b) return 0; const live=(b.soldN||0)+(b.cullN||0)+(b.movedN||0); const base=live>0?(b.profit||0)/live:((b.inN>0)?(b.profit||0)/b.inN:0); return Math.round(base); }
+/* ⚠️ ชุดปิดที่ "ข้อมูลไม่ครบ" — ต้นทุน/รายได้ยังไม่ได้กรอก ทำให้กำไรที่โชว์ไม่ใช่ของจริง
+   (ตรวจ 1 ส.ค. 69: 19 ชุดที่ปิดแล้ว มี 8 ชุดที่ค่าลูกหมู+ค่าอาหาร = 0 → กำไรลวงรวม 1.7 ล้าน)
+   ไม่ลบทิ้ง เพราะเป็นรุ่นจริง แค่ยังกรอกไม่ครบ — ทำเครื่องหมายไว้ ไม่ให้เอาไปรวมเป็นตัวเลขจริง */
+function batchMissing(b){
+  if(!b) return [];
+  const m=[];
+  if(!((b.pigCost||0)>0)) m.push('ค่าลูกหมู');
+  if(!((b.feedCost||0)>0)) m.push('ค่าอาหาร');
+  if(!((b.revenue||0)>0)) m.push('รายได้');
+  else if((b.soldN||0)>0 && (b.revenue||0)<(b.soldN||0)*1000) m.push('ราคาขาย');   // ขายหลายร้อยตัวแต่รายได้ไม่ถึงหลักพัน/ตัว = ยังไม่ได้ลงราคา
+  return m;
+}
+function batchOK(b){ return batchMissing(b).length===0; }
+function batchWarnBadge(b){
+  const m=batchMissing(b); if(!m.length) return '';
+  return `<span title="ยังไม่ได้กรอก: ${escA(m.join(' · '))} — ตัวเลขกำไรของชุดนี้ยังไม่ใช่ของจริง" style="background:#fdf3e0;border:1px solid #e5b96e;border-radius:7px;padding:1px 7px;font-size:11px;font-weight:700;color:#8a6a20;white-space:nowrap">⚠️ ข้อมูลไม่ครบ</span>`;
+}
 /* 🔄 ต้นทุนสะสมต่อตัวของหลังหนึ่ง (อ่านจากร่างปิดชุดที่บันทึกไว้) — ใช้ตีราคาโอนเวลาย้ายหมูข้ามหลัง */
 function batchNum(v){ const n=Number(String(v==null?'':v).replace(/[^0-9.-]/g,'')); return isFinite(n)?n:0; }
 const BATCH_OTHER_IDS=['c_inject','c_vaccine','c_feedmed','c_formula','c_supply','c_equip','c_labor','c_asst','c_vetman','c_clerk','c_bio','c_elec','c_dep'];
@@ -4441,22 +4458,25 @@ function closedBatchBodyHTML(){
   }).join('');
   let summary='';
   if(f){
-    const fp=list.reduce((s,b)=>s+(b.profit||0),0);
-    summary=`<div class="banner ok" style="margin:10px 0 4px">🩺 <div>หมอ "<b>${escA(closedVetFilter)}</b>" — ปิดไปแล้ว <b>${list.length} ชุด</b>${list.length?` · กำไรรวม <b>${money(fp)} บาท</b>`:''}</div></div>`;
+    const okL=list.filter(batchOK), fp=okL.reduce((s,b)=>s+(b.profit||0),0), bad=list.length-okL.length;
+    summary=`<div class="banner ok" style="margin:10px 0 4px">🩺 <div>หมอ "<b>${escA(closedVetFilter)}</b>" — ปิดไปแล้ว <b>${list.length} ชุด</b>${okL.length?` · กำไรรวม <b>${money(fp)} บาท</b>`:''}${bad?` · <b style="color:#8a6a20">${bad} ชุดข้อมูลยังไม่ครบ ไม่ได้นำมารวม</b>`:''}</div></div>`;
   }
+  { const badAll=allClosedBatches().filter(b=>!batchOK(b));   // 🔎 เตือนภาพรวม: มีชุดปิดที่ยังกรอกไม่ครบกี่ชุด กดกรองดูได้
+    if(badAll.length) summary+=`<div class="banner warn" style="margin:6px 0 4px">⚠️ <div><b>มี ${badAll.length} ชุดที่ปิดไปแล้วแต่ข้อมูลยังไม่ครบ</b> (${escA(badAll.map(b=>b.code).join(' · '))}) — ยังไม่ได้กรอกค่าลูกหมู/ค่าอาหาร/ราคาขาย · <b>ระบบไม่นำไปรวมในกำไรรวม</b> แตะแถวที่มีป้าย ⚠️ เพื่อเปิดดูว่าขาดอะไร</div></div>`; }
   const farmOf=b=>b.farm||'ไม่ระบุฟาร์ม';
   const known=FARMS.filter(ff=>list.some(b=>farmOf(b)===ff));
   const extra=[...new Set(list.map(farmOf))].filter(ff=>!FARMS.includes(ff));
   const groups=[...known,...extra].map(ff=>{
     const items=list.filter(b=>farmOf(b)===ff); if(!items.length) return '';
-    const profit=items.reduce((s,b)=>s+(b.profit||0),0);
+    const okItems=items.filter(batchOK), badN=items.length-okItems.length;
+    const profit=okItems.reduce((s,b)=>s+(b.profit||0),0);   // ⚠️ รวมกำไรเฉพาะชุดที่กรอกครบ — ชุดที่ยังไม่ครบทำให้ยอดรวมเพี้ยน
     return `<div class="farmgroup">
-      <div class="farmhead">🏭 ${escA(ff)}<span class="fcount">${items.length} รุ่น · กำไรรวม ${money(profit)} บาท</span></div>
+      <div class="farmhead">🏭 ${escA(ff)}<span class="fcount">${items.length} รุ่น · กำไรรวม ${money(profit)} บาท${badN?' <span style="color:#8a6a20">(เฉพาะ '+okItems.length+' ชุดที่กรอกครบ · อีก '+badN+' ชุดยังไม่ครบ)</span>':''}</span></div>
       <div style="overflow-x:auto"><table>
         <thead><tr><th>📅 วันที่ปิด</th><th>หลัง</th><th>🩺 หมอ</th><th>รับเข้า→ปิด</th><th class="num">วันเลี้ยง</th><th class="num">รับเข้า</th><th class="num">ตาย</th><th class="num">คัด</th><th class="num">ขาย</th><th class="num">รายได้</th><th class="num">ต้นทุน</th><th class="num">กำไร</th><th class="num">FCR</th></tr></thead>
         <tbody>${items.map(b=>`<tr class="clk" onclick="showClosedBatch('${escA(b.code)}',${b.ts})">
           <td><b>${escA(fmtISOThai(b.closedOn))}</b></td>
-          <td><b>${escA(b.code||'-')}</b></td>
+          <td><b>${escA(b.code||'-')}</b> ${batchWarnBadge(b)}</td>
           <td>${escA(b.vet||'-')}</td>
           <td><span class="sub">${escA(fmtISOThai(b.dateIn))} → ${escA(fmtISOThai(b.closedOn))}</span></td>
           <td class="num">${b.days||0}</td>
@@ -4571,6 +4591,7 @@ function showClosedBatch(code,ts){
     <button class="back" onclick="${effRole()==='clerk'?'renderClerkFarm()':'renderOwner()'}">${effRole()==='clerk'?'‹ กลับข้อมูลประจำฟาร์ม':'‹ กลับภาพรวม'}</button>
     <h2 class="page">📦 ปิดชุด หลัง ${escA(b.code||'')} <span style="color:var(--muted);font-size:15px;font-weight:500">${escA(b.farm||'')}</span></h2>
     <div class="sub">รับเข้า ${escA(fmtISOThai(b.dateIn))} → ปิดชุด ${escA(fmtISOThai(b.closedOn))} · เลี้ยง ${b.days||0} วัน</div>
+    ${batchMissing(b).length?`<div class="banner warn" style="margin:10px 0">⚠️ <div><b>ชุดนี้ข้อมูลยังไม่ครบ — ตัวเลขกำไรด้านล่างยังไม่ใช่ของจริง</b><br>ยังไม่ได้กรอก: <b>${batchMissing(b).map(escA).join(' · ')}</b> · ระบบไม่นำชุดนี้ไปรวมในกำไรรวมของฟาร์ม จนกว่าจะกรอกครบ</div></div>`:''}
     <div style="margin:0 0 14px"><button class="btn ghost" onclick="exportClosedBatch(${escA(JSON.stringify(b.code||''))},${b.ts})" style="color:var(--ok);border-color:var(--ok)">📊 ส่งออก Excel — สรุป + ประวัติ (2 หน้า)</button></div>
     <div class="kpis">
       <div class="kpi"><div class="lab">รับเข้า</div><div class="val">${fmt(b.inN||0)}</div></div>
