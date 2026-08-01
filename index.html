@@ -1065,7 +1065,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690731i';
+const APP_BUILD='690731j';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -6900,6 +6900,11 @@ function submitExtraIntake(){
 }
 
 // รวมปริมาณอาหารจากบันทึกการรับอาหารของหมอ ตามเบอร์อาหาร
+/* 🔒 ราคาอาหารในงบปิดชุด "อิงตารางราคาอาหาร" เป็นหลัก (Peter สั่ง 31 ก.ค. 69)
+   เดิมเก็บราคาเป็นตำแหน่ง f_pr_0/1/2… ซึ่งพังเมื่อรายการอาหารเรียงใหม่ (บันทึกใหม่ unshift ขึ้นหัว → ราคาไปเกาะผิดเบอร์ เคส D11)
+   ตอนนี้: มีในตาราง = ล็อกใช้ราคาตาราง · ไม่มีในตาราง = กรอกเองได้ แต่ผูก id กับ "เบอร์+เจ้า" ไม่ใช่ตำแหน่ง */
+function fpSlug(s){ let h=0; const t=String(s||''); for(let i=0;i<t.length;i++){ h=((h<<5)-h+t.charCodeAt(i))|0; } return (t.replace(/[^0-9A-Za-z]/g,'')||'x')+'_'+(h>>>0).toString(36); }
+function fpFieldId(r){ return 'f_pr_'+fpSlug(String(r&&r.no||'')+'|'+String(r&&r.src||'')); }
 function feedAgg(h){
   const m={};
   (h.vetLog||[]).filter(e=>e.type==='feed').forEach(e=>{
@@ -6960,8 +6965,15 @@ function restoreBatch(){
   const b=currentHouse&&currentHouse.batch; if(!b) return;
   // ช่อง "ตาย/คัด/ขาย (จำนวน·นน.·มูลค่า)" ให้ดึงจากบันทึกรายวันล่าสุดเสมอ (batchHTML prefill จาก dailyAgg แล้ว) — ไม่เอาค่าจากร่างเก่ามาทับ กันสรุป③ ไม่ตรงกับบันทึกรายวัน⑤
   const SKIP={b_deadN:1,b_deadW:1,b_deadVal:1,b_cullN:1,b_cullW:1,b_cullVal:1,b_outN:1,b_outW:1,b_outVal:1};
-  // ช่องราคาอาหาร f_pr_*: ร่างเก่าที่เว้นว่างไว้ ห้ามมาลบราคาที่เติมอัตโนมัติจากตาราง 💰 ราคาอาหาร — ทับเฉพาะราคาที่เสมียนเคยพิมพ์จริง
-  Object.keys(b).forEach(id=>{if(SKIP[id])return;if(/^f_pr_/.test(id)&&String(b[id]==null?'':b[id]).trim()==='')return;const el=document.getElementById(id);if(el)el.value=b[id];});
+  // 💰 ราคาอาหาร: ช่องที่ล็อกไว้ (มีในตารางราคา) ห้ามเอาค่าเก่าในร่างมาทับ — ต้องอิงตารางเสมอ ทุกหลังจะได้ตรงกัน
+  // ร่างเก่ายังมีคีย์แบบตำแหน่ง f_pr_0/1/2… ค้างอยู่ · id พวกนั้นไม่มีในฟอร์มแล้ว จึงตกไปเอง (ไม่เอามาใช้ กันราคาไปเกาะผิดเบอร์)
+  Object.keys(b).forEach(id=>{
+    if(SKIP[id]) return;
+    if(/^f_pr_/.test(id)&&String(b[id]==null?'':b[id]).trim()==='') return;
+    const el=document.getElementById(id); if(!el) return;
+    if(/^f_pr_/.test(id)&&el.readOnly) return;
+    el.value=b[id];
+  });
 }
 function batchLogHTML(h){
   const log=h.batchLog||[];
@@ -7096,13 +7108,15 @@ function batchHTML(h){
 
   <div class="card">
     <h3>🌾 อาหารที่ใช้</h3>
-    <div class="banner info">🔗 <div>ปริมาณอาหารแต่ละเบอร์ดึงจากบันทึก <b>"การรับอาหาร" ของหมอ</b> (รวมตามเบอร์) — ราคา/กก. เติมอัตโนมัติจากหน้า <b>💰 ราคาอาหาร</b> ตามเบอร์+แหล่ง (แก้ทับได้)</div></div>
+    <div class="banner info">🔗 <div>ปริมาณอาหารแต่ละเบอร์ดึงจากบันทึก <b>"การรับอาหาร" ของหมอ</b> (รวมตามเบอร์) — ราคา/กก. <b>อิงจากตาราง 💰 ราคาอาหาร</b> ของมุมผู้ดูแล ทุกหลังใช้ราคาชุดเดียวกัน · จะเปลี่ยนราคาต้องไปแก้ที่ตารางนั้น (เจ้าของเท่านั้น)</div></div>
     <div style="overflow-x:auto"><table>
       <thead><tr><th>เบอร์อาหาร</th><th>แหล่ง</th><th>เลขที่บิล</th><th class="num">จำนวน(กก.)</th><th class="num">ราคา/กก.</th><th class="num">เป็นเงิน</th></tr></thead>
-      <tbody>${(function(){const fa=feedAgg(h);return fa.length? fa.map((r,i)=>{const ap=fpAutoPrice(r.no,r.src);return `<tr>
+      <tbody>${(function(){const fa=feedAgg(h);return fa.length? fa.map((r,i)=>{const ap=fpAutoPrice(r.no,r.src), fid=fpFieldId(r);return `<tr>
         <td><b>${escA(r.no)}</b></td><td><span class="sub">${escA(r.src||'-')}</span></td><td><span class="sub">${escA(r.bill||'-')}</span></td>
         <td class="num"><b id="f_kg_${i}">${fmt(r.kg)}</b></td>
-        <td><input class="cin" id="f_pr_${i}" placeholder="0" value="${ap!=null?ap:''}" oninput="calcBatch()"><div class="sub" id="f_note_${i}" style="font-size:10.5px;margin-top:2px${ap!=null?'':';color:#b7791f'}">${ap!=null?'💰 จากตารางราคา · แก้ได้':'ไม่มีในตารางราคา — ใส่เอง'}</div></td>
+        <td>${ap!=null
+            ? `<input class="cin" id="${fid}" value="${ap}" readonly style="background:var(--soft);font-weight:700"><div class="sub" style="font-size:10.5px;margin-top:2px">🔒 อิงตารางราคาอาหาร</div>`
+            : `<input class="cin" id="${fid}" placeholder="0" oninput="calcBatch()"><div class="sub" style="font-size:10.5px;margin-top:2px;color:#b7791f">ไม่มีในตารางราคา — ใส่เอง</div>`}</td>
         <td class="num" id="f_amt_${i}">0</td></tr>`;}).join("") : '<tr><td colspan="6" class="sub">ยังไม่มีบันทึกการรับอาหารจากหมอ</td></tr>';})()}</tbody>
     </table></div>
     <div class="sub" style="margin:8px 0 0">รวมอาหาร: <b id="s_feed">—</b> · ราคาอัตโนมัติมาจากตาราง 💰 ราคาอาหาร (มุมผู้ดูแล) — ถ้าราคาชุดนี้ต่างจากตาราง พิมพ์ทับได้เลย ระบบจะจำค่าที่พิมพ์
@@ -7212,7 +7226,14 @@ function calcBatch(){
   const outN=gv('b_outN'),outW=gv('b_outW'),outVal=gv('b_outVal');
   const days=gv('b_days');
   let feedKg=0,feedCost=0;
-  feedAgg(currentHouse).forEach((r,i)=>{const pr=gv('f_pr_'+i);feedKg+=r.kg;feedCost+=r.kg*pr;const amt=document.getElementById('f_amt_'+i);if(amt)amt.textContent=fmt(Math.round(r.kg*pr));});
+  let feedNoPrice=0;
+  feedAgg(currentHouse).forEach((r,i)=>{
+    const ap=fpAutoPrice(r.no,r.src);
+    const pr=(ap!=null)?ap:gv(fpFieldId(r));   // 🔒 มีในตารางราคา = ใช้ราคาตารางเสมอ (ทุกหลังตรงกัน) · ไม่มี = ใช้ที่กรอกเอง
+    if(ap==null&&!(pr>0)) feedNoPrice+=r.kg;
+    feedKg+=r.kg; feedCost+=r.kg*pr;
+    const amt=document.getElementById('f_amt_'+i); if(amt) amt.textContent=fmt(Math.round(r.kg*pr));
+  });
   const cft=document.getElementById('c_feedTotal'); if(cft) cft.value=Math.round(feedCost);
   const otherCost=['c_inject','c_vaccine','c_feedmed','c_formula','c_supply','c_equip','c_labor','c_asst','c_vetman','c_clerk','c_bio','c_elec','c_dep'].reduce((s,id)=>s+gv(id),0)+bxTotal(); // + ค่าใช้จ่ายอื่นๆ ที่เพิ่มเอง
   const bIt=(currentHouse&&currentHouse.intake)||{}, breedTotal=bIt.breedTotal||0;
@@ -7267,21 +7288,12 @@ function calcBatch(){
   setT('s_deadAvg',(deadW&&deadVal)?fmt(Math.round(deadVal/deadW)):'—');
   setT('s_cullAvg',(cullW&&cullVal)?fmt(Math.round(cullVal/cullW)):'—');
   setT('s_outAvg',(outW&&outVal)?fmt(Math.round(outVal/outW)):'—');
-  // ⚠️ ราคาอาหารที่พิมพ์เองต่างจากตารางราคามาก = อาจพิมพ์ผิด (เคส J2: เบอร์ 105 พิมพ์ 29.91 ทั้งที่ VCF 105 = 20.35 → ค่าอาหารเกิน 113,382 บาท)
-  feedAgg(currentHouse).forEach((r,i)=>{
-    const nt=document.getElementById('f_note_'+i); if(!nt) return;
-    const typed=gv('f_pr_'+i), ref=fpAutoPrice(r.no,r.src);
-    if(ref==null){ nt.textContent='ไม่มีในตารางราคา — ใส่เอง'; nt.style.color='#b7791f'; return; }
-    if(!(typed>0)){ nt.textContent='💰 จากตารางราคา · แก้ได้'; nt.style.color=''; return; }
-    const diff=(typed-ref)/ref;
-    if(Math.abs(diff)>0.2){ nt.textContent='⚠️ ต่างจากตารางราคามาก ('+ref.toFixed(2)+') — ตรวจว่าพิมพ์ถูกไหม · ส่วนต่าง '+fmt(Math.round((typed-ref)*r.kg))+' บาท'; nt.style.color='#c0392b'; }
-    else { nt.textContent=(Math.abs(typed-ref)<0.005?'💰 ตรงกับตารางราคา':'💰 ตารางราคา '+ref.toFixed(2)+' · ใช้ที่พิมพ์เอง'); nt.style.color=''; }
-  });
   const sold=deadN+cullN+outN+movedN, wb=document.getElementById('batchWarn');
   let warn=(inN&&sold>inN)?'<div class="banner bad">🚫 <div>ตาย+คัดขาย+ขาย+ย้ายออก ('+sold+') มากกว่าจำนวนรับเข้า ('+inN+') — โปรดตรวจสอบ</div></div>':'';
   if(movedN>0) warn+='<div class="banner info" style="margin-top:8px">🔄 <div>ชุดนี้<b>ย้ายหมูออกไปหลังอื่น '+fmt(movedN)+' ตัว</b> — ไม่ใช่การขาย ระบบจึงตี<b>ราคาโอนตามต้นทุนสะสม '+fmt(Math.round(moveP))+' บาท/ตัว</b> (รวม '+fmt(Math.round(moveVal))+' บาท) เป็นรายได้ของหลังนี้ · <b>กำไรจริงของหมูกลุ่มนี้ไปดูที่หลังปลายทาง</b> · ถ้าอยากตีราคาโอนเอง กรอกในช่อง "ราคาโอน/ตัว"</div></div>';
   const mi=moveInInfo(currentHouse);
   if(mi&&mi.n>0&&!(gv('b_inP')>0)) warn+='<div class="banner warn" style="margin-top:8px">🔄 <div>หลังนี้มี<b>หมูย้ายเข้า '+fmt(mi.n)+' ตัว</b>'+(mi.srcs.length?' จากหลัง <b>'+mi.srcs.map(escA).join(', ')+'</b>':'')+(mi.perPig?' — ต้นทุนที่ติดตามมา ≈ <b>'+fmt(mi.perPig)+' บาท/ตัว</b> <button type="button" class="btn sm" style="margin-left:6px" onclick="fillMoveInCost('+mi.perPig+')">เติมเป็นราคารับเข้า/ตัว</button>':' — ยังคำนวณต้นทุนต้นทางไม่ได้ (หลังต้นทางยังไม่ได้กรอกงบ)')+'</div></div>';
+  if(feedNoPrice>0) warn+='<div class="banner warn" style="margin-top:8px">💰 <div>อาหาร <b>'+fmt(Math.round(feedNoPrice))+' กก.</b> ยังไม่มีราคาในตาราง 💰 ราคาอาหาร → <b>ค่าอาหารที่คิดได้ยังไม่ครบ</b> · ให้เจ้าของเพิ่มเบอร์/เจ้านั้นในตารางราคา แล้วตัวเลขจะขึ้นเองทุกหลัง</div></div>';
   if(inN>0 && pigCost<=0) warn+='<div class="banner bad" style="margin-top:8px">⚠️ <div>ยังไม่ได้ใส่ <b>"ราคารับเข้า / ตัว"</b> และไม่มีค่าลูกหมูที่บันทึกไว้ → <b>ต้นทุนลูกหมูถูกคิดเป็น 0 ทำให้กำไรสูงเกินจริง</b> · โปรดกรอกราคารับเข้าก่อนปิดชุด</div></div>';
   if(wb) wb.innerHTML=warn;
   return {days,inN,inW,inP,deadN,deadW,deadVal,cullN,cullW,cullVal,outN,outW,outVal,
