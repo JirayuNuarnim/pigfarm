@@ -1070,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801g';
+const APP_BUILD='690801h';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -2877,8 +2877,39 @@ function renderFarmGraph(){
 function houseRecvN(h){ return Number(h&&h.received)||((h&&h.intake&&Number(h.intake.inN))||0); }
 function houseMortPct(h){ const r=houseRecvN(h); if(!(r>0)) return null; try{ return (dailyAgg(h).deadN||0)/r*100; }catch(e){ return null; } }
 function houseLossPct(h){ const r=houseRecvN(h); if(!(r>0)) return null; try{ const a=dailyAgg(h); return ((a.deadN||0)+(a.cullN||0))/r*100; }catch(e){ return null; } }
+/* 🔁 FCR สด — คำนวณจากข้อมูลจริงของหลัง (อาหารที่รับเข้า/กินได้ ÷ น้ำหนักที่โตขึ้น)
+   เดิมหน้าประสิทธิภาพอ่านจากช่อง h.fcr ซึ่งเป็นค่าตั้งต้นค้างไว้ (2.40 เท่ากันทั้งฟาร์ม หรือว่าง)
+   → ตัวเลขไม่เชื่อมกับของจริงเลย (เจ้าของทัก 1 ส.ค. 69) ตอนนี้ทุกหน้าใช้ตัวคำนวณเดียวกันนี้
+   ⚠️ คิดได้เฉพาะหลังที่หมูออกหมดแล้ว — ระหว่างเลี้ยง หมูที่ยังอยู่ยังไม่มีน้ำหนักออก จึงเทียบไม่ได้ (คืน null) */
+function houseFeedKg(h){ return ((h&&h.vetLog)||[]).reduce((s,e)=>s+((e&&e.type==='feed')?(Number(e.feedKg)||0):0),0); }
+function houseEatKg(h){ return ((h&&h.vetLog)||[]).reduce((s,e)=>s+((e&&e.type==='intake')?(Number(e.eatKg)||0):0),0); }
+function houseAvgInW(h){ const it=(h&&h.intake)||{}; const n=Number(it.inN)||Number(h&&h.received)||0;
+  return Number(it.avgW)||(n>0?(Number(it.totalW)||0)/n:0); }
+function houseGainKg(h){   // นน.ที่โตขึ้นของหมูที่ออกจากหลังแบบมีชีวิต (ขาย+คัด+ย้ายออก)
+  const a=dailyAgg(h), avgIn=houseAvgInW(h);
+  const outW=(a.soldW||0)+(a.cullW||0)+(a.moveW||0), outN=(a.soldN||0)+(a.cullN||0)+(a.moveN||0);
+  if(!(outN>0)||!(avgIn>0)) return 0;
+  return outW - avgIn*outN;
+}
+function houseFcrLive(h){
+  if(!h||(h.pigs||0)>0) return null;                 // ยังเลี้ยงอยู่ = ยังคิดไม่ได้
+  const feed=houseFeedKg(h), eat=houseEatKg(h);
+  const use=(eat>0&&(feed<=0||eat>=feed*0.5))?eat:feed;   // กินได้ครบพอ = ใช้กินจริง · ไม่ครบ = ใช้อาหารที่รับเข้า (เกณฑ์เดียวกับงบปิดชุด)
+  const gain=houseGainKg(h);
+  if(!(use>0)||!(gain>0)) return null;
+  const f=use/gain;
+  return (f>=FCR_MIN&&f<=FCR_MAX)?f:null;            // นอกช่วงจริง = ข้อมูลไม่ครบ ไม่โชว์เลขหลอก
+}
+function farmFcrLive(hs){   // FCR เฉลี่ยของกลุ่มหลัง — เอาเฉพาะหลังที่คิดได้จริง + ชุดที่ปิดแล้วซึ่งกรอกครบ
+  const xs=[];
+  (hs||[]).forEach(h=>{ const f=houseFcrLive(h); if(f!=null) xs.push(f);
+    (h.closedBatches||[]).forEach(b=>{ const v=parseFloat(b&&b.fcr); if(v>=FCR_MIN&&v<=FCR_MAX) xs.push(v); }); });
+  return xs.length?{v:xs.reduce((a,b)=>a+b,0)/xs.length,n:xs.length}:null;
+}
+function fcrCell(o){ return o?('<b>'+o.v.toFixed(2)+'</b> <span class="sub" style="font-size:10.5px">('+o.n+' ชุด)</span>')
+  :'<span class="sub" title="คิดได้เมื่อหมูออกจากหลังครบและมีข้อมูลอาหาร">—</span>'; }
 function houseScore(h){
-  const fcr=parseFloat(h.fcr)||2.5, mp=houseMortPct(h), mort=(mp!=null?mp:(parseFloat(h.mortality)||1.5));
+  const fl=houseFcrLive(h), fcr=(fl!=null)?fl:2.5, mp=houseMortPct(h), mort=(mp!=null?mp:(parseFloat(h.mortality)||1.5));
   let s=100 - Math.max(0,(fcr-2.0))*30 - mort*8 - (h.filled?0:8);
   return Math.max(40,Math.min(99,Math.round(s)));
 }
@@ -4048,7 +4079,7 @@ function renderVetHouses(vt){
           <thead><tr><th>หลัง</th><th>สถานะเล้า</th><th>โซน</th><th class="num">หมู</th><th class="num">ตายวันนี้</th><th class="num">FCR</th><th class="num">ตาย%</th><th></th></tr></thead>
           <tbody>${fh.map(h=>`<tr class="clk" onclick="ownerHouse(${h.id})">
             <td><b>${escA(h.code)}</b></td><td>${penStatus(h)}</td><td>${escA(h.zone)}</td>
-            <td class="num">${fmt(h.pigs)}</td><td class="num">${h.deadToday||0}</td><td class="num">${h.fcr||'-'}</td><td class="num">${(function(){ const m=houseMortPct(h); return m==null?'-':('<b style="color:'+(m>=3?'var(--bad)':m>=1.5?'var(--warn)':'var(--ok)')+'">'+m.toFixed(2)+'%</b>'); })()}</td>
+            <td class="num">${fmt(h.pigs)}</td><td class="num">${h.deadToday||0}</td><td class="num">${(function(){const f=houseFcrLive(h);return f!=null?f.toFixed(2):'<span class="sub" title="คิดได้เมื่อหมูออกจากหลังครบ">—</span>';})()}</td><td class="num">${(function(){ const m=houseMortPct(h); return m==null?'-':('<b style="color:'+(m>=3?'var(--bad)':m>=1.5?'var(--warn)':'var(--ok)')+'">'+m.toFixed(2)+'%</b>'); })()}</td>
             <td class="num"><span class="sub">ดู ›</span></td></tr>`).join("")}</tbody>
         </table></div>
       </div>`;
@@ -4196,7 +4227,7 @@ function renderVetMe(){
       <div class="kpi"><div class="lab">🟢 หลังที่กำลังเลี้ยง</div><div class="val">${fmt(active.length)}</div></div>
       <div class="kpi"><div class="lab"><span class="logo-ico"></span> หมูที่ดูแล</div><div class="val">${fmt(pigs)}</div></div>
       <div class="kpi"><div class="lab">📈 คะแนนเฉลี่ย</div><div class="val">${score}%</div></div>
-      <div class="kpi"><div class="lab">🔁 FCR เฉลี่ย</div><div class="val">${fcrAvg(active,h=>h.fcr)?fcrAvg(active,h=>h.fcr).toFixed(2):'-'}</div></div>
+      <div class="kpi"><div class="lab">🔁 FCR เฉลี่ย</div><div class="val">${(function(){const o=farmFcrLive(mine);return o?o.v.toFixed(2):'-';})()}</div></div>
       <div class="kpi"><div class="lab">⚰️ ตาย% เฉลี่ย</div><div class="val">${(function(){ const r=active.reduce((s,h)=>s+houseRecvN(h),0); if(!(r>0)) return '-';
         const d=active.reduce((s,h)=>{ try{ return s+(dailyAgg(h).deadN||0); }catch(e){ return s; } },0); return (d/r*100).toFixed(2)+'%'; })()}</div>
         <div class="sub" style="margin:2px 0 0;font-size:11px">${(function(){ const r=active.reduce((s,h)=>s+houseRecvN(h),0); if(!(r>0)) return '';
@@ -4210,7 +4241,7 @@ function renderVetMe(){
       ${active.length?`<div style="overflow-x:auto"><table>
         <thead><tr><th>หลัง</th><th>ฟาร์ม</th><th class="num">วันเลี้ยง</th><th class="num">คงเหลือ/รับเข้า</th><th class="num">FCR</th><th class="num">ตาย%</th><th class="num">คะแนน</th><th></th></tr></thead>
         <tbody>${active.map(h=>`<tr class="clk" onclick="openForm(${h.id})">
-          <td><b>${escA(h.code)}</b></td><td>${escA(h.farm||'-')}</td><td class="num">${vmDays(h)||'-'}</td><td class="num"><b>${fmt(h.pigs)}</b><span class="sub">/${fmt(h.received||(h.intake&&h.intake.inN)||0)}</span></td><td class="num">${h.fcr||'-'}</td><td class="num">${(function(){ const m=houseMortPct(h), l=houseLossPct(h); if(m==null) return '-';
+          <td><b>${escA(h.code)}</b></td><td>${escA(h.farm||'-')}</td><td class="num">${vmDays(h)||'-'}</td><td class="num"><b>${fmt(h.pigs)}</b><span class="sub">/${fmt(h.received||(h.intake&&h.intake.inN)||0)}</span></td><td class="num">${(function(){const f=houseFcrLive(h);return f!=null?f.toFixed(2):'<span class="sub" title="คิดได้เมื่อหมูออกจากหลังครบ">—</span>';})()}</td><td class="num">${(function(){ const m=houseMortPct(h), l=houseLossPct(h); if(m==null) return '-';
             const col=m>=3?'var(--bad)':m>=1.5?'var(--warn)':'var(--ok)';
             return '<b style="color:'+col+'">'+m.toFixed(2)+'%</b>'+((l!=null&&l-m>0.005)?'<div class="sub" style="font-size:11px">รวมคัด '+l.toFixed(2)+'%</div>':''); })()}</td><td class="num">${sc(houseScore(h))}</td><td class="num"><span class="sub">เปิด ›</span></td></tr>`).join('')}</tbody>
       </table></div>`:'<div class="sub">ยังไม่มีหลังที่กำลังเลี้ยง</div>'}
@@ -4308,10 +4339,11 @@ function renderPerf(){
           <td class="num"><span style="color:var(--bad)">${fmt(ag.dead)}</span> <span style="opacity:.65;font-size:11px">${pc(ag.dead)}</span></td>
           <td class="num">${fmt(ag.cull)} <span style="opacity:.65;font-size:11px">${pc(ag.cull)}</span></td>
           <td class="num"><b>${fmt(loss)}</b> <span style="opacity:.65;font-size:11px">${pc(loss)}</span></td>
-          <td class="num">${avgF(hs,'fcr').toFixed(2)}</td>
+          <td class="num">${fcrCell(farmFcrLive(hs))}</td>
           <td class="num">${sc(avgScore(hs))}</td></tr>`;}).join("")}</tbody>
       </table></div>
       <div class="sub" style="margin-top:7px">💥 ความเสียหายรวม = ตายสะสม + คัดขายสะสม · % เทียบจำนวนรับเข้า</div>
+      <div class="sub">🔁 FCR คำนวณสดจากอาหารที่รับเข้า/กินได้ ÷ น้ำหนักที่โตขึ้นจริง — นับเฉพาะรุ่นที่หมูออกจากหลังครบแล้ว (ระหว่างเลี้ยงยังเทียบไม่ได้ จึงขึ้น "—") · ตัวเลขในวงเล็บ = จำนวนรุ่นที่นำมาเฉลี่ย</div>
     </div>
 
     <div class="card">
@@ -4940,8 +4972,8 @@ function ownerHouse(id){
         <div class="val">${fmt(h.sick)}</div>
         <div class="delta flat">${h.pigs>0?sickPct.toFixed(1)+'% ของหมูคงเหลือ':'—'}</div></div>
       <div class="kpi"><div class="lab">FCR</div>
-        <div class="val">${h.fcr}</div>
-        <div class="delta ${parseFloat(h.fcr)<=2.5?'down':'up'}">เป้า ≤ 2.5</div></div>
+        <div class="val">${(function(){const f=houseFcrLive(h);return f!=null?f.toFixed(2):'—';})()}</div>
+        <div class="delta ${(function(){const f=houseFcrLive(h);return (f!=null&&f<=2.5)?'down':'up';})()}">${(function(){const f=houseFcrLive(h);return f!=null?'เป้า ≤ 2.5':'คิดได้เมื่อหมูออกครบ';})()}</div></div>
       <div class="kpi"><div class="lab">🍽️ กิน/ตัว/วัน</div>
         <div class="val">${ia.latestPerPig?ia.latestPerPig.toFixed(2):'—'}<span style="font-size:12px;font-weight:400;color:var(--muted)"> กก.</span></div>
         <div class="delta flat">${ia.totalKg?'กินรวม '+fmt(Math.round(ia.totalKg))+' กก.':'ยังไม่มีบันทึก'}</div></div>
