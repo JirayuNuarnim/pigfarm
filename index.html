@@ -1070,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801f';
+const APP_BUILD='690801g';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -10418,7 +10418,15 @@ function renderSaleBillForm(){
       <div class="fgrid">
         <div class="frow"><label>วันที่ขาย</label><input type="date" class="cin" value="${escA(SB_D.dateISO)}" onchange="sbF('dateISO',this.value)"></div>
         <div class="frow"><label>ฟาร์ม <span class="more">(จากหลังที่เลือก)</span></label><div class="cin tl" style="background:var(--soft);min-height:44px;display:flex;align-items:center">${SB_D.farm?escA(SB_D.farm):'<span class="sub" style="margin:0">— แตะเลือกหลังด้านล่าง —</span>'}</div></div>
-        <div class="frow"><label>ผู้ซื้อ <span class="hint">🔒 พิมพ์ค้นแล้วเลือกจากทะเบียนเท่านั้น</span></label><input class="cin" list="sbBuyerDL" placeholder="พิมพ์ 2-3 ตัวอักษรเพื่อค้น แล้วแตะเลือก" value="${escA(SB_D.buyer)}" oninput="SB_D.buyer=this.value;sbRefresh();sbBuyerWarn(this)" onchange="sbBuyerPick(this)"><datalist id="sbBuyerDL">${buyers.map(x=>`<option value="${escA(x)}">`).join('')}</datalist><div id="sbBuyerWarnBox"></div></div>
+        <div class="frow"><label>ผู้ซื้อ <span class="hint">🔒 กดเลือกจากทะเบียนเท่านั้น — พิมพ์เองไม่ได้ (กันสะกดผิด/ลูกค้าซ้ำ)</span></label>
+          <select class="cin tl" onchange="sbBuyerSel(this.value)">
+            <option value=""${gNrm(SB_D.buyer)?'':' selected'}>— เลือกผู้ซื้อ —</option>
+            ${buyers.slice().sort((a,b)=>String(a).localeCompare(String(b),'th')).map(x=>`<option value="${escA(x)}"${gNrm(x)===gNrm(SB_D.buyer)?' selected':''}>${escA(x)}</option>`).join('')}
+            ${(gNrm(SB_D.buyer)&&!buyers.some(x=>gNrm(x)===gNrm(SB_D.buyer)))?`<option value="${escA(SB_D.buyer)}" selected>${escA(SB_D.buyer)} — ⚠️ ไม่อยู่ในทะเบียน</option>`:''}
+          </select>
+          <div id="sbBuyerWarnBox"></div>
+          ${scCanEdit()?`<div class="sub" style="margin-top:4px;font-size:11.5px">ลูกค้าใหม่ยังไม่มีในรายการ? <a href="#" onclick="renderSbCustomers();return false" style="color:var(--info)">➕ เพิ่มในทะเบียนลูกค้า</a> แล้วกลับมาเลือก</div>`
+            :`<div class="sub" style="margin-top:4px;font-size:11.5px">ลูกค้าใหม่ยังไม่มีในรายการ? แจ้งเจ้าของเพิ่มในทะเบียนลูกค้าก่อน</div>`}</div>
         <div class="frow"><label>ทะเบียนรถ</label><input class="cin" placeholder="เช่น 83-6009" value="${escA(SB_D.truck)}" oninput="SB_D.truck=this.value;sbRefresh()"></div>
         <div class="frow"><label>บิลกระดาษ เล่มที่</label><input class="cin" placeholder="เช่น 074" value="${escA(SB_D.billBook)}" oninput="SB_D.billBook=this.value;sbRefresh()"></div>
         <div class="frow"><label>เลขที่</label><input class="cin" placeholder="เช่น 18" value="${escA(SB_D.billNo)}" oninput="SB_D.billNo=this.value;sbRefresh()"></div>
@@ -10655,24 +10663,15 @@ function sbBuyerValid(name){ const n=gNrm(name); if(!n) return true;
   return SB_CUST.some(c=>gNrm(c.name)===n)||(CUSTOMERS||[]).some(c=>gNrm(c)===n); }
 function sbBuyerCanon(name){ const n=gNrm(name); const r=SB_CUST.find(c=>gNrm(c.name)===n); if(r) return r.name;
   const c=(CUSTOMERS||[]).find(x=>gNrm(x)===n); return c||name; }
-function sbBuyerWarn(inp){ const box=document.getElementById('sbBuyerWarnBox'); if(!box) return;
-  const bad=!sbBuyerValid(inp.value);
-  if(!bad){ box.innerHTML=''; return; }
-  // 👥 ถ้าพิมพ์ชื่อที่ "เกือบตรง" กับลูกค้าที่มีอยู่ (ต่างแค่ บจก./หจก. หรือวรรณยุกต์) ให้เสนอชื่อที่ถูกต้องให้กดเลือกเลย
-  const all=(SB_CUST||[]).map(c=>c&&c.name).filter(Boolean).concat(CUSTOMERS||[]);
-  const near=custNear(inp.value,all);
-  box.innerHTML='<div style="color:var(--bad);font-size:12px;font-weight:700;margin-top:3px">⛔ ชื่อนี้ไม่อยู่ในทะเบียนลูกค้า — พิมพ์เพื่อค้นแล้ว "แตะเลือก" จากรายการ'
-    +(sbCanEditPrice()?' (เจ้าของ/ผู้ดูแลบันทึกได้ แต่แนะนำเพิ่มในทะเบียนก่อน)':' · ลูกค้าใหม่ให้แจ้งเจ้าของเพิ่มในทะเบียนก่อน')+'</div>'
-    +(near.length?'<div style="background:#fdf3e0;border:1px solid #e5b96e;border-radius:9px;padding:6px 10px;margin-top:5px;font-size:12px;color:#8a6a20">👥 <b>หมายถึงเจ้านี้หรือเปล่า?</b> '
-      +near.map(x=>'<button type="button" class="btn sm" style="margin:3px 4px 0 0" onclick="sbBuyerUse('+escA(JSON.stringify(x))+')">'+escA(x)+'</button>').join('')
-      +'<div class="sub" style="margin:4px 0 0;font-size:11px">ใช้ชื่อเดิมจะได้ไม่เกิดลูกค้าซ้ำ — ยอดค้างจะได้ไม่แตกเป็นหลายก้อน</div></div>':''); }
-function sbBuyerUse(name){ if(!SB_D) return; SB_D.buyer=name;
-  const inp=document.querySelector('input[list="sbBuyerDL"]'); if(inp) inp.value=name;
-  const box=document.getElementById('sbBuyerWarnBox'); if(box) box.innerHTML='';
-  sbRefresh(); sbBuyerPrefill(); toast('ใช้ชื่อ "'+name+'" จากทะเบียนลูกค้า'); }
-function sbBuyerPick(inp){ if(!SB_D) return;
-  if(sbBuyerValid(inp.value)){ SB_D.buyer=sbBuyerCanon(inp.value); inp.value=SB_D.buyer; }   // ✅ ตรงทะเบียน → ปรับตัวสะกดให้ตรงต้นฉบับเป๊ะ (กัน เจ้/เจ๊ เพี้ยน)
-  sbBuyerWarn(inp); sbRefresh(); sbBuyerPrefill(); }
+/* 👤 เลือกผู้ซื้อจาก dropdown เท่านั้น (Peter สั่ง 1 ส.ค. 69 — เสมียนพิมพ์เองแล้วสะกดผิด เกิดลูกค้าซ้ำ ยอดค้างแตกก้อน)
+   ชื่อที่ได้จึงมาจากทะเบียนเสมอ ไม่ต้องเดา ไม่ต้องแก้ตัวสะกดทีหลัง */
+function sbBuyerSel(v){ if(!SB_D) return;
+  SB_D.buyer=sbBuyerCanon(v);
+  const box=document.getElementById('sbBuyerWarnBox');
+  if(box) box.innerHTML=(gNrm(SB_D.buyer)&&!sbBuyerValid(SB_D.buyer))
+    ? '<div style="color:var(--bad);font-size:12px;font-weight:700;margin-top:3px">⚠️ ชื่อนี้มาจากบิลเก่า ยังไม่อยู่ในทะเบียนลูกค้า — เลือกชื่อที่ถูกจากรายการแทน</div>' : '';
+  sbRefresh(); sbBuyerPrefill();
+}
 function sbSave(){
   if(blockIfReadonly())return; if(!sbCanWrite()){toast('บัญชีนี้บันทึกบิลขายไม่ได้');return;}
   if(!SB_D) return;
