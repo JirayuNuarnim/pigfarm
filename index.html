@@ -1065,7 +1065,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801a';
+const APP_BUILD='690801b';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -4380,13 +4380,14 @@ function batchWarnBadge(b){
 /* 🔄 ต้นทุนสะสมต่อตัวของหลังหนึ่ง (อ่านจากร่างปิดชุดที่บันทึกไว้) — ใช้ตีราคาโอนเวลาย้ายหมูข้ามหลัง */
 function batchNum(v){ const n=Number(String(v==null?'':v).replace(/[^0-9.-]/g,'')); return isFinite(n)?n:0; }
 const BATCH_OTHER_IDS=['c_inject','c_vaccine','c_feedmed','c_formula','c_supply','c_equip','c_labor','c_asst','c_vetman','c_clerk','c_bio','c_elec','c_dep'];
-function batchUnitCost(hh){
+function batchUnitCost(hh){   // ใช้สูตรเดียวกับ calcBatch: ต้นทุนทั้งหมด ÷ หมูที่เหลือ ณ วันย้าย
   const b=hh&&hh.batch; if(!b) return null;
   const n=batchNum(b.b_inN); if(!(n>0)) return null;
   const pig=batchNum(b.c_pigletShow)||(n*batchNum(b.b_inP));
   const other=BATCH_OTHER_IDS.reduce((s,k)=>s+batchNum(b[k]),0)+((b.extraCosts||[]).reduce((s,x)=>s+batchNum(x&&x.amount),0));
-  const tot=pig+batchNum(b.c_feedTotal)+other;
-  return tot>0?tot/n:null;
+  const tot=pig+batchNum(b.c_feedTotal)+other; if(!(tot>0)) return null;
+  const alive=Math.max(0,n-batchNum(b.b_deadN)-batchNum(b.b_cullN)-batchNum(b.b_outN));
+  return alive>0?tot/alive:tot/n;
 }
 /* 🔄 หมูที่ย้ายเข้าหลังนี้ + ต้นทุนที่ควรติดตามมาจากหลังต้นทาง (ใช้ moveInFrom ↔ moveDest) */
 function moveInInfo(h){
@@ -7267,8 +7268,14 @@ function calcBatch(){
   const agMv=dailyAgg(currentHouse||{dailyLog:[]});
   const movedN=agMv.moveN||0, movedW=agMv.moveW||0;
   const totalCost=pigCost+feedCost+otherCost;
-  const unitCost=inN>0?totalCost/inN:0;                       // ต้นทุนสะสมต่อตัวของชุดนี้
-  const moveP=gv('b_moveP')||Math.round(unitCost);            // ราคาโอน/ตัว — เว้นว่าง = ใช้ต้นทุนสะสม (โอนตามทุน ไม่มีกำไร/ขาดทุนเทียม)
+  /* 🧮 สูตรต้นทุนหมูย้าย (กติกาเจ้าของ 1 ส.ค. 69):
+     ต้นทุน "ทุกอย่าง" ที่ใช้ไปในหลังนั้น (ค่าลูกหมู + อาหาร + ค่าแรง + ค่าไฟ + ค่าเสื่อม + ทุกรายการ)
+     ÷ "จำนวนหมูที่ยังอยู่ ณ วันย้าย" (ไม่ใช่จำนวนรับเข้า — ตัวที่ตาย/คัด/ขายไปแล้วไม่ได้ย้าย
+     ต้นทุนของมันจึงตกอยู่กับตัวที่เหลือ) = ต้นทุนต่อตัวที่ติดตัวหมูไปหลังใหม่
+     ราคารับเข้า/ตัว (เช่น 1,800) เป็นแค่ฐานเริ่มต้น ยังไม่รวมค่าใช้จ่ายที่เกิดระหว่างเลี้ยงในหลังนั้น */
+  const aliveAtMove=Math.max(0,inN-deadN-cullN-outN);         // หมูที่ยังอยู่ก่อนย้าย
+  const unitCost=aliveAtMove>0?totalCost/aliveAtMove:(inN>0?totalCost/inN:0);
+  const moveP=gv('b_moveP')||Math.round(unitCost);            // ราคาโอน/ตัว — เว้นว่าง = ใช้ต้นทุนสะสมตามสูตรข้างบน
   const moveVal=movedN>0?movedN*moveP:0;
   { const mp=document.getElementById('b_moveP'); if(mp&&!mp.value&&movedN>0) mp.placeholder=fmt(Math.round(unitCost)); }
   { const a1=document.getElementById('s_moveN'); if(a1) a1.textContent=movedN?fmt(movedN)+' ตัว':'—';
@@ -7313,7 +7320,16 @@ function calcBatch(){
   setT('s_outAvg',(outW&&outVal)?fmt(Math.round(outVal/outW)):'—');
   const sold=deadN+cullN+outN+movedN, wb=document.getElementById('batchWarn');
   let warn=(inN&&sold>inN)?'<div class="banner bad">🚫 <div>ตาย+คัดขาย+ขาย+ย้ายออก ('+sold+') มากกว่าจำนวนรับเข้า ('+inN+') — โปรดตรวจสอบ</div></div>':'';
-  if(movedN>0) warn+='<div class="banner info" style="margin-top:8px">🔄 <div>ชุดนี้<b>ย้ายหมูออกไปหลังอื่น '+fmt(movedN)+' ตัว</b> — ไม่ใช่การขาย ระบบจึงตี<b>ราคาโอนตามต้นทุนสะสม '+fmt(Math.round(moveP))+' บาท/ตัว</b> (รวม '+fmt(Math.round(moveVal))+' บาท) เป็นรายได้ของหลังนี้ · <b>กำไรจริงของหมูกลุ่มนี้ไปดูที่หลังปลายทาง</b> · ถ้าอยากตีราคาโอนเอง กรอกในช่อง "ราคาโอน/ตัว"</div></div>';
+  if(movedN>0){
+    const shareMoved=inN>0?movedN/inN:0;
+    warn+='<div class="banner info" style="margin-top:8px">🔄 <div>ชุดนี้<b>ย้ายหมูออกไปหลังอื่น '+fmt(movedN)+' ตัว</b> — ไม่ใช่การขาย ระบบจึงตีราคาโอนตามต้นทุนสะสม'
+      +'<div style="margin:5px 0 3px;padding:6px 10px;background:#fff;border-radius:8px;font-size:12.5px">'
+      +'ต้นทุนทุกอย่างที่ใช้ไป <b>'+fmt(Math.round(totalCost))+'</b> ÷ หมูที่เหลือ ณ วันย้าย <b>'+fmt(aliveAtMove)+' ตัว</b> = <b style="color:var(--brand-d,#18655a)">'+fmt(Math.round(unitCost))+' บาท/ตัว</b>'
+      +'<div class="sub" style="font-size:11px;margin-top:2px">(ค่าลูกหมู '+fmt(Math.round(pigCost))+' + ค่าอาหาร '+fmt(Math.round(feedCost))+' + ค่าแรง/ค่าไฟ/ค่าเสื่อม/อื่นๆ '+fmt(Math.round(otherCost))+') · ตัวที่ตาย/คัด/ขายไปแล้วไม่ได้ย้าย ต้นทุนจึงตกกับตัวที่เหลือ</div></div>'
+      +'ย้ายออก '+fmt(movedN)+' ตัว × '+fmt(Math.round(moveP))+' = <b>'+fmt(Math.round(moveVal))+' บาท</b> ติดตัวหมูไปหลังปลายทาง'
+      +(shareMoved>=0.5?'<br><b style="color:#8a6a20">⚠️ หลังนี้ย้ายหมูออกเกือบทั้งรุ่น ('+Math.round(shareMoved*100)+'%) — กำไร/ขาดทุนของหลังนี้แทบไม่มีความหมาย ให้ไปดูกำไรจริงที่หลังปลายทางตอนขาย</b>':'')
+      +' · ถ้าอยากตีราคาโอนเอง กรอกในช่อง "ราคาโอน/ตัว"</div></div>';
+  }
   const mi=moveInInfo(currentHouse);
   if(mi&&mi.n>0&&!(gv('b_inP')>0)) warn+='<div class="banner warn" style="margin-top:8px">🔄 <div>หลังนี้มี<b>หมูย้ายเข้า '+fmt(mi.n)+' ตัว</b>'+(mi.srcs.length?' จากหลัง <b>'+mi.srcs.map(escA).join(', ')+'</b>':'')+(mi.perPig?' — ต้นทุนที่ติดตามมา ≈ <b>'+fmt(mi.perPig)+' บาท/ตัว</b> <button type="button" class="btn sm" style="margin-left:6px" onclick="fillMoveInCost('+mi.perPig+')">เติมเป็นราคารับเข้า/ตัว</button>':' — ยังคำนวณต้นทุนต้นทางไม่ได้ (หลังต้นทางยังไม่ได้กรอกงบ)')+'</div></div>';
   if(feedNoPrice>0) warn+='<div class="banner warn" style="margin-top:8px">💰 <div>อาหาร <b>'+fmt(Math.round(feedNoPrice))+' กก.</b> ยังไม่มีราคาในตาราง 💰 ราคาอาหาร → <b>ค่าอาหารที่คิดได้ยังไม่ครบ</b> · ให้เจ้าของเพิ่มเบอร์/เจ้านั้นในตารางราคา แล้วตัวเลขจะขึ้นเองทุกหลัง</div></div>';
