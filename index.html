@@ -1070,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801e';
+const APP_BUILD='690801f';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -9942,6 +9942,38 @@ function sbArchiveHTML(){
   const filterBox=(rChips||mChips||customRow||controls)?`<div class="sbfilters">${rChips+mChips+customRow+controls}</div>`:'';
   return filterBox+sum+(rows||`<div class="sub" style="margin-top:10px">— ${q?'ไม่พบบิลที่ตรงกับ "'+escA(q)+'"':'ไม่มีบิลในช่วงเวลานี้ — ลองขยายช่วงเวลาด้านบน'} — ${q?'ลองพิมพ์สั้นลง เช่น เฉพาะชื่อผู้ซื้อ':''} —</div>`);
 }
+/* 🚨 บิลค้างผิดปกติ (ตรวจใหญ่ 1 ส.ค. 69 — เจอบิลค้าง 20-25 วันโดยไม่มีใครเห็น)
+   3 แบบที่ต้องตามเก็บ: ① บันทึกแล้วแต่ยังไม่ลงเข้าหลัง ② ลงเข้าหลังแล้วแต่ยังไม่มีราคา (รายได้หาย) ③ ไม่ได้ระบุฟาร์ม/หลัง (ลงไม่ได้) */
+function sbStuckDays(b){ const t=Number(b&&(b.savedAt||b.createdAt))||0; if(!t) return 0; return Math.floor((Date.now()-t)/86400000); }
+function sbStuckList(){
+  const out=[];
+  (SALE_BILLS||[]).forEach(b=>{
+    if(!b||b._deleted) return;
+    const d=sbStuckDays(b), why=[];
+    const nItems=(b.kind==='deadcull')?((b.items||[]).filter(i=>i&&sbNum(i.w)>0).length):((b.weights||[]).length);
+    if(!nItems) return;                                   // บิลเปล่า = ร่าง ไม่ใช่บิลค้าง
+    if(!b.postedAt) why.push('ยังไม่ลงเข้าหลัง');
+    if(b.kind!=='deadcull' && !(sbNum(b.pricePerKg)>0)) why.push('ยังไม่ใส่ราคา');
+    if(!String(b.farm||'').trim()) why.push('ไม่ได้ระบุฟาร์ม');
+    if(!why.length) return;
+    if(d<2) return;                                        // เพิ่งทำวันนี้-เมื่อวาน ยังไม่ถือว่าค้าง (กันเตือนบิลที่กำลังทำอยู่)
+    out.push({b,d,why,nItems});
+  });
+  return out.sort((x,y)=>y.d-x.d);
+}
+function sbStuckHTML(){
+  if(!sbCanWrite()) return '';
+  const list=sbStuckList(); if(!list.length) return '';
+  return `<div class="banner bad">🚨 <div><b>บิลค้างผิดปกติ ${fmt(list.length)} ใบ</b> — ค้างนานโดยยังไม่จบขั้นตอน ทำให้<b>ยอดหมูในหลังและรายได้ไม่ตรง</b>
+    ${list.map(x=>`<div style="margin-top:8px;border-top:1px dashed var(--line);padding-top:7px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span>${(SB_KIND[x.b.kind]||{}).ico||''} <b>${escA(x.b.buyer||'ไม่ระบุผู้ซื้อ')}</b> · ${fmt(x.nItems)} ตัว · ${escA(fmtISOThai(x.b.dateISO)||'-')}${x.b.farm?' · '+escA(x.b.farm):''}
+        <span style="background:#fdecea;color:#c0392b;border-radius:7px;padding:1px 7px;font-size:11.5px;font-weight:700;margin-left:4px">ค้าง ${fmt(x.d)} วัน</span>
+        <span class="sub" style="margin:0;display:block;font-size:11.5px">⚠️ ${escA(x.why.join(' · '))}</span></span>
+      <button class="btn sm" style="margin-left:auto" onclick="sbEdit('${x.b.id}')">เปิดแก้</button>
+    </div>`).join('')}
+    <div class="sub" style="margin:8px 0 0">บิลที่ยังไม่ลงเข้าหลัง = หมูยังไม่ถูกตัดออกจากยอดคงเหลือ · บิลที่ไม่มีราคา = รายได้ยังไม่เข้าบัญชีลูกค้า</div>
+  </div></div>`;
+}
 function renderSaleStand(){ if(vetGuard())return;
   histPush('salestand',renderSaleStand);
   if(!SB_D&&Date.now()-_sbLoadAt>5000){ sbCloudLoad().then(ok=>{ const t2=navHist[navHist.length-1]; if(ok&&t2&&t2.key==='salestand'&&!SB_D) renderSaleStand(); }); }   // 📱 เปิดหน้า = ดึงบิลสดเบื้องหลัง (iPad ค้างจอ ยอดไม่ตรง — เคสเจ้พร)
@@ -9953,6 +9985,7 @@ function renderSaleStand(){ if(vetGuard())return;
     ${clerkNav('sale')}
     <div class="sbhome">
     ${pend?`<div class="banner info">⏳ <div><b>${pend} บิล</b> ยังไม่ใส่ราคา — เปิดบิลแล้วเติมราคา/กก. หรือช่วงราคาได้เลย</div></div>`:''}
+    ${sbStuckHTML()}
     ${(function(){ if(!sbCanWrite()) return ''; const ds=sbDraftList(); if(!ds.length) return '';
       return `<div class="banner info" style="border-color:#e0b45c">📥 <div><b>บิลค้างที่ยังไม่ได้บันทึก ${fmt(ds.length)} ใบ</b> <span class="more">— สร้างบิลใหม่เพิ่มได้เลย บิลค้างไม่หาย · กด "กรอกต่อ" เพื่อทำใบไหนต่อก็ได้</span>
         ${ds.map(x=>{ const n=(x.d.kind==='deadcull'?(x.d.items||[]).filter(i=>i&&sbNum(i.w)>0).length:(x.d.weights||[]).length);
