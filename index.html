@@ -619,8 +619,11 @@ function houseStatus(h){
   if((h.pigs||0)>0) return 'กำลังเลี้ยง';
   return cleaningDaysLeft(h)>0 ? 'กำลังล้างคอก' : 'ว่าง';
 }
+// 🗓️ อายุรุ่นที่กำลังเลี้ยง (วัน) สำหรับต่อท้ายป้ายสถานะ — เจ้าของขอ 1 ส.ค. 69 "กำลังเลี้ยง อายุ 30 วัน"
+// นับจากวันรับเข้าของเล้า · ไม่มีวันรับเข้า = ไม่ต้องโชว์
+function penAgeTxt(h){ const d=houseDays(h); return (d>0)?' · อายุ '+fmt(d)+' วัน':''; }
 function penStatus(h){const s=houseStatus(h);
-  if(s==='กำลังเลี้ยง') return '<span class="tag ok">🟢 กำลังเลี้ยง</span>';
+  if(s==='กำลังเลี้ยง') return '<span class="tag ok">🟢 กำลังเลี้ยง'+penAgeTxt(h)+'</span>';
   if(s==='กำลังล้างคอก') return '<span class="tag warn">🧹 กำลังล้างคอก</span>';
   return '<span class="tag wait">⬜ เล้าว่าง</span>';}
 // ISO 'YYYY-MM-DD' → เที่ยงคืน "เวลาท้องถิ่น" (ให้ตรงกับ DEMO_DATE/cleaningDaysLeft ไม่เพี้ยนเพราะ timezone)
@@ -628,7 +631,9 @@ function isoLocal(s){const p=String(s||'').split('-');return new Date(+p[0],+p[1
 // จำนวนวันเลี้ยงของรุ่นปัจจุบัน: นับจากวันรับเข้า → วันนี้ (กำลังเลี้ยง) หรือ → วันปิดชุด (เมื่อหมูหมดหลัง)
 function houseDays(h){
   const din=h&&h.intake&&h.intake.dateIn; if(!din) return 0;
-  const end=((h.pigs||0)<=0 && h.closedDate)? isoLocal(h.closedDate) : DEMO_DATE;
+  // เทียบ "เที่ยงคืนถึงเที่ยงคืน" — เดิมใช้ DEMO_DATE ที่มีเวลาปัจจุบันติดมา ทำให้ช่วงบ่ายปัดขึ้นเป็นอีก 1 วัน (โชว์ 31 ทั้งที่เลี้ยงมา 30 วัน)
+  const end=((h.pigs||0)<=0 && h.closedDate)? isoLocal(h.closedDate)
+          : new Date(DEMO_DATE.getFullYear(),DEMO_DATE.getMonth(),DEMO_DATE.getDate());
   const d=Math.round((end-isoLocal(din))/86400000);
   return d>0?d:0;
 }
@@ -1065,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801b';
+const APP_BUILD='690801c';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -5085,7 +5090,7 @@ function houseCells(list){
     const inc=(h.incoming||[]).reduce((s,t)=>s+(t.n||0),0); // หมูระหว่างทางรอรับเข้า
     const statusTag = close
       ? '<span class="tag bad">🔔 รอปิดชุด</span>'
-      : (h.pigs||0)>0 ? '<span class="tag ok">🟢 กำลังเลี้ยง</span>'
+      : (h.pigs||0)>0 ? '<span class="tag ok">🟢 กำลังเลี้ยง'+penAgeTxt(h)+'</span>'
       : left>0 ? '<span class="tag warn">🧹 กำลังล้างคอก · เหลือ '+left+' วัน</span>'
       : '<span class="tag wait">⬜ ว่าง</span>';
     return `<button class="hcell" onclick="${close?`gotoClose(${h.id})`:`openForm(${h.id})`}" style="${close?'border:1px solid var(--bad);background:#fff6f5':''}">
