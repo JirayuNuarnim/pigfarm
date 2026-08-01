@@ -1065,7 +1065,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690731h';
+const APP_BUILD='690731i';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -4357,7 +4357,34 @@ function allClosedBatches(){
   return myHouses().flatMap(h=>(h.closedBatches||[]).map(b=>Object.assign({},b))).sort((a,b)=>(b.ts||0)-(a.ts||0));
 }
 // กำไร/ตัว แบบฐานเดียวกันทุกชุด: หารด้วย "หมูที่ออกแบบมีชีวิต = ขาย+คัด" (ชุด seed เก่าเก็บไว้หารแค่ขาย → คำนวณใหม่ตอนแสดงให้ตรงกับชุดปิดใหม่)
-function batchPerPig(b){ if(!b) return 0; const live=(b.soldN||0)+(b.cullN||0); const base=live>0?(b.profit||0)/live:((b.inN>0)?(b.profit||0)/b.inN:0); return Math.round(base); }
+// กำไรเฉลี่ย/ตัว — หารด้วยหมูที่ "ออกจากหลังแบบมีชีวิต" = ขายขุน + คัดขาย + ย้ายออกไปหลังอื่น
+// (เดิมไม่นับตัวที่ย้ายออก ทำให้หลังที่ย้ายหมูออกทั้งรุ่นเอาต้นทุนทั้งก้อนไปหารด้วยหมูไม่กี่ตัว → ติดลบเป็นแสน เคส J2 31 ก.ค. 69)
+function batchPerPig(b){ if(!b) return 0; const live=(b.soldN||0)+(b.cullN||0)+(b.movedN||0); const base=live>0?(b.profit||0)/live:((b.inN>0)?(b.profit||0)/b.inN:0); return Math.round(base); }
+/* 🔄 ต้นทุนสะสมต่อตัวของหลังหนึ่ง (อ่านจากร่างปิดชุดที่บันทึกไว้) — ใช้ตีราคาโอนเวลาย้ายหมูข้ามหลัง */
+function batchNum(v){ const n=Number(String(v==null?'':v).replace(/[^0-9.-]/g,'')); return isFinite(n)?n:0; }
+const BATCH_OTHER_IDS=['c_inject','c_vaccine','c_feedmed','c_formula','c_supply','c_equip','c_labor','c_asst','c_vetman','c_clerk','c_bio','c_elec','c_dep'];
+function batchUnitCost(hh){
+  const b=hh&&hh.batch; if(!b) return null;
+  const n=batchNum(b.b_inN); if(!(n>0)) return null;
+  const pig=batchNum(b.c_pigletShow)||(n*batchNum(b.b_inP));
+  const other=BATCH_OTHER_IDS.reduce((s,k)=>s+batchNum(b[k]),0)+((b.extraCosts||[]).reduce((s,x)=>s+batchNum(x&&x.amount),0));
+  const tot=pig+batchNum(b.c_feedTotal)+other;
+  return tot>0?tot/n:null;
+}
+/* 🔄 หมูที่ย้ายเข้าหลังนี้ + ต้นทุนที่ควรติดตามมาจากหลังต้นทาง (ใช้ moveInFrom ↔ moveDest) */
+function moveInInfo(h){
+  const rows=(h&&h.dailyLog||[]).filter(e=>e&&(Number(e.moveInN)||0)>0);
+  if(!rows.length) return null;
+  let n=0,val=0,known=0,unknown=0; const srcs=[];
+  rows.forEach(e=>{
+    const q=Number(e.moveInN)||0, from=String(e.moveInFrom||'').trim();
+    n+=q; if(from&&srcs.indexOf(from)<0) srcs.push(from);
+    const src=from?HOUSES.find(x=>String(x.code||'')===from):null;
+    const u=src?batchUnitCost(src):null;
+    if(u!=null&&u>0){ val+=q*u; known+=q; } else unknown+=q;
+  });
+  return {n,val:Math.round(val),srcs,known,unknown,perPig:known>0?Math.round(val/known):null};
+}
 let closedVetFilter='', closedFarmFilter='', closedDateMode='day', closedDate='', closedDateFrom='', closedDateTo='';
 // closedOn เป็น ISO 'YYYY-MM-DD' → เทียบช่วงด้วยสตริงได้ตรงตามเวลา
 function closedDateMatch(b){
@@ -4559,6 +4586,7 @@ function showClosedBatch(code,ts){
       <tr><th style="width:50%">⚰️ ตายรวม</th><td>${fmt(b.deadN||0)} ตัว${b.deadVal?' · 💰 ขายซาก '+money(b.deadVal)+' บาท':''}</td></tr>
       <tr><th>🔪 คัดขายรวม</th><td>${fmt(b.cullN||0)} ตัว · ${money(b.cullVal)} บาท</td></tr>
       <tr><th>💰 ขายขุนรวม</th><td>${fmt(b.soldN||0)} ตัว · ${money(b.outVal)} บาท</td></tr>
+      ${(b.movedN||0)>0?`<tr><th>🔄 ย้ายออกไปหลังอื่น</th><td>${fmt(b.movedN)} ตัว · ราคาโอน ${money(b.moveP)} บาท/ตัว = ${money(b.moveVal)} บาท<div class="sub">ไม่ใช่การขาย — ต้นทุนติดตามหมูไปหลังปลายทาง กำไรจริงของกลุ่มนี้ดูที่หลังนั้น</div></td></tr>`:''}
       <tr><th>นน.เฉลี่ย เข้า→ออก</th><td>${b.avgIn||'-'} → ${b.avgOut||'-'} กก.</td></tr>
     </tbody></table></div>
     <div class="card"><h3>💸 ต้นทุน</h3><table><tbody>
@@ -5763,14 +5791,30 @@ function fpPriceOf(no,src){ // ราคา บ./กก. ของเบอร�
   const r=P.rows.find(x=>String(x.no).trim()===key); if(!r) return null;
   const v=r.p&&r.p[src]; return (isFinite(v)&&v>0)?v:null;
 }
-function fpAutoPrice(no,srcStr){ // 🔗 ราคาอัตโนมัติสำหรับงบปิดชุด — จับเบอร์+แหล่งที่หมอบันทึก ("VCF/SJF" ลองทีละเจ้า เอาเจ้าแรกที่มีราคา · "หนองบัว" จับคอลัมน์จากชื่อ)
-  const P=fpData(), key=(typeof feedNoKey==='function')?(feedNoKey(no)||String(no||'').trim()):String(no||'').trim();
-  const row=P.rows.find(x=>String(x.no).trim()===key); if(!row||!row.p) return null;
+/* 🔗 ตัวจับคู่ "เบอร์อาหาร / แหล่ง" ที่หมอพิมพ์ → แถวและคอลัมน์ในตารางราคา
+   - ไม่สนตัวพิมพ์ใหญ่-เล็ก (หมอพิมพ์ 'vcf' บ้าง 'VCF' บ้าง — เคส J2 31 ก.ค. ทำให้เติมราคาอัตโนมัติไม่ติด)
+   - รองรับกรณีหมอกรอก "รหัสสินค้าของโรงงาน" แทนเบอร์ฟาร์ม (เช่น JBF '110G' = เบอร์ 100 ของเรา) */
+function fpColFor(src){
+  const P=fpData(), s=String(src||'').trim(); if(!s) return null; const L=s.toLowerCase();
+  return P.cols.find(c=>String(c.k||'').toLowerCase()===L)
+      || P.cols.find(c=>String(c.n||'').trim().toLowerCase()===L)
+      || P.cols.find(c=>L&&String(c.n||'').toLowerCase().indexOf(L)>=0)
+      || P.cols.find(c=>c.k&&L.indexOf(String(c.k).toLowerCase())>=0) || null;
+}
+function fpRowFor(no){
+  const P=fpData(), raw=String(no||'').trim();
+  const key=(typeof feedNoKey==='function')?(feedNoKey(raw)||raw):raw;
+  let r=P.rows.find(x=>String(x.no).trim()===key); if(r) return r;
+  const up=key.toUpperCase(); if(!up) return null;
+  return P.rows.find(x=>x.m&&Object.keys(x.m).some(k=>{           // ลองเทียบกับรหัสสินค้าของโรงงาน
+    const c=x.m[k]&&x.m[k].code; if(!c) return false;
+    return String(c).toUpperCase().split(/[^0-9A-Z-]+/).filter(Boolean).indexOf(up)>=0;
+  }))||null;
+}
+function fpAutoPrice(no,srcStr){ // ราคาอัตโนมัติสำหรับงบปิดชุด — "VCF/SJF" ลองทีละเจ้า เอาเจ้าแรกที่มีราคา
+  const row=fpRowFor(no); if(!row||!row.p) return null;
   const srcs=String(srcStr||'').split('/').map(s=>s.trim()).filter(Boolean);
-  for(const s of srcs){
-    const col=P.cols.find(c=>c.k===s||String(c.n||'').trim()===s||String(c.n||'').indexOf(s)>=0||s.indexOf(c.k)>=0);
-    if(col){ const v=row.p[col.k]; if(isFinite(v)&&v>0) return v; }
-  }
+  for(const s of srcs){ const col=fpColFor(s); if(col){ const v=row.p[col.k]; if(isFinite(v)&&v>0) return v; } }
   return null;
 }
 function fpCollect(){ // อ่านค่าที่พิมพ์ในโหมดแก้จาก DOM → {cols,rows,upd} (ยังไม่บันทึก)
@@ -7040,6 +7084,11 @@ function batchHTML(h){
           <td>${binp('b_outW',a.soldW||'')}</td>
           <td class="num"><b id="s_outAvg">—</b><div class="sub" style="font-size:11px;margin-top:2px">บาท/กก.</div></td>
           <td>${binp('b_outVal',a.soldVal?Math.round(a.soldVal):'')}</td></tr>
+        <tr><td class="lab">🔄 ย้ายออกไปหลังอื่น <span class="sub">ไม่ใช่การขาย — ตีราคาโอนตามต้นทุน</span></td>
+          <td class="num"><b id="s_moveN">—</b></td>
+          <td class="num"><span class="sub">${a.moveW?fmt(Math.round(a.moveW))+' กก.':'—'}</span></td>
+          <td>${binp('b_moveP','')}<div class="sub" style="font-size:11px;margin-top:2px">ราคาโอน บาท/ตัว<br>(เว้นว่าง = ตามต้นทุนสะสม)</div></td>
+          <td class="num"><b id="s_moveVal">—</b></td></tr>
       </tbody>
     </table></div>
     <div class="sub" style="margin:8px 0 0">ⓘ = ดึงรวมจากบันทึกรายวัน · นน.เฉลี่ย เข้า→ออก: <b id="s_avg">—</b></div>
@@ -7053,7 +7102,7 @@ function batchHTML(h){
       <tbody>${(function(){const fa=feedAgg(h);return fa.length? fa.map((r,i)=>{const ap=fpAutoPrice(r.no,r.src);return `<tr>
         <td><b>${escA(r.no)}</b></td><td><span class="sub">${escA(r.src||'-')}</span></td><td><span class="sub">${escA(r.bill||'-')}</span></td>
         <td class="num"><b id="f_kg_${i}">${fmt(r.kg)}</b></td>
-        <td><input class="cin" id="f_pr_${i}" placeholder="0" value="${ap!=null?ap:''}" oninput="calcBatch()">${ap!=null?'<div class="sub" style="font-size:10.5px;margin-top:2px">💰 จากตารางราคา · แก้ได้</div>':'<div class="sub" style="font-size:10.5px;margin-top:2px;color:#b7791f">ไม่มีในตารางราคา — ใส่เอง</div>'}</td>
+        <td><input class="cin" id="f_pr_${i}" placeholder="0" value="${ap!=null?ap:''}" oninput="calcBatch()"><div class="sub" id="f_note_${i}" style="font-size:10.5px;margin-top:2px${ap!=null?'':';color:#b7791f'}">${ap!=null?'💰 จากตารางราคา · แก้ได้':'ไม่มีในตารางราคา — ใส่เอง'}</div></td>
         <td class="num" id="f_amt_${i}">0</td></tr>`;}).join("") : '<tr><td colspan="6" class="sub">ยังไม่มีบันทึกการรับอาหารจากหมอ</td></tr>';})()}</tbody>
     </table></div>
     <div class="sub" style="margin:8px 0 0">รวมอาหาร: <b id="s_feed">—</b> · ราคาอัตโนมัติมาจากตาราง 💰 ราคาอาหาร (มุมผู้ดูแล) — ถ้าราคาชุดนี้ต่างจากตาราง พิมพ์ทับได้เลย ระบบจะจำค่าที่พิมพ์
@@ -7112,6 +7161,12 @@ function batchHTML(h){
   </div>`;
 }
 function gv(id){const e=document.getElementById(id);return e&&e.value!==''?Number(e.value):0;}
+// 🔄 เติม "ต้นทุนหมูที่ย้ายเข้ามา" เป็นราคารับเข้า/ตัว ของหลังปลายทาง — ต้นทุนจึงตามหมูมาจากหลังต้นทาง
+function fillMoveInCost(v){
+  const el=document.getElementById('b_inP'); if(!el) return;
+  el.value=Math.round(Number(v)||0); calcBatch();
+  toast('เติมต้นทุนหมูย้ายเข้า '+fmt(Math.round(Number(v)||0))+' บาท/ตัว แล้ว — ตรวจแล้วกด 💾 บันทึกร่างปิดชุด');
+}
 // จำนวนวัน เปิดชุด→ปิดชุด (จากวันที่รับเข้า→วันปิดชุด ถ้ากรอกครบ มิฉะนั้นใช้จำนวนวันเลี้ยง)
 // จำนวนวันเลี้ยงขุน: นับจากวันที่รับเข้า → วันนี้ (ขณะยังเลี้ยง) หรือ → วันปิดชุด (เมื่อหมูหมดหลัง)
 function batchDays(){
@@ -7166,8 +7221,17 @@ function calcBatch(){
   const xN=xLots.reduce((s,e)=>s+e.n,0), xCost=xLots.reduce((s,e)=>s+e.n*e.price,0);
   const pigCost=(inP>0?Math.max(0,inN-xN)*inP:breedTotal)+xCost; // ถ้าไม่กรอก "ราคารับเข้า/ตัว" → ใช้ค่าลูกหมูที่บันทึกตอนรับเข้า (breedTotal) แทน · กันต้นทุนลูกหมูเป็น 0 ทำให้กำไรพองเกินจริง
   const xn=document.getElementById('s_inExtraNote'); if(xn) xn.textContent=xCost>0?('รวมรอบรับเข้าเพิ่ม '+fmt(xN)+' ตัว = '+fmt(Math.round(xCost))+' บาท (ตามราคาแต่ละรอบ) · ราคา/ตัวซ้ายมือใช้กับ '+fmt(Math.max(0,inN-xN))+' ตัวที่เหลือ'):'';
-  const revenue=deadVal+cullVal+outVal;
+  // 🔄 หมูที่ย้ายออกไปหลังอื่น = ไม่ใช่การขาย แต่ต้นทุนต้องติดตามหมูไปด้วย ไม่งั้นหลังต้นทางแบกต้นทุนทั้งก้อนโดยไม่มีรายได้ (เคส J2 → J40)
+  const agMv=dailyAgg(currentHouse||{dailyLog:[]});
+  const movedN=agMv.moveN||0, movedW=agMv.moveW||0;
   const totalCost=pigCost+feedCost+otherCost;
+  const unitCost=inN>0?totalCost/inN:0;                       // ต้นทุนสะสมต่อตัวของชุดนี้
+  const moveP=gv('b_moveP')||Math.round(unitCost);            // ราคาโอน/ตัว — เว้นว่าง = ใช้ต้นทุนสะสม (โอนตามทุน ไม่มีกำไร/ขาดทุนเทียม)
+  const moveVal=movedN>0?movedN*moveP:0;
+  { const mp=document.getElementById('b_moveP'); if(mp&&!mp.value&&movedN>0) mp.placeholder=fmt(Math.round(unitCost)); }
+  { const a1=document.getElementById('s_moveN'); if(a1) a1.textContent=movedN?fmt(movedN)+' ตัว':'—';
+    const a2=document.getElementById('s_moveVal'); if(a2) a2.textContent=moveVal?fmt(Math.round(moveVal))+' บาท':'—'; }
+  const revenue=deadVal+cullVal+outVal+moveVal;
   const profit=revenue-totalCost;
   const avgIn=inN?inW/inN:0, avgOut=outN?outW/outN:0;
   const loss=inN?(deadN+cullN)/inN*100:0;
@@ -7179,8 +7243,8 @@ function calcBatch(){
   const fcrFeed=eatComplete?eatKg:feedKg;       // ไม่ครบ → ใช้อาหารรับเข้า (อาจสูงกว่าจริงเล็กน้อยเพราะมีอาหารเหลือในถัง)
   let fcr=(gainW>0 && avgIn>0)?fcrFeed/gainW:0; // FCR = อาหาร ÷ นน.ที่โตขึ้น · ต้องมี "นน.เฉลี่ยเข้า" จึงคิดได้ ไม่งั้นโชว์ "—"
   const fcrOdd=fcr>0&&(fcr<FCR_MIN||fcr>FCR_MAX); if(fcrOdd) fcr=0; // FCR นอกช่วงหมูจริง = ข้อมูลอาหารไม่ครบ/ผิดปกติ (เคส E25 เก็บ 0.03) — โชว์ — ไม่เก็บเลขหลอกลงประวัติ
-  const liveOut=outN+cullN; // หมูที่ออกแบบมีชีวิต = ขายขุน + คัดขาย (คัดขายก็มีรายได้รวมในกำไร)
-  const perPig=liveOut?profit/liveOut:(inN?profit/inN:0); // กำไรเฉลี่ย/ตัว หารด้วยหมูที่ออกแบบมีชีวิต (ขาย+คัด) ให้ตรงกับ FCR
+  const liveOut=outN+cullN+movedN; // หมูที่ออกแบบมีชีวิต = ขายขุน + คัดขาย + ย้ายออกไปหลังอื่น
+  const perPig=liveOut?profit/liveOut:(inN?profit/inN:0); // กำไรเฉลี่ย/ตัว หารด้วยหมูที่ออกแบบมีชีวิตทั้งหมด
   const setT=(id,val,color)=>{const e=document.getElementById(id);if(e){e.textContent=val;if(color)e.style.color=color;}};
   const c=(ok)=>ok?'var(--ok)':'var(--bad)';
   setT('s_days',days?fmt(days)+' วัน':'—');
@@ -7203,11 +7267,25 @@ function calcBatch(){
   setT('s_deadAvg',(deadW&&deadVal)?fmt(Math.round(deadVal/deadW)):'—');
   setT('s_cullAvg',(cullW&&cullVal)?fmt(Math.round(cullVal/cullW)):'—');
   setT('s_outAvg',(outW&&outVal)?fmt(Math.round(outVal/outW)):'—');
-  const sold=deadN+cullN+outN, wb=document.getElementById('batchWarn');
-  let warn=(inN&&sold>inN)?'<div class="banner bad">🚫 <div>ตาย+คัดขาย+ขาย ('+sold+') มากกว่าจำนวนรับเข้า ('+inN+') — โปรดตรวจสอบ</div></div>':'';
+  // ⚠️ ราคาอาหารที่พิมพ์เองต่างจากตารางราคามาก = อาจพิมพ์ผิด (เคส J2: เบอร์ 105 พิมพ์ 29.91 ทั้งที่ VCF 105 = 20.35 → ค่าอาหารเกิน 113,382 บาท)
+  feedAgg(currentHouse).forEach((r,i)=>{
+    const nt=document.getElementById('f_note_'+i); if(!nt) return;
+    const typed=gv('f_pr_'+i), ref=fpAutoPrice(r.no,r.src);
+    if(ref==null){ nt.textContent='ไม่มีในตารางราคา — ใส่เอง'; nt.style.color='#b7791f'; return; }
+    if(!(typed>0)){ nt.textContent='💰 จากตารางราคา · แก้ได้'; nt.style.color=''; return; }
+    const diff=(typed-ref)/ref;
+    if(Math.abs(diff)>0.2){ nt.textContent='⚠️ ต่างจากตารางราคามาก ('+ref.toFixed(2)+') — ตรวจว่าพิมพ์ถูกไหม · ส่วนต่าง '+fmt(Math.round((typed-ref)*r.kg))+' บาท'; nt.style.color='#c0392b'; }
+    else { nt.textContent=(Math.abs(typed-ref)<0.005?'💰 ตรงกับตารางราคา':'💰 ตารางราคา '+ref.toFixed(2)+' · ใช้ที่พิมพ์เอง'); nt.style.color=''; }
+  });
+  const sold=deadN+cullN+outN+movedN, wb=document.getElementById('batchWarn');
+  let warn=(inN&&sold>inN)?'<div class="banner bad">🚫 <div>ตาย+คัดขาย+ขาย+ย้ายออก ('+sold+') มากกว่าจำนวนรับเข้า ('+inN+') — โปรดตรวจสอบ</div></div>':'';
+  if(movedN>0) warn+='<div class="banner info" style="margin-top:8px">🔄 <div>ชุดนี้<b>ย้ายหมูออกไปหลังอื่น '+fmt(movedN)+' ตัว</b> — ไม่ใช่การขาย ระบบจึงตี<b>ราคาโอนตามต้นทุนสะสม '+fmt(Math.round(moveP))+' บาท/ตัว</b> (รวม '+fmt(Math.round(moveVal))+' บาท) เป็นรายได้ของหลังนี้ · <b>กำไรจริงของหมูกลุ่มนี้ไปดูที่หลังปลายทาง</b> · ถ้าอยากตีราคาโอนเอง กรอกในช่อง "ราคาโอน/ตัว"</div></div>';
+  const mi=moveInInfo(currentHouse);
+  if(mi&&mi.n>0&&!(gv('b_inP')>0)) warn+='<div class="banner warn" style="margin-top:8px">🔄 <div>หลังนี้มี<b>หมูย้ายเข้า '+fmt(mi.n)+' ตัว</b>'+(mi.srcs.length?' จากหลัง <b>'+mi.srcs.map(escA).join(', ')+'</b>':'')+(mi.perPig?' — ต้นทุนที่ติดตามมา ≈ <b>'+fmt(mi.perPig)+' บาท/ตัว</b> <button type="button" class="btn sm" style="margin-left:6px" onclick="fillMoveInCost('+mi.perPig+')">เติมเป็นราคารับเข้า/ตัว</button>':' — ยังคำนวณต้นทุนต้นทางไม่ได้ (หลังต้นทางยังไม่ได้กรอกงบ)')+'</div></div>';
   if(inN>0 && pigCost<=0) warn+='<div class="banner bad" style="margin-top:8px">⚠️ <div>ยังไม่ได้ใส่ <b>"ราคารับเข้า / ตัว"</b> และไม่มีค่าลูกหมูที่บันทึกไว้ → <b>ต้นทุนลูกหมูถูกคิดเป็น 0 ทำให้กำไรสูงเกินจริง</b> · โปรดกรอกราคารับเข้าก่อนปิดชุด</div></div>';
   if(wb) wb.innerHTML=warn;
   return {days,inN,inW,inP,deadN,deadW,deadVal,cullN,cullW,cullVal,outN,outW,outVal,
+    movedN,movedW,moveP:Math.round(moveP),moveVal:Math.round(moveVal),
     feedKg:Math.round(feedKg),feedCost:Math.round(feedCost),pigCost:Math.round(pigCost),
     otherCost:Math.round(otherCost),totalCost:Math.round(totalCost),revenue:Math.round(revenue),
     profit:Math.round(profit),perPig:Math.round(perPig),loss:+loss.toFixed(2),adg:+adg.toFixed(3),
@@ -8417,14 +8495,10 @@ const FP_DRUG_ALIAS={
   'ไซโปรฟล็อกซาซิน':['ไซโปร','cipro']
 };
 function fpDrugKey(s){ const t=String(s||'').toLowerCase(); for(const k in FP_DRUG_ALIAS){ if(FP_DRUG_ALIAS[k].some(a=>t.indexOf(a.toLowerCase())>=0)) return k; } return null; }
-function fpMedFor(no,src){   // สูตรยาโรงงานของ (เบอร์ × เจ้า) — ใช้ตัวจับคอลัมน์ชุดเดียวกับ fpAutoPrice
-  const P=fpData(), key=(typeof feedNoKey==='function')?(feedNoKey(no)||String(no||'').trim()):String(no||'').trim();
-  const row=P.rows.find(x=>String(x.no).trim()===key); if(!row) return null;
+function fpMedFor(no,src){   // สูตรยาโรงงานของ (เบอร์ × เจ้า) — ใช้ตัวจับคู่ชุดเดียวกับ fpAutoPrice
+  const row=fpRowFor(no); if(!row) return null;
   const srcs=String(src||'').split('/').map(s=>s.trim()).filter(Boolean);
-  for(const s of srcs){
-    const col=P.cols.find(c=>c.k===s||String(c.n||'').trim()===s||String(c.n||'').indexOf(s)>=0||s.indexOf(c.k)>=0);
-    if(col){ const m=fpMedOf(row,col.k); if(m) return Object.assign({},m,{colName:col.n||col.k}); }
-  }
+  for(const s of srcs){ const col=fpColFor(s); if(col){ const m=fpMedOf(row,col.k); if(m) return Object.assign({},m,{colName:col.n||col.k}); } }
   return null;
 }
 function houseFeedLots(h){   // รวมของที่รับเข้าจริงตาม (เบอร์ × เจ้า) แล้วผูกราคา+ยาจากตาราง 💰 ราคาอาหาร
