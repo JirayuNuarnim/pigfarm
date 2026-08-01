@@ -1070,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801c';
+const APP_BUILD='690801d';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -4598,7 +4598,9 @@ function showClosedBatch(code,ts){
     <h2 class="page">📦 ปิดชุด หลัง ${escA(b.code||'')} <span style="color:var(--muted);font-size:15px;font-weight:500">${escA(b.farm||'')}</span></h2>
     <div class="sub">รับเข้า ${escA(fmtISOThai(b.dateIn))} → ปิดชุด ${escA(fmtISOThai(b.closedOn))} · เลี้ยง ${b.days||0} วัน</div>
     ${batchMissing(b).length?`<div class="banner warn" style="margin:10px 0">⚠️ <div><b>ชุดนี้ข้อมูลยังไม่ครบ — ตัวเลขกำไรด้านล่างยังไม่ใช่ของจริง</b><br>ยังไม่ได้กรอก: <b>${batchMissing(b).map(escA).join(' · ')}</b> · ระบบไม่นำชุดนี้ไปรวมในกำไรรวมของฟาร์ม จนกว่าจะกรอกครบ</div></div>`:''}
-    <div style="margin:0 0 14px"><button class="btn ghost" onclick="exportClosedBatch(${escA(JSON.stringify(b.code||''))},${b.ts})" style="color:var(--ok);border-color:var(--ok)">📊 ส่งออก Excel — สรุป + ประวัติ (2 หน้า)</button></div>
+    <div style="margin:0 0 14px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" onclick="printClosedBatch(${escA(JSON.stringify(b.code||''))},${b.ts})">🖨️ พิมพ์ใบสรุป A4 (5 หน้า)</button>
+      <button class="btn ghost" onclick="exportClosedBatch(${escA(JSON.stringify(b.code||''))},${b.ts})" style="color:var(--ok);border-color:var(--ok)">📊 ส่งออก Excel</button></div>
     <div class="kpis">
       <div class="kpi"><div class="lab">รับเข้า</div><div class="val">${fmt(b.inN||0)}</div></div>
       <div class="kpi"><div class="lab">รายได้รวม</div><div class="val">${money(b.revenue)}</div></div>
@@ -7192,7 +7194,9 @@ function batchHTML(h){
     <div class="legend"><span>เป้าหมาย: ADG ≥ 0.78 กก./วัน · FCR ≤ 2.5 · สูญเสีย &lt; 2%</span></div>
     <div id="batchWarn" style="margin-top:10px"></div>
     ${(h.pigs||0)<=0?'<div class="banner bad" style="margin-top:10px">📦 <div>หมูหมดหลังแล้ว — กด <b>"ยืนยันปิดชุด & จบรุ่น"</b> เพื่อสรุปเก็บเป็นประวัติปิดชุด แล้วเริ่มเลี้ยงรุ่นใหม่ได้</div></div>':''}
-    <div style="margin-top:14px"><button type="button" class="btn ghost" onclick="exportCurrentBatch()" style="color:var(--ok);border-color:var(--ok)">📊 ส่งออก Excel — สรุป + ประวัติ (2 หน้า)</button></div>
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn" onclick="printCurrentBatch()">🖨️ พิมพ์ใบสรุป A4</button>
+      <button type="button" class="btn ghost" onclick="exportCurrentBatch()" style="color:var(--ok);border-color:var(--ok)">📊 ส่งออก Excel</button></div>
     <div class="actions" style="margin-top:10px">
       <button type="button" class="btn ghost" onclick="renderHouseList()">ยกเลิก</button>
       ${(h.pigs||0)<=0
@@ -7408,6 +7412,30 @@ function finalizeBatch(){
   clerkForm();
 }
 /* ---------- ส่งออก Excel: สรุปข้อมูลปิดชุด (ทุกตัวเลขที่บันทึกไว้ของหลังนั้น) ---------- */
+/* 🌾 อาหารที่ใช้ในรุ่นนี้ แยกรายเบอร์ + ราคา/กก. จากตาราง 💰 ราคาอาหาร → ใช้ทั้ง Excel และใบพิมพ์ A4
+   เดิม Excel มีแต่ปริมาณ ไม่มีราคาเลย (เจ้าของแจ้ง 1 ส.ค. 69 "ราคาแต่ละอย่างไม่มี") */
+function batchFeedRows(rec){
+  try{ return houseFeedLots({vetLog:(rec&&rec.vetLog)||[]}); }catch(e){ return []; }
+}
+function batchUnitStats(rec){   // ราคาต่อหน่วยทุกตัวที่ควรมีในใบสรุป
+  const n=v=>Number(v)||0, r=x=>Math.round(x*100)/100;
+  const inN=n(rec.inN), soldN=n(rec.soldN!=null?rec.soldN:rec.outN);
+  const liveOut=soldN+n(rec.cullN)+n(rec.movedN);
+  const kgOut=n(rec.outW)+n(rec.cullW)+n(rec.movedW);
+  return {
+    pigletPer: inN?r(n(rec.pigCost)/inN):0,
+    feedPerKg: n(rec.feedKg)?r(n(rec.feedCost)/n(rec.feedKg)):0,
+    feedPerPig: liveOut?r(n(rec.feedCost)/liveOut):0,
+    deadPerKg: n(rec.deadW)?r(n(rec.deadVal)/n(rec.deadW)):0,
+    cullPerKg: n(rec.cullW)?r(n(rec.cullVal)/n(rec.cullW)):0,
+    soldPerKg: n(rec.outW)?r(n(rec.outVal)/n(rec.outW)):0,
+    costPerPigIn: inN?r(n(rec.totalCost)/inN):0,
+    costPerPigOut: liveOut?r(n(rec.totalCost)/liveOut):0,
+    costPerKg: kgOut?r(n(rec.totalCost)/kgOut):0,
+    revPerPig: liveOut?r(n(rec.revenue)/liveOut):0,
+    kgOut, liveOut
+  };
+}
 function buildBatchSheets(rec){
   const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const n=v=>Math.round(Number(v)||0), fm=v=>n(v).toLocaleString('th-TH');
@@ -7416,6 +7444,7 @@ function buildBatchSheets(rec){
   const mc=medCatTotals(rec), medSum=medTotal(rec), it=rec.intake||{};
   const exC=(rec.extraCosts||[]).filter(x=>x&&(parseFloat(x.amount)||0)>0), exSum=exC.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
   const laborEtc=Math.max(0,(rec.otherCost||0)-medSum-exSum);
+  const FR=batchFeedRows(rec), US=batchUnitStats(rec);
   const C={ // ขาว-ดำล้วน: ไม่มีสีพื้น/สีตัวอักษร เส้นตารางบางสีดำ
     title:'font-weight:bold;font-size:15px;padding:7px 10px;border:1px solid #000',
     subt:'font-size:11px;padding:4px 10px;border:1px solid #000;border-top:0',
@@ -7462,7 +7491,20 @@ function buildBatchSheets(rec){
     +kvn('ต้นทุน — ค่าแรง+สาธารณูปโภค+ค่าเสื่อม',laborEtc)
     +exC.map(x=>kvn('ต้นทุน — '+(x.label||'ค่าใช้จ่ายอื่น'),Math.round(parseFloat(x.amount)||0))).join('')
     +kvn('รวมต้นทุนทั้งหมด',rec.totalCost)
-    +kvn('กำไรสุทธิ',rec.profit)+kvn('กำไรเฉลี่ย/ตัว',batchPerPig(rec))+'</table>';
+    +((rec.movedN||0)>0?kvn('รายได้ — ราคาโอนหมูย้ายออก ('+fm(rec.movedN)+' ตัว × '+fm(rec.moveP)+')',rec.moveVal):'')
+    +kvn('กำไรสุทธิ',rec.profit)+kvn('กำไรเฉลี่ย/ตัว',batchPerPig(rec))+sp(2)
+    +sec('③.๑ ราคาต่อหน่วย (สรุปให้ครบทุกตัวเลข)',2)
+    +kvn('ราคาลูกหมู (บาท/ตัว)',US.pigletPer)
+    +kvn('ค่าอาหารเฉลี่ย (บาท/กก.)',US.feedPerKg)+kvn('ค่าอาหารเฉลี่ย (บาท/ตัวที่ออก)',US.feedPerPig)
+    +kvn('ราคาขายซาก เฉลี่ย (บาท/กก.)',US.deadPerKg)+kvn('ราคาคัดขาย เฉลี่ย (บาท/กก.)',US.cullPerKg)+kvn('ราคาขายขุน เฉลี่ย (บาท/กก.)',US.soldPerKg)
+    +kvn('ต้นทุนรวม ต่อตัวรับเข้า (บาท)',US.costPerPigIn)+kvn('ต้นทุนรวม ต่อตัวที่ออก (บาท)',US.costPerPigOut)
+    +kvn('ต้นทุนรวม ต่อ กก. ที่ออก (บาท)',US.costPerKg)+kvn('รายได้เฉลี่ย ต่อตัวที่ออก (บาท)',US.revPerPig)+sp(2)
+    +sec('③.๒ อาหารที่ใช้ แยกรายเบอร์ (ราคาจากตารางราคาอาหาร)',2)
+    +'<tr>'+['เบอร์อาหาร','แหล่ง','ปริมาณ (กก.)','ราคา/กก.','เป็นเงิน (บาท)'].map((x,i)=>'<th style="'+C.th+'" width="'+[120,110,110,100,120][i]+'">'+esc(x)+'</th>').join('')+'</tr>'
+    +(FR.length?FR.map(o=>'<tr><td style="'+C.val+'">'+esc(o.no)+'</td><td style="'+C.val+'">'+esc(o.src==='-'?'ไม่ระบุ':o.src)+'</td><td style="'+C.num+'">'+fm(o.kg)+'</td><td style="'+C.num+'">'+(o.price!=null?o.price.toFixed(2):'-')+'</td><td style="'+C.num+'">'+(o.cost!=null?fm(o.cost):'-')+'</td></tr>').join('')
+        +'<tr><td style="'+C.lab+'" colspan="2">รวม</td><td style="'+C.num+'">'+fm(FR.reduce((s,o)=>s+o.kg,0))+'</td><td style="'+C.num+'">'+(US.feedPerKg||'-')+'</td><td style="'+C.num+'">'+fm(FR.reduce((s,o)=>s+(o.cost||0),0))+'</td></tr>'
+      :'<tr><td colspan="5" style="'+C.val+'">— ไม่มีบันทึกการรับอาหาร —</td></tr>')
+    +'</table>';
   // ── ชีต 2: ประวัติประจำหลัง "ทุกอย่าง" จัดตามหัวข้อ (ขาว-ดำ) ──
   const dl=rec.dailyLog||[], meds=rec.meds||[], el=rec.editLog||[];
   const vl=rec.vetLog||[], treat=vl.filter(e=>e.type==='treat'), feed=vl.filter(e=>e.type==='feed'), eat=vl.filter(e=>e.type==='intake');
@@ -7506,8 +7548,12 @@ function buildBatchSheets(rec){
   let t7=T+logTable('⑦ ประวัติการรักษา — '+treat.length+' ครั้ง',6,['วันที่','อาการ','ยาสูตร','ยาฉีด','หมายเหตุ','หมอ'],[92,210,120,150,230,120],
     treat.map(e=>[{v:e.date},{v:e.symptoms||'-'},{v:e.formula||'-'},{v:e.inject||'-'},{v:e.note||'-'},{v:e.by||'-'}]),'— ไม่มี —')+'</table>';
   // ⑧ ประวัติการรับอาหาร
-  let t8=T+logTable('⑧ ประวัติการรับอาหาร — '+feed.length+' ครั้ง',7,['วันที่','แหล่ง','เบอร์อาหาร','ยาผสม','ปริมาณ (กก.)','เลขที่บิล','หมอ'],[92,90,100,200,110,110,120],
-    feed.map(e=>[{v:e.date},{v:e.feedSrc||'-'},{v:e.feedNo||'-'},{v:(e.feedMed||'-').replace(/\n/g,' / ')},{v:e.feedKg,t:'n'},{v:e.feedBill||'-'},{v:e.by||'-'}]),'— ไม่มี —')+'</table>';
+  let t8=T+logTable('⑧ ประวัติการรับอาหาร — '+feed.length+' ครั้ง · รวม '+fm(feed.reduce((s,e)=>s+(Number(e.feedKg)||0),0))+' กก. · '+fm(FR.reduce((s,o)=>s+(o.cost||0),0))+' บาท',9,
+    ['วันที่','แหล่ง','เบอร์อาหาร','ยาผสม','ปริมาณ (กก.)','ราคา/กก.','เป็นเงิน (บาท)','เลขที่บิล','หมอ'],[92,90,100,190,100,90,110,100,110],
+    feed.map(e=>{ const pr=fpAutoPrice(e.feedNo,e.feedSrc), kg=Number(e.feedKg)||0;
+      return [{v:e.date},{v:e.feedSrc||'-'},{v:e.feedNo||'-'},{v:(e.feedMed||'-').replace(/\n/g,' / ')},{v:kg,t:'n'},
+        (pr!=null?{v:pr.toFixed(2)}:{v:'-'}),(pr!=null?{v:Math.round(kg*pr),t:'n'}:{v:'-'}),{v:e.feedBill||'-'},{v:e.by||'-'}]; }),
+    '— ไม่มี —')+'</table>';
   // ⑨ ประวัติการกินได้ต่อวัน
   let t9=T+logTable('⑨ ประวัติการกินได้ต่อวัน — '+eat.length+' ครั้ง',4,['วันที่','อาหารเบอร์','นน.ที่กิน (กก.)','หมอ'],[92,120,130,120],
     eat.map(e=>[{v:e.date},{v:e.eatNo||'-'},{v:e.eatKg,t:'n'},{v:e.by||'-'}]),'— ไม่มี —')+'</table>';
@@ -7521,6 +7567,156 @@ function buildBatchSheets(rec){
 // รวมทุกชีตเป็น HTML เดียว (สำหรับพรีวิวบนจอ)
 function buildBatchExcelHTML(rec){
   return buildBatchSheets(rec).map(s=>'<div style="margin:0 0 22px"><div style="background:#16212e;color:#fff;font-weight:bold;padding:7px 12px;border-radius:6px 6px 0 0">📄 ชีต: '+s.name+'</div>'+s.html+'</div>').join('');
+}
+/* ---------- 🖨️ ใบสรุปปิดชุด สำหรับพิมพ์ A4 (เจ้าของขอ 1 ส.ค. 69) ----------
+   จัดเป็นหน้าๆ ตัดหน้าชัดเจน · หน้าสรุปเป็นแนวตั้ง · ตารางประวัติที่คอลัมน์เยอะเป็นแนวนอน
+   พิมพ์ผ่าน iframe ซ่อน (ไม่ต้องเปิดแท็บใหม่ — กันโดนบล็อกป๊อปอัป) */
+function batchPrintHTML(rec){
+  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const n=v=>Math.round(Number(v)||0), fm=v=>n(v).toLocaleString('th-TH');
+  const it=rec.intake||{}, da=dailyAgg(rec), mc=medCatTotals(rec), medSum=medTotal(rec);
+  const FR=batchFeedRows(rec), US=batchUnitStats(rec);
+  const exC=(rec.extraCosts||[]).filter(x=>x&&(parseFloat(x.amount)||0)>0), exSum=exC.reduce((s,x)=>s+(parseFloat(x.amount)||0),0);
+  const laborEtc=Math.max(0,(rec.otherCost||0)-medSum-exSum);
+  const soldN=rec.soldN!=null?rec.soldN:(rec.outN||0);
+  const dl=rec.dailyLog||[], meds=rec.meds||[], vax=rec.vaccineLog||[];
+  const vl=rec.vetLog||[], treat=vl.filter(e=>e.type==='treat'), feed=vl.filter(e=>e.type==='feed'), eat=vl.filter(e=>e.type==='intake');
+  const miss=batchMissing(rec);
+  const hdr=t=>`<div class="ph"><div class="pt">${esc(t)}</div>
+      <div class="ps">หลัง <b>${esc(rec.code||'')}</b> · ${esc(rec.farm||'')}${rec.zone?' · '+esc(rec.zone):''} — รับเข้า ${esc(fmtISOThai(rec.dateIn||it.dateIn)||'-')} → ปิดชุด ${esc(fmtISOThai(rec.closedOn)||'-')} · เลี้ยง ${n(rec.days)} วัน</div></div>`;
+  const kv=(k,v)=>`<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`;
+  const kn=(k,v,b)=>`<tr${b?' class="tot"':''}><th>${esc(k)}</th><td class="num">${fm(v)}</td></tr>`;
+  const tbl=(cols,rows,empty)=>`<table class="grid"><thead><tr>${cols.map(c=>`<th${c[1]?' class="num"':''}>${esc(c[0])}</th>`).join('')}</tr></thead>
+    <tbody>${rows.length?rows.map(r=>`<tr>${r.map((c,i)=>`<td${cols[i]&&cols[i][1]?' class="num"':''}>${esc(c==null?'-':c)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${cols.length}">${esc(empty||'— ไม่มีข้อมูล —')}</td></tr>`}</tbody></table>`;
+
+  const p1=`<section class="sheet">${hdr('ใบสรุปปิดชุด')}
+    ${miss.length?`<div class="warn">⚠️ ข้อมูลชุดนี้ยังไม่ครบ — ยังไม่ได้กรอก: <b>${esc(miss.join(' · '))}</b> ตัวเลขกำไรยังไม่ใช่ของจริง</div>`:''}
+    <div class="kpis">
+      <div class="k"><span>รับเข้า</span><b>${fm(rec.inN)} ตัว</b></div>
+      <div class="k"><span>รายได้รวม</span><b>${fm(rec.revenue)}</b></div>
+      <div class="k"><span>ต้นทุนรวม</span><b>${fm(rec.totalCost)}</b></div>
+      <div class="k"><span>กำไรสุทธิ</span><b>${fm(rec.profit)}</b></div>
+      <div class="k"><span>กำไร/ตัว</span><b>${fm(batchPerPig(rec))}</b></div>
+      <div class="k"><span>FCR</span><b>${fcrShow(rec.fcr)}</b></div>
+    </div>
+    <h3>① ข้อมูลหลัง / ชุดการเลี้ยง</h3>
+    <table class="kvt">${kv('ฟาร์ม',rec.farm)}${kv('รหัสหลัง',rec.code)}${kv('โซน',rec.zone||'-')}
+      ${kn('ความจุ (ตัว)',rec.cap)}${kn('พื้นที่ (ตร.ม.)',rec.area)}${kn('จำนวนพัดลม',rec.fanTotal)}
+      ${kv('แหล่งรับเข้า',rec.source||it.source||'-')}${kv('วันเลี้ยงอนุบาล',(it.nurseryDays||'-')+' วัน')}
+      ${kv('หมอผู้ดูแล',rec.vet||'-')}${kv('ผู้ช่วย',rec.assistant||it.assistant||'-')}${kv('พนักงานประจำหลัง',rec.worker||'-')}
+      ${kv('หมายเหตุ',it.note||rec.note||'-')}</table>
+    <h3>② จำนวน / น้ำหนัก / ประสิทธิภาพ</h3>
+    <table class="kvt">${kn('รับเข้า (ตัว)',rec.inN)}${kn('ตายรวม (ตัว)',rec.deadN)}${kn('คัดขายรวม (ตัว)',rec.cullN)}${kn('ขายขุนรวม (ตัว)',soldN)}
+      ${(da.moveN||da.moveInN)?kn('ย้ายออก (ตัว)',da.moveN)+kn('ย้ายเข้า (ตัว)',da.moveInN):''}
+      ${kv('% สูญเสีย (ตาย+คัด)',(rec.loss!=null?rec.loss:'-')+' %')}
+      ${kv('นน.เฉลี่ย เข้า → ออก (กก./ตัว)',(rec.avgIn||'-')+' → '+(rec.avgOut||'-'))}
+      ${kv('ADG (กก./วัน)',rec.adg||'-')}${kv('FCR',fcrShow(rec.fcr))}${kn('อาหารที่ใช้รวม (กก.)',rec.feedKg)}</table></section>`;
+
+  const p2=`<section class="sheet">${hdr('ใบสรุปปิดชุด — งบกำไรขาดทุน')}
+    <h3>③ รายได้ (บาท)</h3>
+    <table class="kvt">${rec.deadVal?kn('ขายซาก (ตาย)',rec.deadVal):''}${kn('คัดขาย',rec.cullVal)}${kn('ขายขุน',rec.outVal)}
+      ${(rec.movedN||0)>0?kn('ราคาโอนหมูย้ายออก ('+fm(rec.movedN)+' ตัว × '+fm(rec.moveP)+')',rec.moveVal):''}
+      ${kn('รวมรายได้',rec.revenue,1)}</table>
+    <h3>④ ต้นทุน (บาท)</h3>
+    <table class="kvt">${kn('ค่าลูกหมู (รับเข้า)',rec.pigCost)}${kn('ค่าอาหาร',rec.feedCost)}
+      ${kn('ค่ายาฉีด',mc.c_inject)}${kn('ค่าวัคซีน',mc.c_vaccine)}${kn('ค่ายาผสมอาหาร',mc.c_feedmed)}
+      ${kn('ค่ายาสูตร',mc.c_formula)}${kn('ค่าเวชภัณฑ์/น้ำยา',mc.c_supply)}${kn('ค่าอุปกรณ์',mc.c_equip)}
+      ${kn('ค่าแรง + สาธารณูปโภค + ค่าเสื่อม',laborEtc)}
+      ${exC.map(x=>kn(x.label||'ค่าใช้จ่ายอื่น',Math.round(parseFloat(x.amount)||0))).join('')}
+      ${kn('รวมต้นทุนทั้งหมด',rec.totalCost,1)}</table>
+    <h3>⑤ กำไร</h3>
+    <table class="kvt">${kn('กำไรสุทธิ',rec.profit,1)}${kn('กำไรเฉลี่ย/ตัว',batchPerPig(rec))}</table>
+    <h3>⑥ ราคาต่อหน่วย</h3>
+    <table class="kvt">${kn('ราคาลูกหมู (บาท/ตัว)',US.pigletPer)}${kn('ค่าอาหารเฉลี่ย (บาท/กก.)',US.feedPerKg)}${kn('ค่าอาหาร (บาท/ตัวที่ออก)',US.feedPerPig)}
+      ${kn('ราคาขายซากเฉลี่ย (บาท/กก.)',US.deadPerKg)}${kn('ราคาคัดขายเฉลี่ย (บาท/กก.)',US.cullPerKg)}${kn('ราคาขายขุนเฉลี่ย (บาท/กก.)',US.soldPerKg)}
+      ${kn('ต้นทุนรวม/ตัวรับเข้า',US.costPerPigIn)}${kn('ต้นทุนรวม/ตัวที่ออก',US.costPerPigOut)}${kn('ต้นทุนรวม/กก.ที่ออก',US.costPerKg)}${kn('รายได้เฉลี่ย/ตัวที่ออก',US.revPerPig)}</table>
+    <h3>⑦ อาหารที่ใช้ แยกรายเบอร์ <span class="hint">(ราคาจากตารางราคาอาหาร)</span></h3>
+    ${tbl([['เบอร์อาหาร'],['แหล่ง'],['ปริมาณ (กก.)',1],['ราคา/กก.',1],['เป็นเงิน (บาท)',1]],
+      FR.map(o=>[o.no,(o.src==='-'?'ไม่ระบุ':o.src),fm(o.kg),(o.price!=null?o.price.toFixed(2):'-'),(o.cost!=null?fm(o.cost):'-')])
+        .concat(FR.length?[['รวม','',fm(FR.reduce((s,o)=>s+o.kg,0)),(US.feedPerKg||'-'),fm(FR.reduce((s,o)=>s+(o.cost||0),0))]]:[]),
+      '— ไม่มีบันทึกการรับอาหาร —')}</section>`;
+
+  const p3=`<section class="sheet land">${hdr('ใบสรุปปิดชุด — บันทึกรายวัน')}
+    ${tbl([['วันที่'],['ตาย ตัว',1],['ตาย กก.',1],['ตาย บ./กก.',1],['ตาย มูลค่า',1],['คัด ตัว',1],['คัด กก.',1],['คัด บ./กก.',1],['คัด มูลค่า',1],['ขาย ตัว',1],['ขาย กก.',1],['ขาย บ./กก.',1],['ขาย มูลค่า',1],['ย้ายออก',1],['ปลายทาง'],['ย้ายเข้า',1],['ต้นทาง'],['ลูกค้า'],['เลขที่บิล'],['คงเหลือ',1]],
+      dl.map(e=>[e.date,fm(e.deadN),fm(e.deadW),(e.deadN&&e.deadP?fm(e.deadP):'-'),fm((e.deadW||0)*(e.deadP||0)),
+        fm(e.cullN),fm(e.cullW),(e.cullN&&e.cullP?fm(e.cullP):'-'),fm((e.cullW||0)*(e.cullP||0)),
+        fm(e.soldN),fm(e.soldW),(e.soldN&&e.soldP?fm(e.soldP):'-'),fm((e.soldW||0)*(e.soldP||0)),
+        fm(e.moveN||0),e.moveDest||'-',fm(e.moveInN||0),e.moveInFrom||'-',
+        (e.soldCust||e.cullCust||e.deadCust||'-'),(e.soldBill||e.cullBill||e.deadBill||'-'),fm(e.remain)]),
+      '— ยังไม่มีบันทึกรายวัน —')}</section>`;
+
+  const p4=`<section class="sheet land">${hdr('ใบสรุปปิดชุด — ยา / วัคซีน / อาหาร')}
+    <h3>เบิกยา / เวชภัณฑ์ <span class="hint">${meds.length} รายการ · รวม ${fm(medSum)} บาท</span></h3>
+    ${tbl([['วันที่'],['หมวด'],['ชื่อรายการ'],['โดส'],['จำนวน',1],['ราคา/หน่วย',1],['มูลค่ารวม',1]],
+      meds.map(m=>[m.date,m.cat,m.name,m.dose||'-',fm(m.qty),fm(m.price),fm(m.total)]),'— ไม่มีการเบิก —')}
+    <h3>ประวัติการทำวัคซีน <span class="hint">${vax.length} ครั้ง</span></h3>
+    ${tbl([['วันที่'],['ชื่อวัคซีน'],['ขวด',1],['จำนวนตัว',1],['อายุ (วัน)',1],['เข็มที่'],['ผู้ทำ'],['มูลค่า',1],['หมายเหตุ']],
+      vax.map(r=>[isoToThaiDay(r.dateISO),r.name||'-',(r.bottles!=null&&r.bottles!==''?fm(r.bottles):'-'),(r.pigsN!=null&&r.pigsN!==''?fm(r.pigsN):'-'),
+        (vaxAgeDays(rec,r.dateISO)!=null?fm(vaxAgeDays(rec,r.dateISO)):'-'),r.dose||'-',r.by||'-',(r.value!=null&&r.value!==''?fm(r.value):'-'),r.note||'-']),'— ไม่มี —')}
+    <h3>ประวัติการรับอาหาร <span class="hint">${feed.length} ครั้ง · รวม ${fm(FR.reduce((s,o)=>s+(o.cost||0),0))} บาท</span></h3>
+    ${tbl([['วันที่'],['แหล่ง'],['เบอร์'],['ยาผสม'],['ปริมาณ (กก.)',1],['ราคา/กก.',1],['เป็นเงิน',1],['เลขที่บิล'],['หมอ']],
+      feed.map(e=>{const pr=fpAutoPrice(e.feedNo,e.feedSrc),kg=Number(e.feedKg)||0;
+        return [e.date,e.feedSrc||'-',e.feedNo||'-',(e.feedMed||'-').replace(/\n/g,' / '),fm(kg),(pr!=null?pr.toFixed(2):'-'),(pr!=null?fm(kg*pr):'-'),e.feedBill||'-',e.by||'-'];}),'— ไม่มี —')}</section>`;
+
+  const p5=`<section class="sheet land">${hdr('ใบสรุปปิดชุด — การรักษา / การกินได้')}
+    <h3>ประวัติการรักษา <span class="hint">${treat.length} ครั้ง</span></h3>
+    ${tbl([['วันที่'],['อาการ'],['ยาสูตร'],['ยาฉีด'],['หมายเหตุ'],['หมอ']],
+      treat.map(e=>[e.date,e.symptoms||'-',e.formula||'-',e.inject||'-',e.note||'-',e.by||'-']),'— ไม่มี —')}
+    <h3>ประวัติการกินได้ต่อวัน <span class="hint">${eat.length} ครั้ง</span></h3>
+    ${tbl([['วันที่'],['อาหารเบอร์'],['นน.ที่กิน (กก.)',1],['หมอ']],
+      eat.map(e=>[e.date,e.eatNo||'-',fm(e.eatKg),e.by||'-']),'— ไม่มี —')}</section>`;
+
+  const css=`@page{size:A4 portrait;margin:11mm 10mm}
+    @page land{size:A4 landscape;margin:8mm}
+    .sheet.land{page:land}
+    *{box-sizing:border-box}
+    body{font-family:"Tahoma","Sarabun",sans-serif;font-size:11px;color:#000;margin:0;background:#fff}
+    .sheet{page-break-after:always;break-after:page;padding:0 0 6mm}
+    .sheet:last-child{page-break-after:auto;break-after:auto}
+    .ph{border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:8px}
+    .pt{font-size:17px;font-weight:bold}
+    .ps{font-size:11px;margin-top:2px}
+    h3{font-size:12px;margin:10px 0 4px;padding:3px 6px;background:#eee;border:1px solid #000}
+    h3 .hint{font-weight:normal;font-size:10px}
+    table{border-collapse:collapse;width:100%}
+    .kvt th{width:38%;text-align:left;font-weight:bold;border:1px solid #000;padding:3px 7px;background:#fafafa}
+    .kvt td{border:1px solid #000;padding:3px 7px}
+    .kvt tr.tot th,.kvt tr.tot td{background:#e8e8e8;font-weight:bold}
+    .grid th{border:1px solid #000;padding:3px 5px;background:#eee;font-size:10px;text-align:left}
+    .grid td{border:1px solid #000;padding:2px 5px;font-size:10px}
+    .num{text-align:right}
+    .kpis{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 2px}
+    .kpis .k{flex:1 1 30%;border:1px solid #000;padding:5px 8px}
+    .kpis .k span{display:block;font-size:10px}
+    .kpis .k b{font-size:14px}
+    .warn{border:1.5px solid #000;padding:5px 8px;margin:6px 0;font-size:11px}
+    .foot{margin-top:8mm;display:flex;gap:14mm}
+    .foot div{flex:1;border-top:1px solid #000;padding-top:3px;text-align:center;font-size:10px}`;
+  const foot=`<div class="foot"><div>ผู้จัดทำ (เสมียน)</div><div>หมอผู้ดูแล</div><div>ผู้อนุมัติ (เจ้าของ)</div></div>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>สรุปปิดชุด ${esc(rec.code||'')} ${esc(rec.closedOn||'')}</title><style>${css}</style></head>
+    <body>${p1.replace('</section>',foot+'</section>')}${p2.replace('</section>',foot+'</section>')}${p3}${p4}${p5}</body></html>`;
+}
+function printBatchA4(rec){
+  if(!rec){ toast('ไม่พบข้อมูลชุด'); return; }
+  const old=document.getElementById('printFrame'); if(old) old.remove();
+  const f=document.createElement('iframe'); f.id='printFrame';
+  f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(f);
+  const d=f.contentWindow.document; d.open(); d.write(batchPrintHTML(rec)); d.close();
+  const go=()=>{ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ toast('พิมพ์ไม่สำเร็จ — ลองใหม่อีกครั้ง'); } };
+  if(d.readyState==='complete') setTimeout(go,120); else f.onload=()=>setTimeout(go,120);
+  toast('🖨️ เปิดหน้าต่างพิมพ์ — เลือกกระดาษ A4 · ตั้งเป็น "ตามขนาดจริง"');
+}
+function printClosedBatch(code,ts){
+  const h=HOUSES.find(x=>x.code===code); if(!h) return;
+  const b=(h.closedBatches||[]).find(x=>x.ts===ts); if(!b) return;
+  printBatchA4(Object.assign({cap:h.cap,area:h.area,fanTotal:h.fanTotal,assistant:h.assistant},b));
+}
+function printCurrentBatch(){
+  const h=currentHouse; if(!h){toast('ไม่พบหลัง');return;}
+  const m=calcBatch()||{};
+  printBatchA4(Object.assign({},h,m,{closedOn:($("#b_close")&&$("#b_close").value)||todayISO(),
+    dateIn:(h.intake&&h.intake.dateIn)||($("#b_dateIn")&&$("#b_dateIn").value)||'', soldN:m.outN, extraCosts:bxList()}));
 }
 function exportBatchExcel(rec){
   const sheets=buildBatchSheets(rec);
