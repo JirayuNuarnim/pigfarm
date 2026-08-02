@@ -1070,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801m';
+const APP_BUILD='690802a';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -3772,7 +3772,8 @@ function xlsTd(v,type,o){ o=o||{}; const st=['border:1px solid #cfd8d4','padding
   const numeric=(type==='num'||type==='money'||type==='dec');
   let disp;
   if(numeric && v!=='' && v!=null && isFinite(Number(v))){ st.push("mso-number-format:'"+(type==='dec'?'#,##0.00':'#,##0')+"'"); st.push('text-align:right'); disp=Number(v); }
-  else { disp=xlsEsc(v); if(type==='money'||type==='num'||type==='dec') st.push('text-align:right'); }
+  else { disp=xlsEsc(v); if(type==='money'||type==='num'||type==='dec') st.push('text-align:right');
+    if(type==='txt') st.push("mso-number-format:'\\@'"); }   // 'txt' = บังคับ Excel อ่านเป็นข้อความ (เบอร์หู/รหัสเล้า ไม่โดนแปลงเป็นตัวเลข/วันที่)
   if(o.bold) st.push('font-weight:bold');
   if(o.top){ st.push('border-top:2px solid #2f6f63'); st.push('background:#eaf4f1'); }
   return '<td style="'+st.join(';')+'">'+disp+'</td>';
@@ -12109,6 +12110,8 @@ function sbExportXlsObj(b){
 const BR_FARMS=['ฟาร์มเบิกไพร','ฟาร์มวันครู1','ฟาร์มแม่พันธุ์ท่าม่วง'];
 let BR={all:[],loaded:false}, brFarm='ฟาร์มเบิกไพร';
 let brTab='dash', brEvKind='mate', brQ='', brHouseF='', brEvHouse='', brHouseOpen='', brViewFn=null, _brRetry=null, brDashOpen={}, brShowAll=false, brBQ='', brRankView='all', brRankQ='';
+/* 🗄️ ตัวกรองของแท็บฐานข้อมูลแม่ (ยูนิต → เล้า → สถานะ) */
+let brDbUnit='', brDbHouse='', brDbStage='live', brDbSort='ear', brDbCap=200;
 let brBM=[{ear:'',boar:'',round:1}];
 function brToday(){ return new Date(); }
 function brISO(d){ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); }
@@ -12151,9 +12154,17 @@ function brCfg(){ const o=(typeof BRCFG==='object'&&BRCFG&&BRCFG[brFarm])||{}; c
 function brPack(s){ return {breed:s.breed||'',parity:+s.parity||0,teats:+s.teats||0,born:s.born||'',house:s.house||'',stage:s.stage||'open',hc:s.hc||'',note:s.note||'',events:s.events||[]}; }
 async function brCloudLoad(force){
   if(BR.loaded&&!force) return true;
-  const r=await supaFetch('/rest/v1/rpc/load_sows',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
-  if(!r||!r.ok) return false;
-  let rows=[]; try{ rows=(await r.json())||[]; }catch(e){ return false; }
+  /* ⚠️ 2 ส.ค. 69 — load_sows คืนเป็น "หลายแถว" เลยโดนเพดาน 1,000 แถวของเซิร์ฟเวอร์ตัด
+     (ทะเบียนจริง 1,547 → แอปเห็นแค่ 1,000 · แม่หาย 506 ตัว)
+     load_sows_all คืนเป็นก้อน JSON ก้อนเดียว = ไม่โดนเพดาน · ถ้าเซิร์ฟเวอร์รุ่นเก่ายังไม่มี ให้ถอยไปใช้ตัวเดิม */
+  let rows=null;
+  const ra=await supaFetch('/rest/v1/rpc/load_sows_all',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  if(ra&&ra.ok){ try{ const j=await ra.json(); if(Array.isArray(j)) rows=j; }catch(e){} }
+  if(rows===null){
+    const r=await supaFetch('/rest/v1/rpc/load_sows',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    if(!r||!r.ok) return false;
+    try{ rows=(await r.json())||[]; }catch(e){ return false; }
+  }
   const dirty=(BR.all||[]).filter(s=>s._dirty);
   BR.all=rows.map(x=>Object.assign({events:[]},x.data||{},{farm:x.farm,ear:x.ear,_id:x.id,_ts:x.updated_at}));
   dirty.forEach(ds=>{ const i=BR.all.findIndex(s=>s.farm===ds.farm&&s.ear===ds.ear); if(i>=0) BR.all[i]=ds; else BR.all.push(ds); });
@@ -12228,7 +12239,7 @@ async function renderBreeding(){
   const due=brDueList();
   const fchips=BR_FARMS.map(f=>{ const n=BR.all.filter(s=>s.farm===f&&s.stage!=='cull'&&(s.kind||'')!=='boar').length;
     return `<button class="sbfchip${brFarm===f?' on':''}" onclick="brFarm='${escA(f)}';brHouseF='';brHouseOpen='';renderBreeding()">${escA(f.replace('ฟาร์ม',''))} (${fmt(n)})</button>`; }).join('');
-  const tabs=[['dash','📊 ภาพรวม'],['work','📋 งานวันนี้'+(due.length?' ('+due.length+')':'')],['houses','🏠 รายหลัง'],['rank','🏅 จัดอันดับแม่'],['sows','🐷 ทะเบียนแม่'],['boar','🐗 พ่อพันธุ์'+(brBoars().length?' ('+fmt(brBoars().length)+')':'')],['reg','➕ ขึ้นทะเบียน'],['ev','📝 ฟอร์มบันทึก'],['kpi','📊 KPI·ตั้งค่า']];
+  const tabs=[['dash','📊 ภาพรวม'],['work','📋 งานวันนี้'+(due.length?' ('+due.length+')':'')],['houses','🏠 รายหลัง'],['rank','🏅 จัดอันดับแม่'],['sows','🗄️ ฐานข้อมูลแม่'],['boar','🐗 พ่อพันธุ์'+(brBoars().length?' ('+fmt(brBoars().length)+')':'')],['reg','➕ ขึ้นทะเบียน'],['ev','📝 ฟอร์มบันทึก'],['kpi','📊 KPI·ตั้งค่า']];
   $("#view").innerHTML=`
     <h2 class="page">🐷 ระบบแม่พันธุ์ <span class="more">ฐานข้อมูลแม่รายตัว · ${escA(brFarm)}</span></h2>
     <div class="sub">เลือกฟาร์ม:</div>
@@ -12798,26 +12809,291 @@ function brDMDel(ear){
   brPersist(s); toast('ลบรายการแจ้งผสมวันนี้ของ '+ear+' แล้ว'); brDMRe();
 }
 
-/* ── แท็บ: ทะเบียนแม่ ── */
+/* ═══ 🗄️ แท็บ: ฐานข้อมูลแม่รายตัว (master registry) ═══
+   ฐานข้อมูลกลางของแม่ทุกตัว แยก ฟาร์ม → Unit → เล้า · กดเบอร์เข้าไปดูบัตรแม่ (ที่อยู่ · สถานะ · ประวัติครบ)
+   ทุกฟอร์มบันทึกงาน (ผสม/คลอด/หย่านม/ย้าย/ปลด) ดึงเบอร์จากฐานนี้ → ประวัติกลับเข้าฐานนี้ตัวเดียวกัน */
+function brSowUnit(s){ return brUnitOf(s&&s.house); }
+function brKindOfCode(c){ c=String(c||''); return /ค\d/.test(c)?'ค':(/ท\d/.test(c)?'ท':(/ส\d/.test(c)?'ส':'')); }
+function brKindTxt(k){ return {'ท':'อุ้มท้อง','ค':'คลอด','ส':'สาว'}[k]||'-'; }
+function brAgeTxt(born){ const d=born?brDays(born):null; if(d==null) return '-';
+  const y=Math.floor(d/365), m=Math.floor((d%365)/30.44);
+  return (y?y+' ปี ':'')+m+' ด.'; }
+/* วันที่แม่เข้ามาอยู่เล้าปัจจุบัน (จากประวัติย้ายล่าสุดที่ปลายทาง = เล้าที่อยู่ตอนนี้) */
+function brHouseSince(s){
+  for(const e of (s.events||[])) if(e&&e.t==='move'&&e.to===s.house&&brIsISO(e.date)) return e.date;
+  const ds=(s.events||[]).filter(e=>e&&brIsISO(e.date)).map(e=>e.date).sort();
+  return ds.length?ds[0]:'';
+}
+/* วันที่เข้าสถานะปัจจุบัน (ผสม/ตรวจท้อง/คลอด/หย่านม/ปลด) */
+function brStageSince(s){
+  const pick=t=>{ const e=brLastEv(s,t); return e&&brIsISO(e.date)?e.date:''; };
+  if(s.stage==='mated') return pick('mate');
+  if(s.stage==='preg') return pick('preg')||pick('mate');
+  if(s.stage==='nurse') return pick('farrow');
+  if(s.stage==='open') return pick('wean')||pick('preg');
+  if(s.stage==='cull') return pick('cull');
+  return s.born||'';
+}
+/* 📜 ประวัติรายครอก — จับคู่ ผสม → คลอด → หย่านม ของครอกเดียวกัน */
+function brLitterRows(s){
+  const C=brCfg();
+  const evs=(s.events||[]).filter(e=>e&&brIsISO(e.date));
+  const srt=t=>evs.filter(e=>e.t===t).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  const far=srt('farrow'), mat=srt('mate'), wea=srt('wean');
+  const off=Math.max(0,(+s.parity||0)-far.length);   // ครอกที่ลงย้อนหลังไม่ครบ → เลื่อนเลขครอกให้ตรงกับ parity จริง
+  const usedW={};
+  return far.map((f,i)=>{
+    const fd=brDnum(f.date);
+    let m=null; mat.forEach(x=>{ const g=fd-brDnum(x.date); if(g>=C.gest-25&&g<=C.gest+25&&(!m||brDnum(x.date)>brDnum(m.date))) m=x; });
+    let w=null; wea.forEach(x=>{ const g=brDnum(x.date)-fd; if(g>0&&g<=75&&!usedW[x.date]&&(!w||brDnum(x.date)<brDnum(w.date))) w=x; });
+    if(w) usedW[w.date]=1;
+    const prev=i>0?brDnum(far[i-1].date):null;
+    return {n:off+i+1, mate:m?m.date:'', boar:m?(m.boar||''):'', round:m?(+m.round||1):'',
+      farrow:f.date, gest:m?fd-brDnum(m.date):null, house:f.house||'',
+      alive:+f.alive||0, still:+f.still||0, mummy:+f.mummy||0, wt:(+f.wt||+f.cw||0),
+      wean:w?w.date:'', weaned:w?(+w.weaned||0):null, lact:w?brDnum(w.date)-fd:null,
+      gap:prev!=null?fd-prev:null};
+  });
+}
+/* คำอธิบายเหตุการณ์แบบข้อความล้วน (ใช้ทั้งบนจอและในไฟล์ Excel) */
+const BR_EVT_NAME={mate:'💕 ผสม',preg:'🔍 ตรวจท้อง',farrow:'👶 คลอด',wean:'🍼 หย่านม',cull:'❌ ปลด/ตาย',move:'🏠 ย้ายเล้า',vax:'💉 วัคซีน',care:'✅ งานดูแล'};
+function brEvDesc(e){
+  if(!e) return '';
+  if(e.t==='mate') return 'พ่อพันธุ์ '+(e.boar||'-')+' · ผสมครั้งที่ '+(+e.round||1);
+  if(e.t==='preg') return 'ผลตรวจ: '+(e.result||'-');
+  if(e.t==='farrow') return 'มีชีวิต '+(+e.alive||0)+' · ตายแรกคลอด '+(+e.still||0)+' · มัมมี่ '+(+e.mummy||0)+' · รวมเกิด '+((+e.alive||0)+(+e.still||0)+(+e.mummy||0))+((+e.wt||+e.cw)?' · นน.ครอก '+(+e.wt||+e.cw)+' กก.':'');
+  if(e.t==='wean') return 'ลูกหย่า '+(+e.weaned||0)+' ตัว';
+  if(e.t==='cull') return (e.kind||'ปลด')+': '+(e.reason||'-')+((+e.wt)?' · นน. '+(+e.wt)+' กก.':'')+((+e.price)?' · ราคา '+fmt(+e.price)+' บาท':'')+(e.buyer?' · ผู้ซื้อ '+e.buyer:'');
+  if(e.t==='move') return (e.from||'?')+' → '+(e.to||'?');
+  if(e.t==='care') return e.note||'';
+  return e.note||'';
+}
+function brDbList(){
+  let list=brSows();
+  if(brDbStage==='live') list=list.filter(s=>s.stage!=='cull');
+  else if(brDbStage&&brDbStage!=='all') list=list.filter(s=>s.stage===brDbStage);
+  if(brDbUnit==='_none') list=list.filter(s=>!brSowUnit(s));
+  else if(brDbUnit) list=list.filter(s=>brSowUnit(s)===brDbUnit);
+  if(brDbHouse) list=list.filter(s=>(s.house||'')===brDbHouse);
+  const q=brQ.trim().toLowerCase();
+  if(q) list=list.filter(s=>String(s.ear).toLowerCase().includes(q)||String(s.house||'').toLowerCase().includes(q)||String(s.breed||'').toLowerCase().includes(q));
+  const cmpH=(a,b)=>{ const ua=brSowUnit(a)||'zz', ub=brSowUnit(b)||'zz';
+    if(ua!==ub) return ua.localeCompare(ub,undefined,{numeric:true});
+    const ka=brKindOfCode(a.house), kb=brKindOfCode(b.house), KO={'ท':0,'ค':1,'ส':2,'':3};
+    if(KO[ka]!==KO[kb]) return KO[ka]-KO[kb];
+    return String(a.house||'').localeCompare(String(b.house||''),undefined,{numeric:true}); };
+  const S={
+    ear:(a,b)=>String(a.ear).localeCompare(String(b.ear),undefined,{numeric:true}),
+    house:(a,b)=>cmpH(a,b)||String(a.ear).localeCompare(String(b.ear),undefined,{numeric:true}),
+    parity:(a,b)=>(+b.parity||0)-(+a.parity||0),
+    age:(a,b)=>String(a.born||'9999').localeCompare(String(b.born||'9999')),
+    due:(a,b)=>brClock(b).filter(c=>c.due).length-brClock(a).filter(c=>c.due).length
+  };
+  return list.sort(S[brDbSort]||S.ear);
+}
 function brSowsHTML(){
   if(!brSows().length) return brEmptyHTML();
-  const q=brQ.trim().toLowerCase();
-  const list=brSows().filter(s=>!q||String(s.ear).toLowerCase().includes(q)||String(s.house||'').toLowerCase().includes(q));
-  return `<div class="card"><div class="sbarch-head"><h3 style="margin:0">🐷 ทะเบียนแม่ <span class="more">${fmt(list.length)} ตัว</span></h3>
-      <div class="srch"><input class="cin" placeholder="🔍 เบอร์หู / หลัง" value="${escA(brQ)}" oninput="brQ=this.value;document.getElementById('brSowList').innerHTML=brSowListRows()"></div></div>
-    <div id="brSowList">${brSowListRows(list)}</div></div>`;
+  const all=brSows(), hs=brHousesFor(brFarm), units=brUnitsOf(hs);
+  const live=all.filter(s=>s.stage!=='cull').length, culled=all.length-live;
+  const list=brDbList();
+  const uChip=(k,t,n)=>`<button class="sbfchip${brDbUnit===k?' on':''}" onclick="brDbUnit='${k}';brDbHouse='';brDbCap=200;brRe()">${t}${n!=null?' ('+fmt(n)+')':''}</button>`;
+  const sChip=(k,t)=>`<button class="sbfchip${brDbStage===k?' on':''}" onclick="brDbStage='${k}';brDbCap=200;brRe()">${t}</button>`;
+  const nInU=u=>all.filter(s=>s.stage!=='cull'&&(u==='_none'?!brSowUnit(s):brSowUnit(s)===u)).length;
+  const hOpts=hs.filter(h=>!brDbUnit||(brDbUnit==='_none'?!h.unit:h.unit===brDbUnit));
+  const grp={}; hOpts.forEach(h=>{ (grp[h.kind]=grp[h.kind]||[]).push(h); });
+  const nLive=all.filter(s=>s.stage!=='cull');
+  const cnt=k=>nLive.filter(s=>s.stage===k).length;
+  return `<div class="card">
+    <div class="sbarch-head"><h3 style="margin:0">🗄️ ฐานข้อมูลแม่รายตัว <span class="more">${escA(brFarm.replace('ฟาร์ม',''))} · อยู่ในฝูง ${fmt(live)} ตัว${culled?' · ปลดแล้ว '+fmt(culled):''}</span></h3>
+      <div class="srch"><input class="cin" placeholder="🔍 เบอร์หู / เล้า / พันธุ์" value="${escA(brQ)}" oninput="brQ=this.value;brDbCap=200;brRe()"></div></div>
+    <div class="sub" style="margin:-2px 0 9px">แม่ทุกตัวของฟาร์มอยู่ในฐานนี้ — แยกตาม <b>Unit → เล้า</b> · แตะเบอร์หูเพื่อดู<b>บัตรแม่</b> (อยู่เล้าไหน · สถานะ · ประวัติผสม/คลอด/หย่านม/ย้ายเล้า/ปลดขาย ครบทุกครั้ง) · ฟอร์มบันทึกงานทุกหน้าดึงเบอร์จากฐานนี้ตัวเดียวกัน</div>
+
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">🏛️ ${uChip('','ทุกยูนิต',live)}${units.map(u=>u?uChip(u,'Unit '+u.slice(1),nInU(u)):uChip('_none','เล้าสาว/ไม่มียูนิต',nInU('_none'))).join('')}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center">🏠
+      <select class="cin tl" style="max-width:230px;padding:5px 9px" onchange="brDbHouse=this.value;brDbCap=200;brRe()">
+        <option value="">— ทุกเล้าในยูนิตนี้ —</option>
+        ${['ท','ค','ส'].filter(k=>grp[k]).map(k=>`<optgroup label="${k==='ท'?'🔵 เล้าอุ้มท้อง':k==='ค'?'🩷 เล้าคลอด':'🟢 เล้าสาว'}">${grp[k].map(h=>`<option value="${escA(h.s)}" ${brDbHouse===h.s?'selected':''}>${escA(h.s)} · ${fmt(all.filter(s=>s.house===h.s&&s.stage!=='cull').length)} แม่</option>`).join('')}</optgroup>`).join('')}
+      </select>
+      <span class="sub" style="margin:0">เรียงตาม</span>
+      <select class="cin tl" style="max-width:150px;padding:5px 9px" onchange="brDbSort=this.value;brRe()">
+        ${[['ear','เบอร์หู'],['house','ยูนิต/เล้า'],['parity','ครอกมาก→น้อย'],['age','อายุมาก→น้อย'],['due','งานค้างมากสุด']].map(o=>`<option value="${o[0]}" ${brDbSort===o[0]?'selected':''}>${o[1]}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px">📌 ${sChip('live','อยู่ในฝูง ('+fmt(live)+')')}${sChip('gilt','🌸 สาว ('+fmt(cnt('gilt'))+')')}${sChip('open','⏳ รอผสม ('+fmt(cnt('open'))+')')}${sChip('mated','💕 ผสมแล้ว ('+fmt(cnt('mated'))+')')}${sChip('preg','🤰 ท้อง ('+fmt(cnt('preg'))+')')}${sChip('nurse','🍼 เลี้ยงลูก ('+fmt(cnt('nurse'))+')')}${culled?sChip('cull','❌ ปลดแล้ว ('+fmt(culled)+')'):''}${sChip('all','ทั้งหมด ('+fmt(all.length)+')')}</div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="btn ghost sm" onclick="brXlsDb()">📊 ดึงฐานข้อมูลเป็น Excel (${fmt(list.length)} ตัวตามตัวกรอง)</button>
+      <button class="btn ghost sm" onclick="brXlsDb(1)">📚 ดึงทั้งฟาร์ม (${fmt(all.length)} ตัว)</button>
+    </div>
+    <div id="brSowList">${brDbTableHTML(list)}</div></div>`;
 }
-function brSowListRows(list){
-  if(!list){ const q=brQ.trim().toLowerCase(); list=brSows().filter(s=>!q||String(s.ear).toLowerCase().includes(q)||String(s.house||'').toLowerCase().includes(q)); }
-  const CAP=brShowAll?1000000:150, shown=list.slice(0,CAP);   // 🐷 ทะเบียนใหญ่ (1,500+) — เริ่มโชว์ 150 กันหน้าอืด
-  const rows=shown.map(s=>{ const c=brClock(s); const next=c.find(x=>x.due);
-    return `<div class="fieldrow" style="cursor:pointer" onclick="brOpen('${escA(s.ear)}')">
-      <div class="fmeta"><div class="fn"><b>${escA(s.ear)}</b> · ${escA(s.breed||'-')} · ครอกที่ ${fmt(s.parity||0)} · 🏠 ${escA(s.house||'-')}</div>
-      <div class="sub" style="margin:2px 0 0">${brStageTxt(s.stage)}${c[0]&&c[0].label?' · '+escA(c[0].label):''}</div></div>
-      ${next?`<span style="background:#fdf3e0;color:#b7791f;border-radius:999px;padding:3px 11px;font-size:11.5px;font-weight:700;white-space:nowrap">${escA(next.label)}</span>`:''}
-    </div>`; }).join('');
-  const more=list.length>CAP?`<div style="text-align:center;margin-top:10px"><button class="btn ghost sm" onclick="brShowAll=true;renderBreeding()">แสดงทั้งหมด ${fmt(list.length)} ตัว (ตอนนี้โชว์ ${fmt(CAP)})</button><div class="sub" style="margin-top:6px">หรือพิมพ์เบอร์/เล้าในช่องค้นหาเพื่อกรอง</div></div>`:'';
-  return (rows||'<div class="sub">— ไม่พบ —</div>')+more;
+function brDbTableHTML(list){
+  if(!list) list=brDbList();
+  if(!list.length) return '<div class="sub">— ไม่พบแม่ตามตัวกรองนี้ —</div>';
+  const shown=list.slice(0,brDbCap);
+  let curU=null, curH=null, out='';
+  const byHouse=(brDbSort==='house');
+  const rows=shown.map(s=>{
+    const c=brClock(s), next=c.find(x=>x.due), st=brSowStats(s);
+    const since=brStageSince(s), sd=since?brDays(since):null;
+    let head='';
+    if(byHouse){
+      const u=brSowUnit(s)||'—';
+      if(u!==curU){ curU=u; curH=null; head+=`<tr><td colspan="9" style="background:#eaf4f1;font-weight:800;color:#0f6b5f;padding:6px 8px">🏛️ ${u==='—'?'ไม่มียูนิต (เล้าสาว)':'Unit '+u.slice(1)}</td></tr>`; }
+      if(s.house!==curH){ curH=s.house; const k=brKindOfCode(s.house);
+        head+=`<tr><td colspan="9" style="background:#f6faf8;font-weight:700;padding:4px 8px;font-size:12px">🏠 ${escA(s.house||'ไม่ระบุเล้า')} <span style="color:#5a6b66;font-weight:500">· ${brKindTxt(k)}</span></td></tr>`; }
+    }
+    return head+`<tr class="clk" onclick="brOpen(${escA(JSON.stringify(String(s.ear)))})">
+      <td><b>${escA(s.ear)}</b></td>
+      <td>${escA(s.breed||'-')}</td>
+      <td>${brSowUnit(s)?'<span style="color:#0f6b5f;font-weight:700">'+escA(brSowUnit(s))+'</span> ':''}${escA(s.house||'-')}</td>
+      <td>${brStageTxt(s.stage)}</td>
+      <td class="num">${sd!=null?fmt(sd):'-'}</td>
+      <td class="num">${fmt(s.parity||0)}</td>
+      <td>${brAgeTxt(s.born)}</td>
+      <td class="num">${st.weanedAvg!=null?st.weanedAvg.toFixed(1):'-'}</td>
+      <td>${next?`<span style="background:#fdf3e0;color:#b7791f;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap">${escA(next.label)}</span>`:'<span class="sub" style="font-size:11px">—</span>'}</td></tr>`;
+  }).join('');
+  out=`<div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
+    <thead><tr><th>เบอร์หู</th><th>พันธุ์</th><th>ยูนิต / เล้า</th><th>สถานะ</th><th class="num">วันในสถานะ</th><th class="num">ครอกที่</th><th>อายุ</th><th class="num">ลูกหย่า/ครอก</th><th>งานถัดไป</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+  if(list.length>brDbCap) out+=`<div style="text-align:center;margin-top:10px"><button class="btn ghost sm" onclick="brDbCap+=500;brRe()">แสดงเพิ่ม (ตอนนี้ ${fmt(brDbCap)} จาก ${fmt(list.length)} ตัว)</button></div>`;
+  return out;
+}
+
+/* ═══ 📊 ดึงฐานข้อมูลแม่เป็น Excel ═══
+   เบอร์หู/รหัสเล้าใช้ชนิด 'txt' → Excel เก็บเป็นข้อความ ไม่แปลงเป็นตัวเลข/วันที่ (เบอร์อ่านง่ายตรงตามที่ลง)
+   วันที่เป็นแบบไทย (พ.ศ.) อ่านง่าย · ตัวเลขเป็นตัวเลขจริง (บวก/เรียง/กรองใน Excel ได้) */
+function brXlsMeta(scope,n){
+  return [{k:'บริษัท',v:'เอสเจเอฟ ฟาร์ม (SJF Farm)'},{k:'ฟาร์ม',v:brFarm},{k:'ขอบเขต',v:scope},
+    {k:'จำนวนแม่',v:fmt(n)+' ตัว'},{k:'ออกเอกสาร',v:(typeof DEMO_DATE_SHORT!=='undefined'?DEMO_DATE_SHORT:brTodayISO())},
+    {k:'ผู้ออกรายงาน',v:(typeof CURRENT_USER!=='undefined'&&CURRENT_USER&&CURRENT_USER.name)||brBy()||'-'}];
+}
+function brThai(d){ return d?sbThaiDate(d):''; }
+function brSowSheetRows(list,scoreMap){
+  const C=brCfg();
+  return list.map(s=>{
+    const st=brSowStats(s), L=brLitterRows(s), last=L.length?L[L.length-1]:null;
+    const mate=brLastEv(s,'mate'), hSince=brHouseSince(s), sSince=brStageSince(s);
+    const due=brClock(s).filter(c=>c.due).map(c=>c.label.replace(/^[^ ]+ /,'')).join(' · ');
+    const expect=(mate&&(s.stage==='preg'||s.stage==='mated'))?brAddDays(mate.date,C.gest):'';
+    const cull=brLastEv(s,'cull');
+    return [brSowUnit(s)||'-', s.house||'-', brKindTxt(brKindOfCode(s.house)), s.ear, s.breed||'-',
+      brThai(s.born), s.born?brDays(s.born):'', brAgeTxt(s.born), +s.teats||'',
+      +s.parity||0, brStageTxt(s.stage).replace(/^\S+\s/,''), sSince?brDays(sSince):'',
+      brThai(hSince), hSince?brDays(hSince):'',
+      mate?brThai(mate.date):'', mate?(mate.boar||''):'', brThai(expect),
+      last?brThai(last.farrow):'', last?last.alive:'', last&&last.wean?brThai(last.wean):'', (last&&last.weaned!=null)?last.weaned:'',
+      L.length, L.reduce((a,r)=>a+r.alive,0), L.reduce((a,r)=>a+(r.weaned||0),0),
+      st.aliveAvg!=null?+st.aliveAvg.toFixed(2):'', st.weanedAvg!=null?+st.weanedAvg.toFixed(2):'',
+      st.matesPerLitter!=null?+st.matesPerLitter.toFixed(2):'', st.npdYear!=null?Math.round(st.npdYear):'',
+      scoreMap[s.ear]!=null?scoreMap[s.ear]:'',
+      cull?(brThai(cull.date)+' '+(cull.kind||'ปลด')+(cull.reason?' ('+cull.reason+')':'')):'',
+      due, s.note||''];
+  });
+}
+const BR_SOW_COLS=[{label:'ยูนิต',type:'txt',w:55},{label:'เล้า',type:'txt',w:70},{label:'ชนิดเล้า',w:65},{label:'เบอร์หูแม่',type:'txt',w:95},{label:'พันธุ์',type:'txt',w:55},
+  {label:'วันเกิด',w:80},{label:'อายุ (วัน)',type:'num',w:65},{label:'อายุ',w:70},{label:'เต้านม',type:'num',w:55},
+  {label:'ครอกที่',type:'num',w:55},{label:'สถานะ',w:95},{label:'วันในสถานะ',type:'num',w:75},
+  {label:'เข้าเล้านี้เมื่อ',w:85},{label:'อยู่เล้านี้ (วัน)',type:'num',w:80},
+  {label:'ผสมล่าสุด',w:85},{label:'พ่อพันธุ์ล่าสุด',type:'txt',w:95},{label:'กำหนดคลอด',w:85},
+  {label:'คลอดล่าสุด',w:85},{label:'ลูกมีชีวิต (ครอกล่าสุด)',type:'num',w:95},{label:'หย่านมล่าสุด',w:85},{label:'ลูกหย่า (ครอกล่าสุด)',type:'num',w:95},
+  {label:'ครอกในระบบ',type:'num',w:75},{label:'ลูกมีชีวิตรวม',type:'num',w:80},{label:'ลูกหย่ารวม',type:'num',w:75},
+  {label:'ลูกมีชีวิต/ครอก',type:'dec',w:85},{label:'ลูกหย่า/ครอก',type:'dec',w:85},{label:'ผสม/ครอก',type:'dec',w:75},{label:'NPD (วัน/ปี)',type:'num',w:80},
+  {label:'คะแนน',type:'num',w:60},{label:'ปลด/ขาย/ตาย',w:170},{label:'งานค้างวันนี้',w:200},{label:'หมายเหตุ',w:150}];
+function brXlsDb(allFarm){
+  const list=allFarm?brSows().slice().sort((a,b)=>String(a.house||'').localeCompare(String(b.house||''),undefined,{numeric:true})||String(a.ear).localeCompare(String(b.ear),undefined,{numeric:true})):brDbList();
+  if(!list.length){ toast('ไม่มีแม่ตามตัวกรองนี้'); return; }
+  const R=brRankRows(), scoreMap={}; R.rows.forEach(r=>{ scoreMap[r.s.ear]=r.score; });
+  const scope=allFarm?'ทั้งฟาร์ม (ทุกยูนิต ทุกสถานะ)'
+    :[brDbUnit?(brDbUnit==='_none'?'เล้าสาว/ไม่มียูนิต':'Unit '+brDbUnit.slice(1)):'ทุกยูนิต',
+      brDbHouse?('เล้า '+brDbHouse):'', brDbStage==='live'?'อยู่ในฝูง':(brDbStage==='all'?'ทุกสถานะ':brStageTxt(brDbStage)),
+      brQ?('ค้นหา "'+brQ+'"'):''].filter(Boolean).join(' · ');
+  const meta=brXlsMeta(scope,list.length);
+
+  // ① ทะเบียนแม่ — 1 แถว/แม่
+  const sh1=xlsSheet({title:'🗄️ ฐานข้อมูลแม่รายตัว — '+brFarm,meta:meta,columns:BR_SOW_COLS,rows:brSowSheetRows(list,scoreMap)});
+
+  // ② ประวัติรายครอก — 1 แถว/ครอก
+  const litRows=[];
+  list.forEach(s=>brLitterRows(s).forEach(r=>litRows.push([brSowUnit(s)||'-',s.house||'-',s.ear,s.breed||'-',r.n,
+    brThai(r.mate),r.boar||'',r.round||'',brThai(r.farrow),r.gest!=null?r.gest:'',
+    r.alive,r.still,r.mummy,r.alive+r.still+r.mummy,r.wt||'',
+    brThai(r.wean),r.weaned!=null?r.weaned:'',r.lact!=null?r.lact:'',r.gap!=null?r.gap:'',r.house||''])));
+  const sh2=xlsSheet({title:'👶 ประวัติการผลิตรายครอก',meta:[{k:'ฟาร์ม',v:brFarm},{k:'จำนวนครอก',v:fmt(litRows.length)+' ครอก'}],
+    columns:[{label:'ยูนิต',type:'txt',w:55},{label:'เล้า',type:'txt',w:70},{label:'เบอร์หูแม่',type:'txt',w:95},{label:'พันธุ์',type:'txt',w:55},{label:'ครอกที่',type:'num',w:55},
+      {label:'วันผสม',w:85},{label:'พ่อพันธุ์',type:'txt',w:95},{label:'ผสมครั้งที่',type:'num',w:70},{label:'วันคลอด',w:85},{label:'ระยะท้อง (วัน)',type:'num',w:85},
+      {label:'ลูกมีชีวิต',type:'num',w:70},{label:'ตายแรกคลอด',type:'num',w:80},{label:'มัมมี่',type:'num',w:60},{label:'รวมเกิด',type:'num',w:65},{label:'นน.ครอก (กก.)',type:'dec',w:85},
+      {label:'วันหย่านม',w:85},{label:'ลูกหย่า',type:'num',w:65},{label:'ระยะเลี้ยง (วัน)',type:'num',w:90},{label:'ห่างครอกก่อน (วัน)',type:'num',w:100},{label:'คลอดที่เล้า',type:'txt',w:70}],
+    rows:litRows});
+
+  // ③ ประวัติทั้งหมด — 1 แถว/เหตุการณ์
+  const evRows=[];
+  list.forEach(s=>(s.events||[]).forEach(e=>{ if(!e) return;
+    evRows.push([brSowUnit(s)||'-',s.house||'-',s.ear,brThai(e.date),(BR_EVT_NAME[e.t]||e.t).replace(/^\S+\s/,''),brEvDesc(e),e.house||'',e.by||'']); }));
+  evRows.sort((a,b)=>String(a[2]).localeCompare(String(b[2]),undefined,{numeric:true}));
+  const sh3=xlsSheet({title:'📜 ประวัติแม่ทุกเหตุการณ์',meta:[{k:'ฟาร์ม',v:brFarm},{k:'จำนวนรายการ',v:fmt(evRows.length)+' รายการ'}],
+    columns:[{label:'ยูนิต',type:'txt',w:55},{label:'เล้าปัจจุบัน',type:'txt',w:75},{label:'เบอร์หูแม่',type:'txt',w:95},{label:'วันที่',w:85},
+      {label:'เหตุการณ์',w:80},{label:'รายละเอียด',w:290},{label:'ทำที่เล้า',type:'txt',w:70},{label:'ผู้บันทึก',w:110}],
+    rows:evRows});
+
+  // ④ สรุปรายยูนิต/เล้า
+  const hs=brHousesFor(brFarm), sumRows=[];
+  hs.forEach(h=>{ const inH=brSows().filter(s=>s.house===h.s&&s.stage!=='cull');
+    const c=k=>inH.filter(s=>s.stage===k).length;
+    sumRows.push([h.unit||'-',h.s,brKindTxt(h.kind),h.vet||'-',inH.length,c('gilt'),c('open'),c('mated'),c('preg'),c('nurse'),
+      inH.reduce((a,s)=>a+brClock(s).filter(x=>x.due).length,0)]); });
+  const noH=brSows().filter(s=>s.stage!=='cull'&&!hs.some(h=>h.s===s.house));
+  if(noH.length) sumRows.push(['-','(ยังไม่ระบุเล้า)','-','-',noH.length,'','','','','',0]);
+  const sh4=xlsSheet({title:'🏛️ สรุปรายยูนิต / รายเล้า',meta:[{k:'ฟาร์ม',v:brFarm}],
+    columns:[{label:'ยูนิต',type:'txt',w:55},{label:'เล้า',type:'txt',w:75},{label:'ชนิดเล้า',w:65},{label:'หมอประจำ',w:110},
+      {label:'แม่ทั้งหมด',type:'num',w:75},{label:'สาว',type:'num',w:55},{label:'รอผสม',type:'num',w:60},{label:'ผสมแล้ว',type:'num',w:65},{label:'อุ้มท้อง',type:'num',w:65},{label:'เลี้ยงลูก',type:'num',w:65},{label:'งานค้าง',type:'num',w:65}],
+    rows:sumRows,
+    totals:['','รวม','','',sumRows.reduce((a,r)=>a+(+r[4]||0),0),sumRows.reduce((a,r)=>a+(+r[5]||0),0),sumRows.reduce((a,r)=>a+(+r[6]||0),0),sumRows.reduce((a,r)=>a+(+r[7]||0),0),sumRows.reduce((a,r)=>a+(+r[8]||0),0),sumRows.reduce((a,r)=>a+(+r[9]||0),0),sumRows.reduce((a,r)=>a+(+r[10]||0),0)]});
+
+  const sheets=[{name:'①ทะเบียนแม่',html:sh1},{name:'②รายครอก',html:sh2},{name:'③ประวัติทั้งหมด',html:sh3},{name:'④สรุปยูนิต-เล้า',html:sh4}];
+  // ⑤ พ่อพันธุ์ (เฉพาะไฟล์ทั้งฟาร์ม)
+  if(allFarm&&brBoars().length){
+    sheets.push({name:'⑤พ่อพันธุ์',html:xlsSheet({title:'🐗 ทะเบียนพ่อพันธุ์',meta:[{k:'ฟาร์ม',v:brFarm}],
+      columns:[{label:'เบอร์หูพ่อ',type:'txt',w:95},{label:'พันธุ์',type:'txt',w:60},{label:'Line',type:'txt',w:70},{label:'ยูนิต',type:'txt',w:55},{label:'วันเกิด',w:85},{label:'อายุ',w:70},{label:'พ่อ',type:'txt',w:90},{label:'แม่',type:'txt',w:90}],
+      rows:brBoars().map(b=>[b.ear,b.breed||'',b.line||'',b.unit||'',brThai(b.born),brAgeTxt(b.born),b.sire||'',b.dam||''])})});
+  }
+  downloadXlsMulti('ฐานข้อมูลแม่พันธุ์_'+brFarm.replace('ฟาร์ม','')+(allFarm?'_ทั้งฟาร์ม':'')+'_'+brTodayISO()+'.xls',sheets);
+  toast('📊 ดึงฐานข้อมูลแม่ '+fmt(list.length)+' ตัว ('+fmt(litRows.length)+' ครอก · '+fmt(evRows.length)+' รายการประวัติ) ✓');
+}
+/* 📄 ประวัติแม่ตัวเดียว — 3 ชีต: ข้อมูลแม่ · รายครอก · ประวัติทั้งหมด */
+function brXlsSow(ear){
+  const s=brSowByEar(ear)||brBoars().find(b=>String(b.ear).toLowerCase()===String(ear||'').trim().toLowerCase());
+  if(!s){ toast('ไม่พบแม่เบอร์นี้'); return; }
+  const R=brRankRows(), sc=(R.rows.find(r=>r.s.ear===s.ear)||{}).score;
+  const scoreMap={}; if(sc!=null) scoreMap[s.ear]=sc;
+  const st=brSowStats(s), L=brLitterRows(s);
+  const prof=[];
+  const P=(k,v)=>prof.push([k,v]);
+  P('ฟาร์ม',s.farm||brFarm); P('ยูนิต',brSowUnit(s)||'-'); P('เล้าปัจจุบัน',s.house||'-'); P('ชนิดเล้า',brKindTxt(brKindOfCode(s.house)));
+  P('เบอร์หูแม่',s.ear); P('พันธุ์',s.breed||'-'); P('วันเกิด',brThai(s.born)); P('อายุ',brAgeTxt(s.born));
+  P('เต้านม',s.teats||'-'); P('ครอกที่ (parity)',s.parity||0); P('สถานะปัจจุบัน',brStageTxt(s.stage));
+  P('เข้าเล้านี้เมื่อ',brThai(brHouseSince(s))); P('เข้าสถานะนี้เมื่อ',brThai(brStageSince(s)));
+  P('ครอกที่บันทึกในระบบ',L.length); P('ลูกมีชีวิตรวม',L.reduce((a,r)=>a+r.alive,0)); P('ลูกหย่ารวม',L.reduce((a,r)=>a+(r.weaned||0),0));
+  P('ลูกมีชีวิต/ครอก',st.aliveAvg!=null?st.aliveAvg.toFixed(2):'-'); P('ลูกหย่า/ครอก',st.weanedAvg!=null?st.weanedAvg.toFixed(2):'-');
+  P('ผสม/ครอก',st.matesPerLitter!=null?st.matesPerLitter.toFixed(2):'-'); P('NPD (วัน/ปี)',st.npdYear!=null?Math.round(st.npdYear):'-');
+  P('คะแนนเทียบฝูง',sc!=null?sc:'-'); P('งานค้างวันนี้',brClock(s).filter(c=>c.due).map(c=>c.label).join(' · ')||'-');
+  const cull=brLastEv(s,'cull'); if(cull) P('ปลด/ขาย/ตาย',brThai(cull.date)+' · '+brEvDesc(cull));
+  P('หมายเหตุ',s.note||'-');
+  const sh1=xlsSheet({title:'🐷 บัตรแม่ '+s.ear,meta:brXlsMeta('แม่รายตัว',1),columns:[{label:'หัวข้อ',w:150},{label:'ข้อมูล',type:'txt',w:280}],rows:prof});
+  const sh2=xlsSheet({title:'👶 ประวัติการผลิตรายครอก — '+s.ear,
+    columns:[{label:'ครอกที่',type:'num',w:55},{label:'วันผสม',w:85},{label:'พ่อพันธุ์',type:'txt',w:95},{label:'ผสมครั้งที่',type:'num',w:70},{label:'วันคลอด',w:85},{label:'ระยะท้อง (วัน)',type:'num',w:85},
+      {label:'ลูกมีชีวิต',type:'num',w:70},{label:'ตายแรกคลอด',type:'num',w:80},{label:'มัมมี่',type:'num',w:60},{label:'รวมเกิด',type:'num',w:65},
+      {label:'วันหย่านม',w:85},{label:'ลูกหย่า',type:'num',w:65},{label:'ระยะเลี้ยง (วัน)',type:'num',w:90},{label:'ห่างครอกก่อน (วัน)',type:'num',w:100},{label:'คลอดที่เล้า',type:'txt',w:70}],
+    rows:L.map(r=>[r.n,brThai(r.mate),r.boar||'',r.round||'',brThai(r.farrow),r.gest!=null?r.gest:'',r.alive,r.still,r.mummy,r.alive+r.still+r.mummy,
+      brThai(r.wean),r.weaned!=null?r.weaned:'',r.lact!=null?r.lact:'',r.gap!=null?r.gap:'',r.house||'']),
+    totals:['รวม','','','','','',L.reduce((a,r)=>a+r.alive,0),L.reduce((a,r)=>a+r.still,0),L.reduce((a,r)=>a+r.mummy,0),L.reduce((a,r)=>a+r.alive+r.still+r.mummy,0),'',L.reduce((a,r)=>a+(r.weaned||0),0),'','','']});
+  const sh3=xlsSheet({title:'📜 ประวัติทั้งหมด — '+s.ear,
+    columns:[{label:'วันที่',w:90},{label:'เหตุการณ์',w:85},{label:'รายละเอียด',w:320},{label:'ทำที่เล้า',type:'txt',w:75},{label:'ผู้บันทึก',w:120}],
+    rows:(s.events||[]).map(e=>[brThai(e.date),(BR_EVT_NAME[e.t]||e.t).replace(/^\S+\s/,''),brEvDesc(e),e.house||'',e.by||''])});
+  downloadXlsMulti('ประวัติแม่_'+String(s.ear).replace(/[^\w฀-๿-]/g,'')+'_'+brTodayISO()+'.xls',
+    [{name:'①ข้อมูลแม่',html:sh1},{name:'②รายครอก',html:sh2},{name:'③ประวัติ',html:sh3}]);
+  toast('📊 ดึงประวัติแม่ '+s.ear+' แล้ว ✓');
 }
 /* ── แท็บ: 🐗 พ่อพันธุ์ (ทะเบียนจาก AppSheet — รีดน้ำเชื้อ/ออเดอร์โดสเป็นเฟสถัดไป) ── */
 function brBoarHTML(){
@@ -12841,36 +13117,87 @@ function brBoarRows(list){
   }).join('')||'<div class="sub">— ไม่พบ —</div>';
 }
 
-/* ── บัตรแม่รายตัว (sow card) ── */
+/* ── 🐷 บัตรแม่รายตัว (sow card) — ที่อยู่ · สถานะ · ผลงาน · ประวัติครบทุกครั้ง ── */
 function brOpen(ear){
-  const s=brSowByEar(ear); if(!s) return;
+  const s=brSowByEar(ear)||brBoars().find(b=>String(b.ear).toLowerCase()===String(ear||'').trim().toLowerCase());
+  if(!s) return;
   histPush('brsow',()=>brOpen(ear)); brViewFn=()=>brOpen(ear);
-  const EVT={mate:'💕 ผสม',preg:'🔍 ตรวจท้อง',farrow:'👶 คลอด',wean:'🍼 หย่านม',cull:'❌ คัด/ตาย',move:'🏠 ย้ายหลัง',vax:'💉 วัคซีนก่อนคลอด',care:'✅ งานดูแลลูก'};
-  const evLine=e=>{ let d=sbThaiDate(e.date)+' · '+(EVT[e.t]||e.t);
-    if(e.t==='mate') d+=' · พ่อ '+escA(e.boar||'-')+' ครั้งที่ '+(e.round||1);
-    if(e.t==='preg') d+=' · ผล: '+escA(e.result||'-');
-    if(e.t==='farrow') d+=' · มีชีวิต '+fmt(e.alive||0)+' ตายคลอด '+fmt(e.still||0)+' มัมมี่ '+fmt(e.mummy||0)+' (รวม '+fmt((+e.alive||0)+(+e.still||0)+(+e.mummy||0))+')';
-    if(e.t==='wean') d+=' · หย่า '+fmt(e.weaned||0)+' ตัว';
-    if(e.t==='cull') d+=' · '+escA(e.kind||'')+': '+escA(e.reason||'-');
-    if(e.t==='move') d+=' · '+escA(e.from||'?')+' → '+escA(e.to||'?');
-    if(e.t==='care') d+=' · '+escA(e.note||'');
+  const evLine=e=>{ let d='<b>'+sbThaiDate(e.date)+'</b> · '+(BR_EVT_NAME[e.t]||e.t);
+    const x=brEvDesc(e); if(x) d+=' · '+escA(x);
     if(e.house&&e.t!=='move') d+=' · 🏠 '+escA(e.house);
-    return d+(e.by?' · ✍️ '+escA(e.by):''); };
+    return d+(e.by?' <span class="sub" style="font-size:11px">✍️ '+escA(e.by)+'</span>':''); };
+  const st=brSowStats(s), L=brLitterRows(s), C=brCfg();
+  const unit=brSowUnit(s), hSince=brHouseSince(s), sSince=brStageSince(s);
+  const cullEv=brLastEv(s,'cull');
+  const moves=(s.events||[]).filter(e=>e&&e.t==='move');
+  const totAlive=L.reduce((a,r)=>a+r.alive,0), totWean=L.reduce((a,r)=>a+(r.weaned||0),0), totStill=L.reduce((a,r)=>a+r.still+r.mummy,0);
+  const kpi=(lab,val,sub,col)=>`<div style="flex:1;min-width:132px;background:#fff;border:1.5px solid var(--line);border-left:5px solid ${col||'#0f6b5f'};border-radius:12px;padding:9px 12px">
+      <div style="font-size:11.5px;font-weight:800;color:#5a6b66">${lab}</div>
+      <div style="font-size:20px;font-weight:900;color:${col||'#0f6b5f'}">${val}</div>
+      <div class="sub" style="margin:0;font-size:10.5px">${sub||''}</div></div>`;
+  const n1=v=>v==null?'-':(+v).toFixed(1);
   $("#view").innerHTML=`
     <h2 class="page">🐷 ${escA(s.ear)} <span class="more">${escA(s.breed||'-')} · ครอกที่ ${fmt(s.parity||0)}${s.teats?' · เต้านม '+fmt(s.teats):''}</span></h2>
-    <div class="sub">${escA(brFarm)} · 🏠 ${escA(s.house||'-')} · ${brStageTxt(s.stage)}${s.born?' · เกิด '+sbThaiDate(s.born):''}${s.note?' · 📝 '+escA(s.note):''}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="renderBreeding()">‹ กลับ</button>
-      <button class="btn ghost sm" onclick="brHouseOpen='${escA(s.house)}';brHouseDetail()">🏠 หน้าทำงานหลัง ${escA(s.house||'-')}</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button class="btn ghost sm" onclick="brTab='sows';renderBreeding()">‹ กลับฐานข้อมูล</button>
+      ${s.house?`<button class="btn ghost sm" onclick="brHouseOpen='${escA(s.house)}';brHouseDetail()">🏠 หน้าทำงานเล้า ${escA(s.house)}</button>`:''}
+      <button class="btn ghost sm" onclick="brXlsSow(${escA(JSON.stringify(String(s.ear)))})">📊 ดึงประวัติตัวนี้เป็น Excel</button>
       ${brCanDelete()?`<button class="btn ghost sm" style="color:var(--bad)" onclick="brDeleteSow('${escA(s.ear)}')">🗑 ลบออกจากทะเบียน</button>`:''}</div>
+
+    ${cullEv?`<div class="card" style="border-left:5px solid #a5342a"><h3 style="color:#a5342a">❌ ออกจากฝูงแล้ว</h3>
+      <div style="font-size:13.5px">${sbThaiDate(cullEv.date)} · <b>${escA(cullEv.kind||'ปลด')}</b> · เหตุผล: ${escA(cullEv.reason||'-')}${(+cullEv.wt)?' · น้ำหนัก '+fmt(+cullEv.wt)+' กก.':''}${(+cullEv.price)?' · ราคาขาย '+fmt(+cullEv.price)+' บาท':''}${cullEv.buyer?' · ผู้ซื้อ '+escA(cullEv.buyer):''}</div>
+      <div class="sub">ออกจากเล้า ${escA(cullEv.house||s.house||'-')} · ประวัติทั้งหมดยังเก็บไว้ในฐานข้อมูลถาวร</div></div>`:''}
+
+    <div class="card"><h3>📍 ที่อยู่และสถานะปัจจุบัน</h3>
+      <div class="grid2" style="gap:4px 18px">
+        <div><span class="sub">ฟาร์ม</span><br><b>${escA(s.farm||brFarm)}</b></div>
+        <div><span class="sub">ยูนิต / เล้า</span><br><b>${unit?'🏛️ Unit '+escA(unit.slice(1))+' · ':''}🏠 ${escA(s.house||'ยังไม่ระบุ')}</b> <span class="sub">${brKindTxt(brKindOfCode(s.house))}</span></div>
+        <div><span class="sub">อยู่เล้านี้ตั้งแต่</span><br><b>${hSince?sbThaiDate(hSince)+' ('+fmt(brDays(hSince))+' วัน)':'-'}</b></div>
+        <div><span class="sub">สถานะ</span><br><b>${brStageTxt(s.stage)}</b>${sSince?' <span class="sub">'+fmt(brDays(sSince))+' วัน (ตั้งแต่ '+sbThaiDate(sSince)+')</span>':''}</div>
+        <div><span class="sub">วันเกิด / อายุ</span><br><b>${s.born?sbThaiDate(s.born):'-'}</b> <span class="sub">${brAgeTxt(s.born)}</span></div>
+        <div><span class="sub">พันธุ์ · เต้านม</span><br><b>${escA(s.breed||'-')}</b>${s.teats?' · '+fmt(s.teats)+' เต้า':''}</div>
+      </div>
+      ${s.note?`<div class="sub" style="margin-top:7px">📝 ${escA(s.note)}</div>`:''}
+    </div>
+
+    <div class="card"><h3>📊 ผลงานสะสมของแม่ตัวนี้</h3>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        ${kpi('ครอกที่คลอดในระบบ',fmt(L.length),'ครอกที่บันทึกไว้ (parity จริง '+fmt(s.parity||0)+')')}
+        ${kpi('ลูกมีชีวิต/ครอก',n1(st.aliveAvg),'รวมทั้งหมด '+fmt(totAlive)+' ตัว')}
+        ${kpi('ลูกหย่า/ครอก',n1(st.weanedAvg),'รวมทั้งหมด '+fmt(totWean)+' ตัว','#1a5c3f')}
+        ${kpi('ผสม/ครอก',n1(st.matesPerLitter),'เกิน 2 = ผสมซ้ำบ่อย',(st.matesPerLitter!=null&&st.matesPerLitter>=2)?'#a5342a':'#0f6b5f')}
+        ${kpi('วันไม่ผลิต (NPD)',st.npdYear!=null?fmt(Math.round(st.npdYear)):'-','วัน/ปี · เป้า ≤ 45',(st.npdYear!=null&&st.npdYear>=60)?'#a5342a':'#b7791f')}
+        ${kpi('ตายแรกคลอด+มัมมี่',fmt(totStill),'รวมทุกครอก','#a5342a')}
+      </div></div>
+
     <div class="card"><h3>⏰ นาฬิกาแม่ตัวนี้</h3>
       ${brClock(s).map(c=>`<div style="margin:5px 0;font-weight:${c.due?800:500};color:${c.due?'#b7791f':'inherit'}">${c.due?'👉 ':''}${escA(c.label)}</div>`).join('')||'<div class="sub">— ไม่มีงานค้าง —</div>'}
     </div>
-    <div class="card"><h3>➕ บันทึกเหตุการณ์ของแม่ตัวนี้</h3>
+
+    ${s.stage!=='cull'?`<div class="card"><h3>➕ บันทึกเหตุการณ์ของแม่ตัวนี้</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${[['mate','💕 ผสม'],['preg','🔍 ตรวจท้อง'],['farrow','👶 คลอด'],['wean','🍼 หย่านม'],['move','🏠 ย้ายหลัง'],['cull','❌ คัด/ตาย']].map(x=>
+        ${[['mate','💕 ผสม'],['preg','🔍 ตรวจท้อง'],['farrow','👶 คลอด'],['wean','🍼 หย่านม'],['move','🏠 ย้ายเล้า'],['cull','❌ ปลด/ขาย/ตาย']].map(x=>
           `<button class="btn ghost sm" onclick="brGotoForm('${x[0]}','${escA(s.ear)}')">${x[1]}</button>`).join('')}
-      </div></div>
-    <div class="card"><h3>📜 ประวัติ (sow card)</h3>
+      </div></div>`:''}
+
+    <div class="card"><h3>👶 ประวัติการผลิตรายครอก <span class="more">${fmt(L.length)} ครอก</span></h3>
+      ${L.length?`<div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
+        <thead><tr><th class="num">ครอกที่</th><th>วันผสม</th><th>พ่อพันธุ์</th><th>วันคลอด</th><th class="num">ท้อง(วัน)</th><th class="num">มีชีวิต</th><th class="num">ตายคลอด</th><th class="num">มัมมี่</th><th>วันหย่านม</th><th class="num">ลูกหย่า</th><th class="num">เลี้ยง(วัน)</th><th class="num">ห่างครอกก่อน</th><th>คลอดที่เล้า</th></tr></thead>
+        <tbody>${L.slice().reverse().map(r=>`<tr>
+          <td class="num"><b>${r.n}</b></td><td>${r.mate?sbThaiDate(r.mate):'-'}</td><td>${escA(r.boar||'-')}${r.round>1?' <span class="sub">(ครั้งที่ '+r.round+')</span>':''}</td>
+          <td><b>${sbThaiDate(r.farrow)}</b></td><td class="num">${r.gest!=null?r.gest:'-'}</td>
+          <td class="num">${fmt(r.alive)}</td><td class="num">${fmt(r.still)}</td><td class="num">${fmt(r.mummy)}</td>
+          <td>${r.wean?sbThaiDate(r.wean):'<span class="sub">ยังไม่หย่า</span>'}</td><td class="num">${r.weaned!=null?fmt(r.weaned):'-'}</td>
+          <td class="num">${r.lact!=null?r.lact:'-'}</td><td class="num">${r.gap!=null?r.gap:'-'}</td><td>${escA(r.house||'-')}</td></tr>`).join('')}</tbody>
+      </table></div>`:'<div class="sub">— ยังไม่มีครอกที่บันทึกไว้ —</div>'}
+      <div class="sub" style="margin-top:7px">ระยะท้องมาตรฐานของฟาร์มนี้ ${C.gest} วัน · เลี้ยงลูก ${C.lact} วัน — ตัวเลขที่ห่างจากนี้มากคือครอกที่ควรย้อนดู</div>
+    </div>
+
+    <div class="card"><h3>🏠 ประวัติการย้ายเล้า <span class="more">${fmt(moves.length)} ครั้ง</span></h3>
+      ${moves.length?moves.map(e=>`<div style="padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px"><b>${sbThaiDate(e.date)}</b> · ${escA(e.from||'?')} → <b>${escA(e.to||'?')}</b>${e.by?' <span class="sub" style="font-size:11px">✍️ '+escA(e.by)+'</span>':''}</div>`).join('')
+        :'<div class="sub">— ยังไม่มีบันทึกการย้ายเล้า (แม่ตัวนี้อยู่เล้าเดิมตั้งแต่ขึ้นทะเบียน) —</div>'}
+    </div>
+
+    <div class="card"><h3>📜 ประวัติทั้งหมด <span class="more">${fmt((s.events||[]).length)} รายการ · ใหม่สุดอยู่บน</span></h3>
       ${(s.events||[]).map(e=>`<div style="padding:7px 0;border-bottom:1px dashed var(--line);font-size:13.5px">${evLine(e)}</div>`).join('')||'<div class="sub">— ยังไม่มีประวัติ —</div>'}
     </div>`;
 }
@@ -12952,9 +13279,12 @@ function brEvHTML(){
       <div class="sub">แม่กลับคิว "รอผสม" ที่เล้า ท ที่เลือก (เช็คสัดวัน 4-5) · เฟสถัดไป: ลูกหย่าจะไหลเข้าเล้าอนุบาลเป็น "รับเข้า" อัตโนมัติ</div>`,
     move:`${brHouseSel('brF_mhouse','','ย้ายไปหลัง *')}
       <div class="sub">ใช้ตอนย้ายขึ้นเล้าคลอด (วัน 108-112) หรือจัดเล้าใหม่ — ระบบจดประวัติ จาก→ไป ให้</div>`,
-    cull:`<div class="grid2"><div class="frow"><label>ประเภท</label><select class="cin tl" id="brF_kind"><option>คัดขาย</option><option>ตาย</option></select></div>
-      <div class="frow"><label>เหตุผล</label><input class="cin" id="brF_reason" placeholder="เช่น ขาเสีย / กลับสัดซ้ำ 2 รอบ / อายุมาก"></div></div>
-      <div class="sub">คัดขาย → ไปออกบิลที่แท่นขายหมู (ปุ่ม 🐷 แม่/พ่อพันธุ์) ตามปกติ</div>`};
+    cull:`<div class="grid2"><div class="frow"><label>ประเภท</label><select class="cin tl" id="brF_kind"><option>คัดขาย</option><option>ปลดฝูง</option><option>ตาย</option></select></div>
+      <div class="frow"><label>เหตุผล</label><input class="cin" id="brF_reason" placeholder="เช่น ขาเสีย / กลับสัดซ้ำ 2 รอบ / อายุมาก"></div>
+      <div class="frow"><label>น้ำหนัก (กก. ถ้ามี)</label><input class="cin" id="brF_cwt" type="number" min="0" step="0.1"></div>
+      <div class="frow"><label>ราคาขาย (บาท ถ้าขาย)</label><input class="cin" id="brF_cprice" type="number" min="0"></div>
+      <div class="frow"><label>ผู้ซื้อ (ถ้าขาย)</label><input class="cin" id="brF_cbuyer" placeholder="ชื่อผู้ซื้อ"></div></div>
+      <div class="sub">บันทึกแล้วแม่ออกจากฝูง (ไม่ขึ้นคิวงาน ไม่นับในยอด) แต่<b>ประวัติทั้งหมดยังอยู่ในฐานข้อมูลถาวร</b> — เปิดดูได้จากแท็บ 🗄️ ฐานข้อมูลแม่ → ตัวกรอง "❌ ปลดแล้ว" · คัดขายจริงยังไปออกบิลที่แท่นขายหมูตามปกติ</div>`};
   return `<div class="card"><h3>📝 บันทึกเหตุการณ์ (ฟอร์มเต็ม) <span class="more">งานประจำวันใช้หน้า "รายหลัง" เร็วกว่า</span></h3>
     <div class="seg" style="max-width:760px">${kinds.map(k=>`<button class="${brEvKind===k[0]?'on':''}" onclick="brEvKind='${k[0]}';renderBreeding()">${k[1]}</button>`).join('')}</div>
     <div class="grid2">
@@ -12990,7 +13320,10 @@ function brEvSave(){
     s.stage='open'; s.hc=''; }
   if(brEvKind==='move'){ const mh=g('brF_mhouse'); if(!mh||mh===s.house){ toast(s.ear+' อยู่หลัง '+s.house+' อยู่แล้ว'); return; }
     e.from=s.house; e.to=mh; s.house=mh; }
-  if(brEvKind==='cull'){ e.kind=g('brF_kind'); e.reason=g('brF_reason'); s.stage='cull'; }
+  if(brEvKind==='cull'){ e.kind=g('brF_kind'); e.reason=g('brF_reason');
+    if(+g('brF_cwt')) e.wt=+g('brF_cwt'); if(+g('brF_cprice')) e.price=+g('brF_cprice'); if((g('brF_cbuyer')||'').trim()) e.buyer=g('brF_cbuyer').trim();
+    if(!confirm(s.ear+' — '+(e.kind||'ปลด')+' ออกจากฝูง?\n\nแม่ตัวนี้จะไม่ขึ้นคิวงานและไม่นับในยอดฝูงอีก\nประวัติทั้งหมดยังเก็บไว้ในฐานข้อมูล เปิดดูย้อนหลังได้ตลอด')) return;
+    s.stage='cull'; }
   s.events=s.events||[]; s.events.unshift(e); brPersist(s);
   toast('✅ บันทึก '+s.ear+' แล้ว'); brOpen(s.ear);
 }
@@ -13166,7 +13499,7 @@ function brRankHTML(){
       แตะแถวเพื่อดูประวัติรายตัว</div>
   </div>`;
 }
-function brOpenSow(ear){ brQ=String(ear||''); brTab='sows'; renderBreeding(); }
+function brOpenSow(ear){ brOpen(ear); }
 function brKpiHTML(){
   if(!brSows().length) return brEmptyHTML()+brCfgCardHTML();
   const k=brKpi();
