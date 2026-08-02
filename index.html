@@ -88,6 +88,13 @@
     .linkbtn{padding:5px 9px;font-size:12px}
     #datePill{display:none}        /* ป้ายวันที่ซ้ำกับหัวข้อทุกหน้า → ซ่อนบนจอแคบ เปิดที่ให้ปุ่ม "ออก" ไม่ถูกตัด */
   }
+  /* 📱 จอแคบ (<1100px ไม่มีเมนูซ้าย): คอลัมน์เนื้อหาต้องหดตามจอ — เดิม flex item ไม่มี min-width:0
+     หดต่ำกว่าความกว้างตารางข้างในไม่ได้ → ทั้งหน้ากว้าง 600-700px บนจอมือถือ 375px ผู้ใช้ต้องซูมออกตลอด
+     และแถบบนโดนตัด (บั๊กที่เจ้าของแจ้ง 2 ส.ค. 69 ทั้ง iOS/Android) → ตารางกว้างให้เลื่อนในการ์ดตัวเองแทน */
+  @media(max-width:1099px){
+    .shell .content{min-width:0}
+    .content .card table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  }
   .content{padding:18px 20px 96px;max-width:1500px;margin:0 auto;position:relative;z-index:1}
   @media(max-width:600px){.content{padding:18px 14px 96px}}
   h2.page{margin:6px 0 0;font-size:22px;font-weight:700;letter-spacing:-.01em;position:relative;padding-bottom:8px}
@@ -1073,7 +1080,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802k';
+const APP_BUILD='690802l';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
