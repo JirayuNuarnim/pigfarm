@@ -1070,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801i';
+const APP_BUILD='690801j';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -12108,7 +12108,7 @@ function sbExportXlsObj(b){
    เล้า ท/ค/ส ใช้หลังจริงจากระบบ (HOUSES) — เบิกยา/วัคซีน/สั่งอาหารใช้เมนูเดิมของเล้าได้เลย */
 const BR_FARMS=['ฟาร์มเบิกไพร','ฟาร์มวันครู1','ฟาร์มแม่พันธุ์ท่าม่วง'];
 let BR={all:[],loaded:false}, brFarm='ฟาร์มเบิกไพร';
-let brTab='dash', brEvKind='mate', brQ='', brHouseF='', brEvHouse='', brHouseOpen='', brViewFn=null, _brRetry=null, brDashOpen={}, brShowAll=false, brBQ='';
+let brTab='dash', brEvKind='mate', brQ='', brHouseF='', brEvHouse='', brHouseOpen='', brViewFn=null, _brRetry=null, brDashOpen={}, brShowAll=false, brBQ='', brRankView='all', brRankQ='';
 let brBM=[{ear:'',boar:'',round:1}];
 function brToday(){ return new Date(); }
 function brISO(d){ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); }
@@ -12218,7 +12218,7 @@ async function renderBreeding(){
   const due=brDueList();
   const fchips=BR_FARMS.map(f=>{ const n=BR.all.filter(s=>s.farm===f&&s.stage!=='cull'&&(s.kind||'')!=='boar').length;
     return `<button class="sbfchip${brFarm===f?' on':''}" onclick="brFarm='${escA(f)}';brHouseF='';brHouseOpen='';renderBreeding()">${escA(f.replace('ฟาร์ม',''))} (${fmt(n)})</button>`; }).join('');
-  const tabs=[['dash','📊 ภาพรวม'],['work','📋 งานวันนี้'+(due.length?' ('+due.length+')':'')],['houses','🏠 รายหลัง'],['sows','🐷 ทะเบียนแม่'],['boar','🐗 พ่อพันธุ์'+(brBoars().length?' ('+fmt(brBoars().length)+')':'')],['reg','➕ ขึ้นทะเบียน'],['ev','📝 ฟอร์มบันทึก'],['kpi','📊 KPI·ตั้งค่า']];
+  const tabs=[['dash','📊 ภาพรวม'],['work','📋 งานวันนี้'+(due.length?' ('+due.length+')':'')],['houses','🏠 รายหลัง'],['rank','🏅 จัดอันดับแม่'],['sows','🐷 ทะเบียนแม่'],['boar','🐗 พ่อพันธุ์'+(brBoars().length?' ('+fmt(brBoars().length)+')':'')],['reg','➕ ขึ้นทะเบียน'],['ev','📝 ฟอร์มบันทึก'],['kpi','📊 KPI·ตั้งค่า']];
   $("#view").innerHTML=`
     <h2 class="page">🐷 ระบบแม่พันธุ์ <span class="more">ฐานข้อมูลแม่รายตัว · ${escA(brFarm)}</span></h2>
     <div class="sub">เลือกฟาร์ม:</div>
@@ -12228,7 +12228,7 @@ async function renderBreeding(){
         `<div class="card" style="margin:0;padding:10px 16px;min-width:96px"><div class="sub" style="margin:0;font-size:11.5px">${x[0]}</div><div style="font-size:22px;font-weight:800">${fmt(x[1])}</div></div>`).join('')}
     </div>
     <div class="seg" style="max-width:860px">${tabs.map(t=>`<button class="${brTab===t[0]?'on':''}" onclick="brTab='${t[0]}';renderBreeding()">${t[1]}</button>`).join('')}</div>
-    <div id="brBody">${brTab==='dash'?brDashHTML():brTab==='work'?brWorkHTML():brTab==='houses'?brHousesHTML():brTab==='sows'?brSowsHTML():brTab==='boar'?brBoarHTML():brTab==='reg'?brRegHTML():brTab==='ev'?brEvHTML():brKpiHTML()}</div>`;
+    <div id="brBody">${brTab==='dash'?brDashHTML():brTab==='work'?brWorkHTML():brTab==='houses'?brHousesHTML():brTab==='rank'?brRankHTML():brTab==='sows'?brSowsHTML():brTab==='boar'?brBoarHTML():brTab==='reg'?brRegHTML():brTab==='ev'?brEvHTML():brKpiHTML()}</div>`;
 }
 function brEmptyHTML(){
   return `<div class="card"><h3>🐷 ${escA(brFarm)} ยังไม่มีแม่ในทะเบียน</h3>
@@ -12977,6 +12977,113 @@ function brKpi(){
     wmAvg:avg(wm), wmMed:med(wm), wmN:wm.length,
     farrowRate:mateDone?mateFar/mateDone*100:null, mateDone, monthly};
 }
+/* ── 🏅 สถิติรายตัว + NPD (วันไม่ผลิต) ──
+   NPD = วันที่แม่ "ไม่ได้อุ้มท้องและไม่ได้เลี้ยงลูก" = ช่วงเวลาที่มีประวัติ − วันผลิต
+   วันผลิต = ระยะอุ้มท้องของทุกครอกที่คลอดจริง + ระยะเลี้ยงลูกจนหย่า (+ ช่วงที่กำลังท้อง/เลี้ยงลูกอยู่ตอนนี้)
+   ทุกวันที่ไม่ผลิต = ค่าอาหาร ค่าแรง ค่าเล้า ที่จ่ายไปโดยไม่ได้ลูก — ตัวชี้วัดที่บอกได้ตรงที่สุดว่าแม่ตัวไหนกินเปล่า */
+function brSowStats(s){
+  const C=brCfg(), today=brDnum(brTodayISO());
+  const evs=(s.events||[]).filter(e=>e&&brIsISO(e.date));
+  const srt=t=>evs.filter(e=>e.t===t).map(e=>e).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  const far=srt('farrow'), mat=srt('mate'), wea=srt('wean');
+  const litters=far.length;
+  const alive=far.reduce((x,e)=>x+(+e.alive||0),0);
+  const weanEv=wea.filter(e=>(+e.weaned||0)>0);
+  const weaned=weanEv.reduce((x,e)=>x+(+e.weaned||0),0);
+  const days=evs.map(e=>brDnum(e.date));
+  const first=days.length?Math.min.apply(null,days):null;
+  const span=(first!=null)?Math.max(0,today-first):0;
+  let prod=0;
+  far.forEach(f=>{
+    const fd=brDnum(f.date);
+    let g=null; mat.forEach(m=>{ const x=fd-brDnum(m.date); if(x>=C.gest-12&&x<=C.gest+12&&(g==null||x<g)) g=x; });
+    prod+=(g!=null?g:C.gest);
+    const w=wea.find(w2=>{ const x=brDnum(w2.date)-fd; return x>0&&x<=60; });
+    prod+=w?(brDnum(w.date)-fd):C.lact;
+  });
+  if(s.stage==='preg'){ const m=mat.length?mat[mat.length-1]:null; if(m) prod+=Math.min(today-brDnum(m.date),C.gest); }
+  if(s.stage==='nurse'){ const f=far.length?far[far.length-1]:null; if(f) prod+=Math.min(today-brDnum(f.date),C.lact); }
+  const npd=Math.max(0,span-prod);
+  return {litters, span, npd,
+    npdYear:(span>=120)?npd/span*365:null,          // ต้องมีประวัติพอสมควรถึงจะเทียบต่อปีได้
+    aliveAvg:litters?alive/litters:null,
+    weanedAvg:weanEv.length?weaned/weanEv.length:null,
+    // ผสม/ครอก — นับเฉพาะครั้งที่ "รู้ผลแล้ว" (เกิน gest+15 วัน) ไม่งั้นแม่ที่กำลังท้องอยู่จะถูกนับว่าผสมซ้ำเกินจริง
+    matesPerLitter:(function(){ const done=mat.filter(m=>today-brDnum(m.date)>=C.gest+15).length; return litters?done/litters:null; })(),
+    parity:+s.parity||litters,
+    lastDate:days.length?evs.reduce((a,b)=>a.date>b.date?a:b).date:''};
+}
+function brRankRows(){
+  const sows=brSows().filter(s=>s.stage!=='cull');
+  const st=sows.map(s=>({s,x:brSowStats(s)}));
+  const ws=st.map(r=>r.x.weanedAvg).filter(v=>v!=null);
+  const herdWean=ws.length?ws.reduce((a,b)=>a+b,0)/ws.length:null;
+  st.forEach(r=>{
+    const x=r.x, flags=[];
+    if(x.parity>=8) flags.push('อายุมาก (ครอกที่ '+x.parity+')');
+    if(herdWean!=null&&x.weanedAvg!=null&&x.weanedAvg<herdWean-2) flags.push('ลูกหย่าน้อยกว่าฝูง');
+    if(x.matesPerLitter!=null&&x.matesPerLitter>=2) flags.push('ผสมซ้ำบ่อย');
+    if(x.npdYear!=null&&x.npdYear>=60) flags.push('วันไม่ผลิตสูง');
+    if(x.litters===0&&x.span>=180) flags.push('ยังไม่เคยคลอดเลย');
+    r.flags=flags;
+    // คะแนน 0-100: ลูกหย่า 45% · วันไม่ผลิต 35% · ผสมซ้ำ 20%
+    let sc=50;
+    if(herdWean!=null&&x.weanedAvg!=null) sc+=Math.max(-25,Math.min(25,(x.weanedAvg-herdWean)*8));
+    if(x.npdYear!=null) sc+=Math.max(-25,Math.min(15,(45-x.npdYear)*0.6));
+    if(x.matesPerLitter!=null) sc+=Math.max(-15,Math.min(10,(1.4-x.matesPerLitter)*14));
+    r.score=Math.max(0,Math.min(100,Math.round(sc)));
+  });
+  return {rows:st, herdWean};
+}
+function brRankHTML(){
+  if(!brSows().length) return brEmptyHTML();
+  const R=brRankRows(); let rows=R.rows.slice();
+  const nBad=rows.filter(r=>r.flags.length).length;
+  if(brRankView==='cull') rows=rows.filter(r=>r.flags.length);
+  else if(brRankView==='top') rows=rows.filter(r=>r.x.litters>0);
+  rows.sort((a,b)=> brRankView==='cull' ? (a.score-b.score) : (b.score-a.score));
+  const q=gNrm(brRankQ).toLowerCase();
+  if(q) rows=rows.filter(r=>String(r.s.ear).toLowerCase().includes(q)||String(r.s.house||'').toLowerCase().includes(q));
+  const shown=rows.slice(0,200);
+  const npds=R.rows.map(r=>r.x.npdYear).filter(v=>v!=null);
+  const npdAvg=npds.length?npds.reduce((a,b)=>a+b,0)/npds.length:null;
+  const chip=(k,t)=>`<button class="sbfchip${brRankView===k?' on':''}" onclick="brRankView='${k}';brRe()">${t}</button>`;
+  const n2=v=>v==null?'-':v.toFixed(2), n0=v=>v==null?'-':Math.round(v);
+  return `<div class="card">
+    <h3>🏅 จัดอันดับแม่รายตัว <span class="more">${fmt(R.rows.length)} ตัว</span></h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:2px 0 10px">
+      <div style="flex:1;min-width:180px;background:#fff;border:1.5px solid var(--line);border-left:5px solid #b7791f;border-radius:12px;padding:10px 13px">
+        <div style="font-size:12.5px;font-weight:800">📉 วันไม่ผลิตเฉลี่ย (NPD)</div>
+        <div style="font-size:22px;font-weight:900;color:#b7791f">${n0(npdAvg)} <span style="font-size:12px">วัน/ปี</span></div>
+        <div class="sub" style="margin:0;font-size:11px">เป้า ≤ 45 วัน · ทุกวันที่ไม่ท้องไม่เลี้ยงลูก = จ่ายค่าเลี้ยงเปล่า</div></div>
+      <div style="flex:1;min-width:180px;background:#fff;border:1.5px solid var(--line);border-left:5px solid #a5342a;border-radius:12px;padding:10px 13px">
+        <div style="font-size:12.5px;font-weight:800">⚠️ แม่ที่ควรพิจารณาปลด</div>
+        <div style="font-size:22px;font-weight:900;color:#a5342a">${fmt(nBad)} <span style="font-size:12px">ตัว</span></div>
+        <div class="sub" style="margin:0;font-size:11px">${R.herdWean!=null?'ลูกหย่าเฉลี่ยฝูง '+R.herdWean.toFixed(2)+' ตัว/ครอก':''}</div></div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      ${chip('all','ทั้งหมด')}${chip('cull','⚠️ ควรปลดก่อน ('+fmt(nBad)+')')}${chip('top','🏆 ผลงานดี')}
+      <input class="cin" placeholder="🔍 ค้นเบอร์หู/เล้า" value="${escA(brRankQ)}" oninput="brRankQ=this.value;brRe()" style="max-width:180px;padding:5px 9px">
+    </div>
+    <div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
+      <thead><tr><th>เบอร์หู</th><th>เล้า</th><th>สถานะ</th><th class="num">ครอก</th><th class="num">ลูกมีชีวิต/ครอก</th><th class="num">ลูกหย่า/ครอก</th><th class="num">ผสม/ครอก</th><th class="num">NPD (วัน/ปี)</th><th class="num">คะแนน</th><th>ข้อสังเกต</th></tr></thead>
+      <tbody>${shown.map(r=>{
+        const x=r.x, col=r.score>=70?'#1a5c3f':r.score>=50?'#b7791f':'#a5342a';
+        return `<tr class="clk" onclick="brOpenSow(${escA(JSON.stringify(String(r.s.ear)))})">
+          <td><b>${escA(r.s.ear)}</b></td><td>${escA(r.s.house||'-')}</td><td><span class="sub">${brStageTxt(r.s.stage)}</span></td>
+          <td class="num">${fmt(x.litters)}</td><td class="num">${n2(x.aliveAvg)}</td><td class="num">${n2(x.weanedAvg)}</td>
+          <td class="num">${n2(x.matesPerLitter)}</td><td class="num">${n0(x.npdYear)}</td>
+          <td class="num"><b style="color:${col}">${r.score}</b></td>
+          <td>${r.flags.length?'<span style="color:#a5342a;font-size:11.5px">'+r.flags.map(escA).join(' · ')+'</span>':'<span class="sub" style="font-size:11.5px">—</span>'}</td></tr>`;}).join('')}</tbody>
+    </table></div>
+    ${rows.length>200?`<div class="sub" style="margin-top:7px">แสดง 200 ตัวแรกจาก ${fmt(rows.length)} ตัว — ใช้ช่องค้นหาเพื่อเจาะดูตัวที่ต้องการ</div>`:''}
+    <div class="sub" style="margin-top:9px;line-height:1.65"><b>อ่านยังไง:</b> <b>NPD</b> = วันที่แม่ไม่ได้ท้องและไม่ได้เลี้ยงลูก ยิ่งน้อยยิ่งดี (เป้า ≤ 45 วัน/ปี) ·
+      <b>ผสม/ครอก</b> เกิน 2 = ผสมหลายรอบกว่าจะติด เสียเวลาและน้ำเชื้อ ·
+      <b>คะแนน</b> รวมจากลูกหย่า (45%) + วันไม่ผลิต (35%) + ผสมซ้ำ (20%) เทียบกับค่าเฉลี่ยของฝูงเอง ·
+      แตะแถวเพื่อดูประวัติรายตัว</div>
+  </div>`;
+}
+function brOpenSow(ear){ brQ=String(ear||''); brTab='sows'; renderBreeding(); }
 function brKpiHTML(){
   if(!brSows().length) return brEmptyHTML()+brCfgCardHTML();
   const k=brKpi();
