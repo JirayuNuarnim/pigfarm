@@ -1080,7 +1080,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802p';
+const APP_BUILD='690802q';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -1561,7 +1561,9 @@ let _rtTimer=null, _rtSeenTs=0;
 function rtActive(){ const c=CONFIG.supabase; return !!(c&&c.enabled&&c.backend==='v2'&&ROLE!==null); }
 async function rtMaxTs(){
   const q=async tbl=>{ const r=await supaFetch('/rest/v1/'+tbl+'?select=updated_at&order=updated_at.desc&limit=1',{method:'GET'}); if(!r||!r.ok) return 0; const a=await r.json(); return (a&&a[0]&&a[0].updated_at)?Date.parse(a[0].updated_at):0; };
-  try{ const a=await Promise.all([q('houses'),q('app_config'),q('sale_bills'),q('customer_ledger')]); return Math.max(a[0]||0,a[1]||0,a[2]||0,a[3]||0); }catch(e){ return 0; }   // 📒 เฝ้าบัญชีลูกหนี้ด้วย (เดิมรับเงินจากเครื่องอื่นแล้วเครื่องเรานิ่ง — เคส iPad เจ้พร)
+  // 🐷 ตาราง sows มี RLS ไม่มี policy — REST อ่านตรงได้ 0 เสมอ ต้องถามผ่าน RPC sows_max_ts (เซิร์ฟเก่าไม่มี = คืน 0 เฉยๆ ไม่พัง)
+  const qs=async()=>{ const r=await supaFetch('/rest/v1/rpc/sows_max_ts',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); if(!r||!r.ok) return 0; try{ const v=await r.json(); return v?(Date.parse(v)||0):0; }catch(e){ return 0; } };
+  try{ const a=await Promise.all([q('houses'),q('app_config'),q('sale_bills'),q('customer_ledger'),qs()]); return Math.max(a[0]||0,a[1]||0,a[2]||0,a[3]||0,a[4]||0); }catch(e){ return 0; }   // 📒 เฝ้าบัญชีลูกหนี้ + 🐷 ทะเบียนแม่ด้วย (เดิมทีมลงข้อมูลแม่แล้วเครื่องหมอนิ่ง — เคสหมอมะขาม 2 ส.ค.)
 }
 async function rtBaseline(){ if(!rtActive()) return; const t=await supaToken(); if(!t) return; const mx=await rtMaxTs(); if(mx) _rtSeenTs=mx; }
 async function rtPoll(){
@@ -1586,7 +1588,7 @@ async function rtPoll(){
       else if(['clerkReq','clerkFeedReq','clerkFeedRecv','stock','vetReq','vetFeed','clerkFarm','houseList','perf'].indexOf(top&&top.key)>=0){   // หน้าเสมียน/หมอ/ประสิทธิภาพ → รีเฟรชสดเมื่อทีมลงข้อมูลใหม่ (ถ้าไม่ได้กำลังพิมพ์)
         const ae=document.activeElement, typing=ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName);
         if(typing){ rtShowBanner(); }
-        else { try{ const snap=viewInputSnapshot(); await cloudLoadV2();   // 🔴 จำของที่พิมพ์ค้างก่อนวาดใหม่ (เดิมมือถือปิดคีย์บอร์ด = ของที่กรอกครึ่งๆ หายเงียบ)
+        else { try{ const snap=viewInputSnapshot(); await cloudLoadV2(); try{ if(BR.loaded) await brCloudLoad(true); }catch(e3){}   // 🔴 จำของที่พิมพ์ค้างก่อนวาดใหม่ + รีเฟรชทะเบียนแม่คู่กัน
           const ae2=document.activeElement, typing2=ae2&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae2.tagName);
           const t2=navHist[navHist.length-1];
           if(typing2){ rtShowBanner(); }   // เริ่มพิมพ์ระหว่างโหลด → ไม่วาดทับ ให้กดแบนเนอร์เอง
@@ -1616,6 +1618,7 @@ function rtShowBanner(){
 async function rtRefresh(){
   const el=document.getElementById('rtBanner'); if(el) el.remove();
   try{ const ok=await cloudLoadV2(); if(ok) _loadFailed=false; }catch(e){}
+  try{ if(BR.loaded) await brCloudLoad(true); }catch(e){}   // 🐷 ทะเบียนแม่ต้องรีเฟรชด้วย ไม่งั้นการ์ดเล้าแม่พันธุ์ค้างของเก่า
   try{ const mx=await rtMaxTs(); if(mx) _rtSeenTs=mx; }catch(e){}
   try{ const top=navHist[navHist.length-1]; if(top&&top.fn) top.fn(); }catch(e){}
   try{ toast('โหลดข้อมูลล่าสุดจากทีมแล้ว ✓'); }catch(e){}
@@ -1648,6 +1651,7 @@ async function refreshAll(){
     const r1=await cloudLoadV2(); if(r1){ _loadFailed=false; } else if(CONFIG.supabase&&CONFIG.supabase.enabled){ ok=false; }
     try{ if(!(await sbCloudLoad()) && CONFIG.supabase&&CONFIG.supabase.enabled) ok=false; }catch(e){ ok=false; }
     try{ if(typeof lgCanUse==='function'&&lgCanUse()) await lgCloudLoad(); }catch(e){}
+    try{ if(BR.loaded) await brCloudLoad(true); }catch(e){}   // 🐷 ปุ่ม 🔄 ต้องดึงทะเบียนแม่ใหม่ด้วย (เคสการ์ดเล้าแม่พันธุ์ไม่อัปเดต 2 ส.ค.)
     try{ syncTodayCounters(); }catch(e){}
   try{ vetDeathAlertCheck(); }catch(e){}
     try{ await rtBaseline(); }catch(e){}
