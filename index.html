@@ -1070,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801k';
+const APP_BUILD='690801l';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -12676,19 +12676,24 @@ function brWeanShipHTML(h){
   if(brDailyHouseKind(h)!=='ค') return '';
   const w=brWeanToday(h); if(!w.n) return '';
   const sent=brWeanSentToday(h), left=Math.max(0,w.n-sent);
+  // ปลายทาง = ทุกหลังที่ไม่ใช่เล้าแม่พันธุ์ (ท/ค/ส) — ส่งได้ทั้งอนุบาลและขุน (เจ้าของยืนยัน 2 ส.ค. 69: หย่าแล้วลงขุนตรงก็มี)
   const dests=HOUSES.filter(x=>x.id!==h.id&&x.code&&!/^[ทคส]\d/.test(brShortOf(x))).slice().sort(byCode);
+  const isNur=x=>/^อ\d/.test(brShortOf(x));                  // อ1-อ31 = อนุบาล · ที่เหลือ = ขุน/อื่นๆ
+  const opt=x=>`<option value="${x.id}">${escA(x.code)} · ${escA(x.farm||'')}${(x.pigs||0)>0?' (มีหมู '+fmt(x.pigs)+')':' (ว่าง)'}</option>`;
+  const nur=dests.filter(isNur), fat=dests.filter(x=>!isNur(x));
   return `<div class="card" style="border-color:#2d5f8a">
-    <h3>🚚 ส่งลูกหย่าวันนี้เข้าหลังอนุบาล <span class="more">หย่าแล้ว ${fmt(w.n)} ตัว · ${fmt(w.moms)} แม่${sent?' · ส่งแล้ว '+fmt(sent):''}</span></h3>
+    <h3>🚚 ส่งลูกหย่าวันนี้เข้าหลังอนุบาล/ขุน <span class="more">หย่าแล้ว ${fmt(w.n)} ตัว · ${fmt(w.moms)} แม่${sent?' · ส่งแล้ว '+fmt(sent):''}</span></h3>
     ${left<=0?'<div class="banner ok">✅ <div>ลูกหย่าวันนี้ถูกส่งเข้าหลังปลายทางครบแล้ว — เสมียนหลังปลายทางกดรับเข้าได้เลย</div></div>'
     :`<div class="fgrid">
-      <div class="frow"><label>หลังปลายทาง (อนุบาล)</label>
+      <div class="frow"><label>หลังปลายทาง <span class="hint">(อนุบาล หรือ ขุนตรงก็ได้)</span></label>
         <select id="brWs_dest" class="cin tl"><option value="">— เลือกหลัง —</option>
-          ${dests.map(x=>`<option value="${x.id}">${escA(x.code)} · ${escA(x.farm||'')}${(x.pigs||0)>0?' (มีหมู '+fmt(x.pigs)+')':' (ว่าง)'}</option>`).join('')}</select></div>
+          ${nur.length?`<optgroup label="🐖 เล้าอนุบาล">${nur.map(opt).join('')}</optgroup>`:''}
+          ${fat.length?`<optgroup label="🐷 เล้าขุน / อื่นๆ">${fat.map(opt).join('')}</optgroup>`:''}</select></div>
       <div class="frow"><label>จำนวนส่ง (ตัว)</label><div class="unit"><input id="brWs_n" class="cin tl" type="number" value="${left}"><span class="u">ตัว</span></div></div>
       <div class="frow"><label>น้ำหนักรวม (กก.) <span class="hint">(ไม่รู้เว้นได้)</span></label><div class="unit"><input id="brWs_w" class="cin tl" type="number" placeholder="0"><span class="u">กก.</span></div></div>
     </div>
     <div class="actions" style="margin-top:10px"><button class="btn" onclick="brWeanShip()">🚚 ส่งเข้าหลังปลายทาง</button></div>
-    <div class="sub" style="margin-top:7px">ระบบจะแจ้งหลังปลายทางเป็น "หมูระหว่างทาง" — เสมียนกดรับเข้าแล้วยอดหมูขึ้นเองพร้อมแหล่งที่มา</div>`}
+    <div class="sub" style="margin-top:7px">ระบบจะแจ้งหลังปลายทางเป็น "หมูระหว่างทาง" — เสมียนกดรับเข้าแล้วยอดหมูขึ้นเองพร้อมแหล่งที่มา · แบ่งส่งหลายหลังได้ (ส่งบางส่วนแล้วกลับมาส่งที่เหลือต่อ)</div>`}
   </div>`;
 }
 async function brWeanShip(){
