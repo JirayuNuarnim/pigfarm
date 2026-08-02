@@ -547,6 +547,7 @@ body.theme-dark .sbpaper th[style*="f1f1ea"], body.theme-dark .sbpaper td[style*
   <div style="color:#9fb0c0;font-size:12.5px;font-weight:600;text-align:center;margin:-1px 0 2px;letter-spacing:.02em">บริษัท เอสเจเอฟ ฟาร์ม</div>
   <div style="color:#7fd4a8;font-size:12px;font-weight:700;text-align:center;margin:3px 0 0"><span style="display:inline-block;background:#d7263d;color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:1px 6px;border-radius:999px;vertical-align:middle">SG</span> เวอร์ชันเซิร์ฟเวอร์ใหม่ — ถ้าไม่เห็นป้ายแดง SG = แอปเก่าค้างเครื่อง ให้ล้างแคชแล้วเข้าใหม่</div>
   <div class="login-date" id="todayDate"></div>
+  <div style="color:#9fb0c0;font-size:11px;font-weight:600;text-align:center;margin:2px 0 0">รุ่นแอป <b id="loginBuild" style="color:#7fd4a8"></b></div>
   <p>เข้าสู่ระบบเพื่อใช้งาน</p>
   <form class="loginbox" onsubmit="event.preventDefault();login()">
     <label class="lf">ชื่อผู้ใช้
@@ -577,7 +578,7 @@ body.theme-dark .sbpaper th[style*="f1f1ea"], body.theme-dark .sbpaper td[style*
     <button id="backBtn" class="linkbtn" onclick="navBack()" style="display:none">‹ ย้อนกลับ</button>
     <div class="logo" onclick="goHome()" style="cursor:pointer" title="กลับหน้าหลัก"><span class="logo-ico" style="width:1.3em;height:1.3em;vertical-align:-0.26em;margin-right:3px;background-color:#fff"></span>ฟาร์ม<span>หมู</span> <span title="เซิร์ฟเวอร์สิงคโปร์ — ถ้าไม่เห็นป้ายนี้ = แอปเวอร์ชันเก่าค้างแคช ให้ปิดแท็บแล้วเปิดใหม่/ล้างแคช" style="display:inline-block;background:#d7263d;color:#fff;font-size:9px;font-weight:800;letter-spacing:1px;padding:1px 5px;border-radius:999px;vertical-align:middle">SG</span></div>
     <div class="spacer"></div>
-    <div class="pill" id="datePill">📅 <b id="today"></b></div>
+    <div class="pill" id="datePill">📅 <b id="today"></b> <span id="buildTag" style="opacity:.75;font-size:10px;font-weight:600"></span></div>
     <div class="pill" id="rolePill"></div>
     <button class="linkbtn" id="refreshBtn" onclick="refreshAll()" title="ดึงข้อมูลล่าสุดจากระบบกลางทั้งหมด (ข้อมูลหลัง·สต็อก·บิลขาย·บัญชี) แล้วแสดงหน้าปัจจุบันใหม่">🔄</button>
     <button class="linkbtn" id="bigBtn" onclick="bigToggle()" title="ตัวใหญ่/ปกติ">🔍</button>
@@ -1072,7 +1073,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802e';
+const APP_BUILD='690802f';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -1080,13 +1081,19 @@ const APP_BUILD='690802e';
     if(Date.now()-lastChk<240e3) return; lastChk=Date.now();
     fetch('version.json?t='+Date.now(), {cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
       if(!j||!j.build||j.build===APP_BUILD) return;
-      if(new URLSearchParams(location.search).get('v')===j.build) return; // เคยลองรีโหลดด้วย build นี้แล้วยังได้ไฟล์เก่า → หยุด กันลูป
+      if(new URLSearchParams(location.search).get('v')===j.build){
+        // เคยรีโหลดด้วย build นี้แล้วยังได้ไฟล์เก่า (แคช CDN ยังไม่ทัน) → เว้น 15 นาทีแล้วลองใหม่
+        // ⚠️ เดิม return ถาวร ทำเครื่องค้างรุ่นเก่าเงียบๆ จนกว่าจะกดรีโหลดเอง (เจอจริง 2 ส.ค. 69: แท็บข้อมูลหมอว่าง)
+        let ts=0; try{ ts=Number(localStorage.getItem('updRetryTs'))||0; }catch(e){}
+        if(Date.now()-ts<9e5) return;
+      }
       const ae=document.activeElement, typing=ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)&&!document.hidden;
       if(typing) { lastChk=0; return; }               // กำลังพิมพ์ → รอรอบถัดไป
       busy=true;
       try{ toast('🔄 มีเวอร์ชันใหม่ — กำลังอัปเดตแอปอัตโนมัติ…'); }catch(e){}
       try{ saveState(); }catch(e){}
-      setTimeout(function(){ location.replace(location.pathname+'?v='+encodeURIComponent(j.build)); }, 1200);
+      try{ localStorage.setItem('updRetryTs', String(Date.now())); }catch(e){}
+      setTimeout(function(){ location.replace(location.pathname+'?v='+encodeURIComponent(j.build)+'&t='+Date.now()); }, 1200);
     }).catch(()=>{});
   }
   setInterval(checkUpdate, 60000);
@@ -12457,30 +12464,25 @@ function brWeekHTML(){
       <b>คลอดในสัปดาห์</b> = ครอกที่คลอดจริง (แถวอนาคต = คาดจากแม่ท้อง) · <b>หย่า/พร้อมผสม</b> = แม่หย่านมสัปดาห์นั้น = ตัวป้อนเข้าชุดผสมสัปดาห์ถัดไป —
       แถวอนาคตช่วยวางแผนล่วงหน้าว่าสัปดาห์ไหนแม่จะพร้อมกี่ตัว เล้าคลอดต้องว่างกี่ช่อง</div>
   </div>
-  ${brVetPerfHTML()}`;
+  ${brUnitPerfHTML()}`;
 }
 
-/* ── 🧑‍⚕️ วัดผลหมอเล้าผสม/อุ้มท้อง (เกณฑ์เจ้าของ 2 ส.ค. 69):
-   ① อัตราเข้าคลอดของชุดที่หมอผสม ต้อง ≥ 90%  ② ผสมได้ตามเป้ารายสัปดาห์
-   ผูกผลงานตาม "เล้า ท ที่หมอประจำ" — ผสมที่ลงในเล้าไหน เครดิต/ความรับผิดชอบอยู่กับหมอเล้านั้น ── */
-function brVetPerf(){
+/* ── 🏛️ ผลประกอบการรายยูนิต + รวมทั้งฟาร์ม (เกณฑ์เจ้าของ 2 ส.ค. 69):
+   วัดผลหมอจาก "ภาพรวมของยูนิต" ไม่ผูกรายหลัง/รายคน — ทีมยูนิตทำงานร่วมกัน
+   ① อัตราเข้าคลอดของยูนิต ≥ 90%  ② ผสมได้ตามเป้ารายสัปดาห์ (เป้ายูนิต = เป้าฟาร์ม × สัดส่วนแม่ในยูนิต)
+   ชื่อหมอ = ชื่อติดตอนลงข้อมูล/เบิกของเท่านั้น (events[].by + audit) ── */
+function brUnitPerf(){
   const C=brCfg(), tD=brDnum(brTodayISO()), tW=brWeekStart(brTodayISO());
-  const hs=brHousesFor(brFarm);
-  const vetOf={}; hs.forEach(h=>{ vetOf[h.s]=h.vet||'-'; });
-  const V={}; const get=v=>V[v]=V[v]||{vet:v,houses:[],sows:0,pool:0,m4:0,far:0,fail:0,pend:0};
-  hs.filter(h=>h.kind==='ท').forEach(h=>{ get(h.vet||'-').houses.push(h.s); });
-  const tHouse={}; hs.filter(h=>h.kind==='ท').forEach(h=>tHouse[h.s]=1);
   const w4=brAddDays(tW,-21);   // หน้าต่าง 4 สัปดาห์ (3 สัปดาห์ก่อน + สัปดาห์นี้)
+  const U={}; const get=u=>U[u]=U[u]||{u:u,pool:0,m4:0,far:0,fail:0,pend:0,farN:0,alive:0,still:0,weanN:0,weaned:0};
   brSows().forEach(s=>{
-    if(s.stage!=='cull'&&tHouse[s.house]){ const v=vetOf[s.house]; if(V[v]) V[v].pool++; }
+    if(s.stage!=='cull') get(brUnitOf(s.house)||'').pool++;
     const evs=(s.events||[]).filter(e=>e&&brIsISO(e.date));
     const mats=evs.filter(e=>e.t==='mate').sort((a,b)=>a.date<b.date?-1:1);
     const fars=evs.filter(e=>e.t==='farrow').map(e=>brDnum(e.date));
     const byW={}; mats.forEach(m=>{ byW[brWeekStart(m.date)]=m; });   // นับ 1 แม่/สัปดาห์ (round 2 ไม่นับซ้ำ)
-    Object.keys(byW).forEach(k=>{ const m=byW[k];
-      const hcode=m.house||s.house, v=vetOf[hcode];
-      if(!v||!V[v]||!tHouse[hcode]) return;
-      const o=V[v], md=brDnum(m.date);
+    Object.keys(byW).forEach(k=>{ const m=byW[k], md=brDnum(m.date);
+      const o=get(brUnitOf(m.house||s.house)||'');
       if(k>=w4&&k<=tW) o.m4++;
       if(tD-md<=365){   // อัตราเข้าคลอด: ตัดสินจากชุดปีล่าสุด
         if(fars.some(fd=>fd-md>=C.gest-12&&fd-md<=C.gest+12)) o.far++;
@@ -12489,37 +12491,48 @@ function brVetPerf(){
         else o.pend++;
       }
     });
+    evs.forEach(e=>{ if(tD-brDnum(e.date)>365) return;   // ภาพรวมการผลิตปีล่าสุด — ลงที่ยูนิตของเล้าที่เกิดเหตุการณ์
+      if(e.t==='farrow'){ const o=get(brUnitOf(e.house||s.house)||''); o.farN++; o.alive+=+e.alive||0; o.still+=(+e.still||0)+(+e.mummy||0); }
+      if(e.t==='wean'&&(+e.weaned||0)>0){ const o=get(brUnitOf(e.house||s.house)||''); o.weanN++; o.weaned+=+e.weaned||0; }
+    });
   });
-  return Object.values(V).filter(o=>o.houses.length).sort((a,b)=>b.pool-a.pool);
+  const units=Object.values(U).filter(o=>o.pool||o.far||o.fail||o.farN||o.m4);
+  units.sort((a,b)=>{ if(!a.u) return 1; if(!b.u) return -1; return a.u.localeCompare(b.u,undefined,{numeric:true}); });
+  return units;
 }
-function brVetPerfHTML(){
-  const rows=brVetPerf(); if(!rows.length) return '';
+function brUnitPerfHTML(){
+  const units=brUnitPerf(); if(!units.length) return '';
   const tg=brWkTarget();
-  const totalPool=rows.reduce((a,o)=>a+o.pool,0)||1;
-  const cells=rows.map(o=>{
+  const totalPool=units.reduce((a,o)=>a+o.pool,0)||1;
+  const row=(o,isTotal)=>{
     const known=o.far+o.fail;
     const rate=known?o.far/known*100:null;
-    const share=Math.max(1,Math.round(tg.t*o.pool/totalPool));   // เป้าของหมอ = เป้าฟาร์ม × สัดส่วนแม่ในเล้า ท ของหมอ
+    const share=isTotal?tg.t:Math.max(1,Math.round(tg.t*o.pool/totalPool));
     const tgt4=share*4;
     const okRate=rate!=null&&rate>=90, okMate=o.m4>=tgt4;
     const badge=(rate==null&&!o.m4)?'<span class="sub">— ยังไม่มีข้อมูล —</span>'
       :(okRate&&okMate)?'<span style="color:#1a5c3f;font-weight:800">✅ ผ่านทั้ง 2 เกณฑ์</span>'
       :[!okMate?'<span style="color:#b7791f;font-weight:700">⚠️ ผสมไม่ถึงเป้า</span>':'',
         (rate!=null&&!okRate)?'<span style="color:#a5342a;font-weight:700">⚠️ เข้าคลอด &lt; 90%</span>':(rate==null?'<span class="sub">เข้าคลอด: รอผล</span>':'')].filter(Boolean).join('<br>');
-    return `<tr>
-      <td><b>${escA(o.vet)}</b><br><span class="sub" style="font-size:10.5px">${o.houses.map(escA).join(' · ')}</span></td>
+    return `<tr style="${isTotal?'background:#eaf4f1;font-weight:700;border-top:2px solid #2f6f63':''}">
+      <td><b>${isTotal?'🏭 รวมทั้งฟาร์ม':(o.u?'🏛️ Unit '+escA(o.u.slice(1)):'🌸 ไม่มียูนิต (เล้าสาว)')}</b></td>
       <td class="num">${fmt(o.pool)}</td>
       <td class="num"><b style="color:${okMate?'#1a5c3f':'#b7791f'}">${fmt(o.m4)}</b>/${fmt(tgt4)}<br><span class="sub" style="font-size:10px">เป้า ~${fmt(share)}/สัปดาห์</span></td>
       <td class="num">${rate!=null?`<b style="color:${okRate?'#1a5c3f':(rate>=80?'#b7791f':'#a5342a')};font-size:15px">${rate.toFixed(1)}%</b><br><span class="sub" style="font-size:10px">รู้ผล ${fmt(known)} ชุด${o.pend?' · รอ '+fmt(o.pend):''}</span>`:`<span class="sub">รอผล${o.pend?' ('+fmt(o.pend)+' ชุด)':''}</span>`}</td>
+      <td class="num">${o.farN?(o.alive/o.farN).toFixed(1)+'<br><span class="sub" style="font-size:10px">'+fmt(o.farN)+' ครอก</span>':'-'}</td>
+      <td class="num">${o.weanN?(o.weaned/o.weanN).toFixed(1)+'<br><span class="sub" style="font-size:10px">'+fmt(o.weanN)+' ครอก</span>':'-'}</td>
       <td>${badge}</td></tr>`;
-  }).join('');
-  return `<div class="card"><h3>🧑‍⚕️ วัดผลหมอเล้าผสม/อุ้มท้อง <span class="more">เกณฑ์: เข้าคลอด ≥ 90% + ผสมถึงเป้า</span></h3>
+  };
+  const tot=units.reduce((a,o)=>{ for(const k in o){ if(k!=='u') a[k]=(a[k]||0)+o[k]; } return a; },{u:''});
+  return `<div class="card"><h3>🏛️ ผลประกอบการรายยูนิต <span class="more">ตัววัดทีมหมอประจำยูนิต · เข้าคลอด ≥ 90% + ผสมถึงเป้า</span></h3>
     <div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
-      <thead><tr><th>หมอ · เล้า ท ที่ประจำ</th><th class="num">แม่ในเล้า ท</th><th class="num">ผสม 4 สัปดาห์ (แม่)</th><th class="num">อัตราเข้าคลอด</th><th>ผลตามเกณฑ์</th></tr></thead>
-      <tbody>${cells}</tbody></table></div>
-    <div class="sub" style="margin-top:8px;line-height:1.6"><b>เกณฑ์เจ้าของ:</b> ① <b>อัตราเข้าคลอด ≥ 90%</b> — จากชุดผสมในเล้า ท ของหมอที่รู้ผลแล้ว (ปีล่าสุด): คลอดจริง ÷ (คลอด + ไม่ติด) · ชุดที่ยังท้องอยู่ = "รอผล" ไม่นับ ·
-      ② <b>ผสมถึงเป้า</b> — เป้าของหมอแบ่งจากเป้าฟาร์ม (${fmt(tg.t)}/สัปดาห์) ตามสัดส่วนแม่ในเล้า ท ที่ประจำ เทียบผลรวม 4 สัปดาห์ล่าสุด ·
-      ผสมลงเล้าไหน เครดิตอยู่กับหมอประจำเล้านั้น</div>
+      <thead><tr><th>ยูนิต</th><th class="num">แม่ในยูนิต</th><th class="num">ผสม 4 สัปดาห์ (แม่)</th><th class="num">อัตราเข้าคลอด</th><th class="num">ลูกมีชีวิต/ครอก</th><th class="num">ลูกหย่า/ครอก</th><th>ผลตามเกณฑ์</th></tr></thead>
+      <tbody>${units.map(o=>row(o,false)).join('')}${units.length>1?row(tot,true):''}</tbody></table></div>
+    <div class="sub" style="margin-top:8px;line-height:1.6"><b>วิธีวัด (เกณฑ์เจ้าของ):</b> วัดจาก<b>ภาพรวมของยูนิต</b> ไม่แยกรายหลัง/รายคน — ทีมยูนิตรับผลร่วมกัน ·
+      ① <b>อัตราเข้าคลอด ≥ 90%</b> = คลอดจริง ÷ (คลอด + ไม่ติด) จากชุดผสมของยูนิตที่รู้ผลแล้ว (ปีล่าสุด · ชุดยังท้อง = "รอผล" ไม่นับ) ·
+      ② <b>ผสมถึงเป้า</b> — เป้ายูนิต = เป้าฟาร์ม (${fmt(tg.t)}/สัปดาห์) แบ่งตามสัดส่วนแม่ในยูนิต เทียบผลรวม 4 สัปดาห์ล่าสุด ·
+      ลูกมีชีวิต/ลูกหย่าต่อครอก = ภาพรวมการผลิตปีล่าสุดของยูนิต (นับตามเล้าที่เกิดเหตุการณ์) ·
+      ทุกการลงข้อมูล/เบิกของมีชื่อผู้ลงติดเสมอ (✍️) ตรวจย้อนรายคนได้จากบัตรแม่และประวัติ</div>
   </div>`;
 }
 
