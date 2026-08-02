@@ -1073,7 +1073,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802i';
+const APP_BUILD='690802j';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -12620,6 +12620,7 @@ function brHouseDetail(){
       <div id="brBMBox">${brBMHTML(h)}</div></div>`:''}
     <div class="card"><h3>🚚 รับแม่เข้าเล้านี้ <span class="more">รับเข้าของเล้าแม่พันธุ์ = ลงเบอร์แม่ที่เข้ามา</span></h3>
       ${brRcvSectionHTML(h.s,brFarm,true)}</div>
+    ${brHouseMoveLogHTML(h.s)}
     <div class="card"><h3>🐷 แม่ในหลัง <span class="more">${fmt(ss.length)} ตัว</span></h3>${ss.length?ss.map(s=>{ const c=brClock(s); const next=c.find(x=>x.due);
       return `<div class="fieldrow" style="cursor:pointer" onclick="brOpen('${escA(s.ear)}')">
         <div class="fmeta"><div class="fn"><b>${escA(s.ear)}</b> · ${escA(s.breed||'-')} · ครอกที่ ${fmt(s.parity||0)}</div>
@@ -12752,9 +12753,72 @@ function brRcvSectionHTML(sc,farm,bare){
       <table class="densetbl" style="margin-top:6px"><tbody>${rows}</tbody></table>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button class="btn ghost sm" onclick="brRcv.push({ear:''});brRcvRe()">＋ เพิ่มแถว</button>
-        <button class="btn sm" onclick="brRcvSave()">🚚 รับเข้า ${brRcv.filter(r=>String(r.ear||'').trim()).length?('('+brRcv.filter(r=>String(r.ear||'').trim()).length+' แม่)'):''}</button></div>
-      <div class="sub" style="margin-top:6px;font-size:11.5px">พิมพ์ 2-3 ตัวระบบช่วยค้นจากทะเบียนทั้งฟาร์ม · แม่ที่รับเข้าจะย้ายออกจากเล้าเดิมอัตโนมัติ · เบอร์ที่ไม่มีในทะเบียน ให้ขึ้นทะเบียนที่เมนูแม่พันธุ์ → ➕ ขึ้นทะเบียน ก่อน</div></div>`;
+        <button class="btn sm" onclick="brRcvSave()">🚚 รับเข้า ${brRcv.filter(r=>String(r.ear||'').trim()).length?('('+brRcv.filter(r=>String(r.ear||'').trim()).length+' แม่)'):''}</button>
+        <button class="btn ghost sm" onclick="brRcvNewOpen=!brRcvNewOpen;brRcvRe()">${brRcvNewOpen?'▴ ปิดฟอร์มแม่ใหม่':'➕ แม่ใหม่ (ยังไม่มีในทะเบียน)'}</button></div>
+      ${brRcvNewOpen?`<div style="margin-top:9px;background:var(--soft);border:1px dashed var(--line);border-radius:10px;padding:10px 12px">
+        <div style="font-weight:800;font-size:12.5px;margin-bottom:6px">➕ ขึ้นทะเบียนแม่ใหม่เข้าเล้านี้เลย <span class="more">เช่น สาวเข้าฝูง / แม่ซื้อเข้ามาใหม่</span></div>
+        <div class="grid2" style="gap:6px 10px">
+          <div class="frow"><label>เบอร์หูแม่ *</label><input class="cin" id="brRN_ear" placeholder="เช่น Y6900123"></div>
+          <div class="frow"><label>พันธุ์</label><input class="cin" id="brRN_breed" placeholder="เช่น Y / L / D"></div>
+          <div class="frow"><label>ครอกที่ (0 = สาว)</label><input class="cin" id="brRN_parity" type="number" min="0" value="0"></div>
+          <div class="frow"><label>วันเกิด (ถ้ารู้)</label><input class="cin" id="brRN_born" type="date" max="${brTodayISO()}"></div>
+        </div>
+        <button class="btn sm" style="margin-top:8px" onclick="brRcvRegSave()">✅ ขึ้นทะเบียน + รับเข้าเล้านี้</button>
+        <div class="sub" style="margin-top:5px;font-size:11px">ครอกที่ 0 = ขึ้นเป็น 🌸 สาวรอผสม · มากกว่า 0 = ⏳ รอผสม · ประวัติละเอียด (ผสม/คลอดย้อนหลัง) ไปเติมที่บัตรแม่ทีหลังได้</div></div>`:''}
+      <div class="sub" style="margin-top:6px;font-size:11.5px">พิมพ์ 2-3 ตัวระบบช่วยค้นจากทะเบียนทั้งฟาร์ม · แม่ที่รับเข้าจะย้ายออกจากเล้าเดิมอัตโนมัติ · เบอร์ใหม่ที่ไม่เคยมีในทะเบียน ใช้ปุ่ม ➕ แม่ใหม่</div></div>`;
   } finally { brFarm=prevFarm; }
+}
+let brRcvNewOpen=false;
+function brRcvViewRe(){
+  if(typeof currentHouse!=='undefined'&&currentHouse&&document.getElementById('brSowBox')){ try{ brDailyRe(); }catch(e){} }
+  else if(document.getElementById('brRcvSec')){ try{ brHouseDetail(); }catch(e){} }
+}
+async function brRcvRegSave(){
+  const p=brRcvKey.split('|'), farm=p[0], sc=p[1]||'';
+  if(!sc){ toast('ไม่พบเล้าปลายทาง'); return; }
+  const g=id=>{ const el=document.getElementById(id); return el?el.value:''; };
+  const ear=String(g('brRN_ear')||'').trim();
+  if(!ear){ toast('ใส่เบอร์หูแม่ก่อน'); return; }
+  const prevFarm=brFarm; brFarm=farm;
+  try{
+    if(brSowByEar(ear)||brBoars().some(b=>String(b.ear).toLowerCase()===ear.toLowerCase())){ toast('⚠️ เบอร์ '+ear+' มีในทะเบียนแล้ว — ใช้ช่องรับเข้าด้านบนแทน'); return; }
+    const parity=+g('brRN_parity')||0;
+    const s={farm:farm,ear:ear,breed:String(g('brRN_breed')||'').trim(),born:g('brRN_born')||'',teats:0,parity:parity,house:sc,
+      stage:parity>0?'open':'gilt',hc:'',note:'',
+      events:[{t:'care',date:brTodayISO(),note:'ขึ้นทะเบียนเข้าเล้า '+sc,house:sc,by:brBy()}]};
+    BR.all.push(s); brPersist(s);
+    toast('✅ ขึ้นทะเบียน '+ear+' เข้าเล้า '+sc+' แล้ว ('+(parity>0?'⏳ รอผสม':'🌸 สาวรอผสม')+')');
+  } finally { brFarm=prevFarm; }
+  brRcvNewOpen=false;
+  brRcvViewRe();
+}
+/* 🔁 ประวัติแม่เข้า-ออกของเล้า — รวมรับเข้า/ย้ายออก/ขึ้นทะเบียน/ปลด ในเล้านั้น */
+function brHouseMoveLog(sc){
+  const out=[];
+  brSows().forEach(s=>(s.events||[]).forEach(e=>{
+    if(!e||!brIsISO(e.date)) return;
+    if(e.t==='move'){
+      if(e.to===sc) out.push({d:e.date,ear:s.ear,dir:'in',other:e.from||'-',by:e.by||''});
+      else if(e.from===sc) out.push({d:e.date,ear:s.ear,dir:'out',other:e.to||'-',by:e.by||''});
+    } else if(e.t==='care'&&e.house===sc&&/^ขึ้นทะเบียนเข้าเล้า/.test(e.note||'')){
+      out.push({d:e.date,ear:s.ear,dir:'reg',other:'',by:e.by||''});
+    } else if(e.t==='cull'&&(e.house===sc||(!e.house&&s.house===sc))){
+      out.push({d:e.date,ear:s.ear,dir:'cull',other:e.kind||'ปลด',by:e.by||''});
+    }
+  }));
+  out.sort((a,b)=>a.d<b.d?1:(a.d>b.d?-1:0));
+  return out;
+}
+function brHouseMoveLogHTML(sc){
+  const log=brHouseMoveLog(sc);
+  const DIR={in:['📥','เข้า','#1a5c3f'],out:['📤','ออก','#b7791f'],reg:['➕','ขึ้นทะเบียน','#2d5f8a'],cull:['❌','ปลด/ตาย','#a5342a']};
+  const rows=log.slice(0,30).map(x=>{ const D=DIR[x.dir];
+    return `<div class="fieldrow" style="cursor:pointer;padding:6px 8px" onclick="brOpen(${escA(JSON.stringify(String(x.ear)))})">
+      <div class="fmeta"><div class="fn" style="font-size:12.5px">${D[0]} <b>${escA(x.ear)}</b> <span style="color:${D[2]};font-weight:700">${D[1]}</span>${x.dir==='in'?' จาก '+escA(x.other):x.dir==='out'?' ไป '+escA(x.other):x.dir==='cull'?' ('+escA(x.other)+')':''}</div>
+      <div class="sub" style="margin:1px 0 0;font-size:11px">${sbThaiDate(x.d)}${x.by?' · ✍️ '+escA(x.by):''}</div></div></div>`; }).join('');
+  return `<div class="card"><h3>🔁 ประวัติแม่เข้า-ออกเล้านี้ <span class="more">${fmt(log.length)} รายการ${log.length>30?' · โชว์ 30 ล่าสุด':''}</span></h3>
+    ${rows||'<div class="sub">— ยังไม่มีประวัติเข้า-ออก —</div>'}
+    <div class="sub" style="margin-top:7px;font-size:11.5px">รวม 📥 รับเข้า · 📤 ย้ายออก · ➕ ขึ้นทะเบียนใหม่ · ❌ ปลด/ตาย ในเล้านี้ — แตะรายการเปิดบัตรแม่</div></div>`;
 }
 function brRcvRe(){
   if(typeof currentHouse!=='undefined'&&currentHouse&&document.getElementById('brSowBox')){ brSowReDraw(); return; }
