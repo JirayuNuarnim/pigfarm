@@ -1080,7 +1080,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802n';
+const APP_BUILD='690802o';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -1351,11 +1351,22 @@ async function supaFetch(path, opts){ // REST helper พร้อม token + ร
 }
 let _dbProfile=null; // โปรไฟล์จากตาราง app_users (บทบาท+ฟาร์มที่รับผิดชอบ)
 async function fetchProfile(){
-  const r=await supaFetch('/rest/v1/app_users?select=user_id,username,name,role,farms&active=is.true',{method:'GET'});
+  let r=await supaFetch('/rest/v1/app_users?select=user_id,username,name,role,farms,units&active=is.true',{method:'GET'});
+  if(r&&!r.ok) r=await supaFetch('/rest/v1/app_users?select=user_id,username,name,role,farms&active=is.true',{method:'GET'});   // เซิร์ฟเวอร์เก่ายังไม่มีคอลัมน์ units
   if(!r||!r.ok) return null;
   const rows=await r.json(); if(!rows||!rows.length) return null;
   const uid=(SUPA&&SUPA.user&&SUPA.user.id)||'', uname=(SUPA&&SUPA.user&&SUPA.user.username)||'';
   return (uid&&rows.find(x=>x.user_id===uid)) || (uname&&rows.find(x=>x.username===uname)) || rows[0];
+}
+/* 🏛️ ขอบเขตยูนิตของหมอแม่พันธุ์ (เจ้าของ 2 ส.ค. 69): หมอที่ติ๊กยูนิตไว้ เห็นเฉพาะเล้าในยูนิตนั้นของฟาร์มตัวเอง
+   (เล้าขุน P1/P2 ไม่มีรหัส U → ถูกกรองออกอัตโนมัติ · 'ส' = เล้าสาว) — ไม่ติ๊ก = เห็นทั้งฟาร์มแบบเดิม */
+function unitScopeFilter(list){
+  const u=_dbProfile&&_dbProfile.role==='vet'&&Array.isArray(_dbProfile.units)?_dbProfile.units.filter(Boolean):[];
+  if(!u.length) return list;
+  return list.filter(h=>{ const c=String(h.code||'');
+    const m=c.match(/U\s*(\d+)/i); if(m) return u.includes('U'+m[1]);
+    if(/ส\d/.test(c)) return u.includes('ส');
+    return false; });
 }
 async function rpcLoadHouses(){
   /* ⚠️ กันเพดาน 1,000 แถวของเซิร์ฟเวอร์ (บั๊กเดียวกับทะเบียนแม่ 2 ส.ค. 69) — load_houses_all คืน jsonb ก้อนเดียวไม่โดนตัด
@@ -1464,7 +1475,7 @@ async function cloudLoadV2(){
       if((role==='owner'||role==='admin') && confirm('⚠️ ระบบกลางไม่มีข้อมูลหลังเลย\n\nจะส่งข้อมูลจากเครื่องนี้ขึ้นไปตั้งต้นหรือไม่?\n(ถ้าไม่แน่ใจ ให้กด "ยกเลิก" แล้วติดต่อผู้ดูแล — กันข้อมูลทดสอบ/ของเก่าทับระบบจริง)')){ await pushAllHousesV2(); await saveConfigAll(); } // 🟠 ต้องยืนยันก่อน push (เดิมส่งอัตโนมัติ เสี่ยง seed ทับ prod)
       return true;
     }
-    HOUSES=rows.map(mergeHouse);
+    HOUSES=unitScopeFilter(rows.map(mergeHouse));   // 🏛️ หมอที่มีขอบเขตยูนิต → เห็นเฉพาะเล้าในยูนิตตัวเอง
     if(currentHouse){ const nh=HOUSES.find(x=>x.id===currentHouse.id); if(nh) currentHouse=nh; }   // 🔴 ฟอร์มหลังที่เปิดค้างต้องชี้ข้อมูลชุดใหม่ — เดิมชี้ก้อนเก่า กดบันทึกแล้วทับงานทีม
     try{ syncTodayCounters(); }catch(e){}   // 🔢 ตัวนับ "วันนี้ ตาย/คัด/ขาย" ต้องคำนวณสดจากแถวรายวันทุกครั้งที่รับข้อมูลจากคลาวด์
     try{ vetDeathAlertCheck(); }catch(e){}   // 🚨 เตือนหมอ ตาย+คัดวันนี้เกิน 3 — ค่าที่ติดมากับข้อมูลหลังเป็นของเก่าจากเครื่องอื่น/วันอื่น (บั๊กหัวฟาร์มโชว์ 36·28 ทั้งที่จริง 13·15, 17 ก.ค. 69)
@@ -9197,6 +9208,18 @@ async function adminUsersCall(payload){
 let _users=[];
 function roleOptsHTML(sel){ return ['owner','admin','clerk','vet','formula'].map(r=>`<option value="${r}"${r===sel?' selected':''}>${ROLE_ICON[r]||''} ${ROLE_LABEL[r]||r}</option>`).join(''); }
 function farmChecksHTML(pfx,selected){ return FARMS.map((f,i)=>`<label style="display:inline-flex;align-items:center;gap:6px;margin:3px 12px 3px 0;font-weight:500;font-size:13px"><input type="checkbox" id="${pfx}_${i}" value="${escA(f)}"${selected.includes(f)?' checked':''} style="width:auto"> ${escA(f)}</label>`).join(''); }
+/* 🏛️ ตัวเลือกยูนิตของหมอแม่พันธุ์ — สร้างจากรหัสเล้าที่มีจริง (ฟาร์มไหนตั้งเล้า U1/U2/U3 ไว้ ตัวเลือกขึ้นเอง · เพิ่มยูนิตใหม่ในจัดการเล้าแล้วตัวเลือกตามทันที) */
+function unitChecksHTML(pfx,selected){
+  selected=Array.isArray(selected)?selected:[];
+  const us=new Set(); let hasGilt=false;
+  (HOUSES||[]).forEach(h=>{ const c=String(h.code||''); const m=c.match(/U\s*(\d+)/i);
+    if(m) us.add('U'+m[1]); else if(/ส\d/.test(c)) hasGilt=true; });
+  const list=[...us].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+  if(hasGilt) list.push('ส');
+  if(!list.length) return '<span class="sub">— ยังไม่มีเล้าที่ตั้งรหัสยูนิต (U1/U2…) —</span>';
+  return list.map(u=>`<label style="display:inline-flex;align-items:center;gap:5px;margin:3px 12px 3px 0;font-weight:500;font-size:13px"><input type="checkbox" class="${pfx}_unit" value="${escA(u)}"${selected.includes(u)?' checked':''} style="width:auto"> ${u==='ส'?'🌸 เล้าสาว (ส)':'🏛️ '+escA(u)}</label>`).join('');
+}
+function pickUnits(pfx){ return [...document.querySelectorAll('input.'+pfx+'_unit:checked')].map(x=>x.value); }
 function pickFarms(pfx){ const out=[]; FARMS.forEach((f,i)=>{ const c=$("#"+pfx+"_"+i); if(c&&c.checked) out.push(f); }); return out; }
 function userRoleChanged(){ const r=$("#u_role").value; $("#u_farms_wrap").style.display=(r==='vet')?'':'none'; }
 function ueRoleChanged(){ const r=$("#ue_role").value; $("#ue_farms_wrap").style.display=(r==='vet')?'':'none'; }
@@ -9216,7 +9239,8 @@ function renderUsers(){
         <div class="frow"><label>รหัสผ่าน <span class="req">*</span><span class="hint"> ≥ 6 ตัว</span></label><input id="u_pass" type="text" placeholder="ตั้งรหัสให้พนักงาน"></div>
         <div class="frow"><label>บทบาท <span class="req">*</span></label><select id="u_role" onchange="userRoleChanged()">${roleOptsHTML('clerk')}</select></div>
       </div>
-      <div class="frow" id="u_farms_wrap" style="display:none"><label>🏭 ฟาร์มที่ดูแล (เฉพาะหมอ)<span class="hint"> — เว้นว่าง = เห็นเฉพาะหลังที่ระบุ "ชื่อ" นี้เป็นผู้รับผิดชอบ (แนะนำ) · เลือกฟาร์ม = หัวหน้า เห็นทั้งฟาร์ม</span></label><div>${farmChecksHTML('uf',[])}</div></div>
+      <div class="frow" id="u_farms_wrap" style="display:none"><label>🏭 ฟาร์มที่ดูแล (เฉพาะหมอ)<span class="hint"> — เว้นว่าง = เห็นเฉพาะหลังที่ระบุ "ชื่อ" นี้เป็นผู้รับผิดชอบ (แนะนำ) · เลือกฟาร์ม = หัวหน้า เห็นทั้งฟาร์ม</span></label><div>${farmChecksHTML('uf',[])}</div>
+        <div style="margin-top:9px"><label>🏛️ ยูนิตที่ดูแล (หมอแม่พันธุ์)<span class="hint"> — เว้นว่าง = เห็นทุกเล้าของฟาร์มที่เลือก · ติ๊กยูนิต = เห็นเฉพาะเล้า ท/ค ของยูนิตนั้น (เล้าขุน P1 P2 ถูกตัดออกให้เอง)</span></label><div>${unitChecksHTML('uu',[])}</div></div></div>
       <button class="btn" onclick="userCreate()"><span>➕</span> สร้างบัญชี</button>
     </div>
     <div class="card">
@@ -9237,7 +9261,7 @@ function renderUserList(){
   el.innerHTML=`<table><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ</th><th>บทบาท</th><th>ฟาร์ม</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>${
     _users.map(u=>{
       const rl=ROLE_LABEL[u.role]||u.role;
-      const fm=(u.role==='vet')?((Array.isArray(u.farms)&&u.farms.length)?('🏭 '+escA(u.farms.join(', '))):'<span class="sub">👤 ตามชื่อประจำหลัง (อัตโนมัติ)</span>'):'<span class="sub">ทุกฟาร์ม</span>';
+      const fm=(u.role==='vet')?((Array.isArray(u.farms)&&u.farms.length)?('🏭 '+escA(u.farms.join(', '))+((Array.isArray(u.units)&&u.units.length)?'<br><span style="color:#0f6b5f;font-weight:700">🏛️ '+escA(u.units.join(' · '))+'</span>':'')):'<span class="sub">👤 ตามชื่อประจำหลัง (อัตโนมัติ)</span>'):'<span class="sub">ทุกฟาร์ม</span>';
       return `<tr>
         <td><b>${escA(u.username)}</b></td><td>${escA(u.name||'')}</td>
         <td><span class="tag wait">${ROLE_ICON[u.role]||''} ${escA(rl)}</span></td>
@@ -9258,10 +9282,12 @@ async function userCreate(){
   const password=$("#u_pass").value||'';
   const role=$("#u_role").value;
   const farms=role==='vet'?pickFarms('uf'):[];
+  const units=role==='vet'?pickUnits('uu'):[];
   if(!username||!name||!password){ toast('กรอกชื่อผู้ใช้ ชื่อ และรหัสผ่านให้ครบ'); return; }
   if(password.length<6){ toast('รหัสผ่านอย่างน้อย 6 ตัว'); return; }
+  if(units.length&&!farms.length){ toast('ติ๊กยูนิตแล้วต้องเลือกฟาร์มด้วย (เช่น ฟาร์มเบิกไพร + U1)'); return; }
   try{
-    await adminUsersCall({action:'create',username,name,role,password,farms});
+    await adminUsersCall({action:'create',username,name,role,password,farms,units});
     toast('สร้างบัญชี "'+username+'" สำเร็จ ✓');
     $("#u_username").value='';$("#u_name").value='';$("#u_pass").value='';
     await loadUsers();
@@ -9290,7 +9316,8 @@ function userEdit(uid){
       <div class="frow"><label>ชื่อ</label><input id="ue_name" value="${escA(u.name||'')}"></div>
       <div class="frow"><label>บทบาท</label><select id="ue_role" onchange="ueRoleChanged()">${roleOptsHTML(u.role)}</select></div>
     </div>
-    <div class="frow" id="ue_farms_wrap" style="display:${u.role==='vet'?'':'none'}"><label>🏭 ฟาร์มที่ดูแล<span class="hint"> — เว้นว่าง = เห็นเฉพาะหลังที่ระบุชื่อนี้ (แนะนำ) · เลือกฟาร์ม = หัวหน้า เห็นทั้งฟาร์ม</span></label><div>${farmChecksHTML('uef',Array.isArray(u.farms)?u.farms:[])}</div></div>
+    <div class="frow" id="ue_farms_wrap" style="display:${u.role==='vet'?'':'none'}"><label>🏭 ฟาร์มที่ดูแล<span class="hint"> — เว้นว่าง = เห็นเฉพาะหลังที่ระบุชื่อนี้ (แนะนำ) · เลือกฟาร์ม = หัวหน้า เห็นทั้งฟาร์ม</span></label><div>${farmChecksHTML('uef',Array.isArray(u.farms)?u.farms:[])}</div>
+      <div style="margin-top:9px"><label>🏛️ ยูนิตที่ดูแล (หมอแม่พันธุ์)<span class="hint"> — เว้นว่าง = เห็นทุกเล้าของฟาร์ม · ติ๊ก = เห็นเฉพาะเล้ายูนิตนั้น</span></label><div>${unitChecksHTML('ueu',Array.isArray(u.units)?u.units:[])}</div></div></div>
     <div class="frow"><label>🔑 รหัสผ่าน</label>
       <input id="ue_pass" type="text" placeholder="พิมพ์รหัสใหม่ ≥ 6 ตัว (มองเห็นตัวอักษร) · เว้นว่าง = ใช้รหัสเดิม" autocomplete="off">
       <div class="sub" style="margin:5px 0 0">🔒 รหัสเดิมถูกเข้ารหัสทางเดียวไว้ในระบบ <b>ดูย้อนไม่ได้</b> (มาตรฐานความปลอดภัย — กันรหัสรั่วถึงแม้ข้อมูลหลุด) · พนักงานลืมรหัส? พิมพ์รหัสใหม่ตรงนี้แล้วกดบันทึก ใช้ได้ทันที</div></div>
@@ -9302,9 +9329,11 @@ async function userSaveEdit(uid){
   const name=($("#ue_name").value||'').trim();
   const role=$("#ue_role").value;
   const farms=role==='vet'?pickFarms('uef'):[];
+  const units=role==='vet'?pickUnits('ueu'):[];
   const pw=($("#ue_pass")&&$("#ue_pass").value)||'';   // 🔑 เว้นว่าง = ไม่แตะรหัสเดิม
   if(pw&&pw.length<6){ toast('รหัสผ่านใหม่ต้องยาวอย่างน้อย 6 ตัว'); return; }
-  const payload={action:'update',user_id:uid,name,role,farms};
+  if(units.length&&!farms.length){ toast('ติ๊กยูนิตแล้วต้องเลือกฟาร์มด้วย (เช่น ฟาร์มเบิกไพร + U1)'); return; }
+  const payload={action:'update',user_id:uid,name,role,farms,units};
   if(pw) payload.password=pw;
   try{ await adminUsersCall(payload); toast(pw?'บันทึกแล้ว ✓ ตั้งรหัสใหม่เรียบร้อย — จดบอกพนักงานได้เลย':'บันทึกแล้ว ✓'); $("#uEdit").innerHTML=''; await loadUsers(); }
   catch(e){ toast('ไม่สำเร็จ: '+e.message); }
