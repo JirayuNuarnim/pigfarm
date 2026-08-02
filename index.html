@@ -317,6 +317,7 @@
   .banner.info{background:var(--info-soft);color:#1d4e8f;border-color:#cfe0f6}
   .banner.bad{background:var(--bad-soft);color:#a52a20;border-color:#f3cdc8}
   .banner.ok{background:var(--ok-soft);color:#1d6e48;border-color:#c9ebd8}
+  .banner.warn{background:var(--warn-soft);color:#8a5f12;border-color:#ecd9b0}
 
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:13px;
     padding:13px 18px;font-size:15px;font-weight:600;background:linear-gradient(135deg,#26907e,var(--brand-d));color:#fff;width:100%;transition:filter .12s,transform .08s,box-shadow .12s;box-shadow:0 3px 12px rgba(31,125,110,.32)}
@@ -433,6 +434,7 @@
   body.theme-dark .banner.info{color:#a9c2f5;border-color:#3a4d7d}
   body.theme-dark .banner.bad{color:#f5b0a8;border-color:#6b4050}
   body.theme-dark .banner.ok{color:#9fe8c9;border-color:#31635f}
+  body.theme-dark .banner.warn{color:#eecf95;border-color:#6b5530}
 /* ── (SS) ปุ่ม/ตัวควบคุมบนแผนผัง: โทนเข้มกลืนกับพื้นกราฟ อ่านชัด (แทนปุ่มขาวโดดๆ) ── */
 #gCard .btn.ghost{background:rgba(19,36,42,.85);color:#cfe8e2;border:1px solid rgba(83,234,210,.3);box-shadow:none}
 #gCard .btn.ghost:hover{background:rgba(35,62,70,.95);border-color:rgba(83,234,210,.6);color:#fff}
@@ -1070,7 +1072,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802b';
+const APP_BUILD='690802c';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -12121,7 +12123,7 @@ const BR_FARMS=['ฟาร์มเบิกไพร','ฟาร์มวัน
 let BR={all:[],loaded:false}, brFarm='ฟาร์มเบิกไพร';
 let brTab='dash', brEvKind='mate', brQ='', brHouseF='', brEvHouse='', brHouseOpen='', brViewFn=null, _brRetry=null, brDashOpen={}, brShowAll=false, brBQ='', brRankView='all', brRankQ='';
 /* 🗄️ ตัวกรองของแท็บฐานข้อมูลแม่ (ยูนิต → เล้า → สถานะ) */
-let brDbUnit='', brDbHouse='', brDbStage='live', brDbSort='ear', brDbCap=200;
+let brDbUnit='', brDbHouse='', brDbStage='live', brDbSort='ear', brDbCap=200, brDbAuditOpen=false;
 let brBM=[{ear:'',boar:'',round:1}];
 function brToday(){ return new Date(); }
 function brISO(d){ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); }
@@ -12589,7 +12591,7 @@ async function brSowCull(ear){ const h=currentHouse; if(!h) return;
   const s=brDMSows(h).find(x=>String(x.ear)===String(ear)); if(!s) return;
   const why=prompt('❌ คัด/ตาย แม่ '+s.ear+' — เหตุผล (เช่น ตาย, คัดทิ้ง, ขาเสีย)',''); if(why==null) return;
   if(!confirm('ยืนยันคัด/ตาย แม่ '+s.ear+' ?\nแม่จะหายจากหลังนี้ แต่ประวัติยังอยู่ในทะเบียน')) return;
-  s.events=s.events||[]; s.events.unshift({t:'cull',date:brTodayISO(),note:String(why||'').trim(),house:brShortOf(h),by:brBy()});
+  s.events=s.events||[]; s.events.unshift({t:'cull',date:brTodayISO(),kind:'คัด/ตาย',reason:String(why||'').trim(),note:String(why||'').trim(),house:brShortOf(h),by:brBy()});
   s.stage='cull';
   await brPersist(s); brSowSel=''; toast('❌ บันทึกคัด/ตาย '+s.ear+' แล้ว'); brDailyRe();
 }
@@ -12873,10 +12875,48 @@ function brEvDesc(e){
   if(e.t==='preg') return 'ผลตรวจ: '+(e.result||'-');
   if(e.t==='farrow') return 'มีชีวิต '+(+e.alive||0)+' · ตายแรกคลอด '+(+e.still||0)+' · มัมมี่ '+(+e.mummy||0)+' · รวมเกิด '+((+e.alive||0)+(+e.still||0)+(+e.mummy||0))+((+e.wt||+e.cw)?' · นน.ครอก '+(+e.wt||+e.cw)+' กก.':'');
   if(e.t==='wean') return 'ลูกหย่า '+(+e.weaned||0)+' ตัว';
-  if(e.t==='cull') return (e.kind||'ปลด')+': '+(e.reason||'-')+((+e.wt)?' · นน. '+(+e.wt)+' กก.':'')+((+e.price)?' · ราคา '+fmt(+e.price)+' บาท':'')+(e.buyer?' · ผู้ซื้อ '+e.buyer:'');
+  if(e.t==='cull') return (e.kind||'ปลด')+': '+(e.reason||e.note||'-')+((+e.wt)?' · นน. '+(+e.wt)+' กก.':'')+((+e.price)?' · ราคา '+fmt(+e.price)+' บาท':'')+(e.buyer?' · ผู้ซื้อ '+e.buyer:'');
   if(e.t==='move') return (e.from||'?')+' → '+(e.to||'?');
   if(e.t==='care') return e.note||'';
   return e.note||'';
+}
+/* 🔗 ตัวตรวจความเชื่อมโยงของฐาน — แม่ทุกตัวต้องผูกกับเล้าจริง และสถานะต้องตรงกับประวัติล่าสุด
+   (ฐานข้อมูลแม่คือหัวใจ — เจ้าของย้ำ 2 ส.ค. 69: ข้อมูลต้องเชื่อมกันทั้งหมด จุดไหนหลุดต้องมองเห็นทันที) */
+function brDbAudit(){
+  const hs=brHousesFor(brFarm), hset={}; hs.forEach(h=>hset[h.s]=1);
+  const badHouse=[], noHouse=[], stageClash=[];
+  brSows().forEach(s=>{
+    if(s.stage==='cull') return;
+    if(!s.house) noHouse.push(s);
+    else if(!hset[s.house]) badHouse.push(s);
+    const life=(s.events||[]).find(e=>e&&['mate','preg','farrow','wean','cull'].includes(e.t)&&brIsISO(e.date));
+    if(!life) return;
+    let exp=null;   // สถานะที่ "ควรเป็น" ตามเหตุการณ์ล่าสุด
+    if(life.t==='farrow') exp=['nurse'];
+    else if(life.t==='wean') exp=['open'];
+    else if(life.t==='cull') exp=['cull'];
+    else if(life.t==='preg') exp=(life.result==='ท้อง')?['preg']:['open'];
+    else if(life.t==='mate') exp=['mated','preg'];   // นำเข้าเก่าไม่มีบันทึกตรวจท้อง — ถือว่า preg ได้
+    if(exp&&!exp.includes(s.stage)) stageClash.push({s:s,ev:life,exp:exp[0]});
+  });
+  return {badHouse,noHouse,stageClash,total:badHouse.length+noHouse.length+stageClash.length};
+}
+function brDbAuditHTML(){
+  const A=brDbAudit();
+  if(!A.total) return `<div class="sub" style="margin:-2px 0 9px;color:#1a5c3f">🔗 <b>ความเชื่อมโยงของฐาน: ✓ ครบทุกตัว</b> — แม่ทุกตัวผูกกับเล้าจริง · สถานะตรงกับประวัติล่าสุด</div>`;
+  const row=(s,why)=>`<div class="fieldrow" style="cursor:pointer;padding:5px 8px" onclick="brOpen(${escA(JSON.stringify(String(s.ear)))})">
+    <div class="fmeta"><div class="fn" style="font-size:12.5px"><b>${escA(s.ear)}</b> · 🏠 ${escA(s.house||'ไม่ระบุ')} · ${brStageTxt(s.stage)}</div>
+    <div class="sub" style="margin:1px 0 0;font-size:11.5px">${why}</div></div></div>`;
+  const CAP=40;
+  const sec=(list,title,whyFn)=>list.length?`<div style="margin:8px 0 2px;font-weight:800;font-size:12.5px">${title} <span class="more">${fmt(list.length)} ตัว</span></div>${list.slice(0,CAP).map(whyFn).join('')}${list.length>CAP?`<div class="sub" style="font-size:11.5px">แสดง ${CAP} ตัวแรก — ที่เหลือดูจาก Excel ทั้งฟาร์ม</div>`:''}`:'';
+  return `<div class="banner warn" style="margin:0 0 9px"><div style="width:100%">🔗 <b>จุดที่ข้อมูลยังไม่เชื่อมกัน ${fmt(A.total)} จุด</b>
+      — เล้าไม่มีจริง ${fmt(A.badHouse.length)} · ไม่ระบุเล้า ${fmt(A.noHouse.length)} · สถานะขัดประวัติ ${fmt(A.stageClash.length)}
+      <button class="btn ghost sm" style="margin-left:8px;padding:3px 10px" onclick="brDbAuditOpen=!brDbAuditOpen;brRe()">${brDbAuditOpen?'▴ ซ่อน':'▾ ดูรายการ'}</button>
+    ${brDbAuditOpen?`<div style="margin-top:6px">
+      ${sec(A.badHouse,'🏚️ รหัสเล้าไม่มีอยู่จริงในระบบ (พิมพ์ผิด/เล้ายังไม่ถูกสร้าง)',s=>row(s,'เล้า "'+escA(s.house)+'" ไม่พบในทะเบียนเล้าของ '+escA(brFarm)+' — แตะเพื่อเปิดบัตรแม่แล้วย้ายเข้าเล้าที่ถูก'))}
+      ${sec(A.noHouse,'❓ ยังไม่ระบุเล้า',s=>row(s,'ไม่รู้ว่าแม่ตัวนี้อยู่เล้าไหน — งานรายหลังจะมองไม่เห็นแม่ตัวนี้'))}
+      ${sec(A.stageClash,'⚡ สถานะขัดกับประวัติล่าสุด',x=>row(x.s,'เหตุการณ์ล่าสุด: '+(BR_EVT_NAME[x.ev.t]||x.ev.t)+' '+sbThaiDate(x.ev.date)+' → สถานะควรเป็น "'+brStageTxt(x.exp)+'" แต่ในฐานเป็น "'+brStageTxt(x.s.stage)+'"'))}
+      </div>`:''}</div></div>`;
 }
 function brDbList(){
   let list=brSows();
@@ -12920,6 +12960,7 @@ function brSowsHTML(){
     <div class="sbarch-head"><h3 style="margin:0">🗄️ ฐานข้อมูลแม่รายตัว <span class="more">${escA(brFarm.replace('ฟาร์ม',''))} · อยู่ในฝูง ${fmt(live)} ตัว${culled?' · ปลดแล้ว '+fmt(culled):''}</span></h3>
       <div class="srch"><input class="cin" placeholder="🔍 เบอร์หู / เล้า / พันธุ์" value="${escA(brQ)}" oninput="brQ=this.value;brDbCap=200;var el=document.getElementById('brSowList');if(el)el.innerHTML=brDbTableHTML()"></div></div>
     <div class="sub" style="margin:-2px 0 9px">แม่ทุกตัวของฟาร์มอยู่ในฐานนี้ — แยกตาม <b>Unit → เล้า</b> · แตะเบอร์หูเพื่อดู<b>บัตรแม่</b> (อยู่เล้าไหน · สถานะ · ประวัติผสม/คลอด/หย่านม/ย้ายเล้า/ปลดขาย ครบทุกครั้ง) · ฟอร์มบันทึกงานทุกหน้าดึงเบอร์จากฐานนี้ตัวเดียวกัน</div>
+    ${brDbAuditHTML()}
 
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">🏛️ ${uChip('','ทุกยูนิต',live)}${units.map(u=>u?uChip(u,'Unit '+u.slice(1),nInU(u)):uChip('_none','เล้าสาว/ไม่มียูนิต',nInU('_none'))).join('')}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center">🏠
