@@ -1070,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801j';
+const APP_BUILD='690801k';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -12441,13 +12441,14 @@ function brMateCardHTML(h){
       <div id="brDMBox"><div class="sub">⏳ กำลังโหลดทะเบียนแม่จากระบบกลาง…</div></div></div>`)
     +(kind!=='ค'?'':`<div class="card" style="border-color:#a9c4de">
       <h3>👶 ลงคลอดวันนี้ <span class="more">เล้าคลอด — ลงหลายแม่รวดเดียว</span></h3>
-      <div id="brFRBox"><div class="sub">⏳ กำลังโหลดทะเบียนแม่จากระบบกลาง…</div></div></div>`);
+      <div id="brFRBox"><div class="sub">⏳ กำลังโหลดทะเบียนแม่จากระบบกลาง…</div></div></div><div id="brWsBox"></div>`);
 }
 function brDMFill(h){ if(!brDailyHouseKind(h)) return;
   brCloudLoad().then(ok=>{
     const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=ok?brHouseOverviewHTML(h):'';
     const sb=document.getElementById('brSowBox'); if(sb) sb.innerHTML=ok?brSowBoxHTML(h):'';
     const fb=document.getElementById('brFRBox'); if(fb) fb.innerHTML=ok?brFRBodyHTML(h):'<div class="sub">⚠️ โหลดทะเบียนแม่ไม่สำเร็จ</div>';
+    const ws=document.getElementById('brWsBox'); if(ws) ws.innerHTML=ok?brWeanShipHTML(h):'';
     const el=document.getElementById('brDMBox'); if(!el) return;
     el.innerHTML=ok?brDMBodyHTML(h):'<div class="sub">⚠️ โหลดทะเบียนแม่ไม่สำเร็จ — เช็คอินเทอร์เน็ตแล้วเปิดหลังนี้ใหม่อีกครั้ง</div>'; });
 }
@@ -12554,6 +12555,7 @@ function brDailyRe(){ const h=(typeof currentHouse!=='undefined'&&currentHouse)|
   const sb=document.getElementById('brSowBox'); if(sb) sb.innerHTML=brSowBoxHTML(h);
   const db=document.getElementById('brDMBox'); if(db) db.innerHTML=brDMBodyHTML(h);
   const fb=document.getElementById('brFRBox'); if(fb) fb.innerHTML=brFRBodyHTML(h);
+  const ws=document.getElementById('brWsBox'); if(ws) ws.innerHTML=brWeanShipHTML(h);
 }
 function brRe(){ if(document.getElementById('brOvBox')) brDailyRe(); else brHouseDetail(); }   // อยู่หน้าบันทึกรายวัน = วาดการ์ดใหม่ · อยู่หน้าทำงานรายหลัง = วาดหน้านั้นใหม่
 /* 👶 ตารางลงคลอดแบบชุด (เล้าคลอด ค) */
@@ -12652,6 +12654,60 @@ function brHouseOverviewHTML(h){
       ${(look.preg||look.farrow||look.wean)?`<div class="sub" style="margin-top:10px">📅 กำลังจะมาใน 7 วัน: ${[look.preg?'🔍 ตรวจท้อง '+fmt(look.preg)+' แม่':'',look.farrow?'🏠 ขึ้นเล้าคลอด '+fmt(look.farrow)+' แม่':'',look.wean?'🍼 หย่านม '+fmt(look.wean)+' แม่':''].filter(Boolean).join(' · ')}</div>`:''}
     </div>`;
   } finally { brFarm=prevFarm; }
+}
+/* ── 🚚 ส่งลูกหย่านมเข้าหลังอนุบาล (เชื่อมระบบแม่พันธุ์ → ระบบขุน · 1 ส.ค. 69) ──
+   ลูกที่หย่าวันนี้ในเล้าคลอด → กดส่งเป็น "หมูระหว่างทาง" (incoming) ของหลังปลายทาง
+   เสมียนหลังปลายทางเห็นแบนเนอร์ 🚚 อยู่แล้ว กดรับเข้าตามกลไกเดิมทุกอย่าง — ไม่ต้องพิมพ์ยอดใหม่ ไม่ตกหล่น
+   กันส่งซ้ำ: เช็ค incoming ของทุกหลังที่มาจากแหล่งเดียวกันวันเดียวกัน (ซิงก์ผ่าน houses ข้ามเครื่องได้) */
+function brWeanToday(h){
+  const sc=brShortOf(h), today=brTodayISO();
+  let n=0, moms=0;
+  brDMSows(h).forEach(s=>(s.events||[]).forEach(e=>{
+    if(e&&e.t==='wean'&&e.date===today&&(e.house===sc||s.house===sc)){ n+=(+e.weaned||0); moms++; } }));
+  return {n,moms};
+}
+function brWeanSentToday(h){
+  const tag='ลูกหย่านม '+brShortOf(h), today=brTodayISO();
+  let sent=0;
+  HOUSES.forEach(x=>(x.incoming||[]).forEach(t=>{ if(t&&t.date===DEMO_DATE_DAY&&String(t.note||'').indexOf(tag)===0) sent+=(+t.n||0); }));
+  return sent;
+}
+function brWeanShipHTML(h){
+  if(brDailyHouseKind(h)!=='ค') return '';
+  const w=brWeanToday(h); if(!w.n) return '';
+  const sent=brWeanSentToday(h), left=Math.max(0,w.n-sent);
+  const dests=HOUSES.filter(x=>x.id!==h.id&&x.code&&!/^[ทคส]\d/.test(brShortOf(x))).slice().sort(byCode);
+  return `<div class="card" style="border-color:#2d5f8a">
+    <h3>🚚 ส่งลูกหย่าวันนี้เข้าหลังอนุบาล <span class="more">หย่าแล้ว ${fmt(w.n)} ตัว · ${fmt(w.moms)} แม่${sent?' · ส่งแล้ว '+fmt(sent):''}</span></h3>
+    ${left<=0?'<div class="banner ok">✅ <div>ลูกหย่าวันนี้ถูกส่งเข้าหลังปลายทางครบแล้ว — เสมียนหลังปลายทางกดรับเข้าได้เลย</div></div>'
+    :`<div class="fgrid">
+      <div class="frow"><label>หลังปลายทาง (อนุบาล)</label>
+        <select id="brWs_dest" class="cin tl"><option value="">— เลือกหลัง —</option>
+          ${dests.map(x=>`<option value="${x.id}">${escA(x.code)} · ${escA(x.farm||'')}${(x.pigs||0)>0?' (มีหมู '+fmt(x.pigs)+')':' (ว่าง)'}</option>`).join('')}</select></div>
+      <div class="frow"><label>จำนวนส่ง (ตัว)</label><div class="unit"><input id="brWs_n" class="cin tl" type="number" value="${left}"><span class="u">ตัว</span></div></div>
+      <div class="frow"><label>น้ำหนักรวม (กก.) <span class="hint">(ไม่รู้เว้นได้)</span></label><div class="unit"><input id="brWs_w" class="cin tl" type="number" placeholder="0"><span class="u">กก.</span></div></div>
+    </div>
+    <div class="actions" style="margin-top:10px"><button class="btn" onclick="brWeanShip()">🚚 ส่งเข้าหลังปลายทาง</button></div>
+    <div class="sub" style="margin-top:7px">ระบบจะแจ้งหลังปลายทางเป็น "หมูระหว่างทาง" — เสมียนกดรับเข้าแล้วยอดหมูขึ้นเองพร้อมแหล่งที่มา</div>`}
+  </div>`;
+}
+async function brWeanShip(){
+  if(typeof blockIfReadonly==='function'&&blockIfReadonly()) return;
+  const h=currentHouse; if(!h) return;
+  const dSel=document.getElementById('brWs_dest'), dest=HOUSES.find(x=>x.id===+(dSel&&dSel.value));
+  if(!dest){ toast('เลือกหลังปลายทางก่อน'); return; }
+  const n=Number((document.getElementById('brWs_n')||{}).value)||0;
+  if(!(n>0)){ toast('ใส่จำนวนลูกที่ส่งเป็นตัวเลข'); return; }
+  const w=Number((document.getElementById('brWs_w')||{}).value)||0;
+  const wt=brWeanToday(h), sent=brWeanSentToday(h);
+  if(n>wt.n-sent && !confirm('ส่ง '+fmt(n)+' ตัว มากกว่าลูกหย่าที่เหลือ ('+fmt(Math.max(0,wt.n-sent))+' ตัว) — ยืนยัน?')) return;
+  const tag='ลูกหย่านม '+brShortOf(h)+' ('+escA(h.farm||'')+')';
+  dest.incoming=dest.incoming||[];
+  dest.incoming.push({from:tag,fromId:h.id,n:n,w:w||'',note:tag+' · '+fmt(wt.moms)+' แม่',date:DEMO_DATE_DAY,ts:Date.now()});
+  syncHouseClerk(dest);
+  try{ logAudit('แม่พันธุ์',h.code||'','ส่งลูกหย่า '+fmt(n)+' ตัว → '+String(dest.code||''),null,''); }catch(e){}
+  toast('🚚 ส่งลูกหย่า '+fmt(n)+' ตัว ไป '+String(dest.code)+' แล้ว — รอเสมียนกดรับเข้า');
+  brDailyRe();
 }
 function brDMSows(h){ return (BR.all||[]).filter(s=>s.farm===(h.farm||'')&&(s.kind||'')!=='boar'); }
 function brDMBodyHTML(h){
