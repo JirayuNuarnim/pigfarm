@@ -1072,7 +1072,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802c';
+const APP_BUILD='690802d';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -12160,7 +12160,7 @@ function brBoars(){ return BR.all.filter(s=>s.farm===brFarm&&(s.kind||'')==='boa
 function brSowByEar(ear){ const e=String(ear||'').trim().toLowerCase(); return brSows().find(s=>String(s.ear).toLowerCase()===e); }
 /* ⚙️ ตัวแปรนาฬิกาต่อฟาร์ม (BRCFG ซิงก์ผ่าน options) — ไม่ตั้ง = ค่าตำรากลาง */
 const BR_CFG_DEF={cycle:21,gest:114,pregchk:28,lact:28,giltIn:245,giltMate:240};
-function brCfg(){ const o=(typeof BRCFG==='object'&&BRCFG&&BRCFG[brFarm])||{}; const c={}; for(const k in BR_CFG_DEF){ const v=+o[k]; c[k]=(v&&v>0)?v:BR_CFG_DEF[k]; } return c; }
+function brCfg(){ const o=(typeof BRCFG==='object'&&BRCFG&&BRCFG[brFarm])||{}; const c={}; for(const k in BR_CFG_DEF){ const v=+o[k]; c[k]=(v&&v>0)?v:BR_CFG_DEF[k]; } c.wkTarget=(+o.wkTarget>0)?+o.wkTarget:0; return c; }   // wkTarget=0 → ให้ระบบคำนวณเป้าผสม/สัปดาห์เอง
 
 /* ── คลาวด์ ── */
 function brPack(s){ return {breed:s.breed||'',parity:+s.parity||0,teats:+s.teats||0,born:s.born||'',house:s.house||'',stage:s.stage||'open',hc:s.hc||'',note:s.note||'',events:s.events||[]}; }
@@ -12251,7 +12251,7 @@ async function renderBreeding(){
   const due=brDueList();
   const fchips=BR_FARMS.map(f=>{ const n=BR.all.filter(s=>s.farm===f&&s.stage!=='cull'&&(s.kind||'')!=='boar').length;
     return `<button class="sbfchip${brFarm===f?' on':''}" onclick="brFarm='${escA(f)}';brHouseF='';brHouseOpen='';brDbUnit='';brDbHouse='';brDbCap=200;renderBreeding()">${escA(f.replace('ฟาร์ม',''))} (${fmt(n)})</button>`; }).join('');
-  const tabs=[['dash','📊 ภาพรวม'],['work','📋 งานวันนี้'+(due.length?' ('+due.length+')':'')],['houses','🏠 รายหลัง'],['rank','🏅 จัดอันดับแม่'],['sows','🗄️ ฐานข้อมูลแม่'],['boar','🐗 พ่อพันธุ์'+(brBoars().length?' ('+fmt(brBoars().length)+')':'')],['reg','➕ ขึ้นทะเบียน'],['ev','📝 ฟอร์มบันทึก'],['kpi','📊 KPI·ตั้งค่า']];
+  const tabs=[['dash','📊 ภาพรวม'],['work','📋 งานวันนี้'+(due.length?' ('+due.length+')':'')],['week','🎯 ชุดผสม Week'],['houses','🏠 รายหลัง'],['rank','🏅 จัดอันดับแม่'],['sows','🗄️ ฐานข้อมูลแม่'],['boar','🐗 พ่อพันธุ์'+(brBoars().length?' ('+fmt(brBoars().length)+')':'')],['reg','➕ ขึ้นทะเบียน'],['ev','📝 ฟอร์มบันทึก'],['kpi','📊 KPI·ตั้งค่า']];
   $("#view").innerHTML=`
     <h2 class="page">🐷 ระบบแม่พันธุ์ <span class="more">ฐานข้อมูลแม่รายตัว · ${escA(brFarm)}</span></h2>
     <div class="sub">เลือกฟาร์ม:</div>
@@ -12261,7 +12261,7 @@ async function renderBreeding(){
         `<div class="card" style="margin:0;padding:10px 16px;min-width:96px"><div class="sub" style="margin:0;font-size:11.5px">${x[0]}</div><div style="font-size:22px;font-weight:800">${fmt(x[1])}</div></div>`).join('')}
     </div>
     <div class="seg" style="max-width:860px">${tabs.map(t=>`<button class="${brTab===t[0]?'on':''}" onclick="brTab='${t[0]}';renderBreeding()">${t[1]}</button>`).join('')}</div>
-    <div id="brBody">${brTab==='dash'?brDashHTML():brTab==='work'?brWorkHTML():brTab==='houses'?brHousesHTML():brTab==='rank'?brRankHTML():brTab==='sows'?brSowsHTML():brTab==='boar'?brBoarHTML():brTab==='reg'?brRegHTML():brTab==='ev'?brEvHTML():brKpiHTML()}</div>`;
+    <div id="brBody">${brTab==='dash'?brDashHTML():brTab==='work'?brWorkHTML():brTab==='week'?brWeekHTML():brTab==='houses'?brHousesHTML():brTab==='rank'?brRankHTML():brTab==='sows'?brSowsHTML():brTab==='boar'?brBoarHTML():brTab==='reg'?brRegHTML():brTab==='ev'?brEvHTML():brKpiHTML()}</div>`;
 }
 function brEmptyHTML(){
   return `<div class="card"><h3>🐷 ${escA(brFarm)} ยังไม่มีแม่ในทะเบียน</h3>
@@ -12331,6 +12331,132 @@ function brWorkHTML(){
       <div style="display:flex;gap:6px;flex-wrap:wrap">${grp[k].map(s=>`<button class="sbhchip" onclick="brHouseOpen='${escA(s.house)}';brHouseDetail()">${escA(s.ear)} <span style="opacity:.6">${escA(s.house)}</span></button>`).join('')}</div>`).join('')
     :'<div class="sub">— ไม่มีงานถึงกำหนด'+(brHouseF?' ในหลัง '+escA(brHouseF):'')+' —</div>'}
     <div class="sub" style="margin-top:12px">💡 แตะแม่ตัวไหน = เปิดหน้าทำงานของหลังนั้น ลงผลได้ทันที · นาฬิกา: กลับสัด 18-24 · ตรวจท้อง 28-35 · วัคซีน 100-110 · ขึ้นคลอด 108-112 · หย่านม 21-28 วัน · สัดหลังหย่า 4-5 วัน</div></div>`;
+}
+
+/* ═══ 🎯 ชุดผสมราย Week (weekly batch system) ═══
+   หลักฟาร์มมาตรฐาน: แม่ที่ผสมสัปดาห์เดียวกัน = 1 ชุดผสม → คลอดสัปดาห์เดียวกัน (~gest/7 สัปดาห์ถัดไป) → หย่าพร้อมกัน
+   เป้าคลอด/สัปดาห์ = แม่ทั้งฝูง ÷ ช่วงห่างคลอด(สัปดาห์) · เป้าผสม/สัปดาห์ = เป้าคลอด ÷ อัตราคลอด (เผื่อกลับสัด/ไม่ท้อง)
+   สัปดาห์เริ่มวันจันทร์ · เลข Week ตาม ISO */
+let brWkOpen={};
+function brWeekStart(iso){ const p=String(iso).split('-'); const d=new Date(+p[0],+p[1]-1,+p[2]); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); return brISO(d); }
+function brWeekNo(iso){ const p=String(iso).split('-'); const d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2])); const wd=(d.getUTCDay()+6)%7; d.setUTCDate(d.getUTCDate()-wd+3); const ft=new Date(Date.UTC(d.getUTCFullYear(),0,4)); const fd=(ft.getUTCDay()+6)%7; ft.setUTCDate(ft.getUTCDate()-fd+3); return 1+Math.round((d-ft)/604800000); }
+const BR_TH_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function brWkShort(iso){ const p=String(iso).split('-'); return (+p[2])+' '+BR_TH_M[+p[1]-1]; }
+function brWkLabel(ws){ return 'W'+brWeekNo(ws); }
+function brWkRange(ws){ return brWkShort(ws)+' – '+brWkShort(brAddDays(ws,6)); }
+function brWeekData(){
+  const C=brCfg(), today=brTodayISO(), tW=brWeekStart(today), tD=brDnum(today);
+  const wk={}; const get=k=>wk[k]=wk[k]||{mSows:[],sv:0,far:0,pend:0,ret:0,farN:0,farAlive:0,weanN:0,weaned:0,dueFar:[],dueWean:[]};
+  brSows().forEach(s=>{
+    const evs=(s.events||[]).filter(e=>e&&brIsISO(e.date));
+    const mats=evs.filter(e=>e.t==='mate').sort((a,b)=>a.date<b.date?-1:1);
+    const fars=evs.filter(e=>e.t==='farrow').map(e=>brDnum(e.date));
+    const byW={}; mats.forEach(m=>{ const k=brWeekStart(m.date); get(k).sv++; byW[k]=m; });
+    Object.keys(byW).forEach(k=>{ const m=byW[k], md=brDnum(m.date), o=get(k);
+      let st='pend';
+      if(fars.some(fd=>fd-md>=C.gest-12&&fd-md<=C.gest+12)){ o.far++; st='far'; }
+      else if(mats.some(x=>brDnum(x.date)>md+7)||evs.some(e=>e.t==='preg'&&e.date>m.date&&e.result&&e.result!=='ท้อง')){ o.ret++; st='ret'; }
+      else if(tD-md>C.gest+15){ o.ret++; st='ret'; }   // เลยกำหนดคลอดแต่ไม่มีคลอด = ไม่สำเร็จ
+      else o.pend++;
+      o.mSows.push({ear:s.ear,st:st});
+    });
+    evs.filter(e=>e.t==='farrow').forEach(e=>{ const o=get(brWeekStart(e.date)); o.farN++; o.farAlive+=+e.alive||0; });
+    evs.filter(e=>e.t==='wean').forEach(e=>{ const o=get(brWeekStart(e.date)); o.weanN++; o.weaned+=+e.weaned||0; });
+    if(s.stage!=='cull'){
+      if(s.stage==='preg'||s.stage==='mated'){ const m=mats[mats.length-1]; if(m){ const k=brWeekStart(brAddDays(m.date,C.gest)); if(k>=tW) get(k).dueFar.push(s.ear); } }
+      if(s.stage==='nurse'){ const f=evs.filter(e=>e.t==='farrow').sort((a,b)=>a.date<b.date?-1:1).pop();
+        if(f){ let k=brWeekStart(brAddDays(f.date,C.lact)); if(k<tW) k=tW; get(k).dueWean.push(s.ear); } }
+    }
+  });
+  return {wk:wk,tW:tW};
+}
+/* เป้าผสม/สัปดาห์แนะนำ = (ฝูง ÷ ช่วงห่างคลอดเป็นสัปดาห์) ÷ อัตราคลอด */
+function brWkSuggest(){
+  const alive=brSows().filter(s=>s.stage!=='cull').length; if(!alive) return {t:0};
+  const K=brKpi();
+  const fi=Math.min(200,Math.max(130,(K.fiAvg&&K.fiAvg>=100)?K.fiAvg:154));
+  const rate=Math.min(0.95,Math.max(0.70,(K.farrowRate&&K.farrowRate>30)?K.farrowRate/100:0.85));   // คุม 70-95% กันข้อมูลนำเข้าไม่ครบทำเป้าเพี้ยน
+  const farWk=alive/(fi/7);
+  return {t:Math.ceil(farWk/rate), farWk:farWk, fi:fi, rate:rate*100, alive:alive};
+}
+function brWkTarget(){ const c=brCfg(); return (c.wkTarget>0)?{t:c.wkTarget,manual:true}:Object.assign(brWkSuggest(),{manual:false}); }
+function brWeekHTML(){
+  if(!brSows().length) return brEmptyHTML();
+  const C=brCfg(), D=brWeekData(), tW=D.tW, tg=brWkTarget();
+  const gestW=Math.round(C.gest/7);
+  const cur=D.wk[tW]||{mSows:[],sv:0,dueFar:[],dueWean:[]};
+  const mNow=cur.mSows.length, pct=tg.t?Math.min(100,Math.round(mNow/tg.t*100)):0;
+  // แม่พร้อมเข้าชุดสัปดาห์นี้
+  const today=brTodayISO();
+  const cands={ready:[],late:[],gilt:[]};
+  brSows().forEach(s=>{ if(s.stage==='cull')return;
+    if(s.stage==='open'){ const w=brLastEv(s,'wean'); const d=w?brDays(w.date):null;
+      if(d!=null&&d>=3&&d<=10) cands.ready.push(s); else cands.late.push(s); }
+    if(s.stage==='gilt'){ const a=s.born?brDays(s.born):null; if(a!=null&&a>=C.giltMate) cands.gilt.push(s); }
+  });
+  const kpi=(lab,val,sub,col)=>`<div style="flex:1;min-width:150px;background:#fff;border:1.5px solid var(--line);border-left:5px solid ${col||'#0f6b5f'};border-radius:12px;padding:10px 13px">
+      <div style="font-size:12px;font-weight:800;color:#5a6b66">${lab}</div>
+      <div style="font-size:22px;font-weight:900;color:${col||'#0f6b5f'}">${val}</div>
+      <div class="sub" style="margin:0;font-size:10.5px">${sub||''}</div></div>`;
+  const chip=(s,extra)=>`<button class="sbhchip" onclick="brOpen(${escA(JSON.stringify(String(s.ear)))})">${escA(s.ear)}${extra||''}</button>`;
+  // ตารางย้อนหลังคลุมถึงชุดที่คลอดแล้ว (gest + 6 สัปดาห์) + ล่วงหน้า 5
+  const backW=gestW+6;
+  const rows=[];
+  for(let i=-backW;i<=5;i++){
+    const ws=brAddDays(tW,i*7), o=D.wk[ws];
+    if(i>0&&!(o&&(o.dueFar.length||o.dueWean.length))) continue;
+    if(i<0&&!(o&&(o.mSows.length||o.farN||o.weanN))) continue;
+    rows.push({ws:ws,i:i,o:o||{mSows:[],sv:0,far:0,pend:0,ret:0,farN:0,farAlive:0,weanN:0,weaned:0,dueFar:[],dueWean:[]}});
+  }
+  const tr=r=>{
+    const o=r.o, n=o.mSows.length;
+    const mature=(brDnum(brTodayISO())-brDnum(r.ws))>C.gest+15;   // ชุดนี้ถึงกำหนดคลอดหรือยัง — ยังไม่ถึงอย่าตัดสินอัตราติด
+    const rate=(o.far+o.ret)?((o.far>0||mature)?Math.round(o.far/(o.far+o.ret)*100):'wait'):null;
+    const isCur=r.i===0, isFut=r.i>0;
+    const hit=n>=tg.t;
+    const open=!!brWkOpen[r.ws];
+    const ears=open?`<tr><td colspan="8" style="background:#f6faf8;padding:8px 10px"><div style="display:flex;gap:5px;flex-wrap:wrap">${o.mSows.map(x=>chip({ear:x.ear},x.st==='far'?' ✅':x.st==='ret'?' 🔁':' 🤰')).join('')||'<span class="sub">— ไม่มีแม่ผสมในสัปดาห์นี้ —</span>'}</div>
+      <div class="sub" style="margin:5px 0 0;font-size:11px">✅ คลอดแล้ว · 🤰 ท้อง/รอ · 🔁 กลับสัด/ไม่ติด · แตะเบอร์เปิดบัตรแม่</div></td></tr>`:'';
+    return `<tr class="clk" style="${isCur?'background:#eaf4f1;font-weight:700':''}" onclick="brWkOpen['${r.ws}']=!brWkOpen['${r.ws}'];brRe()">
+      <td><b>${brWkLabel(r.ws)}</b>${isCur?' 👈 สัปดาห์นี้':''}<br><span class="sub" style="font-size:10.5px">${brWkRange(r.ws)}</span></td>
+      <td class="num">${isFut?'-':`<b style="color:${hit?'#1a5c3f':(n?'#b7791f':'#a5342a')}">${fmt(n)}</b>/${fmt(tg.t)}${o.sv>n?' <span class="sub" style="font-size:10px">('+fmt(o.sv)+' ครั้ง)</span>':''}`}</td>
+      <td class="num">${o.far?`<span style="color:#1a5c3f">✅ ${fmt(o.far)}</span>`:'-'}</td>
+      <td class="num">${o.pend?`🤰 ${fmt(o.pend)}`:'-'}</td>
+      <td class="num">${o.ret?`<span style="color:#a5342a">🔁 ${fmt(o.ret)}</span>`:'-'}</td>
+      <td class="num">${rate==='wait'?'<span class="sub">รอผล</span>':(rate!=null?rate+'%':'-')}</td>
+      <td class="num">${o.farN?`${fmt(o.farN)} <span class="sub" style="font-size:10px">(${fmt(o.farAlive)} ตัว)</span>`:(o.dueFar.length?`<span style="color:#b7791f">คาด ${fmt(o.dueFar.length)}</span>`:'-')}</td>
+      <td class="num">${o.weanN?fmt(o.weanN):(o.dueWean.length?`<span style="color:#2d5f8a">คาด ${fmt(o.dueWean.length)}</span>`:'-')}</td></tr>${ears}`;
+  };
+  return `<div class="card"><h3>🎯 เป้าผสมรายสัปดาห์ <span class="more">${brWkLabel(tW)} · ${brWkRange(tW)} · สัปดาห์เริ่มวันจันทร์</span></h3>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:10px">
+      ${kpi('เป้าผสมสัปดาห์นี้',fmt(tg.t)+' แม่',tg.manual?'ตั้งเองในแท็บ ⚙️ KPI·ตั้งค่า':'คำนวณจากฝูง '+fmt(tg.alive||0)+' ตัว ÷ ห่างคลอด '+Math.round((tg.fi||154)/7)+' สัปดาห์ ÷ อัตราคลอด '+Math.round(tg.rate||85)+'%')}
+      ${kpi('ผสมแล้วสัปดาห์นี้',fmt(mNow)+' แม่','ครบ '+pct+'% ของเป้า'+(cur.sv>mNow?' · รวม '+fmt(cur.sv)+' ครั้ง':''),mNow>=tg.t?'#1a5c3f':'#b7791f')}
+      ${kpi('ยังขาดอีก',fmt(Math.max(0,tg.t-mNow))+' แม่','ชุด '+brWkLabel(tW)+' จะคลอดช่วง '+brWkLabel(brAddDays(tW,gestW*7)),mNow>=tg.t?'#1a5c3f':'#a5342a')}
+    </div>
+    <div style="background:var(--soft);border-radius:9px;height:14px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:${pct}%;background:${mNow>=tg.t?'#1a7d5e':'#d99a2b'};border-radius:9px"></div></div>
+    <div class="sub">แม่ที่ผสมสัปดาห์เดียวกัน = <b>ชุดผสมเดียวกัน</b> → คลอดพร้อมกันอีก ~${gestW} สัปดาห์ → เล้าคลอดหมุนสม่ำเสมอ ไม่ว่างไม่ล้น</div>
+  </div>
+
+  <div class="card"><h3>💕 แม่พร้อมเข้าชุดผสมสัปดาห์นี้ <span class="more">${fmt(cands.ready.length+cands.late.length+cands.gilt.length)} ตัว</span></h3>
+    ${cands.ready.length?`<div style="margin:4px 0 2px;font-weight:800;font-size:13px">🟢 หย่านม 3-10 วัน (ช่วงสัดพอดี) <span class="more">${fmt(cands.ready.length)} ตัว</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${cands.ready.map(s=>chip(s,' <span style="opacity:.6">'+escA(s.house||'')+'</span>')).join('')}</div>`:''}
+    ${cands.late.length?`<div style="margin:9px 0 2px;font-weight:800;font-size:13px">⏳ รอผสมค้าง (หย่าเกิน 10 วัน / กลับสัด) <span class="more">${fmt(cands.late.length)} ตัว</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${cands.late.slice(0,60).map(s=>chip(s,' <span style="opacity:.6">'+escA(s.house||'')+'</span>')).join('')}${cands.late.length>60?'<span class="sub">+'+fmt(cands.late.length-60)+' ตัว (ดูในฐานข้อมูล ตัวกรอง ⏳ รอผสม)</span>':''}</div>`:''}
+    ${cands.gilt.length?`<div style="margin:9px 0 2px;font-weight:800;font-size:13px">🌸 สาวถึงวัยผสม (≥ ${C.giltMate} วัน) <span class="more">${fmt(cands.gilt.length)} ตัว</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${cands.gilt.map(s=>chip(s,' <span style="opacity:.6">'+escA(s.house||'')+'</span>')).join('')}</div>`:''}
+    ${(cands.ready.length+cands.late.length+cands.gilt.length)?'':'<div class="sub">— ตอนนี้ไม่มีแม่รอผสม —</div>'}
+    <div class="sub" style="margin-top:8px">ลงผสมจริง: เปิด 🏠 หน้าทำงานของเล้า ท แล้วใช้ตาราง "ลงผสมวันนี้" หรือแตะเบอร์ → บัตรแม่ → 💕 ผสม · ถ้าแม่พร้อมมากกว่าเป้า เลือกตัวหย่าใหม่/คะแนนดีก่อน แล้วที่เหลือดันเข้าชุดสัปดาห์หน้า</div>
+  </div>
+
+  <div class="card"><h3>📅 กระดานชุดผสมราย Week <span class="more">ย้อนหลังถึงชุดที่คลอดแล้ว (~${gestW+6} สัปดาห์) · ล่วงหน้า 5 · แตะแถวดูเบอร์แม่ในชุด</span></h3>
+    <div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
+      <thead><tr><th>Week</th><th class="num">ผสม/เป้า</th><th class="num">คลอดแล้ว</th><th class="num">ท้อง/รอ</th><th class="num">ไม่ติด</th><th class="num">อัตราติด</th><th class="num">คลอดในสัปดาห์</th><th class="num">หย่า/พร้อมผสม</th></tr></thead>
+      <tbody>${rows.map(tr).join('')}</tbody></table></div>
+    <div class="sub" style="margin-top:8px;line-height:1.6"><b>อ่านยังไง:</b> <b>ผสม/เป้า</b> = แม่ที่ผสมจริงในสัปดาห์นั้นเทียบเป้า (เขียว=ถึงเป้า) ·
+      <b>คลอดแล้ว/ท้อง/ไม่ติด</b> = ผลของชุดผสมสัปดาห์นั้นตามจริง · <b>อัตราติด</b> = คลอด ÷ (คลอด+ไม่ติด) เป้ามาตรฐาน ≥ 85% ·
+      <b>คลอดในสัปดาห์</b> = ครอกที่คลอดจริง (แถวอนาคต = คาดจากแม่ท้อง) · <b>หย่า/พร้อมผสม</b> = แม่หย่านมสัปดาห์นั้น = ตัวป้อนเข้าชุดผสมสัปดาห์ถัดไป —
+      แถวอนาคตช่วยวางแผนล่วงหน้าว่าสัปดาห์ไหนแม่จะพร้อมกี่ตัว เล้าคลอดต้องว่างกี่ช่อง</div>
+  </div>`;
 }
 
 /* ── แท็บ: รายหลัง ── */
@@ -13037,7 +13163,7 @@ function brSowSheetRows(list,scoreMap){
       brThai(s.born), s.born?brDays(s.born):'', brAgeTxt(s.born), +s.teats||'',
       +s.parity||0, brStageTxt(s.stage).replace(/^\S+\s/,''), sSince?brDays(sSince):'',
       brThai(hSince), hSince?brDays(hSince):'',
-      mate?brThai(mate.date):'', mate?(mate.boar||''):'', brThai(expect),
+      mate?brThai(mate.date):'', (mate&&brIsISO(mate.date))?brWkLabel(brWeekStart(mate.date)):'', mate?(mate.boar||''):'', brThai(expect),
       last?brThai(last.farrow):'', last?last.alive:'', last&&last.wean?brThai(last.wean):'', (last&&last.weaned!=null)?last.weaned:'',
       L.length, L.reduce((a,r)=>a+r.alive,0), L.reduce((a,r)=>a+(r.weaned||0),0),
       st.aliveAvg!=null?+st.aliveAvg.toFixed(2):'', st.weanedAvg!=null?+st.weanedAvg.toFixed(2):'',
@@ -13051,7 +13177,7 @@ const BR_SOW_COLS=[{label:'ยูนิต',type:'txt',w:55},{label:'เล้�
   {label:'วันเกิด',w:80},{label:'อายุ (วัน)',type:'num',w:65},{label:'อายุ',w:70},{label:'เต้านม',type:'num',w:55},
   {label:'ครอกที่',type:'num',w:55},{label:'สถานะ',w:95},{label:'วันในสถานะ',type:'num',w:75},
   {label:'เข้าเล้านี้เมื่อ',w:85},{label:'อยู่เล้านี้ (วัน)',type:'num',w:80},
-  {label:'ผสมล่าสุด',w:85},{label:'พ่อพันธุ์ล่าสุด',type:'txt',w:95},{label:'กำหนดคลอด',w:85},
+  {label:'ผสมล่าสุด',w:85},{label:'Week ผสม',type:'txt',w:60},{label:'พ่อพันธุ์ล่าสุด',type:'txt',w:95},{label:'กำหนดคลอด',w:85},
   {label:'คลอดล่าสุด',w:85},{label:'ลูกมีชีวิต (ครอกล่าสุด)',type:'num',w:95},{label:'หย่านมล่าสุด',w:85},{label:'ลูกหย่า (ครอกล่าสุด)',type:'num',w:95},
   {label:'ครอกในระบบ',type:'num',w:75},{label:'ลูกมีชีวิตรวม',type:'num',w:80},{label:'ลูกหย่ารวม',type:'num',w:75},
   {label:'ลูกมีชีวิต/ครอก',type:'dec',w:85},{label:'ลูกหย่า/ครอก',type:'dec',w:85},{label:'ผสม/ครอก',type:'dec',w:75},{label:'NPD (วัน/ปี)',type:'num',w:80},
@@ -13208,6 +13334,8 @@ function brOpen(ear){
         <div><span class="sub">ยูนิต / เล้า</span><br><b>${unit?'🏛️ Unit '+escA(unit.slice(1))+' · ':''}🏠 ${escA(s.house||'ยังไม่ระบุ')}</b> <span class="sub">${brKindTxt(brKindOfCode(s.house))}</span></div>
         <div><span class="sub">อยู่เล้านี้ตั้งแต่</span><br><b>${hSince?sbThaiDate(hSince)+' ('+fmt(brDays(hSince))+' วัน)':'-'}</b></div>
         <div><span class="sub">สถานะ</span><br><b>${brStageTxt(s.stage)}</b>${sSince?' <span class="sub">'+fmt(brDays(sSince))+' วัน (ตั้งแต่ '+sbThaiDate(sSince)+')</span>':''}</div>
+        ${(function(){ const m=brLastEv(s,'mate'); if(!m||!brIsISO(m.date)) return ''; const ws=brWeekStart(m.date);
+          return '<div><span class="sub">ชุดผสม (Week)</span><br><b>🎯 '+brWkLabel(ws)+'</b> <span class="sub">'+brWkRange(ws)+'</span></div>'; })()}
         <div><span class="sub">วันเกิด / อายุ</span><br><b>${s.born?sbThaiDate(s.born):'-'}</b> <span class="sub">${brAgeTxt(s.born)}</span></div>
         <div><span class="sub">พันธุ์ · เต้านม</span><br><b>${escA(s.breed||'-')}</b>${s.teats?' · '+fmt(s.teats)+' เต้า':''}</div>
       </div>
@@ -13395,6 +13523,7 @@ function brCfgCardHTML(){
       ${inp('brC_lact','ช่วงเลี้ยงลูก/ให้นม (วัน)',C.lact)}
       ${inp('brC_giltIn','หมูสาวเข้าฝูง (อายุวัน)',C.giltIn)}
       ${inp('brC_giltMate','หมูสาวเริ่มผสม (อายุวัน)',C.giltMate)}
+      <div class="frow"><label>🎯 เป้าผสมต่อสัปดาห์ (แม่) — ใส่ 0 = ให้ระบบคำนวณเอง</label><input class="cin" id="brC_wk" type="number" min="0" value="${C.wkTarget||0}" ${can?'':'disabled'}></div>
     </div>
     ${can?`<button class="btn" style="margin-top:12px" onclick="brCfgSave()">💾 บันทึกค่าตั้ง</button>`:''}
     <div class="sub" style="margin-top:8px">นาฬิกางานคำนวณจากค่าชุดนี้: เช็คกลับสัดวัน ${C.cycle-3}-${C.cycle+3} · ตรวจท้องวัน ${C.pregchk}-${C.pregchk+7} · วัคซีนก่อนคลอดวัน ${C.gest-14}-${C.gest-6} · ขึ้นเล้าคลอดวัน ${C.gest-6} · คาดคลอดวัน ${C.gest} · หย่านมวัน ${C.lact-7}-${C.lact} · สัดหลังหย่า 4-5 วัน</div></div>`;
@@ -13404,6 +13533,7 @@ function brCfgSave(){
   const g=id=>+((document.getElementById(id)||{}).value)||0;
   const c={cycle:g('brC_cycle'),gest:g('brC_gest'),pregchk:g('brC_pregchk'),lact:g('brC_lact'),giltIn:g('brC_giltIn'),giltMate:g('brC_giltMate')};
   for(const k in BR_CFG_DEF){ if(!(c[k]>0)){ toast('ใส่ตัวเลขให้ครบทุกช่อง'); return; } }
+  c.wkTarget=g('brC_wk')||0;   // 0 = คำนวณเป้าผสม/สัปดาห์อัตโนมัติจากฝูง
   if(c.gest<100||c.gest>125){ if(!confirm('ระยะตั้งท้อง '+c.gest+' วัน ดูผิดปกติ (ปกติ ~114-116) — ยืนยัน?')) return; }
   if(typeof BRCFG!=='object'||!BRCFG||Array.isArray(BRCFG)) BRCFG={};
   BRCFG[brFarm]=c;
