@@ -1073,7 +1073,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802j';
+const APP_BUILD='690802k';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -12170,7 +12170,9 @@ function brBoars(){ return BR.all.filter(s=>s.farm===brFarm&&(s.kind||'')==='boa
 function brSowByEar(ear){ const e=String(ear||'').trim().toLowerCase(); return brSows().find(s=>String(s.ear).toLowerCase()===e); }
 /* ⚙️ ตัวแปรนาฬิกาต่อฟาร์ม (BRCFG ซิงก์ผ่าน options) — ไม่ตั้ง = ค่าตำรากลาง */
 const BR_CFG_DEF={cycle:21,gest:114,pregchk:28,lact:28,giltIn:245,giltMate:240};
-function brCfg(){ const o=(typeof BRCFG==='object'&&BRCFG&&BRCFG[brFarm])||{}; const c={}; for(const k in BR_CFG_DEF){ const v=+o[k]; c[k]=(v&&v>0)?v:BR_CFG_DEF[k]; } c.wkTarget=(+o.wkTarget>0)?+o.wkTarget:0; return c; }   // wkTarget=0 → ให้ระบบคำนวณเป้าผสม/สัปดาห์เอง
+/* 🌾 ไกด์อาหารต่อแม่ (กก./ตัว/วัน) — ตำรามาตรฐาน: ต้นท้องคุมอาหารช่วงฝังตัวอ่อน · กลางท้องตามสภาพร่างกาย · ปลายท้องเร่ง (ลูกโต 70% ช่วงนี้) · เลี้ยงลูกไต่ขึ้นวันละ ~0.5 กก. · หย่าแล้วให้เต็มที่กระตุ้นไข่ตก */
+const BR_FG_DEF={fgEarly:2.2,fgMid:2.4,fgLate:3.2,fgLact:6.5,fgOpen:3.0,fgGilt:2.3};
+function brCfg(){ const o=(typeof BRCFG==='object'&&BRCFG&&BRCFG[brFarm])||{}; const c={}; for(const k in BR_CFG_DEF){ const v=+o[k]; c[k]=(v&&v>0)?v:BR_CFG_DEF[k]; } c.wkTarget=(+o.wkTarget>0)?+o.wkTarget:0; for(const k in BR_FG_DEF){ c[k]=(+o[k]>0)?+o[k]:BR_FG_DEF[k]; } return c; }   // wkTarget=0 → ให้ระบบคำนวณเป้าผสม/สัปดาห์เอง
 
 /* ── คลาวด์ ── */
 function brPack(s){ return {breed:s.breed||'',parity:+s.parity||0,teats:+s.teats||0,born:s.born||'',house:s.house||'',stage:s.stage||'open',hc:s.hc||'',note:s.note||'',events:s.events||[]}; }
@@ -12618,6 +12620,7 @@ function brHouseDetail(){
     </div>
     ${isT?`<div class="card"><h3>💕 ลงผสมวันนี้ (ทีละหลายแม่) <span class="more">ผสมเช้า-บ่ายลงรวดเดียว</span></h3>
       <div id="brBMBox">${brBMHTML(h)}</div></div>`:''}
+    ${brFeedGuideCardHTML(h.s,brFarm)}
     <div class="card"><h3>🚚 รับแม่เข้าเล้านี้ <span class="more">รับเข้าของเล้าแม่พันธุ์ = ลงเบอร์แม่ที่เข้ามา</span></h3>
       ${brRcvSectionHTML(h.s,brFarm,true)}</div>
     ${brHouseMoveLogHTML(h.s)}
@@ -12699,7 +12702,7 @@ function brMateCardHTML(h){
 }
 function brDMFill(h){ if(!brDailyHouseKind(h)) return;
   brCloudLoad().then(ok=>{
-    const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=ok?brHouseOverviewHTML(h):'';
+    const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=ok?(brHouseOverviewHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm)):'';
     const sb=document.getElementById('brSowBox'); if(sb) sb.innerHTML=ok?brSowBoxHTML(h):'';
     const fb=document.getElementById('brFRBox'); if(fb) fb.innerHTML=ok?brFRBodyHTML(h):'<div class="sub">⚠️ โหลดทะเบียนแม่ไม่สำเร็จ</div>';
     const ws=document.getElementById('brWsBox'); if(ws) ws.innerHTML=ok?brWeanShipHTML(h):'';
@@ -12820,6 +12823,52 @@ function brHouseMoveLogHTML(sc){
     ${rows||'<div class="sub">— ยังไม่มีประวัติเข้า-ออก —</div>'}
     <div class="sub" style="margin-top:7px;font-size:11.5px">รวม 📥 รับเข้า · 📤 ย้ายออก · ➕ ขึ้นทะเบียนใหม่ · ❌ ปลด/ตาย ในเล้านี้ — แตะรายการเปิดบัตรแม่</div></div>`;
 }
+
+/* ═══ 🌾 ไกด์การให้อาหารรายวันของเล้าแม่พันธุ์ (เจ้าของ 2 ส.ค. 69) ═══
+   เล้าอุ้มท้อง "กินได้/วัน" = โควตาให้กินต่อแม่ ตามช่วงสัปดาห์อุ้มท้อง (ไม่ใช่กินเสรีแบบหมูขุน)
+   ตำรามาตรฐาน: สัปดาห์ 1-4 คุมอาหาร (กินเยอะช่วงฝังตัวอ่อน = ลูกติดน้อย) · สัปดาห์ 5-12 ตามสภาพร่างกาย
+   สัปดาห์ 13-คลอด เร่งอาหาร (ลูกในท้องโต 70% ช่วงนี้) · ก่อนคลอด 1-2 วันลดลง · เลี้ยงลูกไต่ขึ้นวันละ ~0.5 กก. · หย่าแล้วให้เต็มที่ (flushing) */
+function brFeedGuideOf(s){
+  const C=brCfg();
+  if(s.stage==='preg'||s.stage==='mated'){
+    const m=brLastEv(s,'mate'); const d=m&&brIsISO(m.date)?brDays(m.date):null;
+    if(d==null) return {kg:C.fgMid,grp:'🤰 อุ้มท้อง (ไม่ทราบวันผสม)',wk:null};
+    const wk=Math.floor(d/7)+1;
+    if(d>=C.gest-2) return {kg:Math.max(1.5,C.fgEarly-0.2),grp:'👶 ใกล้คลอด (ลดอาหาร)',wk:wk};
+    if(d<=28) return {kg:C.fgEarly,grp:'🤰 ท้องสัปดาห์ 1-4 (คุมอาหาร ช่วงฝังตัวอ่อน)',wk:wk};
+    if(d<=84) return {kg:C.fgMid,grp:'🤰 ท้องสัปดาห์ 5-12 (ช่วงกลาง ตามสภาพร่างกาย)',wk:wk};
+    return {kg:C.fgLate,grp:'🤰 ท้องสัปดาห์ 13-คลอด (เร่งปลายท้อง)',wk:wk};
+  }
+  if(s.stage==='nurse'){
+    const f=brLastEv(s,'farrow'); const d=f&&brIsISO(f.date)?brDays(f.date):null;
+    const kg=d==null?C.fgLact:Math.min(C.fgLact,2+0.5*Math.max(0,d));
+    return {kg:+kg.toFixed(1),grp:'🍼 เลี้ยงลูก (ไต่ขึ้นวันละ ~0.5 กก. จนเต็มที่ '+C.fgLact+')',wk:null};
+  }
+  if(s.stage==='open') return {kg:C.fgOpen,grp:'⏳ รอผสม (ให้เต็มที่ กระตุ้นไข่ตก)',wk:null};
+  if(s.stage==='gilt') return {kg:C.fgGilt,grp:'🌸 สาวรอผสม',wk:null};
+  return null;
+}
+function brFeedGuideCardHTML(sc,farm){
+  const prevFarm=brFarm; if(farm) brFarm=farm;
+  try{
+    const ss=brSows().filter(s=>s.house===sc&&s.stage!=='cull');
+    if(!ss.length) return '';
+    const G={}; let tot=0, n=0;
+    ss.forEach(s=>{ const g=brFeedGuideOf(s); if(!g) return;
+      const o=G[g.grp]=G[g.grp]||{n:0,kg:0}; o.n++; o.kg+=g.kg; tot+=g.kg; n++; });
+    const ORD=['🤰 ท้องสัปดาห์ 1-4','🤰 ท้องสัปดาห์ 5-12','🤰 ท้องสัปดาห์ 13-คลอด','👶 ใกล้คลอด','🤰 อุ้มท้อง (ไม่ทราบ','🍼 เลี้ยงลูก','⏳ รอผสม','🌸 สาว'];
+    const keys=Object.keys(G).sort((a,b)=>{ const ia=ORD.findIndex(p=>a.startsWith(p)), ib=ORD.findIndex(p=>b.startsWith(p)); return (ia<0?99:ia)-(ib<0?99:ib); });
+    const rows=keys.map(k=>{ const o=G[k];
+      return `<tr><td>${escA(k)}</td><td class="num">${fmt(o.n)}</td><td class="num">${(o.kg/o.n).toFixed(1)}</td><td class="num"><b>${o.kg.toFixed(1)}</b></td></tr>`; }).join('');
+    return `<div class="card" style="border-color:#c9a45a"><h3>🌾 ไกด์การให้อาหารวันนี้ <span class="more">ตามช่วงอุ้มท้อง/เลี้ยงลูกของแม่แต่ละตัวในเล้า</span></h3>
+      <div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
+        <thead><tr><th>ช่วงของแม่</th><th class="num">แม่ (ตัว)</th><th class="num">กก./ตัว/วัน</th><th class="num">รวม (กก.)</th></tr></thead>
+        <tbody>${rows}<tr style="background:#eaf4f1;font-weight:800;border-top:2px solid #2f6f63"><td>รวมทั้งเล้าควรให้วันนี้</td><td class="num">${fmt(n)}</td><td class="num">${n?(tot/n).toFixed(1):'-'}</td><td class="num">${tot.toFixed(1)} กก.</td></tr></tbody></table></div>
+      <div class="sub" style="margin-top:8px;line-height:1.6"><b>หลักการ:</b> ท้องสัปดาห์ 1-4 <b>คุมอาหาร</b> (กินเยอะช่วงตัวอ่อนฝังตัว = ลูกติดน้อย) · สัปดาห์ 5-12 ให้ตามสภาพร่างกาย (<b>แม่ผอมเพิ่ม 0.3-0.5 · แม่อ้วนลด 0.3-0.5</b>) ·
+        สัปดาห์ 13 ถึงคลอด <b>เร่งอาหาร</b> เพราะลูกในท้องโต ~70% ช่วงนี้ · ก่อนคลอด 1-2 วันลดลงกันเต้านมคัด · เลี้ยงลูกไต่ขึ้นวันละ ~0.5 กก. (ลูกดกให้ถึงเพดาน) · หย่าแล้วให้เต็มที่กระตุ้นไข่ตก ·
+        ตัวเลขต่อตัวปรับได้ที่ ⚙️ KPI·ตั้งค่า — ยอดรวมคำนวณใหม่เองทุกวันตามแม่ที่อยู่จริงในเล้า</div></div>`;
+  } finally { brFarm=prevFarm; }
+}
 function brRcvRe(){
   if(typeof currentHouse!=='undefined'&&currentHouse&&document.getElementById('brSowBox')){ brSowReDraw(); return; }
   if(document.getElementById('brRcvSec')){ try{ brHouseDetail(); }catch(e){} }
@@ -12917,7 +12966,7 @@ async function brSowCull(ear){ const h=currentHouse; if(!h) return;
   await brPersist(s); brSowSel=''; toast('❌ บันทึกคัด/ตาย '+s.ear+' แล้ว'); brDailyRe();
 }
 function brDailyRe(){ const h=(typeof currentHouse!=='undefined'&&currentHouse)||null; if(!h) return;
-  const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=brHouseOverviewHTML(h);
+  const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=brHouseOverviewHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm);
   const sb=document.getElementById('brSowBox'); if(sb) sb.innerHTML=brSowBoxHTML(h);
   const db=document.getElementById('brDMBox'); if(db) db.innerHTML=brDMBodyHTML(h);
   const fb=document.getElementById('brFRBox'); if(fb) fb.innerHTML=brFRBodyHTML(h);
@@ -13531,6 +13580,8 @@ function brOpen(ear){
         <div><span class="sub">สถานะ</span><br><b>${brStageTxt(s.stage)}</b>${sSince?' <span class="sub">'+fmt(brDays(sSince))+' วัน (ตั้งแต่ '+sbThaiDate(sSince)+')</span>':''}</div>
         ${(function(){ const m=brLastEv(s,'mate'); if(!m||!brIsISO(m.date)) return ''; const ws=brWeekStart(m.date);
           return '<div><span class="sub">ชุดผสม (Week)</span><br><b>🎯 '+brWkLabel(ws)+'</b> <span class="sub">'+brWkRange(ws)+'</span></div>'; })()}
+        ${(function(){ const g=s.stage==='cull'?null:brFeedGuideOf(s); if(!g) return '';
+          return '<div><span class="sub">🌾 อาหารแนะนำวันนี้</span><br><b>'+g.kg.toFixed(1)+' กก./วัน</b> <span class="sub">'+escA(g.grp.replace(/^\S+\s/,''))+'</span></div>'; })()}
         <div><span class="sub">วันเกิด / อายุ</span><br><b>${s.born?sbThaiDate(s.born):'-'}</b> <span class="sub">${brAgeTxt(s.born)}</span></div>
         <div><span class="sub">พันธุ์ · เต้านม</span><br><b>${escA(s.breed||'-')}</b>${s.teats?' · '+fmt(s.teats)+' เต้า':''}</div>
       </div>
@@ -13709,7 +13760,7 @@ function brEvSave(){
 /* ── แท็บ: KPI + ⚙️ ค่าตั้งนาฬิกาฟาร์ม ── */
 function brCfgCardHTML(){
   const C=brCfg(); const can=(ROLE==='owner'||ROLE==='admin');
-  const inp=(id,lab,val)=>`<div class="frow"><label>${lab}</label><input class="cin" id="${id}" type="number" min="1" value="${val}" ${can?'':'disabled'}></div>`;
+  const inp=(id,lab,val)=>`<div class="frow"><label>${lab}</label><input class="cin" id="${id}" type="number" min="0.5" step="0.1" value="${val}" ${can?'':'disabled'}></div>`;
   return `<div class="card"><h3>⚙️ ตัวแปรนาฬิกาของ ${escA(brFarm)} <span class="more">${can?'แก้แล้วกดบันทึก — มีผลทุกเครื่องทั้งฟาร์ม':'เจ้าของ/ผู้ดูแลเป็นผู้ตั้งค่า'}</span></h3>
     <div class="grid2">
       ${inp('brC_cycle','รอบการเป็นสัด (วัน)',C.cycle)}
@@ -13720,6 +13771,15 @@ function brCfgCardHTML(){
       ${inp('brC_giltMate','หมูสาวเริ่มผสม (อายุวัน)',C.giltMate)}
       <div class="frow"><label>🎯 เป้าผสมต่อสัปดาห์ (แม่) — ใส่ 0 = ให้ระบบคำนวณเอง</label><input class="cin" id="brC_wk" type="number" min="0" value="${C.wkTarget||0}" ${can?'':'disabled'}></div>
     </div>
+    <div style="margin-top:12px;font-weight:800;font-size:13.5px">🌾 ไกด์อาหารต่อแม่ (กก./ตัว/วัน) — ใช้คำนวณการ์ด "ไกด์การให้อาหารวันนี้" ของทุกเล้า</div>
+    <div class="grid2">
+      ${inp('brC_fgEarly','ท้องสัปดาห์ 1-4 (คุมอาหาร)',C.fgEarly)}
+      ${inp('brC_fgMid','ท้องสัปดาห์ 5-12 (ช่วงกลาง)',C.fgMid)}
+      ${inp('brC_fgLate','ท้องสัปดาห์ 13-คลอด (เร่งปลายท้อง)',C.fgLate)}
+      ${inp('brC_fgLact','เลี้ยงลูก เพดานสูงสุด (ไต่ขึ้นวันละ ~0.5)',C.fgLact)}
+      ${inp('brC_fgOpen','รอผสม/หลังหย่า (ให้เต็มที่)',C.fgOpen)}
+      ${inp('brC_fgGilt','สาวรอผสม',C.fgGilt)}
+    </div>
     ${can?`<button class="btn" style="margin-top:12px" onclick="brCfgSave()">💾 บันทึกค่าตั้ง</button>`:''}
     <div class="sub" style="margin-top:8px">นาฬิกางานคำนวณจากค่าชุดนี้: เช็คกลับสัดวัน ${C.cycle-3}-${C.cycle+3} · ตรวจท้องวัน ${C.pregchk}-${C.pregchk+7} · วัคซีนก่อนคลอดวัน ${C.gest-14}-${C.gest-6} · ขึ้นเล้าคลอดวัน ${C.gest-6} · คาดคลอดวัน ${C.gest} · หย่านมวัน ${C.lact-7}-${C.lact} · สัดหลังหย่า 4-5 วัน</div></div>`;
 }
@@ -13729,6 +13789,7 @@ function brCfgSave(){
   const c={cycle:g('brC_cycle'),gest:g('brC_gest'),pregchk:g('brC_pregchk'),lact:g('brC_lact'),giltIn:g('brC_giltIn'),giltMate:g('brC_giltMate')};
   for(const k in BR_CFG_DEF){ if(!(c[k]>0)){ toast('ใส่ตัวเลขให้ครบทุกช่อง'); return; } }
   c.wkTarget=g('brC_wk')||0;   // 0 = คำนวณเป้าผสม/สัปดาห์อัตโนมัติจากฝูง
+  ['fgEarly','fgMid','fgLate','fgLact','fgOpen','fgGilt'].forEach(k=>{ const v=g('brC_'+k); if(v>0) c[k]=v; });   // 🌾 ไกด์อาหารต่อแม่
   if(c.gest<100||c.gest>125){ if(!confirm('ระยะตั้งท้อง '+c.gest+' วัน ดูผิดปกติ (ปกติ ~114-116) — ยืนยัน?')) return; }
   if(typeof BRCFG!=='object'||!BRCFG||Array.isArray(BRCFG)) BRCFG={};
   BRCFG[brFarm]=c;
