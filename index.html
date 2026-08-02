@@ -1070,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802a';
+const APP_BUILD='690802b';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -1339,6 +1339,10 @@ async function fetchProfile(){
   return (uid&&rows.find(x=>x.user_id===uid)) || (uname&&rows.find(x=>x.username===uname)) || rows[0];
 }
 async function rpcLoadHouses(){
+  /* ⚠️ กันเพดาน 1,000 แถวของเซิร์ฟเวอร์ (บั๊กเดียวกับทะเบียนแม่ 2 ส.ค. 69) — load_houses_all คืน jsonb ก้อนเดียวไม่โดนตัด
+     ตอนนี้ 467 หลังยังไม่ชน แต่กันไว้ก่อนโต · เซิร์ฟเวอร์เก่าไม่มีตัวใหม่ = ถอยไปใช้ตัวเดิม */
+  const ra=await supaFetch('/rest/v1/rpc/load_houses_all',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  if(ra&&ra.ok){ try{ const j=await ra.json(); if(Array.isArray(j)) return j; }catch(e){} }
   const r=await supaFetch('/rest/v1/rpc/load_houses',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
   if(!r||!r.ok) return null;
   return await r.json();
@@ -9743,9 +9747,15 @@ function sbConflict(b,j){ // ⚠️ บิลใบเดียวกันถ�
 let _sbLoadAt=0;   // เวลาโหลดบิลจากคลาวด์ล่าสุด — ใช้กันโหลดถี่ตอนเปิดหน้า/ปลุกจอ
 async function sbCloudLoad(){ // โหลดบิลจากระบบกลาง (ถ้าหลังบ้านยังไม่เปิดตาราง → คงข้อมูลในเครื่อง)
   _sbLoadAt=Date.now();
-  const r=await supaFetch('/rest/v1/rpc/load_sale_bills',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
-  if(!r||!r.ok) return false;
-  const rows=await r.json(); if(!Array.isArray(rows)) return false;
+  /* ⚠️ กันเพดาน 1,000 แถว — บิลตอนนี้ 324 ใบและเพิ่มทุกวัน ถ้าเกินพันใบแบบเดิมบิลเก่าจะหายจากคลังเงียบๆ */
+  let rows=null;
+  const ra=await supaFetch('/rest/v1/rpc/load_sale_bills_all',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  if(ra&&ra.ok){ try{ const j=await ra.json(); if(Array.isArray(j)) rows=j; }catch(e){} }
+  if(rows===null){
+    const r=await supaFetch('/rest/v1/rpc/load_sale_bills',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    if(!r||!r.ok) return false;
+    rows=await r.json(); if(!Array.isArray(rows)) return false;
+  }
   const cloud=rows.map(x=>{ const d=(x.data&&typeof x.data==='object')?x.data:{}; d.id=x.id; d.farm=x.farm; d.kind=x.kind||d.kind||'fatten'; d.dateISO=(x.bill_date||d.dateISO||'').slice(0,10); d._synced=true; d._baseTs=x.updated_at||null; return d; });
   const ids={}; cloud.forEach(b=>ids[b.id]=1);
   // บิลที่สร้างตอนออฟไลน์/ซิงก์ไม่สำเร็จ (ยังไม่เคยขึ้นคลาวด์) → เก็บไว้ + ดันขึ้นคลาวด์ใหม่ ไม่โดนทับหาย
@@ -12238,7 +12248,7 @@ async function renderBreeding(){
   const cnt=k=>alive.filter(s=>s.stage===k).length;
   const due=brDueList();
   const fchips=BR_FARMS.map(f=>{ const n=BR.all.filter(s=>s.farm===f&&s.stage!=='cull'&&(s.kind||'')!=='boar').length;
-    return `<button class="sbfchip${brFarm===f?' on':''}" onclick="brFarm='${escA(f)}';brHouseF='';brHouseOpen='';renderBreeding()">${escA(f.replace('ฟาร์ม',''))} (${fmt(n)})</button>`; }).join('');
+    return `<button class="sbfchip${brFarm===f?' on':''}" onclick="brFarm='${escA(f)}';brHouseF='';brHouseOpen='';brDbUnit='';brDbHouse='';brDbCap=200;renderBreeding()">${escA(f.replace('ฟาร์ม',''))} (${fmt(n)})</button>`; }).join('');
   const tabs=[['dash','📊 ภาพรวม'],['work','📋 งานวันนี้'+(due.length?' ('+due.length+')':'')],['houses','🏠 รายหลัง'],['rank','🏅 จัดอันดับแม่'],['sows','🗄️ ฐานข้อมูลแม่'],['boar','🐗 พ่อพันธุ์'+(brBoars().length?' ('+fmt(brBoars().length)+')':'')],['reg','➕ ขึ้นทะเบียน'],['ev','📝 ฟอร์มบันทึก'],['kpi','📊 KPI·ตั้งค่า']];
   $("#view").innerHTML=`
     <h2 class="page">🐷 ระบบแม่พันธุ์ <span class="more">ฐานข้อมูลแม่รายตัว · ${escA(brFarm)}</span></h2>
@@ -12832,7 +12842,7 @@ function brStageSince(s){
   if(s.stage==='nurse') return pick('farrow');
   if(s.stage==='open') return pick('wean')||pick('preg');
   if(s.stage==='cull') return pick('cull');
-  return s.born||'';
+  return '';   // gilt: ไม่นับวันในสถานะจากวันเกิด (จะกลายเป็นอายุ ไม่ใช่วันรอผสม)
 }
 /* 📜 ประวัติรายครอก — จับคู่ ผสม → คลอด → หย่านม ของครอกเดียวกัน */
 function brLitterRows(s){
@@ -12886,9 +12896,12 @@ function brDbList(){
     ear:(a,b)=>String(a.ear).localeCompare(String(b.ear),undefined,{numeric:true}),
     house:(a,b)=>cmpH(a,b)||String(a.ear).localeCompare(String(b.ear),undefined,{numeric:true}),
     parity:(a,b)=>(+b.parity||0)-(+a.parity||0),
-    age:(a,b)=>String(a.born||'9999').localeCompare(String(b.born||'9999')),
-    due:(a,b)=>brClock(b).filter(c=>c.due).length-brClock(a).filter(c=>c.due).length
+    age:(a,b)=>String(a.born||'9999').localeCompare(String(b.born||'9999'))
   };
+  if(brDbSort==='due'){ // เรียงตามงานค้าง — คำนวณนาฬิกาครั้งเดียวต่อแม่ (เดิมคำนวณซ้ำใน sort ช้ากับทะเบียน 1,500)
+    const d={}; list.forEach(s=>{ d[s.ear]=brClock(s).filter(c=>c.due).length; });
+    return list.sort((a,b)=>(d[b.ear]-d[a.ear])||S.ear(a,b));
+  }
   return list.sort(S[brDbSort]||S.ear);
 }
 function brSowsHTML(){
@@ -12905,7 +12918,7 @@ function brSowsHTML(){
   const cnt=k=>nLive.filter(s=>s.stage===k).length;
   return `<div class="card">
     <div class="sbarch-head"><h3 style="margin:0">🗄️ ฐานข้อมูลแม่รายตัว <span class="more">${escA(brFarm.replace('ฟาร์ม',''))} · อยู่ในฝูง ${fmt(live)} ตัว${culled?' · ปลดแล้ว '+fmt(culled):''}</span></h3>
-      <div class="srch"><input class="cin" placeholder="🔍 เบอร์หู / เล้า / พันธุ์" value="${escA(brQ)}" oninput="brQ=this.value;brDbCap=200;brRe()"></div></div>
+      <div class="srch"><input class="cin" placeholder="🔍 เบอร์หู / เล้า / พันธุ์" value="${escA(brQ)}" oninput="brQ=this.value;brDbCap=200;var el=document.getElementById('brSowList');if(el)el.innerHTML=brDbTableHTML()"></div></div>
     <div class="sub" style="margin:-2px 0 9px">แม่ทุกตัวของฟาร์มอยู่ในฐานนี้ — แยกตาม <b>Unit → เล้า</b> · แตะเบอร์หูเพื่อดู<b>บัตรแม่</b> (อยู่เล้าไหน · สถานะ · ประวัติผสม/คลอด/หย่านม/ย้ายเล้า/ปลดขาย ครบทุกครั้ง) · ฟอร์มบันทึกงานทุกหน้าดึงเบอร์จากฐานนี้ตัวเดียวกัน</div>
 
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">🏛️ ${uChip('','ทุกยูนิต',live)}${units.map(u=>u?uChip(u,'Unit '+u.slice(1),nInU(u)):uChip('_none','เล้าสาว/ไม่มียูนิต',nInU('_none'))).join('')}</div>
@@ -12931,6 +12944,7 @@ function brDbTableHTML(list){
   if(!list) list=brDbList();
   if(!list.length) return '<div class="sub">— ไม่พบแม่ตามตัวกรองนี้ —</div>';
   const shown=list.slice(0,brDbCap);
+  const cnt=`<div class="sub" style="margin:0 0 6px">พบ <b>${fmt(list.length)}</b> ตัวตามตัวกรอง${brQ.trim()?' · คำค้น "'+escA(brQ.trim())+'"':''}</div>`;
   let curU=null, curH=null, out='';
   const byHouse=(brDbSort==='house');
   const rows=shown.map(s=>{
@@ -12954,7 +12968,7 @@ function brDbTableHTML(list){
       <td class="num">${st.weanedAvg!=null?st.weanedAvg.toFixed(1):'-'}</td>
       <td>${next?`<span style="background:#fdf3e0;color:#b7791f;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap">${escA(next.label)}</span>`:'<span class="sub" style="font-size:11px">—</span>'}</td></tr>`;
   }).join('');
-  out=`<div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
+  out=cnt+`<div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
     <thead><tr><th>เบอร์หู</th><th>พันธุ์</th><th>ยูนิต / เล้า</th><th>สถานะ</th><th class="num">วันในสถานะ</th><th class="num">ครอกที่</th><th>อายุ</th><th class="num">ลูกหย่า/ครอก</th><th>งานถัดไป</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
   if(list.length>brDbCap) out+=`<div style="text-align:center;margin-top:10px"><button class="btn ghost sm" onclick="brDbCap+=500;brRe()">แสดงเพิ่ม (ตอนนี้ ${fmt(brDbCap)} จาก ${fmt(list.length)} ตัว)</button></div>`;
