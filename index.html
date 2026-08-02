@@ -1080,7 +1080,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802q';
+const APP_BUILD='690802r';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -5150,6 +5150,13 @@ function renderHouseList(){
     <div class="search"><input id="q" placeholder="🔍 ค้นหารหัสหลัง / ฟาร์ม เช่น A1, ท่าม่วง" oninput="filterHouses()"></div>
     <div id="hgroups">${groupedHousesHTML(myHouses())}</div>
   `;
+  // 🐷 มีเล้าแม่พันธุ์ในรายการแต่ทะเบียนแม่ยังไม่โหลด → ดึงแล้ววาดจำนวนแม่ทับ (การ์ดขึ้น … ระหว่างรอ)
+  if(typeof brDailyHouseKind==='function'&&!BR.loaded&&myHouses().some(h=>brDailyHouseKind(h))){
+    brCloudLoad().then(ok=>{ if(!ok) return;
+      const top=navHist[navHist.length-1];
+      if(top&&top.key==='houseList'){ const el=document.getElementById('hgroups'); if(el){ try{ filterHouses(); }catch(e){ el.innerHTML=groupedHousesHTML(myHouses()); } } }
+    });
+  }
 }
 // แถบบอกว่าผู้ใช้นี้ดูแลฟาร์มใดบ้าง (เฉพาะผู้ที่ถูกจำกัดฟาร์ม)
 function scopeNoteHTML(){
@@ -5171,20 +5178,35 @@ function houseCells(list){
       : (h.pigs||0)>0 ? '<span class="tag ok">🟢 กำลังเลี้ยง'+penAgeTxt(h)+'</span>'
       : left>0 ? '<span class="tag warn">🧹 กำลังล้างคอก · เหลือ '+left+' วัน</span>'
       : '<span class="tag wait">⬜ ว่าง</span>';
+    /* 🐷 เล้าแม่พันธุ์ (ท/ค/ส): จำนวนสัตว์มาจากทะเบียนแม่ ไม่ใช่ข้อมูลหมูขุนของเสมียน (เดิมโชว์ 0/0 ตลอด — เคสหมอแป้ง 2 ส.ค.) */
+    const brk=(typeof brDailyHouseKind==='function')?brDailyHouseKind(h):null;
+    let countLine=`<div class="hc"><b style="color:var(--ink)">${fmt(h.pigs)}</b>/${fmt(h.received||0)} ตัว</div>`;
+    let stTag=statusTag, brExtra='';
+    if(brk){
+      const sc=brShortOf(h);
+      const n=BR.loaded?BR.all.filter(s=>s.farm===h.farm&&(s.kind||'')!=='boar'&&s.stage!=='cull'&&s.house===sc).length:null;
+      countLine=`<div class="hc">🐷 <b style="color:var(--ink)">${n==null?'…':fmt(n)}</b> แม่</div>`;
+      stTag=(n==null)?'<span class="tag wait">⏳ โหลดทะเบียนแม่…</span>':(n>0?'<span class="tag ok">🟢 มีแม่ '+fmt(n)+' ตัว</span>':'<span class="tag wait">⬜ ว่าง</span>');
+      if(BR.loaded&&brk==='ค'){ const pn=BR.all.filter(s=>s.farm===h.farm&&(s.kind||'')!=='boar'&&s.stage!=='cull'&&s.pend&&s.pend.to===sc).length;
+        if(pn) brExtra=`<div style="margin-top:5px"><span class="tag" style="background:#fdeef5;color:#c2537f">📥 รอเช็ครับ ${fmt(pn)}</span></div>`; }
+      if(BR.loaded&&brk==='ท'){ const pn=BR.all.filter(s=>s.farm===h.farm&&(s.kind||'')!=='boar'&&s.stage!=='cull'&&s.house===sc&&s.pend&&s.pend.to).length;
+        if(pn) brExtra=`<div style="margin-top:5px"><span class="tag" style="background:#fdf3e0;color:#b7791f">📤 รอเล้าคลอดรับ ${fmt(pn)}</span></div>`; }
+    }
     return `<button class="hcell" onclick="${close?`gotoClose(${h.id})`:`openForm(${h.id})`}" style="${close?'border:1px solid var(--bad);background:#fff6f5':''}">
       <span class="dot ${cls}"></span>
       <div class="hn">${escA(h.code||h.name.replace("หลัง ",""))}</div>
       <div class="hc" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🩺 ${escA(h.vet||'-')}</div>
-      <div class="hc"><b style="color:var(--ink)">${fmt(h.pigs)}</b>/${fmt(h.received||0)} ตัว</div>
-      <div style="margin-top:6px">${statusTag}</div>
+      ${countLine}
+      <div style="margin-top:6px">${stTag}</div>
+      ${brExtra}
       ${inc>0?`<div style="margin-top:5px"><span class="tag" style="background:var(--info-soft);color:#1d4e8f">🚚 รับเข้า ${fmt(inc)}</span></div>`:''}
-      <div class="hc" style="margin-top:6px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;font-size:11px;font-weight:700">
+      ${brk?'':`<div class="hc" style="margin-top:6px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;font-size:11px;font-weight:700">
         <span title="ตายสะสม" style="color:var(--bad)">⚰️ ${fmt(a.deadN)}</span>
         <span title="คัดขายสะสม" style="color:var(--warn)">🔪 ${fmt(a.cullN)}</span>
         <span title="ขายขุนสะสม" style="color:var(--ok)">💰 ${fmt(a.soldN)}</span>
         ${a.moveN>0?`<span title="ย้ายออกสะสม" style="color:var(--info)">🔄 ${fmt(a.moveN)}</span>`:''}
         ${a.moveInN>0?`<span title="ย้ายเข้าสะสม" style="color:var(--info)">🔄← ${fmt(a.moveInN)}</span>`:''}
-      </div>
+      </div>`}
     </button>`}).join("");
 }
 // group houses by farm — same-farm houses sit under that farm's heading
