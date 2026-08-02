@@ -1080,7 +1080,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802l';
+const APP_BUILD='690802m';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -12182,7 +12182,7 @@ const BR_FG_DEF={fgEarly:2.2,fgMid:2.4,fgLate:3.2,fgLact:6.5,fgOpen:3.0,fgGilt:2
 function brCfg(){ const o=(typeof BRCFG==='object'&&BRCFG&&BRCFG[brFarm])||{}; const c={}; for(const k in BR_CFG_DEF){ const v=+o[k]; c[k]=(v&&v>0)?v:BR_CFG_DEF[k]; } c.wkTarget=(+o.wkTarget>0)?+o.wkTarget:0; for(const k in BR_FG_DEF){ c[k]=(+o[k]>0)?+o[k]:BR_FG_DEF[k]; } return c; }   // wkTarget=0 → ให้ระบบคำนวณเป้าผสม/สัปดาห์เอง
 
 /* ── คลาวด์ ── */
-function brPack(s){ return {breed:s.breed||'',parity:+s.parity||0,teats:+s.teats||0,born:s.born||'',house:s.house||'',stage:s.stage||'open',hc:s.hc||'',note:s.note||'',events:s.events||[]}; }
+function brPack(s){ const p={breed:s.breed||'',parity:+s.parity||0,teats:+s.teats||0,born:s.born||'',house:s.house||'',stage:s.stage||'open',hc:s.hc||'',note:s.note||'',events:s.events||[]}; if(s.pend&&s.pend.to) p.pend=s.pend; return p; }   // pend = แจ้งส่งขึ้นเล้าคลอด รอเล้าปลายทางกดรับ {to,date,by}
 async function brCloudLoad(force){
   if(BR.loaded&&!force) return true;
   /* ⚠️ 2 ส.ค. 69 — load_sows คืนเป็น "หลายแถว" เลยโดนเพดาน 1,000 แถวของเซิร์ฟเวอร์ตัด
@@ -12232,7 +12232,10 @@ function brClock(s){
     out.push({d:d,label:'ท้องวันที่ '+d+' · คาดคลอด '+sbThaiDate(brAddDays(mate.date,C.gest))});
     const vx=brLastEv(s,'vax');
     if(d>=C.gest-14&&d<C.gest-6&&!(vx&&vx.date>=brAddDays(mate.date,C.gest-19))) out.push({due:1,k:'vax',label:'💉 วัคซีนก่อนคลอด/ถ่ายพยาธิ (วัน '+(C.gest-14)+'-'+(C.gest-6)+')'});
-    if(d>=C.gest-6&&!/ค\d/.test(String(s.house))) out.push({due:1,k:'move',label:'🏠 ย้ายขึ้นเล้าคลอด (วัน '+(C.gest-6)+'-'+(C.gest-2)+')'});
+    if(d>=C.gest-6&&!/ค\d/.test(String(s.house))){
+      if(s.pend&&s.pend.to) out.push({d:d,label:'📤 แจ้งส่งขึ้น '+s.pend.to+' แล้ว ('+sbThaiDate(s.pend.date)+') — รอเล้าคลอดเช็คเบอร์กดรับ'});
+      else out.push({due:1,k:'move',label:'🏠 ย้ายขึ้นเล้าคลอด (วัน '+(C.gest-6)+'-'+(C.gest-2)+')'});
+    }
     if(d>=C.gest-2) out.push({due:1,k:'farrow',label:'👶 ใกล้คลอด — เฝ้าดู/ลงคลอด'});
   }
   if(s.stage==='nurse'&&far){ const d=brDays(far.date);
@@ -12548,6 +12551,116 @@ function brUnitPerfHTML(){
   </div>`;
 }
 
+/* ═══ 📤📥 แจ้งส่งแม่ขึ้นเล้าคลอด — ระบบตอบแจ้ง/ตอบรับ (เจ้าของ 2 ส.ค. 69) ═══
+   หมอเล้าผสม "แจ้งส่ง" (ตั้ง s.pend={to,date,by} — ยังไม่ย้ายจริง) → หมอเล้าคลอดเช็คเบอร์กับตัวจริงแล้ว "รับเข้า" หรือ "ตีกลับ"
+   เบอร์ที่มาจริงไม่ตรงกับที่แจ้ง → หมอเล้าคลอดใช้การ์ด 🚚 รับแม่เข้าเล้า รับตัวจริงได้ทันที · แจ้งมาแต่ตัวไม่มา → ตีกลับ
+   ชุดหนึ่งย้ายหลายวันได้ (วันนี้ 30 พรุ่งนี้ 30) — รายการค้างจนกว่าจะเช็คครบ ไม่หายข้ามวัน */
+let brSnd=[{ear:''}], brSndKey='';
+function brPendClear(s){ if(s.pend) delete s.pend; }
+function brSndCardHTML(sc,farm){
+  if(brSndKey!==farm+'|'+sc){ brSnd=[{ear:''}]; brSndKey=farm+'|'+sc; }
+  const prevFarm=brFarm; brFarm=farm;
+  try{
+    const hs=brHousesFor(farm), unit=brUnitOf(sc);
+    const kOpts=hs.filter(h=>h.kind==='ค').sort((a,b)=>{ const ua=(a.unit===unit)?0:1, ub=(b.unit===unit)?0:1; return ua-ub; });
+    const inHouse=brSows().filter(s=>s.house===sc&&s.stage!=='cull');
+    const pend=inHouse.filter(s=>s.pend&&s.pend.to);
+    const bounced=inHouse.filter(s=>(s.events||[]).some(e=>e&&e.t==='care'&&/^↩️ ตีกลับ/.test(e.note||'')&&brIsISO(e.date)&&brDays(e.date)<=7&&e.date===brLastEv(s,'care').date));
+    const rows=brSnd.map((r,i)=>`<tr><td><input class="cin" list="brSndDL" style="width:132px;padding:6px 8px" value="${escA(r.ear)}" placeholder="เบอร์แม่" oninput="brSnd[${i}].ear=this.value"></td>
+      <td><button class="btn ghost sm" title="ลบแถว" onclick="brSnd.splice(${i},1);brSndRe()">✕</button></td></tr>`).join('');
+    return `<div id="brSndSec">
+      <datalist id="brSndDL">${inHouse.filter(s=>!(s.pend&&s.pend.to)).map(s=>`<option value="${escA(s.ear)}">${brStageTxt(s.stage)}</option>`).join('')}</datalist>
+      <div class="frow" style="max-width:280px"><label>ส่งขึ้นเล้าคลอด (ค) *</label><select class="cin tl" id="brSndTo">${kOpts.map(h=>`<option value="${escA(h.s)}">${escA(h.s)}${h.unit===unit?' (ยูนิตเดียวกัน)':''}</option>`).join('')}</select></div>
+      <table class="densetbl" style="margin-top:4px"><tbody>${rows}</tbody></table>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn ghost sm" onclick="brSnd.push({ear:''});brSndRe()">＋ เพิ่มแถว</button>
+        <button class="btn sm" onclick="brSndSave()">📤 แจ้งส่ง ${brSnd.filter(r=>String(r.ear||'').trim()).length?('('+brSnd.filter(r=>String(r.ear||'').trim()).length+' แม่)'):''}</button></div>
+      ${pend.length?`<div style="margin-top:11px;font-weight:800;font-size:12.5px">⏳ แจ้งส่งแล้ว รอเล้าคลอดกดรับ <span class="more">${fmt(pend.length)} ตัว</span></div>
+        ${pend.map(s=>`<div class="fieldrow" style="padding:5px 8px"><div class="fmeta"><div class="fn" style="font-size:12.5px"><b>${escA(s.ear)}</b> → ${escA(s.pend.to)} <span class="sub" style="font-size:11px">แจ้ง ${sbThaiDate(s.pend.date)}${s.pend.by?' · ✍️ '+escA(s.pend.by):''}</span></div></div>
+          <button class="btn ghost sm" onclick="brSndCancel(${escA(JSON.stringify(String(s.ear)))})">ยกเลิก</button></div>`).join('')}`:''}
+      ${bounced.length?`<div style="margin-top:11px;font-weight:800;font-size:12.5px;color:#a5342a">↩️ ถูกตีกลับจากเล้าคลอด (7 วันล่าสุด) <span class="more">${fmt(bounced.length)} ตัว</span></div>
+        ${bounced.map(s=>{ const e=brLastEv(s,'care'); return `<div class="fieldrow" style="cursor:pointer;padding:5px 8px" onclick="brOpen(${escA(JSON.stringify(String(s.ear)))})"><div class="fmeta"><div class="fn" style="font-size:12.5px"><b>${escA(s.ear)}</b> <span class="sub" style="font-size:11px">${escA(e.note||'')} · ${sbThaiDate(e.date)}</span></div></div></div>`; }).join('')}`:''}
+      <div class="sub" style="margin-top:7px;font-size:11.5px">แจ้งส่งแล้วแม่<b>ยังนับอยู่เล้านี้</b>จนกว่าหมอเล้าคลอดเช็คเบอร์กับตัวจริงแล้วกดรับ · ชุดเดียวทยอยส่งหลายวันได้ · ส่งผิด/เปลี่ยนใจ กดยกเลิกได้ตลอด</div></div>`;
+  } finally { brFarm=prevFarm; }
+}
+function brSndRe(){
+  if(typeof currentHouse!=='undefined'&&currentHouse&&document.getElementById('brOvBox')){ try{ brDailyRe(); }catch(e){} return; }
+  if(document.getElementById('brSndSec')){ try{ brHouseDetail(); }catch(e){} }
+}
+async function brSndSave(){
+  const p=brSndKey.split('|'), farm=p[0], sc=p[1]||'';
+  const to=(document.getElementById('brSndTo')||{}).value||'';
+  if(!to){ toast('เลือกเล้าคลอดปลายทางก่อน'); return; }
+  const prevFarm=brFarm; brFarm=farm;
+  let done=0; const skip=[];
+  try{
+    for(const r of brSnd){ const ear=String(r.ear||'').trim(); if(!ear) continue;
+      const s=brSowByEar(ear);
+      if(!s){ skip.push(ear+' (ไม่มีในทะเบียน)'); continue; }
+      if(s.stage==='cull'){ skip.push(ear+' (ปลดแล้ว)'); continue; }
+      if(s.house!==sc&&!confirm(ear+' อยู่เล้า '+(s.house||'ไม่ระบุ')+' ไม่ใช่เล้านี้ — แจ้งส่งต่อหรือไม่?')) { skip.push(ear+' (ข้าม)'); continue; }
+      s.pend={to:to,date:brTodayISO(),by:brBy()};
+      brPersist(s); done++;
+    }
+  } finally { brFarm=prevFarm; }
+  if(!done&&!skip.length){ toast('ยังไม่ได้ใส่เบอร์แม่'); return; }
+  brSnd=[{ear:''}];
+  toast('📤 แจ้งส่ง '+done+' แม่ ขึ้น '+to+' แล้ว — รอหมอเล้าคลอดเช็คเบอร์แล้วกดรับ'+(skip.length?' · ข้าม: '+skip.join(', '):''));
+  brSndRe();
+}
+async function brSndCancel(ear){
+  const p=brSndKey.split('|'), farm=p[0];
+  const prevFarm=brFarm; brFarm=farm;
+  try{ const s=brSowByEar(ear); if(!s) return; brPendClear(s); brPersist(s); toast('ยกเลิกแจ้งส่ง '+ear+' แล้ว'); } finally { brFarm=prevFarm; }
+  brSndRe();
+}
+/* การ์ดแจ้งส่ง/รอรับ ในหน้าบันทึกรายวัน — ท ได้การ์ดส่ง · ค ได้กล่องรอรับ */
+function brDailyXferHTML(h){
+  const kind=brDailyHouseKind(h); if(!kind) return '';
+  const sc=brShortOf(h), farm=h.farm||brFarm;
+  if(kind==='ค') return brInboxCardHTML(sc,farm);
+  if(kind==='ท') return `<div class="card"><h3>📤 ส่งแม่ขึ้นเล้าคลอด <span class="more">แจ้งให้หมอเล้าคลอดเช็คเบอร์แล้วกดรับ</span></h3>${brSndCardHTML(sc,farm)}</div>`;
+  return '';
+}
+/* 📥 ฝั่งเล้าคลอด: รายการแม่ที่แจ้งส่งมา — เช็คเบอร์กับตัวจริงแล้วกดรับ/ตีกลับ */
+function brInboxCardHTML(sc,farm){
+  const prevFarm=brFarm; if(farm) brFarm=farm;
+  try{
+    const list=brSows().filter(s=>s.stage!=='cull'&&s.pend&&s.pend.to===sc)
+      .sort((a,b)=>String(a.pend.date).localeCompare(String(b.pend.date))||String(a.ear).localeCompare(String(b.ear),undefined,{numeric:true}));
+    if(!list.length) return '';
+    const C=brCfg();
+    const rows=list.map(s=>{ const m=brLastEv(s,'mate'); const d=m&&brIsISO(m.date)?brDays(m.date):null;
+      return `<div class="fieldrow" style="padding:7px 8px;flex-wrap:wrap;gap:6px">
+        <div class="fmeta" style="cursor:pointer" onclick="brOpen(${escA(JSON.stringify(String(s.ear)))})"><div class="fn" style="font-size:13px"><b>${escA(s.ear)}</b> <span class="sub">จาก ${escA(s.house||'ไม่ระบุ')}</span>${d!=null?' · ท้องวันที่ '+d+' (คาดคลอด '+sbThaiDate(brAddDays(m.date,C.gest))+')':''}</div>
+        <div class="sub" style="margin:1px 0 0;font-size:11px">แจ้งส่ง ${sbThaiDate(s.pend.date)}${s.pend.by?' · ✍️ '+escA(s.pend.by):''}</div></div>
+        <div style="display:flex;gap:6px;margin-left:auto">
+          <button class="btn sm" style="padding:5px 12px" onclick="brInbAccept(${escA(JSON.stringify(String(s.ear)))})">✅ เบอร์ตรง รับเข้า</button>
+          <button class="btn ghost sm" style="padding:5px 12px;color:var(--bad)" onclick="brInbReject(${escA(JSON.stringify(String(s.ear)))})">↩️ ตีกลับ</button></div></div>`; }).join('');
+    return `<div class="card" style="border-color:#c2537f"><h3>📥 แม่ที่แจ้งส่งมาเล้านี้ — รอเช็ครับ <span class="more">${fmt(list.length)} ตัว · เช็คเบอร์กับตัวจริงก่อนกดรับ</span></h3>
+      ${rows}
+      <div class="sub" style="margin-top:8px;line-height:1.6">✅ <b>รับเข้า</b> = เบอร์ตรงกับตัวจริง — แม่ย้ายเข้าเล้านี้ + จดประวัติ · ↩️ <b>ตีกลับ</b> = แจ้งมาแต่ตัวไม่มา/ส่งผิดหลัง — แม่ยังอยู่เล้าเดิม ฝั่งเล้าผสมเห็นเหตุผลที่ตีกลับ ·
+      <b>ตัวที่มาจริงเบอร์ไม่ตรงกับที่แจ้ง</b> → รับตัวจริงที่การ์ด 🚚 รับแม่เข้าเล้า ด้านล่างได้ทันที แล้วตีกลับเบอร์ที่แจ้งผิด · ชุดหนึ่งทยอยมาหลายวันได้ รายการค้างไว้จนเช็คครบ</div></div>`;
+  } finally { brFarm=prevFarm; }
+}
+async function brInbAccept(ear){
+  const s=BR.all.find(x=>(x.kind||'')!=='boar'&&String(x.ear)===String(ear)&&x.pend); if(!s||!s.pend) return;
+  const to=s.pend.to;
+  s.events=s.events||[]; s.events.unshift({t:'move',date:brTodayISO(),from:s.house||'',to:to,by:brBy(),note:'รับขึ้นเล้าคลอด (เช็คเบอร์แล้ว)'});
+  s.house=to; brPendClear(s);
+  await brPersist(s); toast('✅ รับ '+s.ear+' เข้า '+to+' แล้ว');
+  if(typeof currentHouse!=='undefined'&&currentHouse&&document.getElementById('brOvBox')){ try{ brDailyRe(); }catch(e){} } else { try{ brHouseDetail(); }catch(e){} }
+}
+async function brInbReject(ear){
+  const s=BR.all.find(x=>(x.kind||'')!=='boar'&&String(x.ear)===String(ear)&&x.pend); if(!s||!s.pend) return;
+  const why=prompt('↩️ ตีกลับ '+s.ear+' — เหตุผล (เช่น ตัวไม่มา / เบอร์ไม่ตรง / ส่งผิดหลัง)',''); if(why==null) return;
+  const to=s.pend.to;
+  s.events=s.events||[]; s.events.unshift({t:'care',date:brTodayISO(),note:'↩️ ตีกลับจากเล้า '+to+(String(why).trim()?' — '+String(why).trim():''),house:s.house,by:brBy()});
+  brPendClear(s);
+  await brPersist(s); toast('↩️ ตีกลับ '+s.ear+' แล้ว — ฝั่งเล้าผสมจะเห็นเหตุผล');
+  if(typeof currentHouse!=='undefined'&&currentHouse&&document.getElementById('brOvBox')){ try{ brDailyRe(); }catch(e){} } else { try{ brHouseDetail(); }catch(e){} }
+}
+
 /* ── แท็บ: รายหลัง ── */
 function brHousesHTML(){
   if(!brSows().length) return brEmptyHTML();
@@ -12588,8 +12701,8 @@ function brActBtns(x){
   if(x.k==='ret') return `<button class="btn ghost sm" style="${P}" onclick="brQuickChk('${ear}')">✔ ปกติ ไม่กลับสัด</button><button class="btn ghost sm" style="${P};color:var(--bad)" onclick="brQuickPreg('${ear}','กลับสัด')">🔁 กลับสัด</button>`;
   if(x.k==='vax') return `<button class="btn sm" style="${P}" onclick="brQuickVax('${ear}')">💉 ลงวัคซีนแล้ว</button>`;
   if(x.k==='care') return `<button class="btn sm" style="${P}" onclick="brQuickCare('${ear}','${escA(x.note||'')}')">✔ ทำแล้ว</button>`;
-  if(x.k==='move'){ const opts=brHousesFor(brFarm).filter(h=>h.kind==='ค').map(h=>`<option>${escA(h.s)}</option>`).join('');
-    return `<select class="cin tl" id="brMv_${ear}" style="max-width:120px;padding:5px 8px">${opts}</select><button class="btn sm" style="${P}" onclick="brQuickMove('${ear}')">🏠 ย้าย</button>`; }
+  if(x.k==='move'){ const u=brUnitOf(x.sow&&x.sow.house); const opts=brHousesFor(brFarm).filter(h=>h.kind==='ค').sort((a,b)=>((a.unit===u)?0:1)-((b.unit===u)?0:1)).map(h=>`<option>${escA(h.s)}</option>`).join('');
+    return `<select class="cin tl" id="brMv_${ear}" style="max-width:120px;padding:5px 8px">${opts}</select><button class="btn sm" style="${P}" onclick="brQuickMove('${ear}')">📤 แจ้งส่งขึ้นคลอด</button>`; }
   const inDaily=!!document.getElementById('brOvBox');   // อยู่ในการ์ดหน้าบันทึกรายวัน → ใช้ฟอร์มในการ์ด ไม่กระโดดออกไปเมนูแม่พันธุ์
   if(x.k==='heat') return `<button class="btn sm" style="${P}" onclick="${inDaily?`brSowMate('${ear}')`:`brBMAdd('${ear}')`}">💕 พบสัด → ลงผสม</button><button class="btn ghost sm" style="${P}" onclick="brQuickChk('${ear}')">ยังไม่สัด</button>`;
   if(x.k==='farrow') return `<button class="btn sm" style="${P}" onclick="${inDaily?`brSowFarrow('${ear}')`:`brGotoForm('farrow','${ear}')`}">👶 ลงคลอด</button>`;
@@ -12628,6 +12741,8 @@ function brHouseDetail(){
     ${isT?`<div class="card"><h3>💕 ลงผสมวันนี้ (ทีละหลายแม่) <span class="more">ผสมเช้า-บ่ายลงรวดเดียว</span></h3>
       <div id="brBMBox">${brBMHTML(h)}</div></div>`:''}
     ${brFeedGuideCardHTML(h.s,brFarm)}
+    ${h.kind==='ค'?brInboxCardHTML(h.s,brFarm):''}
+    ${isT?`<div class="card"><h3>📤 ส่งแม่ขึ้นเล้าคลอด <span class="more">แจ้งให้หมอเล้าคลอดเช็คเบอร์แล้วกดรับ</span></h3>${brSndCardHTML(h.s,brFarm)}</div>`:''}
     <div class="card"><h3>🚚 รับแม่เข้าเล้านี้ <span class="more">รับเข้าของเล้าแม่พันธุ์ = ลงเบอร์แม่ที่เข้ามา</span></h3>
       ${brRcvSectionHTML(h.s,brFarm,true)}</div>
     ${brHouseMoveLogHTML(h.s)}
@@ -12653,8 +12768,9 @@ function brQuickCare(ear,note){ const s=brSowByEar(ear); if(!s)return;
   brPersist(s); toast('✔ '+s.ear+' '+note); brRe(); }
 function brQuickMove(ear){ const s=brSowByEar(ear); if(!s)return;
   const sel=document.getElementById('brMv_'+ear); const to=sel?sel.value:''; if(!to)return;
-  s.events=s.events||[]; s.events.unshift({t:'move',date:brTodayISO(),from:s.house,to:to,by:brBy()}); s.house=to;
-  brPersist(s); toast('🏠 '+s.ear+' ย้ายไป '+to+' แล้ว'); brRe(); }
+  // ขึ้นเล้าคลอด = แจ้งส่ง (ตอบแจ้ง/ตอบรับ) — หมอเล้าคลอดเช็คเบอร์กับตัวจริงแล้วกดรับ แม่ถึงย้ายจริง
+  s.pend={to:to,date:brTodayISO(),by:brBy()};
+  brPersist(s); toast('📤 แจ้งส่ง '+s.ear+' ขึ้น '+to+' แล้ว — รอหมอเล้าคลอดเช็คเบอร์แล้วกดรับ'); brRe(); }
 function brGotoForm(kind,ear){ brEvKind=kind; brTab='ev'; renderBreeding();
   setTimeout(()=>{ const el=document.getElementById('brEvEar'); if(el) el.value=ear; },120); }
 /* ── ตารางผสมแบบชุด ── */
@@ -12709,7 +12825,7 @@ function brMateCardHTML(h){
 }
 function brDMFill(h){ if(!brDailyHouseKind(h)) return;
   brCloudLoad().then(ok=>{
-    const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=ok?(brHouseOverviewHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm)):'';
+    const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=ok?(brHouseOverviewHTML(h)+brDailyXferHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm)):'';
     const sb=document.getElementById('brSowBox'); if(sb) sb.innerHTML=ok?brSowBoxHTML(h):'';
     const fb=document.getElementById('brFRBox'); if(fb) fb.innerHTML=ok?brFRBodyHTML(h):'<div class="sub">⚠️ โหลดทะเบียนแม่ไม่สำเร็จ</div>';
     const ws=document.getElementById('brWsBox'); if(ws) ws.innerHTML=ok?brWeanShipHTML(h):'';
@@ -12892,7 +13008,7 @@ async function brRcvSave(){
       if(s.stage==='cull'){ skip.push(ear+' (ปลดแล้ว)'); continue; }
       if(s.house===sc){ skip.push(ear+' (อยู่เล้านี้แล้ว)'); continue; }
       s.events=s.events||[]; s.events.unshift({t:'move',date:brTodayISO(),from:s.house||'',to:sc,by:brBy(),note:'รับเข้าเล้า'});
-      s.house=sc; brPersist(s); done++; names.push(ear);
+      s.house=sc; brPendClear(s); brPersist(s); done++; names.push(ear);
     }
   } finally { brFarm=prevFarm; }
   if(!done&&!skip.length){ toast('ยังไม่ได้ใส่เบอร์แม่'); return; }
@@ -12961,7 +13077,11 @@ async function brSowMove(ear){ const h=currentHouse; if(!h) return;
   const s=brDMSows(h).find(x=>String(x.ear)===String(ear)); if(!s) return;
   const sel=document.getElementById('brMvD_'+ear), to=sel?String(sel.value||'').trim():'';
   if(!to){ toast('เลือกหลังปลายทางก่อน'); return; }
-  s.events=s.events||[]; s.events.unshift({t:'move',date:brTodayISO(),from:s.house||'',to:to,by:brBy()}); s.house=to;
+  if(/ค\d/.test(to)&&brDailyHouseKind(h)!=='ค'){   // ปลายทางเล้าคลอด = เข้าระบบแจ้งส่ง/ตอบรับ (หมอเล้าคลอดเช็คเบอร์แล้วกดรับ)
+    s.pend={to:to,date:brTodayISO(),by:brBy()};
+    await brPersist(s); brSowSel=''; toast('📤 แจ้งส่ง '+s.ear+' ขึ้น '+to+' แล้ว — รอหมอเล้าคลอดเช็คเบอร์แล้วกดรับ'); brDailyRe(); return;
+  }
+  s.events=s.events||[]; s.events.unshift({t:'move',date:brTodayISO(),from:s.house||'',to:to,by:brBy()}); s.house=to; brPendClear(s);
   await brPersist(s); brSowSel=''; toast('🏠 ย้าย '+s.ear+' ไป '+to+' แล้ว'); brDailyRe();
 }
 async function brSowCull(ear){ const h=currentHouse; if(!h) return;
@@ -12969,11 +13089,11 @@ async function brSowCull(ear){ const h=currentHouse; if(!h) return;
   const why=prompt('❌ คัด/ตาย แม่ '+s.ear+' — เหตุผล (เช่น ตาย, คัดทิ้ง, ขาเสีย)',''); if(why==null) return;
   if(!confirm('ยืนยันคัด/ตาย แม่ '+s.ear+' ?\nแม่จะหายจากหลังนี้ แต่ประวัติยังอยู่ในทะเบียน')) return;
   s.events=s.events||[]; s.events.unshift({t:'cull',date:brTodayISO(),kind:'คัด/ตาย',reason:String(why||'').trim(),note:String(why||'').trim(),house:brShortOf(h),by:brBy()});
-  s.stage='cull';
+  s.stage='cull'; brPendClear(s);
   await brPersist(s); brSowSel=''; toast('❌ บันทึกคัด/ตาย '+s.ear+' แล้ว'); brDailyRe();
 }
 function brDailyRe(){ const h=(typeof currentHouse!=='undefined'&&currentHouse)||null; if(!h) return;
-  const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=brHouseOverviewHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm);
+  const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=brHouseOverviewHTML(h)+brDailyXferHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm);
   const sb=document.getElementById('brSowBox'); if(sb) sb.innerHTML=brSowBoxHTML(h);
   const db=document.getElementById('brDMBox'); if(db) db.innerHTML=brDMBodyHTML(h);
   const fb=document.getElementById('brFRBox'); if(fb) fb.innerHTML=brFRBodyHTML(h);
@@ -13024,7 +13144,7 @@ async function brFRSave(){
     s.events=s.events||[];
     if(s.house!==sc){ s.events.unshift({t:'move',date:today,from:s.house||'',to:sc,by:brBy(),note:'ยืนยันตำแหน่งจากลงคลอด'}); s.house=sc; }
     s.events.unshift({t:'farrow',date:today,alive:alive,still:still,mummy:mummy,wt:(String(r.wt||'').trim()===''?'':Number(r.wt)||0),house:sc,by:brBy()});
-    s.stage='nurse'; s.parity=(+s.parity||0)+1; s.hc='';
+    s.stage='nurse'; s.parity=(+s.parity||0)+1; s.hc=''; brPendClear(s);
     await brPersist(s); done++;
   }
   if(!done&&!skip.length){ toast('ยังไม่ได้ใส่เบอร์แม่'); return; }
@@ -13589,6 +13709,7 @@ function brOpen(ear){
           return '<div><span class="sub">ชุดผสม (Week)</span><br><b>🎯 '+brWkLabel(ws)+'</b> <span class="sub">'+brWkRange(ws)+'</span></div>'; })()}
         ${(function(){ const g=s.stage==='cull'?null:brFeedGuideOf(s); if(!g) return '';
           return '<div><span class="sub">🌾 อาหารแนะนำวันนี้</span><br><b>'+g.kg.toFixed(1)+' กก./วัน</b> <span class="sub">'+escA(g.grp.replace(/^\S+\s/,''))+'</span></div>'; })()}
+        ${(s.pend&&s.pend.to)?`<div><span class="sub">📤 แจ้งส่งขึ้นเล้าคลอด</span><br><b style="color:#b7791f">→ ${escA(s.pend.to)} รอเล้าคลอดกดรับ</b> <span class="sub">แจ้ง ${sbThaiDate(s.pend.date)}${s.pend.by?' · '+escA(s.pend.by):''}</span></div>`:''}
         <div><span class="sub">วันเกิด / อายุ</span><br><b>${s.born?sbThaiDate(s.born):'-'}</b> <span class="sub">${brAgeTxt(s.born)}</span></div>
         <div><span class="sub">พันธุ์ · เต้านม</span><br><b>${escA(s.breed||'-')}</b>${s.teats?' · '+fmt(s.teats)+' เต้า':''}</div>
       </div>
@@ -13748,18 +13869,21 @@ function brEvSave(){
     e.alive=+g('brF_alive')||0; e.still=+g('brF_still')||0; e.mummy=+g('brF_mummy')||0; e.cw=+g('brF_cw')||0;
     if(!e.alive&&!e.still&&!e.mummy){ toast('ใส่จำนวนลูกก่อน'); return; }
     const ch=g('brF_chouse'); if(ch&&s.house!==ch){ s.events=s.events||[]; s.events.unshift({t:'move',date:date,from:s.house,to:ch,by:e.by}); s.house=ch; }
-    e.house=s.house; s.stage='nurse'; s.parity=(s.parity||0)+1; }
+    e.house=s.house; s.stage='nurse'; s.parity=(s.parity||0)+1; brPendClear(s); }
   if(brEvKind==='wean'){ if(s.stage!=='nurse'){ toast('⚠️ '+s.ear+' ไม่ได้อยู่สถานะเลี้ยงลูก'); return; }
     e.weaned=+g('brF_weaned')||0; if(!e.weaned){ toast('ใส่จำนวนลูกหย่าก่อน'); return; }
     const far=brLastEv(s,'farrow'); if(far&&(+far.alive||0)>0&&e.weaned>(+far.alive||0)&&!confirm('ลูกหย่า '+e.weaned+' มากกว่าลูกมีชีวิต '+far.alive+' — ยืนยัน?')) return;
     const th=g('brF_thouse'); if(th&&s.house!==th){ s.events=s.events||[]; s.events.unshift({t:'move',date:date,from:s.house,to:th,by:e.by}); s.house=th; }
     s.stage='open'; s.hc=''; }
   if(brEvKind==='move'){ const mh=g('brF_mhouse'); if(!mh||mh===s.house){ toast(s.ear+' อยู่หลัง '+s.house+' อยู่แล้ว'); return; }
-    e.from=s.house; e.to=mh; s.house=mh; }
+    if(/ค\d/.test(mh)&&!/ค\d/.test(String(s.house))){   // ท → ค = แจ้งส่ง รอเล้าคลอดกดรับ
+      s.pend={to:mh,date:date,by:brBy()}; brPersist(s);
+      toast('📤 แจ้งส่ง '+s.ear+' ขึ้น '+mh+' แล้ว — รอหมอเล้าคลอดเช็คเบอร์แล้วกดรับ'); brOpen(s.ear); return; }
+    e.from=s.house; e.to=mh; s.house=mh; brPendClear(s); }
   if(brEvKind==='cull'){ e.kind=g('brF_kind'); e.reason=g('brF_reason');
     if(+g('brF_cwt')) e.wt=+g('brF_cwt'); if(+g('brF_cprice')) e.price=+g('brF_cprice'); if((g('brF_cbuyer')||'').trim()) e.buyer=g('brF_cbuyer').trim();
     if(!confirm(s.ear+' — '+(e.kind||'ปลด')+' ออกจากฝูง?\n\nแม่ตัวนี้จะไม่ขึ้นคิวงานและไม่นับในยอดฝูงอีก\nประวัติทั้งหมดยังเก็บไว้ในฐานข้อมูล เปิดดูย้อนหลังได้ตลอด')) return;
-    s.stage='cull'; }
+    s.stage='cull'; brPendClear(s); }
   s.events=s.events||[]; s.events.unshift(e); brPersist(s);
   toast('✅ บันทึก '+s.ear+' แล้ว'); brOpen(s.ear);
 }
