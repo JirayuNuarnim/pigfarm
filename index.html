@@ -1070,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801l';
+const APP_BUILD='690801m';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -12122,13 +12122,23 @@ function brCanUse(){ return ['owner','admin','vet','clerk'].includes(ROLE); }
 function brCanDelete(){ return ROLE==='owner'||ROLE==='admin'; }
 
 /* ── เล้าจริงของฟาร์ม (ท=ผสม/อุ้มท้อง · ค=คลอด · ส=หมูสาว) ── */
+/* 🏛️ Unit = โซนหลักภายในฟาร์มแม่พันธุ์ (เจ้าของอธิบาย 2 ส.ค. 69)
+   รหัสเล้า U1ค1 = Unit 1 · เล้าคลอดหลังที่ 1 · หมูส่วนมากวนอยู่ในยูนิตตัวเอง
+   ⇒ การจัดกลุ่มทุกหน้าต้องยึด Unit เป็นหัวข้อก่อน แล้วค่อยแยก ท/ค ภายในยูนิต (เล้า ส ไม่มียูนิต = กลุ่มแยก) */
+function brUnitOf(code){ const m=String(code||'').match(/U\s*(\d+)/i); return m?('U'+m[1]):''; }
 function brHousesFor(farm){
+  const KORD={'ท':0,'ค':1,'ส':2};
   return (HOUSES||[]).filter(h=>(h.farm||'')===farm&&/[ทคส]\d/.test(h.code||'')).map(h=>{
     const parts=String(h.code).split(' ');
     const kind=/ค\d/.test(h.code)?'ค':(/ท\d/.test(h.code)?'ท':'ส');
-    return {s:parts.length>1?parts.slice(1).join(' '):h.code, full:h.code, kind:kind, vet:h.vet||'-', cap:h.cap||''};
-  }).sort((a,b)=>{try{return byCode(a,{code:b.s},'s')||String(a.s).localeCompare(String(b.s),'th');}catch(e){return String(a.s).localeCompare(String(b.s),'th');}});
+    return {s:parts.length>1?parts.slice(1).join(' '):h.code, full:h.code, kind:kind, unit:brUnitOf(h.code), vet:h.vet||'-', cap:h.cap||''};
+  }).sort((a,b)=>{
+    if(a.unit!==b.unit){ if(!a.unit) return 1; if(!b.unit) return -1; return a.unit.localeCompare(b.unit,undefined,{numeric:true}); }
+    if(KORD[a.kind]!==KORD[b.kind]) return KORD[a.kind]-KORD[b.kind];
+    try{return byCode({code:a.s},{code:b.s})||String(a.s).localeCompare(String(b.s),'th');}catch(e){return String(a.s).localeCompare(String(b.s),'th');}
+  });
 }
+function brUnitsOf(hs){ return [...new Set(hs.map(h=>h.unit))].sort((a,b)=>{ if(!a) return 1; if(!b) return -1; return a.localeCompare(b,undefined,{numeric:true}); }); }
 function brHouseObj(sc){ return brHousesFor(brFarm).find(h=>h.s===sc)||null; }
 function brSows(){ return BR.all.filter(s=>s.farm===brFarm&&(s.kind||'')!=='boar'); }
 function brBoars(){ return BR.all.filter(s=>s.farm===brFarm&&(s.kind||'')==='boar'); }
@@ -12247,8 +12257,9 @@ function brDashHTML(){
   const stE={gilt:'🌸',open:'⏳',mated:'💕',preg:'🤰',nurse:'🍼'};
   const dueMap={}, dueByHouse={};
   alive.forEach(s=>{ const d=brClock(s).filter(c=>c.due); if(d.length){ dueMap[s.ear]=1; const hb=(dueByHouse[s.house]=dueByHouse[s.house]||{}); d.forEach(c=>hb[c.k]=(hb[c.k]||0)+1); } });
-  const secHouses=(kind,title)=>{
-    const list=hs.filter(h=>h.kind===kind); if(!list.length) return '';
+  const KLBL={'ท':'อุ้มท้อง','ค':'คลอด','ส':'สาว'};
+  const secHouses=(list,title)=>{
+    if(!list.length) return '';
     const rows=list.map(h=>{
       const ss=alive.filter(s=>s.house===h.s);
       const stc={}; ss.forEach(s=>stc[s.stage]=(stc[s.stage]||0)+1);
@@ -12260,6 +12271,7 @@ function brDashHTML(){
       return `<div class="card" style="margin:0 0 10px;padding:12px 14px">
         <div style="display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap">
           <b style="font-size:16px;min-width:64px">${escA(h.s)}</b>
+          <span style="background:${h.kind==='ค'?'#fdeef5;color:#c2537f':h.kind==='ท'?'#eaf1f8;color:#2d5f8a':'#e9f5ee;color:#1a5c3f'};border-radius:7px;padding:1px 8px;font-size:11px;font-weight:800">${KLBL[h.kind]||h.kind}</span>
           <span style="font-weight:800">${fmt(ss.length)} แม่</span>
           <span class="sub" style="margin:0">${mini||'— ว่าง —'}</span>
           <div style="display:flex;gap:5px;flex-wrap:wrap;margin-left:auto">${tchips||'<span class="sub" style="margin:0">✓ ไม่มีงานค้าง</span>'}</div>
@@ -12272,11 +12284,11 @@ function brDashHTML(){
     return `<div style="margin:14px 0 6px;font-weight:800;font-size:15px">${title} <span class="more">${fmt(list.length)} หลัง · ${fmt(tot)} แม่${dtot?' · 📋 งานค้าง '+fmt(dtot):''}</span></div>${rows}`;
   };
   const noHouse=alive.filter(s=>!s.house).length;
+  // 🏛️ จัดกลุ่มตาม Unit ก่อน (หมูวนอยู่ในยูนิตตัวเอง) — ภายในยูนิตเรียง ท → ค · เล้า ส ไม่มียูนิต แยกกลุ่มท้าย
+  const units=brUnitsOf(hs);
   return `${noHouse?`<div class="banner info">⚠️ <div>แม่ <b>${fmt(noHouse)}</b> ตัวยังไม่ระบุเล้า — ย้ายผ่านบัตรแม่ หรือส่งผังให้ผู้ดูแลจัดเป็นชุด</div></div>`:''}
-    ${secHouses('ท','🏠 เล้าผสม / อุ้มท้อง (ท)')}
-    ${secHouses('ค','🏠 เล้าคลอด (ค)')}
-    ${secHouses('ส','🏠 เล้าหมูสาว (ส)')}
-    <div class="sub" style="margin-top:6px">แตะ "ดูเบอร์แม่" เพื่อกางเบอร์ทั้งหลัง (❗ = มีงานถึงกำหนด · แตะเบอร์เปิดบัตรแม่) · ป้ายเหลือง = งานที่ต้องจัดการของหลังนั้นวันนี้</div>`;
+    ${units.map(u=>secHouses(hs.filter(h=>h.unit===u), u?('🏛️ Unit '+u.slice(1)+' <span style="font-weight:400;font-size:12.5px;color:var(--muted)">(อุ้มท้อง+คลอด วนในยูนิตเดียวกัน)</span>'):'🌸 เล้าหมูสาว (ไม่แยกยูนิต)')).join('')}
+    <div class="sub" style="margin-top:6px">จัดกลุ่มตาม <b>Unit</b> — แม่ส่วนมากวนอยู่ในยูนิตตัวเอง (ท ↔ ค ของยูนิตนั้น) · แตะ "ดูเบอร์แม่" เพื่อกางเบอร์ทั้งหลัง (❗ = มีงานถึงกำหนด) · ป้ายเหลือง = งานที่ต้องจัดการวันนี้</div>`;
 }
 
 /* ── แท็บ: คิวงานวันนี้ ── */
@@ -12302,22 +12314,32 @@ function brWorkHTML(){
 function brHousesHTML(){
   if(!brSows().length) return brEmptyHTML();
   const hs=brHousesFor(brFarm);
-  const KIND={'ท':'เล้าผสม / อุ้มท้อง (ท)','ค':'เล้าคลอด (ค)','ส':'เล้าหมูสาว (ส)'};
-  const box=kind=>hs.filter(h=>h.kind===kind).map(h=>{
+  const KLBL={'ท':'อุ้มท้อง','ค':'คลอด','ส':'สาว'};
+  const box=list=>list.map(h=>{
     const ss=brSows().filter(s=>s.house===h.s&&s.stage!=='cull');
     const due=brDueList(h.s).length;
     const stc={}; ss.forEach(s=>stc[s.stage]=(stc[s.stage]||0)+1);
     const mini=[['gilt','🌸'],['open','⏳'],['mated','💕'],['preg','🤰'],['nurse','🍼']].filter(x=>stc[x[0]]).map(x=>x[1]+' '+stc[x[0]]).join(' · ');
+    const kc=h.kind==='ค'?'#fdeef5;color:#c2537f':h.kind==='ท'?'#eaf1f8;color:#2d5f8a':'#e9f5ee;color:#1a5c3f';
     return `<div class="card" style="margin:0;cursor:pointer;padding:12px 14px" onclick="brHouseOpen='${escA(h.s)}';brHouseDetail()">
       <div style="display:flex;gap:8px;align-items:center"><b style="font-size:16px">${escA(h.s)}</b>
+        <span style="background:${kc};border-radius:7px;padding:1px 8px;font-size:11px;font-weight:800">${KLBL[h.kind]||h.kind}</span>
         ${due?`<span style="background:#fdf3e0;color:#b7791f;border-radius:999px;padding:1px 9px;font-size:11px;font-weight:800">📋 ${due} งาน</span>`:''}
         <span class="more" style="margin-left:auto">${fmt(ss.length)}${h.cap?'/'+fmt(h.cap):''} แม่</span></div>
       <div class="sub" style="margin:4px 0 0">${escA(h.vet)}</div>
       <div class="sub" style="margin:3px 0 0">${mini||'— ว่าง —'}</div></div>`;
   }).join('');
-  return ['ท','ค','ส'].filter(k=>hs.some(h=>h.kind===k)).map(k=>
-    `<div class="card"><h3>🏠 ${KIND[k]} <span class="more">${fmt(hs.filter(h=>h.kind===k).length)} หลัง</span></h3>
-      <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(215px,1fr))">${box(k)}</div></div>`).join('')
+  // 🏛️ กลุ่มตาม Unit — ในยูนิตมีทั้ง ท และ ค อยู่ด้วยกัน (หมูวนในยูนิต) · เล้า ส แยกกลุ่มท้าย
+  const units=brUnitsOf(hs);
+  return units.map(u=>{
+    const list=hs.filter(h=>h.unit===u); if(!list.length) return '';
+    const nSow=brSows().filter(s=>s.stage!=='cull'&&list.some(h=>h.s===s.house)).length;
+    const nT=list.filter(h=>h.kind==='ท').length, nK=list.filter(h=>h.kind==='ค').length;
+    const title=u?('🏛️ Unit '+u.slice(1)):'🌸 เล้าหมูสาว (ไม่แยกยูนิต)';
+    const sub=u?('อุ้มท้อง '+fmt(nT)+' · คลอด '+fmt(nK)+' หลัง · '+fmt(nSow)+' แม่'):(fmt(list.length)+' หลัง · '+fmt(nSow)+' แม่');
+    return `<div class="card"><h3>${title} <span class="more">${sub}</span></h3>
+      <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(215px,1fr))">${box(list)}</div></div>`;
+  }).join('')
     ||'<div class="card"><div class="sub">— ฟาร์มนี้ยังไม่มีเล้า ท/ค/ส ในระบบ —</div></div>';
 }
 
