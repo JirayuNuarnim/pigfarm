@@ -1080,7 +1080,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802m';
+const APP_BUILD='690802n';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -12614,6 +12614,15 @@ async function brSndCancel(ear){
   try{ const s=brSowByEar(ear); if(!s) return; brPendClear(s); brPersist(s); toast('ยกเลิกแจ้งส่ง '+ear+' แล้ว'); } finally { brFarm=prevFarm; }
   brSndRe();
 }
+/* ⚠️ บัญชีหมอที่ยังไม่ผูกฟาร์ม: เซิร์ฟเวอร์ไม่ให้อ่าน/เขียนทะเบียนแม่เลย → การ์ดขึ้น 0 หมด งงว่าทำไม — เตือนตรงๆ ให้ไปตั้งฟาร์ม */
+function brNoFarmWarnHTML(){
+  if(ROLE!=='vet') return '';
+  if(CURRENT_USER&&(CURRENT_USER.farms||[]).length) return '';
+  if(BR.all.length) return '';
+  return `<div class="card" style="border-color:var(--bad)"><h3 style="color:var(--bad)">⚠️ บัญชีนี้ยังไม่ได้ผูกฟาร์ม</h3>
+    <div class="sub" style="line-height:1.6">ระบบกลางจึงไม่เปิดทะเบียนแม่ให้ (จำนวนแม่จะขึ้น 0 · รายชื่อเล้าไม่ครบ · บันทึกไม่เข้า) —
+    แจ้งเจ้าของ/ผู้ดูแลไปที่ <b>👥 จัดการผู้ใช้</b> แล้วตั้ง <b>ฟาร์ม</b> ให้บัญชีนี้ (เช่น ฟาร์มเบิกไพร) เสร็จแล้วกด 🔄 ที่แถบบน</div></div>`;
+}
 /* การ์ดแจ้งส่ง/รอรับ ในหน้าบันทึกรายวัน — ท ได้การ์ดส่ง · ค ได้กล่องรอรับ */
 function brDailyXferHTML(h){
   const kind=brDailyHouseKind(h); if(!kind) return '';
@@ -12825,7 +12834,7 @@ function brMateCardHTML(h){
 }
 function brDMFill(h){ if(!brDailyHouseKind(h)) return;
   brCloudLoad().then(ok=>{
-    const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=ok?(brHouseOverviewHTML(h)+brDailyXferHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm)):'';
+    const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=ok?(brNoFarmWarnHTML()+brHouseOverviewHTML(h)+brDailyXferHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm)):'';
     const sb=document.getElementById('brSowBox'); if(sb) sb.innerHTML=ok?brSowBoxHTML(h):'';
     const fb=document.getElementById('brFRBox'); if(fb) fb.innerHTML=ok?brFRBodyHTML(h):'<div class="sub">⚠️ โหลดทะเบียนแม่ไม่สำเร็จ</div>';
     const ws=document.getElementById('brWsBox'); if(ws) ws.innerHTML=ok?brWeanShipHTML(h):'';
@@ -13093,7 +13102,7 @@ async function brSowCull(ear){ const h=currentHouse; if(!h) return;
   await brPersist(s); brSowSel=''; toast('❌ บันทึกคัด/ตาย '+s.ear+' แล้ว'); brDailyRe();
 }
 function brDailyRe(){ const h=(typeof currentHouse!=='undefined'&&currentHouse)||null; if(!h) return;
-  const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=brHouseOverviewHTML(h)+brDailyXferHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm);
+  const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=brNoFarmWarnHTML()+brHouseOverviewHTML(h)+brDailyXferHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm);
   const sb=document.getElementById('brSowBox'); if(sb) sb.innerHTML=brSowBoxHTML(h);
   const db=document.getElementById('brDMBox'); if(db) db.innerHTML=brDMBodyHTML(h);
   const fb=document.getElementById('brFRBox'); if(fb) fb.innerHTML=brFRBodyHTML(h);
