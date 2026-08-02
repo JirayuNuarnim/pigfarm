@@ -1072,7 +1072,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802d';
+const APP_BUILD='690802e';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -12456,6 +12456,70 @@ function brWeekHTML(){
       <b>คลอดแล้ว/ท้อง/ไม่ติด</b> = ผลของชุดผสมสัปดาห์นั้นตามจริง · <b>อัตราติด</b> = คลอด ÷ (คลอด+ไม่ติด) เป้ามาตรฐาน ≥ 85% ·
       <b>คลอดในสัปดาห์</b> = ครอกที่คลอดจริง (แถวอนาคต = คาดจากแม่ท้อง) · <b>หย่า/พร้อมผสม</b> = แม่หย่านมสัปดาห์นั้น = ตัวป้อนเข้าชุดผสมสัปดาห์ถัดไป —
       แถวอนาคตช่วยวางแผนล่วงหน้าว่าสัปดาห์ไหนแม่จะพร้อมกี่ตัว เล้าคลอดต้องว่างกี่ช่อง</div>
+  </div>
+  ${brVetPerfHTML()}`;
+}
+
+/* ── 🧑‍⚕️ วัดผลหมอเล้าผสม/อุ้มท้อง (เกณฑ์เจ้าของ 2 ส.ค. 69):
+   ① อัตราเข้าคลอดของชุดที่หมอผสม ต้อง ≥ 90%  ② ผสมได้ตามเป้ารายสัปดาห์
+   ผูกผลงานตาม "เล้า ท ที่หมอประจำ" — ผสมที่ลงในเล้าไหน เครดิต/ความรับผิดชอบอยู่กับหมอเล้านั้น ── */
+function brVetPerf(){
+  const C=brCfg(), tD=brDnum(brTodayISO()), tW=brWeekStart(brTodayISO());
+  const hs=brHousesFor(brFarm);
+  const vetOf={}; hs.forEach(h=>{ vetOf[h.s]=h.vet||'-'; });
+  const V={}; const get=v=>V[v]=V[v]||{vet:v,houses:[],sows:0,pool:0,m4:0,far:0,fail:0,pend:0};
+  hs.filter(h=>h.kind==='ท').forEach(h=>{ get(h.vet||'-').houses.push(h.s); });
+  const tHouse={}; hs.filter(h=>h.kind==='ท').forEach(h=>tHouse[h.s]=1);
+  const w4=brAddDays(tW,-21);   // หน้าต่าง 4 สัปดาห์ (3 สัปดาห์ก่อน + สัปดาห์นี้)
+  brSows().forEach(s=>{
+    if(s.stage!=='cull'&&tHouse[s.house]){ const v=vetOf[s.house]; if(V[v]) V[v].pool++; }
+    const evs=(s.events||[]).filter(e=>e&&brIsISO(e.date));
+    const mats=evs.filter(e=>e.t==='mate').sort((a,b)=>a.date<b.date?-1:1);
+    const fars=evs.filter(e=>e.t==='farrow').map(e=>brDnum(e.date));
+    const byW={}; mats.forEach(m=>{ byW[brWeekStart(m.date)]=m; });   // นับ 1 แม่/สัปดาห์ (round 2 ไม่นับซ้ำ)
+    Object.keys(byW).forEach(k=>{ const m=byW[k];
+      const hcode=m.house||s.house, v=vetOf[hcode];
+      if(!v||!V[v]||!tHouse[hcode]) return;
+      const o=V[v], md=brDnum(m.date);
+      if(k>=w4&&k<=tW) o.m4++;
+      if(tD-md<=365){   // อัตราเข้าคลอด: ตัดสินจากชุดปีล่าสุด
+        if(fars.some(fd=>fd-md>=C.gest-12&&fd-md<=C.gest+12)) o.far++;
+        else if(mats.some(x=>brDnum(x.date)>md+7)||evs.some(e=>e.t==='preg'&&e.date>m.date&&e.result&&e.result!=='ท้อง')) o.fail++;
+        else if(tD-md>C.gest+15) o.fail++;
+        else o.pend++;
+      }
+    });
+  });
+  return Object.values(V).filter(o=>o.houses.length).sort((a,b)=>b.pool-a.pool);
+}
+function brVetPerfHTML(){
+  const rows=brVetPerf(); if(!rows.length) return '';
+  const tg=brWkTarget();
+  const totalPool=rows.reduce((a,o)=>a+o.pool,0)||1;
+  const cells=rows.map(o=>{
+    const known=o.far+o.fail;
+    const rate=known?o.far/known*100:null;
+    const share=Math.max(1,Math.round(tg.t*o.pool/totalPool));   // เป้าของหมอ = เป้าฟาร์ม × สัดส่วนแม่ในเล้า ท ของหมอ
+    const tgt4=share*4;
+    const okRate=rate!=null&&rate>=90, okMate=o.m4>=tgt4;
+    const badge=(rate==null&&!o.m4)?'<span class="sub">— ยังไม่มีข้อมูล —</span>'
+      :(okRate&&okMate)?'<span style="color:#1a5c3f;font-weight:800">✅ ผ่านทั้ง 2 เกณฑ์</span>'
+      :[!okMate?'<span style="color:#b7791f;font-weight:700">⚠️ ผสมไม่ถึงเป้า</span>':'',
+        (rate!=null&&!okRate)?'<span style="color:#a5342a;font-weight:700">⚠️ เข้าคลอด &lt; 90%</span>':(rate==null?'<span class="sub">เข้าคลอด: รอผล</span>':'')].filter(Boolean).join('<br>');
+    return `<tr>
+      <td><b>${escA(o.vet)}</b><br><span class="sub" style="font-size:10.5px">${o.houses.map(escA).join(' · ')}</span></td>
+      <td class="num">${fmt(o.pool)}</td>
+      <td class="num"><b style="color:${okMate?'#1a5c3f':'#b7791f'}">${fmt(o.m4)}</b>/${fmt(tgt4)}<br><span class="sub" style="font-size:10px">เป้า ~${fmt(share)}/สัปดาห์</span></td>
+      <td class="num">${rate!=null?`<b style="color:${okRate?'#1a5c3f':(rate>=80?'#b7791f':'#a5342a')};font-size:15px">${rate.toFixed(1)}%</b><br><span class="sub" style="font-size:10px">รู้ผล ${fmt(known)} ชุด${o.pend?' · รอ '+fmt(o.pend):''}</span>`:`<span class="sub">รอผล${o.pend?' ('+fmt(o.pend)+' ชุด)':''}</span>`}</td>
+      <td>${badge}</td></tr>`;
+  }).join('');
+  return `<div class="card"><h3>🧑‍⚕️ วัดผลหมอเล้าผสม/อุ้มท้อง <span class="more">เกณฑ์: เข้าคลอด ≥ 90% + ผสมถึงเป้า</span></h3>
+    <div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
+      <thead><tr><th>หมอ · เล้า ท ที่ประจำ</th><th class="num">แม่ในเล้า ท</th><th class="num">ผสม 4 สัปดาห์ (แม่)</th><th class="num">อัตราเข้าคลอด</th><th>ผลตามเกณฑ์</th></tr></thead>
+      <tbody>${cells}</tbody></table></div>
+    <div class="sub" style="margin-top:8px;line-height:1.6"><b>เกณฑ์เจ้าของ:</b> ① <b>อัตราเข้าคลอด ≥ 90%</b> — จากชุดผสมในเล้า ท ของหมอที่รู้ผลแล้ว (ปีล่าสุด): คลอดจริง ÷ (คลอด + ไม่ติด) · ชุดที่ยังท้องอยู่ = "รอผล" ไม่นับ ·
+      ② <b>ผสมถึงเป้า</b> — เป้าของหมอแบ่งจากเป้าฟาร์ม (${fmt(tg.t)}/สัปดาห์) ตามสัดส่วนแม่ในเล้า ท ที่ประจำ เทียบผลรวม 4 สัปดาห์ล่าสุด ·
+      ผสมลงเล้าไหน เครดิตอยู่กับหมอประจำเล้านั้น</div>
   </div>`;
 }
 
