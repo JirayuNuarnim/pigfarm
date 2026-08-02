@@ -1073,7 +1073,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802g';
+const APP_BUILD='690802h';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -7197,7 +7197,7 @@ function batchHTML(h){
             : `<input class="cin" id="${fid}" placeholder="0" oninput="calcBatch()"><div class="sub" style="font-size:10.5px;margin-top:2px;color:#b7791f">ไม่มีในตารางราคา — ใส่เอง</div>`}</td>
         <td class="num" id="f_amt_${i}">0</td></tr>`;}).join("") : '<tr><td colspan="6" class="sub">ยังไม่มีบันทึกการรับอาหารจากหมอ</td></tr>';})()}</tbody>
     </table></div>
-    <div class="sub" style="margin:8px 0 0">รวมอาหาร: <b id="s_feed">—</b> · ราคาอัตโนมัติมาจากตาราง 💰 ราคาอาหาร (มุมผู้ดูแล) — ถ้าราคาชุดนี้ต่างจากตาราง พิมพ์ทับได้เลย ระบบจะจำค่าที่พิมพ์
+    <div class="sub" style="margin:8px 0 0">รวมอาหาร: <b id="s_feed">—</b> · ราคาอัตโนมัติมาจากตาราง 💰 ราคาอาหาร (มุมผู้ดูแล) — ถ้าราคาชุดนี้ต่างจากตาราง พิมพ์ทับได้เลย ระบบจะจำค่าที่พิมพ์</div>
   </div>
 
   <div class="card">
