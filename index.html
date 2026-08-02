@@ -1073,7 +1073,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802h';
+const APP_BUILD='690802i';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -12618,6 +12618,8 @@ function brHouseDetail(){
     </div>
     ${isT?`<div class="card"><h3>💕 ลงผสมวันนี้ (ทีละหลายแม่) <span class="more">ผสมเช้า-บ่ายลงรวดเดียว</span></h3>
       <div id="brBMBox">${brBMHTML(h)}</div></div>`:''}
+    <div class="card"><h3>🚚 รับแม่เข้าเล้านี้ <span class="more">รับเข้าของเล้าแม่พันธุ์ = ลงเบอร์แม่ที่เข้ามา</span></h3>
+      ${brRcvSectionHTML(h.s,brFarm,true)}</div>
     <div class="card"><h3>🐷 แม่ในหลัง <span class="more">${fmt(ss.length)} ตัว</span></h3>${ss.length?ss.map(s=>{ const c=brClock(s); const next=c.find(x=>x.due);
       return `<div class="fieldrow" style="cursor:pointer" onclick="brOpen('${escA(s.ear)}')">
         <div class="fmeta"><div class="fn"><b>${escA(s.ear)}</b> · ${escA(s.breed||'-')} · ครอกที่ ${fmt(s.parity||0)}</div>
@@ -12726,9 +12728,58 @@ function brSowBoxHTML(h){
       <input class="cin tl" style="max-width:220px;margin-bottom:9px" value="${escA(brSowQ)}" placeholder="🔎 ค้นเบอร์แม่" oninput="brSowQ=this.value;brSowReDraw()">
       ${all.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;max-height:170px;overflow:auto">${chips||'<span class="sub">— ไม่พบเบอร์ที่ค้น —</span>'}</div>
       <div class="sub" style="margin-top:7px">🟣 อุ้มท้อง · 🟡 ผสมแล้วรอตรวจ · 🟢 เลี้ยงลูก · ⚪ รอผสม · 🔵 สาว · <b style="color:#8f2f2f">แดง = ถึงคิวงานวันนี้</b></div>`
-        :'<div class="sub">— ยังไม่มีแม่ผูกกับหลังนี้ — แจ้งผสม/ย้ายแม่เข้ามาก่อน แล้วเบอร์จะขึ้นเอง —</div>'}
-      <div id="brSowPanel">${brSowSel?brSowPanelHTML(h,brSowSel):''}</div></div>`;
+        :'<div class="sub">— ยังไม่มีแม่ผูกกับหลังนี้ — รับแม่เข้าด้านล่าง หรือแจ้งผสมแล้วเบอร์จะขึ้นเอง —</div>'}
+      <div id="brSowPanel">${brSowSel?brSowPanelHTML(h,brSowSel):''}</div>
+      ${brRcvSectionHTML(sc,h.farm||brFarm)}</div>`;
   } finally { brFarm=prevFarm; }
+}
+/* ── 🚚 รับแม่เข้าเล้า (รายเบอร์) — "รับเข้า" ของเล้าแม่พันธุ์คือรับแม่เบอร์อะไรเข้ามา ไม่ใช่นับจำนวนตัว (เจ้าของ 2 ส.ค. 69)
+   ลงเบอร์ → ระบบย้ายแม่จากเล้าเดิมเข้าเล้านี้ + จดประวัติย้าย (จาก→ไป + ชื่อผู้ลง) ในฐานข้อมูลแม่กลางทันที ── */
+let brRcv=[{ear:''}], brRcvKey='';
+function brRcvSectionHTML(sc,farm,bare){
+  if(brRcvKey!==farm+'|'+sc){ brRcv=[{ear:''}]; brRcvKey=farm+'|'+sc; }
+  const prevFarm=brFarm; brFarm=farm;
+  try{
+    const cands=brSows().filter(s=>s.stage!=='cull'&&s.house!==sc);
+    const find=v=>{ const e=String(v||'').trim().toLowerCase(); return e?cands.find(x=>String(x.ear).toLowerCase()===e):null; };
+    const rows=brRcv.map((r,i)=>{ const s=find(r.ear);
+      return `<tr><td><input class="cin" list="brRcvDL" style="width:132px;padding:6px 8px" value="${escA(r.ear)}" placeholder="เบอร์แม่" oninput="brRcv[${i}].ear=this.value" onchange="brRcvRe()"></td>
+      <td class="sub" style="font-size:11.5px">${s?('มาจาก <b>'+escA(s.house||'ไม่ระบุเล้า')+'</b> · '+brStageTxt(s.stage)):(String(r.ear||'').trim()?'<span style="color:#a5342a">ไม่พบ/อยู่เล้านี้แล้ว</span>':'')}</td>
+      <td><button class="btn ghost sm" title="ลบแถว" onclick="brRcv.splice(${i},1);brRcvRe()">✕</button></td></tr>`; }).join('');
+    return `<div id="brRcvSec" style="${bare?'':'margin-top:12px;border-top:1px dashed var(--line);padding-top:10px'}">
+      ${bare?'':'<div style="font-weight:800;font-size:13px">🚚 รับแม่เข้าเล้านี้ <span class="more">ลงเป็นเบอร์แม่ — ประวัติย้ายติดตัวแม่ทันที</span></div>'}
+      <datalist id="brRcvDL">${cands.map(s=>`<option value="${escA(s.ear)}">${escA(s.house||'ไม่ระบุเล้า')} · ${brStageTxt(s.stage)}</option>`).join('')}</datalist>
+      <table class="densetbl" style="margin-top:6px"><tbody>${rows}</tbody></table>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn ghost sm" onclick="brRcv.push({ear:''});brRcvRe()">＋ เพิ่มแถว</button>
+        <button class="btn sm" onclick="brRcvSave()">🚚 รับเข้า ${brRcv.filter(r=>String(r.ear||'').trim()).length?('('+brRcv.filter(r=>String(r.ear||'').trim()).length+' แม่)'):''}</button></div>
+      <div class="sub" style="margin-top:6px;font-size:11.5px">พิมพ์ 2-3 ตัวระบบช่วยค้นจากทะเบียนทั้งฟาร์ม · แม่ที่รับเข้าจะย้ายออกจากเล้าเดิมอัตโนมัติ · เบอร์ที่ไม่มีในทะเบียน ให้ขึ้นทะเบียนที่เมนูแม่พันธุ์ → ➕ ขึ้นทะเบียน ก่อน</div></div>`;
+  } finally { brFarm=prevFarm; }
+}
+function brRcvRe(){
+  if(typeof currentHouse!=='undefined'&&currentHouse&&document.getElementById('brSowBox')){ brSowReDraw(); return; }
+  if(document.getElementById('brRcvSec')){ try{ brHouseDetail(); }catch(e){} }
+}
+async function brRcvSave(){
+  const p=brRcvKey.split('|'), farm=p[0], sc=p[1]||'';
+  if(!sc){ toast('ไม่พบเล้าปลายทาง'); return; }
+  const prevFarm=brFarm; brFarm=farm;
+  let done=0; const skip=[], names=[];
+  try{
+    for(const r of brRcv){ const ear=String(r.ear||'').trim(); if(!ear) continue;
+      const s=brSowByEar(ear);
+      if(!s){ skip.push(ear+' (ไม่มีในทะเบียน)'); continue; }
+      if(s.stage==='cull'){ skip.push(ear+' (ปลดแล้ว)'); continue; }
+      if(s.house===sc){ skip.push(ear+' (อยู่เล้านี้แล้ว)'); continue; }
+      s.events=s.events||[]; s.events.unshift({t:'move',date:brTodayISO(),from:s.house||'',to:sc,by:brBy(),note:'รับเข้าเล้า'});
+      s.house=sc; brPersist(s); done++; names.push(ear);
+    }
+  } finally { brFarm=prevFarm; }
+  if(!done&&!skip.length){ toast('ยังไม่ได้ใส่เบอร์แม่'); return; }
+  brRcv=[{ear:''}];
+  toast('🚚 รับเข้าเล้า '+sc+' แล้ว '+done+' แม่'+(done?' ('+names.join(', ')+')':'')+(skip.length?' · ข้าม: '+skip.join(', '):''));
+  if(typeof currentHouse!=='undefined'&&currentHouse&&document.getElementById('brSowBox')){ try{ brDailyRe(); }catch(e){} }
+  else if(document.getElementById('brRcvSec')){ try{ brHouseDetail(); }catch(e){} }
 }
 function brSowPanelHTML(h,ear){
   const s=brDMSows(h).find(x=>String(x.ear)===String(ear)); if(!s) return '';
