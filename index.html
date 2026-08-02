@@ -1070,7 +1070,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690801h';
+const APP_BUILD='690801i';
 (function(){
   let busy=false, lastChk=0;
   function checkUpdate(){
@@ -12940,27 +12940,91 @@ function brCfgSave(){
   toast('✅ บันทึกค่านาฬิกาของ '+brFarm+' แล้ว');
   renderBreeding();
 }
+/* ── 📊 KPI ฝูงแม่พันธุ์ — คำนวณจากประวัติเหตุการณ์จริงทั้งหมด (1 ส.ค. 69) ──
+   PSY = ลูกหย่า/ครอก × ครอก/แม่/ปี · ครอก/แม่/ปี = 365 ÷ ช่วงห่างการคลอด
+   ช่วงห่างการคลอด = ระยะระหว่างคลอด 2 ครั้งติดกันของแม่ตัวเดียวกัน (กรอง 120-400 วัน ตัดค่าผิดปกติ)
+   อัตราการคลอด = ผสมที่ "รู้ผลแล้ว" (เกิน gest+15 วัน) แล้วมีคลอดตามมาใน gest±12 วัน */
+function brIsISO(d){ return /^\d{4}-\d{2}-\d{2}$/.test(String(d||'')); }
+function brDnum(d){ const p=String(d).split('-'); return Date.UTC(+p[0],+p[1]-1,+p[2])/86400000; }
+function brKpi(){
+  const C=brCfg(), today=brDnum(brTodayISO());
+  let litters=0,alive=0,still=0,mummy=0,weanEv=0,weaned=0,mates=0,mateDone=0,mateFar=0;
+  const fi=[], wm=[], monthly={};
+  brSows().forEach(s=>{
+    const evs=(s.events||[]).filter(e=>e&&brIsISO(e.date));
+    const far=evs.filter(e=>e.t==='farrow').map(e=>e.date).sort();
+    const mat=evs.filter(e=>e.t==='mate').map(e=>e.date).sort();
+    const wea=evs.filter(e=>e.t==='wean').map(e=>e.date).sort();
+    evs.forEach(e=>{
+      if(e.t==='mate') mates++;
+      else if(e.t==='farrow'){ litters++; alive+=+e.alive||0; still+=+e.still||0; mummy+=+e.mummy||0;
+        const k=e.date.slice(0,7), m=monthly[k]=monthly[k]||{n:0,a:0,st:0}; m.n++; m.a+=+e.alive||0; m.st+=+e.still||0; }
+      else if(e.t==='wean'){ weanEv++; weaned+=+e.weaned||0; }
+    });
+    for(let i=1;i<far.length;i++){ const g=brDnum(far[i])-brDnum(far[i-1]); if(g>=120&&g<=400) fi.push(g); }
+    wea.forEach(wd=>{ const nx=mat.find(md=>brDnum(md)>brDnum(wd)); if(!nx) return;
+      const g=brDnum(nx)-brDnum(wd); if(g>=0&&g<=60) wm.push(g); });
+    mat.forEach(md=>{ if(today-brDnum(md) < C.gest+15) return; mateDone++;   // ยังไม่ถึงกำหนดรู้ผล = ไม่นับ
+      if(far.some(fd=>{ const g=brDnum(fd)-brDnum(md); return g>=C.gest-12&&g<=C.gest+12; })) mateFar++; });
+  });
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+  const med=a=>{ if(!a.length) return null; const b=a.slice().sort((x,y)=>x-y), i=b.length>>1; return b.length%2?b[i]:(b[i-1]+b[i])/2; };
+  const fiAvg=avg(fi), lpy=fiAvg?365/fiAvg:null, wpl=weanEv?weaned/weanEv:null, tb=alive+still+mummy;
+  return {litters,mates,weanEv,
+    aliveAvg:litters?alive/litters:null, tbAvg:litters?tb/litters:null,
+    stillPct:tb?still/tb*100:null, weanedAvg:wpl,
+    fiAvg, fiMed:med(fi), fiN:fi.length, lpy, psy:(wpl&&lpy)?wpl*lpy:null,
+    wmAvg:avg(wm), wmMed:med(wm), wmN:wm.length,
+    farrowRate:mateDone?mateFar/mateDone*100:null, mateDone, monthly};
+}
 function brKpiHTML(){
   if(!brSows().length) return brEmptyHTML()+brCfgCardHTML();
-  let mates=0,pregY=0,pregN=0,farrows=0,alive=0,still=0,mummy=0,weanEv=0,weaned=0;
-  brSows().forEach(s=>(s.events||[]).forEach(e=>{
-    if(e.t==='mate')mates++;
-    if(e.t==='preg'){ e.result==='ท้อง'?pregY++:pregN++; }
-    if(e.t==='farrow'){ farrows++; alive+=+e.alive||0; still+=+e.still||0; mummy+=+e.mummy||0; }
-    if(e.t==='wean'){ weanEv++; weaned+=+e.weaned||0; }
-  }));
-  const tb=alive+still+mummy;
-  const row=(k,v,target)=>`<tr><td>${k}</td><td class="num"><b>${v}</b></td><td class="num sub">${target}</td></tr>`;
-  return `<div class="card"><h3>📊 KPI · ${escA(brFarm)}</h3>
-    <table class="densetbl" style="max-width:640px"><thead><tr><th>ตัวชี้วัด</th><th class="num">ตอนนี้</th><th class="num">เป้า</th></tr></thead><tbody>
-    ${row('ลูกมีชีวิต/ครอก',farrows?(alive/farrows).toFixed(2):'-','13+')}
-    ${row('Total Born/ครอก',farrows?(tb/farrows).toFixed(2):'-','~15.5')}
-    ${row('% ตายแรกคลอด',tb?(still/tb*100).toFixed(1)+'%':'-','5-8%')}
-    ${row('ลูกหย่า/ครอก',weanEv?(weaned/weanEv).toFixed(2):'-','11.5-13')}
-    ${row('อัตราท้อง (จากผลตรวจ)',(pregY+pregN)?(pregY/(pregY+pregN)*100).toFixed(0)+'%':'-','>85%')}
-    ${row('เหตุการณ์ผสมสะสม',fmt(mates),'-')}
-    </tbody></table>
-    <div class="sub" style="margin-top:10px">ตัวเลขคำนวณจากเหตุการณ์ที่บันทึกในระบบ — ยิ่งลงครบ ยิ่งแม่น · เฟสถัดไป: PSY · ครอก/แม่/ปี · NPD · Wean-to-Estrus</div></div>`+brCfgCardHTML();
+  const k=brKpi();
+  // การ์ดตัวชี้วัดหลัก: ค่าจริง · เป้า · สีบอกว่าถึงเป้าไหม
+  const card=(ico,name,val,unit,target,ok,note)=>{
+    const col=(ok==null)?'var(--mut)':(ok?'#1a5c3f':'#b7791f');
+    return `<div style="flex:1;min-width:172px;background:#fff;border:1.5px solid var(--line);border-left:5px solid ${col};border-radius:13px;padding:11px 14px">
+      <div style="font-size:12.5px;font-weight:800;color:var(--ink-2)">${ico} ${escA(name)}</div>
+      <div style="font-size:23px;font-weight:900;color:${col};margin:2px 0 1px">${val==null?'—':val}<span style="font-size:12px;font-weight:700"> ${escA(unit||'')}</span></div>
+      <div class="sub" style="margin:0;font-size:11px">เป้า ${escA(target)}${note?' · '+escA(note):''}</div></div>`; };
+  const f2=v=>v==null?null:v.toFixed(2), f1=v=>v==null?null:v.toFixed(1), f0=v=>v==null?null:Math.round(v);
+  // แนวโน้มรายเดือน 12 เดือนล่าสุด
+  const mk=Object.keys(k.monthly).sort().slice(-12);
+  const mx=Math.max(1,...mk.map(x=>k.monthly[x].a/Math.max(1,k.monthly[x].n)));
+  const THAI_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const trend=mk.map(key=>{ const m=k.monthly[key], a=m.a/Math.max(1,m.n), p=Math.round(a/mx*100);
+    const y=+key.slice(0,4)+543, mi=+key.slice(5,7)-1;
+    return `<div style="margin:7px 0">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span>${THAI_M[mi]} ${String(y).slice(2)}</span>
+        <span><b>${a.toFixed(2)}</b> <span class="sub">ตัว/ครอก · ${fmt(m.n)} ครอก</span></span></div>
+      <div style="height:12px;background:var(--soft);border-radius:7px;overflow:hidden">
+        <div style="height:100%;width:${p}%;background:linear-gradient(90deg,var(--brand),var(--brand-d))"></div></div></div>`; }).join('');
+  return `<div class="card">
+    <h3>📊 KPI ฝูงแม่พันธุ์ · ${escA(brFarm)} <span class="more">จาก ${fmt(k.litters)} ครอก · ${fmt(k.mates)} ครั้งผสม</span></h3>
+    <div class="sub" style="margin:-2px 0 10px">ตัวชี้วัดหลักของฝูง คำนวณสดจากประวัติที่บันทึกไว้ทั้งหมด</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      ${card('🏆','PSY (ลูกหย่า/แม่/ปี)',f1(k.psy),'ตัว','25-30',k.psy==null?null:k.psy>=25,'ตัวชี้วัดสำคัญที่สุด')}
+      ${card('🍼','ลูกหย่า/ครอก',f2(k.weanedAvg),'ตัว','11.5-13',k.weanedAvg==null?null:k.weanedAvg>=11.5,fmt(k.weanEv)+' ครั้ง')}
+      ${card('🔄','ครอก/แม่/ปี',f2(k.lpy),'ครอก','2.35-2.45',k.lpy==null?null:k.lpy>=2.35,'')}
+      ${card('📅','ช่วงห่างการคลอด',f0(k.fiAvg),'วัน','≤ 150',k.fiAvg==null?null:k.fiAvg<=150,'กลาง '+(f0(k.fiMed)||'-')+' วัน · '+fmt(k.fiN)+' ช่วง')}
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+      ${card('👶','ลูกมีชีวิต/ครอก',f2(k.aliveAvg),'ตัว','13+',k.aliveAvg==null?null:k.aliveAvg>=13,'')}
+      ${card('📦','ลูกเกิดทั้งหมด/ครอก',f2(k.tbAvg),'ตัว','~15.5',k.tbAvg==null?null:k.tbAvg>=14.5,'รวมตายแรกคลอด+มัมมี่')}
+      ${card('⚰️','% ตายแรกคลอด',f1(k.stillPct),'%','5-8%',k.stillPct==null?null:k.stillPct<=8,'')}
+      ${card('✅','อัตราการคลอด',f0(k.farrowRate),'%','> 85%',k.farrowRate==null?null:k.farrowRate>=85,'จากผสม '+fmt(k.mateDone)+' ครั้งที่รู้ผลแล้ว')}
+      ${card('💕','หย่านม → ผสมใหม่',f1(k.wmAvg),'วัน','≤ 7',k.wmAvg==null?null:k.wmAvg<=7,'กลาง '+(f0(k.wmMed)||'-')+' วัน · '+fmt(k.wmN)+' รอบ')}
+    </div>
+    <div class="sub" style="margin-top:11px;line-height:1.65">
+      <b>อ่านยังไง:</b> <b>PSY</b> = ลูกหย่า/ครอก × ครอก/แม่/ปี — บอกว่าแม่ 1 ตัวให้ลูกหย่ากี่ตัวต่อปี ยิ่งสูงยิ่งดี ·
+      <b>ช่วงห่างการคลอด</b> ยิ่งสั้นยิ่งได้ครอกเยอะ (ท้อง ${brCfg().gest} + เลี้ยงลูก ${brCfg().lact} + รอผสมใหม่ ≈ ${brCfg().gest+brCfg().lact+7} วันคือดีที่สุด) ·
+      <b>อัตราการคลอด</b> ต่ำ = ผสมแล้วไม่ติดเยอะ เสียเวลาเปล่า
+    </div>
+  </div>
+  ${mk.length?`<div class="card"><h3>📈 แนวโน้มลูกมีชีวิต/ครอก <span class="more">${mk.length} เดือนล่าสุด</span></h3>${trend}
+    <div class="sub" style="margin-top:8px">แท่งยาว = ลูกมีชีวิตต่อครอกสูง · ตัวเลขท้ายบอกจำนวนครอกที่คลอดในเดือนนั้น</div></div>`:''}
+  ${brCfgCardHTML()}`;
 }
 
 </script>
