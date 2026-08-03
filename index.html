@@ -1080,7 +1080,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690803c';
+const APP_BUILD='690803d';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -1350,6 +1350,7 @@ async function supaFetch(path, opts){ // REST helper พร้อม token + ร
   }catch(e){ console.warn('supaFetch',path,e); return null; }
 }
 let _dbProfile=null; // โปรไฟล์จากตาราง app_users (บทบาท+ฟาร์มที่รับผิดชอบ)
+let HOUSES_FULL=[]; // ลิสต์เล้าเต็มก่อนกรองขอบเขตยูนิต — ใช้เป็นรายชื่อปลายทางแจ้งส่ง/ย้าย
 async function fetchProfile(){
   let r=await supaFetch('/rest/v1/app_users?select=user_id,username,name,role,farms,units&active=is.true',{method:'GET'});
   if(r&&!r.ok) r=await supaFetch('/rest/v1/app_users?select=user_id,username,name,role,farms&active=is.true',{method:'GET'});   // เซิร์ฟเวอร์เก่ายังไม่มีคอลัมน์ units
@@ -1480,7 +1481,8 @@ async function cloudLoadV2(){
       if((role==='owner'||role==='admin') && confirm('⚠️ ระบบกลางไม่มีข้อมูลหลังเลย\n\nจะส่งข้อมูลจากเครื่องนี้ขึ้นไปตั้งต้นหรือไม่?\n(ถ้าไม่แน่ใจ ให้กด "ยกเลิก" แล้วติดต่อผู้ดูแล — กันข้อมูลทดสอบ/ของเก่าทับระบบจริง)')){ await pushAllHousesV2(); await saveConfigAll(); } // 🟠 ต้องยืนยันก่อน push (เดิมส่งอัตโนมัติ เสี่ยง seed ทับ prod)
       return true;
     }
-    HOUSES=unitScopeFilter(rows.map(mergeHouse));   // 🏛️ หมอที่มีขอบเขตยูนิต → เห็นเฉพาะเล้าในยูนิตตัวเอง
+    HOUSES_FULL=rows.map(mergeHouse);               // ลิสต์เต็ม (ใช้เป็น "รายชื่อปลายทาง" ตอนแจ้งส่ง/ย้าย — หมอ scope ยูนิตต้องเห็นชื่อเล้า ค แม้เข้าไปทำงานไม่ได้)
+    HOUSES=unitScopeFilter(HOUSES_FULL);            // 🏛️ หมอที่มีขอบเขตยูนิต → เห็น/ทำงานเฉพาะเล้าในยูนิตตัวเอง
     if(currentHouse){ const nh=HOUSES.find(x=>x.id===currentHouse.id); if(nh) currentHouse=nh; }   // 🔴 ฟอร์มหลังที่เปิดค้างต้องชี้ข้อมูลชุดใหม่ — เดิมชี้ก้อนเก่า กดบันทึกแล้วทับงานทีม
     try{ syncTodayCounters(); }catch(e){}   // 🔢 ตัวนับ "วันนี้ ตาย/คัด/ขาย" ต้องคำนวณสดจากแถวรายวันทุกครั้งที่รับข้อมูลจากคลาวด์
     try{ vetDeathAlertCheck(); }catch(e){}   // 🚨 เตือนหมอ ตาย+คัดวันนี้เกิน 3 — ค่าที่ติดมากับข้อมูลหลังเป็นของเก่าจากเครื่องอื่น/วันอื่น (บั๊กหัวฟาร์มโชว์ 36·28 ทั้งที่จริง 13·15, 17 ก.ค. 69)
@@ -12234,9 +12236,9 @@ function brCanDelete(){ return ROLE==='owner'||ROLE==='admin'; }
    รหัสเล้า U1ค1 = Unit 1 · เล้าคลอดหลังที่ 1 · หมูส่วนมากวนอยู่ในยูนิตตัวเอง
    ⇒ การจัดกลุ่มทุกหน้าต้องยึด Unit เป็นหัวข้อก่อน แล้วค่อยแยก ท/ค ภายในยูนิต (เล้า ส ไม่มียูนิต = กลุ่มแยก) */
 function brUnitOf(code){ const m=String(code||'').match(/U\s*(\d+)/i); return m?('U'+m[1]):''; }
-function brHousesFor(farm){
+function brHousesFor(farm,srcList){   // srcList=HOUSES_FULL เมื่อต้องการ "รายชื่อปลายทาง" ข้ามขอบเขตยูนิต
   const KORD={'ท':0,'ค':1,'ส':2};
-  return (HOUSES||[]).filter(h=>(h.farm||'')===farm&&/[ทคส]\d/.test(h.code||'')).map(h=>{
+  return ((srcList&&srcList.length?srcList:HOUSES)||[]).filter(h=>(h.farm||'')===farm&&/[ทคส]\d/.test(h.code||'')).map(h=>{
     const parts=String(h.code).split(' ');
     const kind=/ค\d/.test(h.code)?'ค':(/ท\d/.test(h.code)?'ท':'ส');
     return {s:parts.length>1?parts.slice(1).join(' '):h.code, full:h.code, kind:kind, unit:brUnitOf(h.code), vet:h.vet||'-', cap:h.cap||''};
@@ -12637,7 +12639,7 @@ function brSndCardHTML(sc,farm){
   if(brSndKey!==farm+'|'+sc){ brSnd=[{ear:''}]; brSndKey=farm+'|'+sc; }
   const prevFarm=brFarm; brFarm=farm;
   try{
-    const hs=brHousesFor(farm), unit=brUnitOf(sc);
+    const hs=brHousesFor(farm,HOUSES_FULL), unit=brUnitOf(sc);   // ปลายทางจากลิสต์เต็ม — หมอ scope เฉพาะ ท ต้องเห็นชื่อเล้า ค ให้เลือกส่ง
     const kOpts=hs.filter(h=>h.kind==='ค').sort((a,b)=>{ const ua=(a.unit===unit)?0:1, ub=(b.unit===unit)?0:1; return ua-ub; });
     const inHouse=brSows().filter(s=>s.house===sc&&s.stage!=='cull');
     const pend=inHouse.filter(s=>s.pend&&s.pend.to);
@@ -13263,7 +13265,7 @@ function brSowPanelHTML(h,ear){
     if(e.t==='wean') d+=' '+fmt(e.weaned||0)+' ตัว';
     if(e.t==='move') d+=' '+(e.from||'-')+'→'+(e.to||'-');
     return `<div style="font-size:12px;color:var(--ink-2)">• ${escA(d)}${e.by?' <span class="sub">· '+escA(e.by)+'</span>':''}</div>`; }).join('');
-  const moveOpts=brHousesFor(h.farm||brFarm).filter(x=>x.s!==sc).map(x=>`<option>${escA(x.s)}</option>`).join('');
+  const moveOpts=brHousesFor(h.farm||brFarm,HOUSES_FULL).filter(x=>x.s!==sc).map(x=>`<option>${escA(x.s)}</option>`).join('');   // ปลายทางย้ายจากลิสต์เต็ม — หมอ scope ยูนิตยังเลือกเล้านอกขอบเขตเป็นปลายทางได้
   return `<div style="margin-top:11px;background:#faf7fc;border:1px solid #c9a3e0;border-radius:11px;padding:11px 13px">
     <div style="font-size:13px;font-weight:800;color:#5c3d78">🐷 ${escA(s.ear)} · ครอกที่ ${fmt(s.parity||0)} · ${brStageTxt(s.stage)}${brSowRunDays(s)?' · '+escA(brSowRunDays(s)):''}</div>
     ${m?`<div class="sub" style="margin:3px 0 0">ผสมล่าสุด ${escA(sbThaiDate(m.date))}${m.boar?' × พ่อ <b>'+escA(m.boar)+'</b>':''}</div>`:''}
@@ -13445,7 +13447,7 @@ function brWeanToday(h){
 function brWeanSentToday(h){
   const tag='ลูกหย่านม '+brShortOf(h), today=brTodayISO();
   let sent=0;
-  HOUSES.forEach(x=>(x.incoming||[]).forEach(t=>{ if(t&&t.date===DEMO_DATE_DAY&&String(t.note||'').indexOf(tag)===0) sent+=(+t.n||0); }));
+  ((HOUSES_FULL&&HOUSES_FULL.length)?HOUSES_FULL:HOUSES).forEach(x=>(x.incoming||[]).forEach(t=>{ if(t&&t.date===DEMO_DATE_DAY&&String(t.note||'').indexOf(tag)===0) sent+=(+t.n||0); }));   // เช็คจากลิสต์เต็ม — ปลายทางอยู่นอกขอบเขตยูนิตของหมอ
   return sent;
 }
 function brWeanShipHTML(h){
@@ -13453,7 +13455,7 @@ function brWeanShipHTML(h){
   const w=brWeanToday(h); if(!w.n) return '';
   const sent=brWeanSentToday(h), left=Math.max(0,w.n-sent);
   // ปลายทาง = ทุกหลังที่ไม่ใช่เล้าแม่พันธุ์ (ท/ค/ส) — ส่งได้ทั้งอนุบาลและขุน (เจ้าของยืนยัน 2 ส.ค. 69: หย่าแล้วลงขุนตรงก็มี)
-  const dests=HOUSES.filter(x=>x.id!==h.id&&x.code&&!/^[ทคส]\d/.test(brShortOf(x))).slice().sort(byCode);
+  const dests=((HOUSES_FULL&&HOUSES_FULL.length)?HOUSES_FULL:HOUSES).filter(x=>x.id!==h.id&&x.code&&!/^[ทคส]\d/.test(brShortOf(x))).slice().sort(byCode);   // ปลายทางจากลิสต์เต็ม — หมอ scope เล้า ค ต้องส่งลูกหย่าเข้าอนุบาล/ขุนได้
   const isNur=x=>/^อ\d/.test(brShortOf(x));                  // อ1-อ31 = อนุบาล · ที่เหลือ = ขุน/อื่นๆ
   const opt=x=>`<option value="${x.id}">${escA(x.code)} · ${escA(x.farm||'')}${(x.pigs||0)>0?' (มีหมู '+fmt(x.pigs)+')':' (ว่าง)'}</option>`;
   const nur=dests.filter(isNur), fat=dests.filter(x=>!isNur(x));
@@ -13475,7 +13477,7 @@ function brWeanShipHTML(h){
 async function brWeanShip(){
   if(typeof blockIfReadonly==='function'&&blockIfReadonly()) return;
   const h=currentHouse; if(!h) return;
-  const dSel=document.getElementById('brWs_dest'), dest=HOUSES.find(x=>x.id===+(dSel&&dSel.value));
+  const dSel=document.getElementById('brWs_dest'), dest=((HOUSES_FULL&&HOUSES_FULL.length)?HOUSES_FULL:HOUSES).find(x=>x.id===+(dSel&&dSel.value));
   if(!dest){ toast('เลือกหลังปลายทางก่อน'); return; }
   const n=Number((document.getElementById('brWs_n')||{}).value)||0;
   if(!(n>0)){ toast('ใส่จำนวนลูกที่ส่งเป็นตัวเลข'); return; }
