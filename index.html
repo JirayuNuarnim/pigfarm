@@ -1080,7 +1080,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690803d';
+const APP_BUILD='690803e';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -13079,12 +13079,15 @@ function brSowBoxHTML(h){
   const prevFarm=brFarm; brFarm=h.farm||brFarm;
   try{
     const sc=brShortOf(h);
+    if(brSowBoxSc!==sc){ brSowChipAll=false; brSowBoxSc=sc; }   // เปลี่ยนหลัง = กลับโหมดย่อ
     const all=brDMSows(h).filter(s=>s.house===sc&&s.stage!=='cull').sort((a,b)=>String(a.ear).localeCompare(String(b.ear),'th',{numeric:true}));
     const q=String(brSowQ||'').trim().toLowerCase();
     const list=q?all.filter(s=>String(s.ear).toLowerCase().includes(q)):all;
     const dueEars={}; brDueList(sc).forEach(x=>dueEars[x.sow.ear]=1);
-    const chips=list.map(s=>{ const c=BR_CHIP[s.stage]||BR_CHIP.open, on=(brSowSel===s.ear), hot=dueEars[s.ear];
-      return `<button onclick="brSowPick('${escA(s.ear)}')" title="${escA(brStageTxt(s.stage))}" style="cursor:pointer;background:${hot?'#fbe9e7':c[0]};border:${on?'2px':'1px'} solid ${hot?'#e0a0a0':c[1]};border-radius:9px;padding:5px 11px;font-size:12.5px;font-weight:800;color:${hot?'#8f2f2f':c[2]}">${escA(s.ear)}</button>`; }).join('');
+    const CAP=brSowChipAll?100000:120;   // 📱 เล้าละ 700 แม่ — วาด chips ทีละ 120 พอ ที่เหลือใช้ค้นหา/กดแสดงทั้งหมด
+    const chips=list.slice(0,CAP).map(s=>{ const c=BR_CHIP[s.stage]||BR_CHIP.open, on=(brSowSel===s.ear), hot=dueEars[s.ear];
+      return `<button onclick="brSowPick('${escA(s.ear)}')" title="${escA(brStageTxt(s.stage))}" style="cursor:pointer;background:${hot?'#fbe9e7':c[0]};border:${on?'2px':'1px'} solid ${hot?'#e0a0a0':c[1]};border-radius:9px;padding:5px 11px;font-size:12.5px;font-weight:800;color:${hot?'#8f2f2f':c[2]}">${escA(s.ear)}</button>`; }).join('')
+      +(list.length>CAP?`<button class="btn ghost sm" onclick="brSowChipAll=true;brSowReDraw()">…แสดงทั้งหมด ${fmt(list.length)} (พิมพ์ค้นเร็วกว่า)</button>`:'');
     return `<div class="card" style="border-color:#c2537f">
       <h3>🐷 แม่ในหลังนี้ <span class="more">${fmt(all.length)} ตัว · สีบอกสถานะ · แตะเบอร์เพื่อทำงาน/ดูประวัติ</span></h3>
       <input class="cin tl" style="max-width:220px;margin-bottom:9px" value="${escA(brSowQ)}" placeholder="🔎 ค้นเบอร์แม่" oninput="brSowQ=this.value;brSowReDraw()">
@@ -13402,6 +13405,10 @@ async function brFRDel(ear){
 }
 /* 📊 ภาพรวมหลังแม่พันธุ์ (Peter 28 ก.ค. 69: "หมอประจำยูนิตเปิดหลังแล้วต้องเห็นภาพรวมทันที")
    บนสุดของหน้าบันทึกรายวันหลัง ท/ค/ส: องค์ประกอบแม่ตามสถานะ + งานวันนี้จากนาฬิกาแม่ (จับเบอร์ไหนทำอะไร) + งานล่วงหน้า 7 วัน */
+/* 📱 กลุ่มงานในภาพรวมหลัง — สรุปจำนวนก่อน กดหัวข้อค่อยกางรายตัว + กางทีละหน้า (เจ้าของ 3 ส.ค. 69: หลังละ 700 แม่ เลื่อนมือถือไม่ไหว) */
+let brOvOpen={}, brOvCap={}, brOvKeys=[], brSowChipAll=false, brSowBoxSc='';
+function brOvSet(i,v){ const k=brOvKeys[i]; if(k==null) return; brOvOpen[k]=!!v; brRe(); }
+function brOvMore(i){ const k=brOvKeys[i]; if(k==null) return; brOvCap[k]=(brOvCap[k]||30)+50; brRe(); }
 function brHouseOverviewHTML(h){
   const sc=brShortOf(h);
   const prevFarm=brFarm; brFarm=h.farm||brFarm;   // ให้ brClock/brCfg ใช้ค่าตั้งนาฬิกาของฟาร์มนี้
@@ -13424,10 +13431,21 @@ function brHouseOverviewHTML(h){
       <h3>📊 ภาพรวมหลัง ${escA(sc)} <span class="more">สดจากทะเบียนแม่ · นาฬิกาตามค่าตั้งฟาร์ม</span></h3>
       <div style="display:flex;gap:7px;flex-wrap:wrap">${chips.map(c=>`<span class="sbchip" style="font-size:13.5px">${c[0]} <b>${fmt(c[1])}</b></span>`).join('')}</div>
       <div style="margin-top:11px;font-weight:800;font-size:14px">📋 งานวันนี้${totTask?` <span style="background:var(--brand);color:#fff;border-radius:999px;padding:1px 10px;font-size:12px">${fmt(totTask)} รายการ</span>`:''}</div>
-      ${gk.length?gk.map(k=>`<div style="margin-top:7px"><div style="font-size:13px;font-weight:700;${urgent[k]?'color:var(--bad)':''}">${k} <span class="sub" style="font-weight:400">(${groups[k].length} แม่)</span></div>
-        ${(gitem[k]||[]).map(x=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--line)">
+      ${gk.length?(brOvKeys=gk,gk.map((k,gi)=>{
+        const items=gitem[k]||[];
+        const open=(brOvOpen[k]!==undefined)?brOvOpen[k]:items.length<=8;   // กลุ่มเล็กกางให้เลย · กลุ่มใหญ่พับไว้ (มือถือ 700 แม่/หลัง เลื่อนไม่ไหว)
+        const cap=brOvCap[k]||30;
+        const shown=open?items.slice(0,cap):[];
+        return `<div style="margin-top:7px">
+        <div style="display:flex;align-items:center;gap:8px;cursor:pointer;background:${urgent[k]?'#fdecea':'var(--soft)'};border-radius:9px;padding:8px 11px" onclick="brOvSet(${gi},${open?0:1})">
+          <span style="font-size:13px;font-weight:700;${urgent[k]?'color:var(--bad)':''}">${k}</span>
+          <span style="margin-left:auto;display:flex;align-items:center;gap:8px"><b style="font-size:14px">${fmt(items.length)}</b><span class="sub" style="font-size:12px">แม่</span><span style="font-weight:800;color:var(--brand)">${open?'▴':'▾'}</span></span></div>
+        ${shown.map(x=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0 6px 6px;border-bottom:1px dashed var(--line)">
           <button onclick="brSowPick('${escA(x.sow.ear)}')" style="cursor:pointer;background:${urgent[k]?'#fdecea':'var(--soft)'};border:1px solid var(--line);border-radius:8px;padding:3px 11px;font-size:12.5px;font-weight:800">${escA(x.sow.ear)}</button>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto">${brActBtns(x)}</div></div>`).join('')}</div>`).join('')
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto">${brActBtns(x)}</div></div>`).join('')}
+        ${open&&items.length>cap?`<div style="text-align:center;margin-top:6px"><button class="btn ghost sm" onclick="brOvMore(${gi})">แสดงเพิ่มอีก ${fmt(Math.min(50,items.length-cap))} (เหลือ ${fmt(items.length-cap)} แม่)</button></div>`:''}
+        </div>`;
+      }).join(''))
         :'<div class="sub" style="margin-top:5px">✅ วันนี้ไม่มีงานตามนาฬิกาแม่ของหลังนี้</div>'}
       ${(look.preg||look.farrow||look.wean)?`<div class="sub" style="margin-top:10px">📅 กำลังจะมาใน 7 วัน: ${[look.preg?'🔍 ตรวจท้อง '+fmt(look.preg)+' แม่':'',look.farrow?'🏠 ขึ้นเล้าคลอด '+fmt(look.farrow)+' แม่':'',look.wean?'🍼 หย่านม '+fmt(look.wean)+' แม่':''].filter(Boolean).join(' · ')}</div>`:''}
     </div>`;
