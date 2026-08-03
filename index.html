@@ -1080,7 +1080,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690803b';
+const APP_BUILD='690803c';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -12310,7 +12310,7 @@ function brClock(s){
     if(d>=C.gest-14&&d<C.gest-6&&!(vx&&vx.date>=brAddDays(mate.date,C.gest-19))) out.push({due:1,k:'vax',label:'💉 วัคซีนก่อนคลอด/ถ่ายพยาธิ (วัน '+(C.gest-14)+'-'+(C.gest-6)+')'});
     if(d>=C.gest-6&&!/ค\d/.test(String(s.house))){
       if(s.pend&&s.pend.to) out.push({d:d,label:'📤 แจ้งส่งขึ้น '+s.pend.to+' แล้ว ('+sbThaiDate(s.pend.date)+') — รอเล้าคลอดเช็คเบอร์กดรับ'});
-      else out.push({due:1,k:'move',label:'🏠 ย้ายขึ้นเล้าคลอด (วัน '+(C.gest-6)+'-'+(C.gest-2)+')'});
+      else out.push({due:1,k:'move',label:'📤 ส่งขึ้นเล้าคลอด (วัน '+(C.gest-6)+'-'+(C.gest-2)+')'});
     }
     if(d>=C.gest-2) out.push({due:1,k:'farrow',label:'👶 ใกล้คลอด — เฝ้าดู/ลงคลอด'});
   }
@@ -12644,8 +12644,19 @@ function brSndCardHTML(sc,farm){
     const bounced=inHouse.filter(s=>(s.events||[]).some(e=>e&&e.t==='care'&&/^↩️ ตีกลับ/.test(e.note||'')&&brIsISO(e.date)&&brDays(e.date)<=7&&e.date===brLastEv(s,'care').date));
     const rows=brSnd.map((r,i)=>`<tr><td><input class="cin" list="brSndDL" style="width:132px;padding:6px 8px" value="${escA(r.ear)}" placeholder="เบอร์แม่" oninput="brSnd[${i}].ear=this.value"></td>
       <td><button class="btn ghost sm" title="ลบแถว" onclick="brSnd.splice(${i},1);brSndRe()">✕</button></td></tr>`).join('');
+    const C=brCfg();
+    const due=inHouse.filter(s=>{ if(s.pend&&s.pend.to) return false; if(s.stage!=='preg'&&s.stage!=='mated') return false;
+      const m=brLastEv(s,'mate'); const d=m&&brIsISO(m.date)?brDays(m.date):null; return d!=null&&d>=C.gest-6; });
+    const queued=r=>brSnd.some(x=>String(x.ear||'').trim()===String(r.ear));
     return `<div id="brSndSec">
       <datalist id="brSndDL">${inHouse.filter(s=>!(s.pend&&s.pend.to)).map(s=>`<option value="${escA(s.ear)}">${brStageTxt(s.stage)}</option>`).join('')}</datalist>
+      ${due.length?`<div style="background:#fdf3e0;border:1px dashed #d9b26a;border-radius:10px;padding:8px 11px;margin-bottom:9px">
+        <div style="font-weight:800;font-size:12.5px;margin-bottom:5px">🔔 ถึงกำหนดส่งขึ้นคลอด (ท้อง ≥ วัน ${C.gest-6}) <span class="more">${fmt(due.length)} ตัว — แตะเบอร์เพื่อเพิ่มเข้าคิว</span></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+          ${due.map(s=>{ const m=brLastEv(s,'mate'); const d=m?brDays(m.date):'';
+            return `<button class="sbhchip" style="${queued(s)?'opacity:.45':''}" onclick="brSndAdd(${escA(JSON.stringify(String(s.ear)))})">${queued(s)?'✓ ':''}${escA(s.ear)} <span style="opacity:.6">วัน ${d}</span></button>`; }).join('')}
+          ${due.length>1?`<button class="btn ghost sm" onclick="brSndAddAll()">➕ เพิ่มทั้งหมด</button>`:''}
+        </div></div>`:''}
       <div class="frow" style="max-width:280px"><label>ส่งขึ้นเล้าคลอด (ค) *</label><select class="cin tl" id="brSndTo">${kOpts.map(h=>`<option value="${escA(h.s)}">${escA(h.s)}${h.unit===unit?' (ยูนิตเดียวกัน)':''}</option>`).join('')}</select></div>
       <table class="densetbl" style="margin-top:4px"><tbody>${rows}</tbody></table>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
@@ -12890,8 +12901,7 @@ function brActBtns(x){
   if(x.k==='ret') return `<button class="btn ghost sm" style="${P}" onclick="brQuickChk('${ear}')">✔ ปกติ ไม่กลับสัด</button><button class="btn ghost sm" style="${P};color:var(--bad)" onclick="brQuickPreg('${ear}','กลับสัด')">🔁 กลับสัด</button>`;
   if(x.k==='vax') return `<button class="btn sm" style="${P}" onclick="brQuickVax('${ear}')">💉 ลงวัคซีนแล้ว</button>`;
   if(x.k==='care') return `<button class="btn sm" style="${P}" onclick="brQuickCare('${ear}','${escA(x.note||'')}')">✔ ทำแล้ว</button>`;
-  if(x.k==='move'){ const u=brUnitOf(x.sow&&x.sow.house); const opts=brHousesFor(brFarm).filter(h=>h.kind==='ค').sort((a,b)=>((a.unit===u)?0:1)-((b.unit===u)?0:1)).map(h=>`<option>${escA(h.s)}</option>`).join('');
-    return `<select class="cin tl" id="brMv_${ear}" style="max-width:120px;padding:5px 8px">${opts}</select><button class="btn sm" style="${P}" onclick="brQuickMove('${ear}')">📤 แจ้งส่งขึ้นคลอด</button>`; }
+  if(x.k==='move'){ return `<button class="btn sm" style="${P}" onclick="brSndQueue('${ear}')">📤 ส่งขึ้นเล้าคลอด</button>`; }   // หยิบเบอร์เข้าคิวในการ์ดส่ง — เลือกเล้าปลายทางที่เดียว ไม่มี dropdown รายตัว
   const inDaily=!!document.getElementById('brOvBox');   // อยู่ในการ์ดหน้าบันทึกรายวัน → ใช้ฟอร์มในการ์ด ไม่กระโดดออกไปเมนูแม่พันธุ์
   if(x.k==='heat') return `<button class="btn sm" style="${P}" onclick="${inDaily?`brSowMate('${ear}')`:`brBMAdd('${ear}')`}">💕 พบสัด → ลงผสม</button><button class="btn ghost sm" style="${P}" onclick="brQuickChk('${ear}')">ยังไม่สัด</button>`;
   if(x.k==='farrow') return `<button class="btn sm" style="${P}" onclick="${inDaily?`brSowFarrow('${ear}')`:`brGotoForm('farrow','${ear}')`}">👶 ลงคลอด</button>`;
@@ -12956,11 +12966,44 @@ function brQuickVax(ear){ const s=brSowByEar(ear); if(!s)return;
 function brQuickCare(ear,note){ const s=brSowByEar(ear); if(!s)return;
   s.events=s.events||[]; s.events.unshift({t:'care',date:brTodayISO(),note:note,house:s.house,by:brBy()});
   brPersist(s); toast('✔ '+s.ear+' '+note); brRe(); }
-function brQuickMove(ear){ const s=brSowByEar(ear); if(!s)return;
-  const sel=document.getElementById('brMv_'+ear); const to=sel?sel.value:''; if(!to)return;
-  // ขึ้นเล้าคลอด = แจ้งส่ง (ตอบแจ้ง/ตอบรับ) — หมอเล้าคลอดเช็คเบอร์กับตัวจริงแล้วกดรับ แม่ถึงย้ายจริง
-  s.pend={to:to,date:brTodayISO(),by:brBy()};
-  brPersist(s); toast('📤 แจ้งส่ง '+s.ear+' ขึ้น '+to+' แล้ว — รอหมอเล้าคลอดเช็คเบอร์แล้วกดรับ'); brRe(); }
+/* 📤 หยิบเบอร์เข้าคิวส่งขึ้นคลอด — ทุกปุ่ม "ส่งขึ้นเล้าคลอด" มารวมที่การ์ดส่งใบเดียว (เจ้าของ 3 ส.ค. 69: ปรับเข้าหากัน ให้ง่ายสุด) */
+function brSndQueue(ear){
+  const s=brSowByEar(ear); if(!s) return;
+  const sc=s.house||'';
+  const key=brFarm+'|'+sc;
+  if(brSndKey!==key){ brSnd=[{ear:''}]; brSndKey=key; }
+  if(!brSnd.some(r=>String(r.ear||'').trim()===String(s.ear))){
+    const empty=brSnd.find(r=>!String(r.ear||'').trim());
+    if(empty) empty.ear=String(s.ear); else brSnd.push({ear:String(s.ear)});
+  }
+  brFold['snd'+sc]=true;
+  brRe();
+  setTimeout(()=>{ const el=document.getElementById('brSndSec'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); },100);
+  toast('➕ '+s.ear+' เข้าคิวส่งขึ้นคลอดแล้ว — เช็ครายชื่อ เลือกเล้า ค แล้วกด 📤 แจ้งส่ง');
+}
+function brSndAdd(ear){
+  const e=String(ear||'').trim(); if(!e) return;
+  if(!brSnd.some(r=>String(r.ear||'').trim()===e)){
+    const empty=brSnd.find(r=>!String(r.ear||'').trim());
+    if(empty) empty.ear=e; else brSnd.push({ear:e});
+  }
+  brSndRe();
+}
+function brSndAddAll(){
+  const p=brSndKey.split('|'), farm=p[0], sc=p[1]||'';
+  const prevFarm=brFarm; brFarm=farm;
+  try{ const C=brCfg();
+    brSows().forEach(s=>{ if(s.house!==sc||s.stage==='cull'||(s.pend&&s.pend.to)) return;
+      if(s.stage!=='preg'&&s.stage!=='mated') return;
+      const m=brLastEv(s,'mate'); const d=m&&brIsISO(m.date)?brDays(m.date):null;
+      if(d==null||d<C.gest-6) return;
+      if(!brSnd.some(r=>String(r.ear||'').trim()===String(s.ear))){
+        const empty=brSnd.find(r=>!String(r.ear||'').trim());
+        if(empty) empty.ear=String(s.ear); else brSnd.push({ear:String(s.ear)});
+      } });
+  } finally { brFarm=prevFarm; }
+  brSndRe();
+}
 function brGotoForm(kind,ear){ brEvKind=kind; brTab='ev'; renderBreeding();
   setTimeout(()=>{ const el=document.getElementById('brEvEar'); if(el) el.value=ear; },120); }
 /* ── ตารางผสมแบบชุด ── */
