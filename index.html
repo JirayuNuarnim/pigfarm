@@ -1080,7 +1080,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690803a';
+const APP_BUILD='690803b';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -12713,7 +12713,7 @@ function brGestTaskTxt(d,C){
   if(d<C.gest-1) return '📤 ส่งขึ้นเล้าคลอด (วัน '+(C.gest-6)+'-'+(C.gest-2)+')';
   return '👶 ถึงกำหนดคลอด';
 }
-function brWkUnitCardHTML(unit,farm){
+function brWkUnitCardHTML(unit,farm,bare){   // bare=เนื้อในอย่างเดียว (ใช้ในการ์ดพับของหน้ารายวัน)
   if(!unit) return '';
   const prevFarm=brFarm; brFarm=farm;
   try{
@@ -12764,8 +12764,7 @@ function brWkUnitCardHTML(unit,farm){
         <td style="font-size:11.5px">${hbTxt||'-'}</td>
         <td class="num"><span class="sub" style="font-size:10.5px">คาดคลอด</span><br>${brWkLabel(brAddDays(ws,Math.round(C.gest/7)*7))}</td></tr>${ears}`;
     }).join('');
-    return `<div class="card" style="border-color:#7a5fb5"><h3>📅 ชุดผสมราย Week — ยูนิต ${escA(unit.slice(1))} <span class="more">แม่ชุดไหนอยู่สัปดาห์ไหน · แตะแถวดูเบอร์</span></h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+    const inner=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
         <span class="sbchip" style="font-size:13px">🎯 เป้ายูนิตสัปดาห์นี้ <b>${fmt(share)}</b> แม่</span>
         <span class="sbchip" style="font-size:13px;background:${curN>=share?'#e9f5ee':'#fdf3e0'}">ผสมแล้ว <b>${fmt(curN)}</b>/${fmt(share)}${curN>=share?' ✅':''}</span>
       </div>
@@ -12773,18 +12772,44 @@ function brWkUnitCardHTML(unit,farm){
         <thead><tr><th>Week ผสม</th><th class="num">ท้องสัปดาห์ที่</th><th class="num">ผสม (แม่)</th><th class="num">เหลือ</th><th>งานของชุดนี้ตอนนี้</th><th>ตอนนี้อยู่หลังไหน</th><th class="num">คาดคลอด</th></tr></thead>
         <tbody>${rows}</tbody></table></div>
       <div class="sub" style="margin-top:8px;line-height:1.6"><b>อ่านยังไง:</b> แม่ผสมสัปดาห์เดียวกัน = ชุดเดียวกัน เดินงานพร้อมกันทั้งชุด: สัปดาห์ 3 เช็คกลับสัด → <b>สัปดาห์ 4-6 ตรวจท้อง</b> → สัปดาห์ ${Math.ceil((C.gest-14)/7)} วัคซีน → สัปดาห์ ${Math.ceil((C.gest-6)/7)} ส่งขึ้นคลอด ·
-        <b>เหลือ</b> = ยังท้อง/รอตรวจ (ตัด 🔁 กลับสัด · 👶 คลอดแล้ว · ❌ ปลด ออกแล้ว) · <b>อยู่หลังไหน</b> ช่วยวางแผนจัดเล้า/ส่งขึ้นคลอดทีละหลัง · ชุดที่คลอดจบรอบแล้วหายจากตารางเอง</div>
-    </div>`;
+        <b>เหลือ</b> = ยังท้อง/รอตรวจ (ตัด 🔁 กลับสัด · 👶 คลอดแล้ว · ❌ ปลด ออกแล้ว) · <b>อยู่หลังไหน</b> ช่วยวางแผนจัดเล้า/ส่งขึ้นคลอดทีละหลัง · ชุดที่คลอดจบรอบแล้วหายจากตารางเอง</div>`;
+    if(bare) return inner;
+    return `<div class="card" style="border-color:#7a5fb5"><h3>📅 ชุดผสมราย Week — ยูนิต ${escA(unit.slice(1))} <span class="more">แม่ชุดไหนอยู่สัปดาห์ไหน · แตะแถวดูเบอร์</span></h3>${inner}</div>`;
   } finally { brFarm=prevFarm; }
 }
 
-/* การ์ดแจ้งส่ง/รอรับ ในหน้าบันทึกรายวัน — ท ได้การ์ดส่ง · ค ได้กล่องรอรับ */
+/* ── 📂 การ์ดพับได้ (หน้าบันทึกรายวันเล้าแม่พันธุ์รกเกิน — เจ้าของ 3 ส.ค. 69: หัวข้อไหนไม่ใช้ทุกครั้งให้พับ กดเปิดเอง) ── */
+let brFold={};
+function brFoldCardHTML(key,icon,title,sub,innerFn,border){
+  const open=!!brFold[key];
+  return `<div class="card"${border?` style="border-color:${border}"`:''}>
+    <div style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none" onclick="brFold['${key}']=!brFold['${key}'];brRe()">
+      <h3 style="margin:0">${icon} ${title}</h3>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:9px;text-align:right">${sub?`<span class="more">${sub}</span>`:''}<span style="font-weight:800;color:var(--brand);white-space:nowrap">${open?'▴ ปิด':'▾ เปิด'}</span></span></div>
+    ${open?`<div style="margin-top:10px">${innerFn()}</div>`:''}</div>`;
+}
+/* การ์ดแจ้งส่ง/รอรับ ในหน้าบันทึกรายวัน — ท: ชุดผสม/ส่งขึ้นคลอด/ไกด์อาหาร พับเป็นหัวข้อ · ค: กล่องรอรับ (โชว์เมื่อมีของ) + ไกด์อาหารพับ */
 function brDailyXferHTML(h){
   const kind=brDailyHouseKind(h); if(!kind) return '';
   const sc=brShortOf(h), farm=h.farm||brFarm;
-  if(kind==='ค') return brInboxCardHTML(sc,farm);
-  if(kind==='ท') return brWkUnitCardHTML(brUnitOf(sc),farm)+`<div class="card"><h3>📤 ส่งแม่ขึ้นเล้าคลอด <span class="more">แจ้งให้หมอเล้าคลอดเช็คเบอร์แล้วกดรับ</span></h3>${brSndCardHTML(sc,farm)}</div>`;
-  return '';
+  const prevFarm=brFarm; brFarm=farm;
+  let pendN=0,bounceN=0,feedTot=0,nIn=0;
+  try{
+    const inH=brSows().filter(s=>s.house===sc&&s.stage!=='cull');
+    nIn=inH.length;
+    pendN=inH.filter(s=>s.pend&&s.pend.to).length;
+    bounceN=inH.filter(s=>{ const e=brLastEv(s,'care'); return e&&/^↩️ ตีกลับ/.test(e.note||'')&&brIsISO(e.date)&&brDays(e.date)<=7; }).length;
+    inH.forEach(s=>{ const g=brFeedGuideOf(s); if(g) feedTot+=g.kg; });
+  } finally { brFarm=prevFarm; }
+  const feedFold=nIn?brFoldCardHTML('fg'+sc,'🌾','ไกด์อาหารวันนี้','รวม ~'+feedTot.toFixed(0)+' กก. ('+fmt(nIn)+' แม่)',()=>brFeedGuideCardHTML(sc,farm,true),'#c9a45a'):'';
+  if(kind==='ค') return brInboxCardHTML(sc,farm)+feedFold;
+  if(kind==='ท'){
+    const unit=brUnitOf(sc);
+    return (unit?brFoldCardHTML('wku'+unit,'📅','ชุดผสมราย Week — ยูนิต '+unit.slice(1),'แม่ชุดไหนอยู่สัปดาห์ไหน · ตรวจท้อง W4-6',()=>brWkUnitCardHTML(unit,farm,true),'#7a5fb5'):'')
+      + brFoldCardHTML('snd'+sc,'📤','ส่งแม่ขึ้นเล้าคลอด',(pendN?'⏳ รอเล้าคลอดรับ <b>'+fmt(pendN)+'</b>':'เลือกเบอร์ → เล้า ค')+(bounceN?' · <span style="color:#a5342a">↩️ ตีกลับ '+fmt(bounceN)+'</span>':''),()=>brSndCardHTML(sc,farm))
+      + feedFold;
+  }
+  return feedFold;
 }
 /* 📥 ฝั่งเล้าคลอด: รายการแม่ที่แจ้งส่งมา — เช็คเบอร์กับตัวจริงแล้วกดรับ/ตีกลับ */
 function brInboxCardHTML(sc,farm){
@@ -12990,7 +13015,7 @@ function brMateCardHTML(h){
 }
 function brDMFill(h){ if(!brDailyHouseKind(h)) return;
   brCloudLoad().then(ok=>{
-    const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=ok?(brNoFarmWarnHTML()+brHouseOverviewHTML(h)+brDailyXferHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm)):'';
+    const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=ok?(brNoFarmWarnHTML()+brHouseOverviewHTML(h)+brDailyXferHTML(h)):'';
     const sb=document.getElementById('brSowBox'); if(sb) sb.innerHTML=ok?brSowBoxHTML(h):'';
     const fb=document.getElementById('brFRBox'); if(fb) fb.innerHTML=ok?brFRBodyHTML(h):'<div class="sub">⚠️ โหลดทะเบียนแม่ไม่สำเร็จ</div>';
     const ws=document.getElementById('brWsBox'); if(ws) ws.innerHTML=ok?brWeanShipHTML(h):'';
@@ -13136,7 +13161,7 @@ function brFeedGuideOf(s){
   if(s.stage==='gilt') return {kg:C.fgGilt,grp:'🌸 สาวรอผสม',wk:null};
   return null;
 }
-function brFeedGuideCardHTML(sc,farm){
+function brFeedGuideCardHTML(sc,farm,bare){   // bare=เนื้อในอย่างเดียว (ใช้ในการ์ดพับ)
   const prevFarm=brFarm; if(farm) brFarm=farm;
   try{
     const ss=brSows().filter(s=>s.house===sc&&s.stage!=='cull');
@@ -13148,13 +13173,14 @@ function brFeedGuideCardHTML(sc,farm){
     const keys=Object.keys(G).sort((a,b)=>{ const ia=ORD.findIndex(p=>a.startsWith(p)), ib=ORD.findIndex(p=>b.startsWith(p)); return (ia<0?99:ia)-(ib<0?99:ib); });
     const rows=keys.map(k=>{ const o=G[k];
       return `<tr><td>${escA(k)}</td><td class="num">${fmt(o.n)}</td><td class="num">${(o.kg/o.n).toFixed(1)}</td><td class="num"><b>${o.kg.toFixed(1)}</b></td></tr>`; }).join('');
-    return `<div class="card" style="border-color:#c9a45a"><h3>🌾 ไกด์การให้อาหารวันนี้ <span class="more">ตามช่วงอุ้มท้อง/เลี้ยงลูกของแม่แต่ละตัวในเล้า</span></h3>
-      <div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
+    const inner=`<div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
         <thead><tr><th>ช่วงของแม่</th><th class="num">แม่ (ตัว)</th><th class="num">กก./ตัว/วัน</th><th class="num">รวม (กก.)</th></tr></thead>
         <tbody>${rows}<tr style="background:#eaf4f1;font-weight:800;border-top:2px solid #2f6f63"><td>รวมทั้งเล้าควรให้วันนี้</td><td class="num">${fmt(n)}</td><td class="num">${n?(tot/n).toFixed(1):'-'}</td><td class="num">${tot.toFixed(1)} กก.</td></tr></tbody></table></div>
       <div class="sub" style="margin-top:8px;line-height:1.6"><b>หลักการ:</b> ท้องสัปดาห์ 1-4 <b>คุมอาหาร</b> (กินเยอะช่วงตัวอ่อนฝังตัว = ลูกติดน้อย) · สัปดาห์ 5-12 ให้ตามสภาพร่างกาย (<b>แม่ผอมเพิ่ม 0.3-0.5 · แม่อ้วนลด 0.3-0.5</b>) ·
         สัปดาห์ 13 ถึงคลอด <b>เร่งอาหาร</b> เพราะลูกในท้องโต ~70% ช่วงนี้ · ก่อนคลอด 1-2 วันลดลงกันเต้านมคัด · เลี้ยงลูกไต่ขึ้นวันละ ~0.5 กก. (ลูกดกให้ถึงเพดาน) · หย่าแล้วให้เต็มที่กระตุ้นไข่ตก ·
-        ตัวเลขต่อตัวปรับได้ที่ ⚙️ KPI·ตั้งค่า — ยอดรวมคำนวณใหม่เองทุกวันตามแม่ที่อยู่จริงในเล้า</div></div>`;
+        ตัวเลขต่อตัวปรับได้ที่ ⚙️ KPI·ตั้งค่า — ยอดรวมคำนวณใหม่เองทุกวันตามแม่ที่อยู่จริงในเล้า</div>`;
+    if(bare) return inner;
+    return `<div class="card" style="border-color:#c9a45a"><h3>🌾 ไกด์การให้อาหารวันนี้ <span class="more">ตามช่วงอุ้มท้อง/เลี้ยงลูกของแม่แต่ละตัวในเล้า</span></h3>${inner}</div>`;
   } finally { brFarm=prevFarm; }
 }
 function brRcvRe(){
@@ -13258,7 +13284,7 @@ async function brSowCull(ear){ const h=currentHouse; if(!h) return;
   await brPersist(s); brSowSel=''; toast('❌ บันทึกคัด/ตาย '+s.ear+' แล้ว'); brDailyRe();
 }
 function brDailyRe(){ const h=(typeof currentHouse!=='undefined'&&currentHouse)||null; if(!h) return;
-  const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=brNoFarmWarnHTML()+brHouseOverviewHTML(h)+brDailyXferHTML(h)+brFeedGuideCardHTML(brShortOf(h),h.farm);
+  const ov=document.getElementById('brOvBox'); if(ov) ov.innerHTML=brNoFarmWarnHTML()+brHouseOverviewHTML(h)+brDailyXferHTML(h);
   const sb=document.getElementById('brSowBox'); if(sb) sb.innerHTML=brSowBoxHTML(h);
   const db=document.getElementById('brDMBox'); if(db) db.innerHTML=brDMBodyHTML(h);
   const fb=document.getElementById('brFRBox'); if(fb) fb.innerHTML=brFRBodyHTML(h);
