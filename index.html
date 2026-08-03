@@ -1080,7 +1080,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690802r';
+const APP_BUILD='690803a';
 (function(){
   // 🏷️ โชว์เลขรุ่นบนหน้าจอ (หน้า login + ข้างวันที่บนแถบบน) — เช็คได้ทันทีว่าเครื่องไหนรุ่นไหน
   try{ var _lb=document.getElementById('loginBuild'); if(_lb) _lb.textContent=APP_BUILD; }catch(e){}
@@ -12699,12 +12699,91 @@ function brNoFarmWarnHTML(){
     <div class="sub" style="line-height:1.6">ระบบกลางจึงไม่เปิดทะเบียนแม่ให้ (จำนวนแม่จะขึ้น 0 · รายชื่อเล้าไม่ครบ · บันทึกไม่เข้า) —
     แจ้งเจ้าของ/ผู้ดูแลไปที่ <b>👥 จัดการผู้ใช้</b> แล้วตั้ง <b>ฟาร์ม</b> ให้บัญชีนี้ (เช่น ฟาร์มเบิกไพร) เสร็จแล้วกด 🔄 ที่แถบบน</div></div>`;
 }
+/* ═══ 📅 ตารางชุดผสมราย Week ของยูนิต — หน้าต่างหมอเล้าผสม (เจ้าของ 2 ส.ค. 69) ═══
+   ดูว่าแม่ชุดไหนอยู่สัปดาห์ท้องที่เท่าไหร่ ถึงคิวงานอะไร (เช็คกลับสัด → ตรวจท้อง W4-6 → วัคซีน → ส่งขึ้นคลอด)
+   เหลือกี่แม่ (ตัดกลับสัด/ไม่ท้อง/ปลด) และตอนนี้กระจายอยู่หลังไหนบ้าง — ใช้บริหารในเล้า + วางกำหนดส่งขึ้นคลอด */
+let brWkUOpen={};
+function brGestTaskTxt(d,C){
+  if(d<=C.cycle-4) return '⏳ เพิ่งผสม — เฝ้าระวัง';
+  if(d<=C.cycle+3) return '🔁 เช็คกลับสัด (วัน '+(C.cycle-3)+'-'+(C.cycle+3)+')';
+  if(d<C.pregchk) return '⏳ รอถึงกำหนดตรวจท้อง';
+  if(d<=C.pregchk+21) return '🔍 ตรวจท้อง (วัน '+C.pregchk+'-'+(C.pregchk+7)+' · เช็คซ้ำได้ถึงสัปดาห์ '+Math.ceil((C.pregchk+21)/7)+')';
+  if(d<C.gest-14) return '🤰 อุ้มท้อง — ให้อาหารตามไกด์';
+  if(d<C.gest-6) return '💉 วัคซีนก่อนคลอด (วัน '+(C.gest-14)+'-'+(C.gest-6)+')';
+  if(d<C.gest-1) return '📤 ส่งขึ้นเล้าคลอด (วัน '+(C.gest-6)+'-'+(C.gest-2)+')';
+  return '👶 ถึงกำหนดคลอด';
+}
+function brWkUnitCardHTML(unit,farm){
+  if(!unit) return '';
+  const prevFarm=brFarm; brFarm=farm;
+  try{
+    const C=brCfg(), tW=brWeekStart(brTodayISO()), tD=brDnum(brTodayISO());
+    const cohorts={};
+    let poolUnit=0, poolAll=0;
+    brSows().forEach(s=>{
+      if(s.stage!=='cull'){ poolAll++; if(brUnitOf(s.house)===unit) poolUnit++; }
+      const mats=(s.events||[]).filter(e=>e&&e.t==='mate'&&brIsISO(e.date)).sort((a,b)=>a.date<b.date?-1:1);
+      const m=mats[mats.length-1]; if(!m) return;
+      if(brUnitOf(m.house||s.house)!==unit) return;   // ชุดของยูนิตนี้ = ผสมในเล้าของยูนิตนี้
+      const age=tD-brDnum(m.date); if(age<0||age>C.gest+21) return;   // ชุดที่จบรอบไปแล้วไม่โชว์
+      let st;
+      if(s.stage==='cull') st='cull';
+      else if(s.stage==='nurse'||(s.events||[]).some(e=>e&&e.t==='farrow'&&brIsISO(e.date)&&brDnum(e.date)>=brDnum(m.date))) st='far';
+      else if(s.stage==='open') st='ret';
+      else st='preg';
+      const ws=brWeekStart(m.date);
+      (cohorts[ws]=cohorts[ws]||[]).push({s:s,st:st,age:age});
+    });
+    const keys=Object.keys(cohorts).sort().reverse();
+    if(!keys.length) return '';
+    const tg=brWkTarget();
+    const share=poolAll?Math.max(1,Math.round(tg.t*poolUnit/poolAll)):tg.t;
+    const curN=(cohorts[tW]||[]).length;
+    const rows=keys.map(ws=>{
+      const list=cohorts[ws];
+      const n=list.length, preg=list.filter(x=>x.st==='preg').length, ret=list.filter(x=>x.st==='ret').length,
+            far=list.filter(x=>x.st==='far').length, cull=list.filter(x=>x.st==='cull').length;
+      const remain=preg;
+      const age=tD-brDnum(ws);   // อายุชุดนับจากต้นสัปดาห์ผสม
+      const wkNo=Math.floor(age/7)+1;
+      const isCur=ws===tW;
+      const open=!!brWkUOpen[ws];
+      // แม่ที่เหลือของชุด กระจายอยู่หลังไหน
+      const hb={}; list.forEach(x=>{ if(x.st==='preg') hb[x.s.house||'ไม่ระบุ']=(hb[x.s.house||'ไม่ระบุ']||0)+1; });
+      const hbTxt=Object.keys(hb).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})).map(h=>escA(h)+'×'+hb[h]).join(' · ');
+      const ICO={preg:'🤰',ret:'🔁',far:'👶',cull:'❌'};
+      const ears=open?`<tr><td colspan="7" style="background:#f6faf8;padding:8px 10px">
+        <div style="display:flex;gap:5px;flex-wrap:wrap">${list.map(x=>`<button class="sbhchip" onclick="brOpen(${escA(JSON.stringify(String(x.s.ear)))})">${ICO[x.st]} ${escA(x.s.ear)} <span style="opacity:.6">${escA(x.s.house||'')}</span></button>`).join('')}</div>
+        <div class="sub" style="margin:5px 0 0;font-size:11px">🤰 ท้อง/รอตรวจ · 🔁 กลับสัด/ไม่ท้อง · 👶 คลอดแล้ว · ❌ ปลด — แตะเบอร์เปิดบัตรแม่</div></td></tr>`:'';
+      return `<tr class="clk" style="${isCur?'background:#eaf4f1;font-weight:700':''}" onclick="brWkUOpen['${ws}']=!brWkUOpen['${ws}'];brRe()">
+        <td><b>${brWkLabel(ws)}</b>${isCur?' 👈':''}<br><span class="sub" style="font-size:10.5px">${brWkRange(ws)}</span></td>
+        <td class="num"><b>สัปดาห์ ${wkNo}</b><br><span class="sub" style="font-size:10px">วัน ${age}</span></td>
+        <td class="num">${fmt(n)}</td>
+        <td class="num"><b style="color:#1a5c3f">${fmt(remain)}</b>${ret?` <span style="color:#a5342a;font-size:11px">🔁${ret}</span>`:''}${far?` <span style="color:#2d5f8a;font-size:11px">👶${far}</span>`:''}${cull?` <span style="color:#a5342a;font-size:11px">❌${cull}</span>`:''}</td>
+        <td style="font-size:12px">${brGestTaskTxt(age,C)}</td>
+        <td style="font-size:11.5px">${hbTxt||'-'}</td>
+        <td class="num"><span class="sub" style="font-size:10.5px">คาดคลอด</span><br>${brWkLabel(brAddDays(ws,Math.round(C.gest/7)*7))}</td></tr>${ears}`;
+    }).join('');
+    return `<div class="card" style="border-color:#7a5fb5"><h3>📅 ชุดผสมราย Week — ยูนิต ${escA(unit.slice(1))} <span class="more">แม่ชุดไหนอยู่สัปดาห์ไหน · แตะแถวดูเบอร์</span></h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <span class="sbchip" style="font-size:13px">🎯 เป้ายูนิตสัปดาห์นี้ <b>${fmt(share)}</b> แม่</span>
+        <span class="sbchip" style="font-size:13px;background:${curN>=share?'#e9f5ee':'#fdf3e0'}">ผสมแล้ว <b>${fmt(curN)}</b>/${fmt(share)}${curN>=share?' ✅':''}</span>
+      </div>
+      <div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
+        <thead><tr><th>Week ผสม</th><th class="num">ท้องสัปดาห์ที่</th><th class="num">ผสม (แม่)</th><th class="num">เหลือ</th><th>งานของชุดนี้ตอนนี้</th><th>ตอนนี้อยู่หลังไหน</th><th class="num">คาดคลอด</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      <div class="sub" style="margin-top:8px;line-height:1.6"><b>อ่านยังไง:</b> แม่ผสมสัปดาห์เดียวกัน = ชุดเดียวกัน เดินงานพร้อมกันทั้งชุด: สัปดาห์ 3 เช็คกลับสัด → <b>สัปดาห์ 4-6 ตรวจท้อง</b> → สัปดาห์ ${Math.ceil((C.gest-14)/7)} วัคซีน → สัปดาห์ ${Math.ceil((C.gest-6)/7)} ส่งขึ้นคลอด ·
+        <b>เหลือ</b> = ยังท้อง/รอตรวจ (ตัด 🔁 กลับสัด · 👶 คลอดแล้ว · ❌ ปลด ออกแล้ว) · <b>อยู่หลังไหน</b> ช่วยวางแผนจัดเล้า/ส่งขึ้นคลอดทีละหลัง · ชุดที่คลอดจบรอบแล้วหายจากตารางเอง</div>
+    </div>`;
+  } finally { brFarm=prevFarm; }
+}
+
 /* การ์ดแจ้งส่ง/รอรับ ในหน้าบันทึกรายวัน — ท ได้การ์ดส่ง · ค ได้กล่องรอรับ */
 function brDailyXferHTML(h){
   const kind=brDailyHouseKind(h); if(!kind) return '';
   const sc=brShortOf(h), farm=h.farm||brFarm;
   if(kind==='ค') return brInboxCardHTML(sc,farm);
-  if(kind==='ท') return `<div class="card"><h3>📤 ส่งแม่ขึ้นเล้าคลอด <span class="more">แจ้งให้หมอเล้าคลอดเช็คเบอร์แล้วกดรับ</span></h3>${brSndCardHTML(sc,farm)}</div>`;
+  if(kind==='ท') return brWkUnitCardHTML(brUnitOf(sc),farm)+`<div class="card"><h3>📤 ส่งแม่ขึ้นเล้าคลอด <span class="more">แจ้งให้หมอเล้าคลอดเช็คเบอร์แล้วกดรับ</span></h3>${brSndCardHTML(sc,farm)}</div>`;
   return '';
 }
 /* 📥 ฝั่งเล้าคลอด: รายการแม่ที่แจ้งส่งมา — เช็คเบอร์กับตัวจริงแล้วกดรับ/ตีกลับ */
@@ -12827,6 +12906,7 @@ function brHouseDetail(){
       <div id="brBMBox">${brBMHTML(h)}</div></div>`:''}
     ${brFeedGuideCardHTML(h.s,brFarm)}
     ${h.kind==='ค'?brInboxCardHTML(h.s,brFarm):''}
+    ${isT?brWkUnitCardHTML(brUnitOf(h.s),brFarm):''}
     ${isT?`<div class="card"><h3>📤 ส่งแม่ขึ้นเล้าคลอด <span class="more">แจ้งให้หมอเล้าคลอดเช็คเบอร์แล้วกดรับ</span></h3>${brSndCardHTML(h.s,brFarm)}</div>`:''}
     <div class="card"><h3>🚚 รับแม่เข้าเล้านี้ <span class="more">รับเข้าของเล้าแม่พันธุ์ = ลงเบอร์แม่ที่เข้ามา</span></h3>
       ${brRcvSectionHTML(h.s,brFarm,true)}</div>
