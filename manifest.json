@@ -1,0 +1,19 @@
+{
+  "name": "ระบบจัดการฟาร์มหมู SJF",
+  "short_name": "ฟาร์มหมู",
+  "description": "ระบบจัดการฟาร์มหมู SJF — บันทึกรายวัน ปิดชุด แม่พันธุ์ คลังยา แท่นขาย",
+  "lang": "th",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#15212d",
+  "theme_color": "#15212d",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
