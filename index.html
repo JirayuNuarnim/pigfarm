@@ -8548,8 +8548,17 @@ function stockStatusTag(qty,min){
   return '<span style="background:#e6f4ea;color:#1e7e4f;padding:2px 9px;border-radius:8px;font-size:12px;font-weight:700">พอ</span>';
 }
 function stockTypeLabel(t){ return t==='in'?'📥 รับเข้า':t==='out'?'📤 เบิกออก':'⚙️ ปรับยอด'; }
-function stockRowsOf(farm){ const bal=stockBalMap(farm), rows=[];
-  stockCats().forEach(cat=>{ (REQ_DATA[cat]||[]).forEach(it=>{ const qty=bal[stockKey(cat,it.name)]||0, min=stockMinOf(farm,cat,it.name), price=Number(it.price)||0; rows.push({cat,name:it.name,qty,min,price,value:qty*price}); }); });
+function stockRowsOf(farm){ const bal=stockBalMap(farm), rows=[], seen={};
+  stockCats().forEach(cat=>{ (REQ_DATA[cat]||[]).forEach(it=>{ const k=stockKey(cat,it.name); seen[k]=1;
+    const qty=bal[k]||0, min=stockMinOf(farm,cat,it.name), price=Number(it.price)||0; rows.push({cat,name:it.name,qty,min,price,value:qty*price}); }); });
+  /* 🛟 ของที่ "มีอยู่ในคลังจริง แต่ชื่อไม่มีในแคตตาล็อกแล้ว" (ถูกเปลี่ยนชื่อ/ลบออกทีหลัง)
+     เดิมวนแต่แคตตาล็อก ⇒ ของพวกนี้หายจากทั้งตารางคลังและไฟล์ Excel เงียบๆ ทั้งที่ยอดยังค้างอยู่
+     (เจอของจริง 14 ส.ค. 69: วัคซีน "AD ( Hipar ) 100 CC" ท่าม่วง · "ไทน็อค 22% (วาโรซิน)" ปากท่อ) */
+  Object.keys(bal).forEach(k=>{ if(seen[k]) return; const q=Number(bal[k])||0; if(!q) return;
+    const p=String(k).split(STOCK_SEP), cat=p[0]||'', name=p.slice(1).join(STOCK_SEP);
+    if(!cat||!name||!stockCountable(cat)) return;
+    const price=catalogPriceOf(cat,name);
+    rows.push({cat,name,qty:q,min:stockMinOf(farm,cat,name),price,value:q*price,orphan:1}); });
   return rows;
 }
 function stockInNameOpts(){ return (REQ_DATA[stockInCat]||[]).map(it=>`<option value="${escA(it.name)}">${escA(it.name)}</option>`).join(''); }
