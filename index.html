@@ -15163,7 +15163,9 @@ function brPgCardHTML(h){
     <td class="num">${fmt(l.n)}</td>
     <td>${badge(l)}</td>
     <td class="sub" style="font-size:11px">คลอด ${l.farrow?brThai(l.farrow):'-'} · หย่า ${brThai(l.wean)}</td></tr>`).join('');
-  const dests=((HOUSES_FULL&&HOUSES_FULL.length)?HOUSES_FULL:HOUSES).filter(x=>x.id!==h.id&&x.code&&!/^[ทคส]\d/.test(brShortOf(x))).slice().sort(byCode);
+  /* 🐖 ปลายทางลูกหมู = อนุบาล/ขุนเท่านั้น — เล้าแม่พันธุ์ (ท/ค/ส) เป็นของแม่ ลูกไม่มีทางเข้า (เจ้าของ 14 ส.ค. 69)
+     ⚠️ เดิมกรอง /^[ทคส]\d/ ดูแค่ตัวแรกหลังชื่อฟาร์ม — รหัส 'วันครู1 U2ท2' ขึ้นต้นด้วย U เลยหลุดมาทั้งยูนิต · ใช้ brDailyHouseKind ที่รู้จักรหัสทุกแบบแทน */
+  const dests=((HOUSES_FULL&&HOUSES_FULL.length)?HOUSES_FULL:HOUSES).filter(x=>x.id!==h.id&&x.code&&!brDailyHouseKind(x)&&!/[ทคส]\d/.test(String(x.code))).slice().sort(byCode);
   const isNur=x=>/^อ\d/.test(brShortOf(x));
   const opt=x=>`<option value="${x.id}">${escA(x.code)} · ${escA(x.farm||'')}${(x.pigs||0)>0?' (มีหมู '+fmt(x.pigs)+')':' (ว่าง)'}</option>`;
   const nur=dests.filter(isNur), fat=dests.filter(x=>!isNur(x));
