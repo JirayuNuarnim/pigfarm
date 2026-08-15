@@ -2430,7 +2430,7 @@ function gAlerts(){
     }
   });
   const p=todayISO().split('-'), cut3=expISO(new Date(+p[0],+p[1]-1,+p[2]-3));
-  (typeof SALE_BILLS!=='undefined'?SALE_BILLS:[]).forEach(b=>{ // บิลค้างราคาเกิน 3 วัน
+  (gCanSeeBuyers()?(typeof SALE_BILLS!=='undefined'?SALE_BILLS:[]):[]).forEach(b=>{ // บิลค้างราคาเกิน 3 วัน (🔒 หมอไม่เห็นเรื่องบิล)
     if(sbPricePending(b)&&(b.dateISO||'')<=cut3){
       const nm=gNrm(b.buyer)||'ไม่ระบุผู้ซื้อ', pos=(window._gBuyPos||{})[nm];
       out.push({ic:'🏮',msg:'บิล '+sbBillRef(b)+' ('+nm+') ค้างราคาเกิน 3 วัน',t:'bill',k:b.id,x:pos?pos[0]:null,y:pos?pos[1]:null,sev:2});
@@ -2800,7 +2800,10 @@ function sbGraphBuyers(){
   return {list:Object.values(m).sort((a,b)=>(b.total||b.kg*60)-(a.total||a.kg*60)).slice(0,10), cut:cut};
 }
 let _gSpotBuyer=null;
+// 🔒 ใครเห็นชั้นผู้ซื้อ/บิลบนแผนผังได้บ้าง — เฉพาะบทบาทที่มีสิทธิ์ดูเรื่องเงินอยู่แล้ว (เจ้าของ/ผู้ดูแล/เสมียน) · หมอกับยาสูตรไม่เห็น
+function gCanSeeBuyers(){ const r=effRole(); return r==='owner'||r==='admin'||r==='clerk'; }
 function gBuyerTap(name){
+  if(!gCanSeeBuyers()){ toast('🔒 ข้อมูลผู้ซื้อ/ยอดขาย ดูได้เฉพาะเจ้าของ ผู้ดูแล และเสมียน'); return; }
   const svg=document.getElementById('fgsvg'), p=document.getElementById('gInfo'); if(!svg||!p) return;
   const again=(_gSpotBuyer===name);
   svg.querySelectorAll('.gsale.gson').forEach(e=>e.classList.remove('gson'));
@@ -2821,7 +2824,7 @@ function gBuyerTap(name){
       return `<div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:12.5px"><span>${K.ico||''} ${sbThaiDate(b.dateISO)} · ${escA(b.farm||'-')} · ${fmt(c.n)} ตัว/${fmt(Math.round(c.totW))} กก.</span><b style="color:${c.net!=null?'var(--ok)':'#b7791f'}">${c.net!=null?fmt(c.net)+' ฿':'⏳ รอใส่ราคา'}</b><button class="btn ghost sm" style="padding:3px 10px" onclick="gOpenBill('${b.id}')">เปิดบิล ›</button></div>`; }).join('')||'<span class="sub" style="margin:0">— ไม่มีบิล —</span>'}</div>${gSparkBuyer(name)}`;
   gInfoDecorate();
 }
-function gOpenBill(id){ gUnfull(); sbEdit(id); }
+function gOpenBill(id){ if(!gCanSeeBuyers()){ toast('🔒 บิลขายดูได้เฉพาะเจ้าของ ผู้ดูแล และเสมียน'); return; } gUnfull(); sbEdit(id); }
 /* ปุ่ม ✕ บนการ์ดลอย (เต็มจอ) + ปิดการ์ด → เคลียร์สปอตไลท์ทุกแบบ */
 function gInfoClose(){
   gSpotClear();
@@ -2872,7 +2875,8 @@ function renderFarmGraph(){
     });
   });
   const R1=totalH>120?340:270;
-  const _gb=sbGraphBuyers(), hasBuy=_gb.list.length>0;
+  // 🔒 ชั้นผู้ซื้อ/ยอดขาย = เรื่องเงินของฟาร์ม — หมอ (และยาสูตร) ไม่เห็นบนแผนผัง (เจ้าของสั่งเช็ค 15 ส.ค. 69: หมอทุกคนเปิดแผนผังแล้วเห็นชื่อผู้ซื้อ+ยอด+กดเข้าบิลได้ ← ปิด)
+  const _gb=gCanSeeBuyers()?sbGraphBuyers():{list:[]}, hasBuy=_gb.list.length>0;
   const HH=2*(R1+maxExt+185), W=HH+(hasBuy?360:0), H=HH, cx=HH/2, cy=H/2;
   let edges='', nodes='', labels='';
   // 🎨 สีประจำฟาร์ม — วงแหวนจุดฟาร์ม + แถบสีบนป้ายผู้ซื้อ + เส้นเงิน ใช้สีเดียวกัน (มองสีก็รู้ฟาร์ม ไม่ต้องไล่เส้น)
@@ -3085,7 +3089,7 @@ function renderFarmGraph(){
       <div id="gFeed"></div>
       <div id="gWd"></div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;padding:9px 14px;border-top:1px solid rgba(83,234,210,.18);color:#9db8b2;font-size:11.5px">
-        <span>🟢 กรอกแล้ววันนี้</span><span>🟡→🔴 ยังไม่กรอก (ยิ่งสายยิ่งแดง)</span><span>⚪ ว่าง</span><span>🔵 ล้างคอก</span><span>🟣 หมอ</span><span style="color:#f0908a">⭕ ขอบแดง = มีตายวันนี้</span><span style="color:#ffd166">◔ วงรอบจุด = อายุรุ่น (ทอง = ใกล้จับ)</span><span style="color:#cfe0db">🐖 ป้ายขวา = ผู้ซื้อ 10 วันล่าสุด · แถบสีใต้ชื่อ = ซื้อจากฟาร์มไหน (สีเดียวกับจุดฟาร์ม) · แตะป้าย/จุดฟาร์ม = โชว์เส้นโยง</span><span style="color:#ffb46b">🏮 = มีบิลรอใส่ราคา</span><span style="color:#9fe8d8">☄️ ดาวหาง = คนที่ออนไลน์อยู่ตอนนี้ (สีตามบทบาท)</span>
+        <span>🟢 กรอกแล้ววันนี้</span><span>🟡→🔴 ยังไม่กรอก (ยิ่งสายยิ่งแดง)</span><span>⚪ ว่าง</span><span>🔵 ล้างคอก</span><span>🟣 หมอ</span><span style="color:#f0908a">⭕ ขอบแดง = มีตายวันนี้</span><span style="color:#ffd166">◔ วงรอบจุด = อายุรุ่น (ทอง = ใกล้จับ)</span>${hasBuy?'<span style="color:#cfe0db">🐖 ป้ายขวา = ผู้ซื้อ 10 วันล่าสุด · แถบสีใต้ชื่อ = ซื้อจากฟาร์มไหน (สีเดียวกับจุดฟาร์ม) · แตะป้าย/จุดฟาร์ม = โชว์เส้นโยง</span><span style="color:#ffb46b">🏮 = มีบิลรอใส่ราคา</span>':''}<span style="color:#9fe8d8">☄️ ดาวหาง = คนที่ออนไลน์อยู่ตอนนี้ (สีตามบทบาท)</span>
         ${_gLens==='hp'?'<span style="color:#ff9b93;font-weight:700">🔭 เลนส์สุขภาพ: สีจุด = %ตายสะสมของรุ่น (เขียว ≤2% · เหลือง ≤4% · ส้ม ≤7% · แดง >7%) · วงประม่วง = หมอยังไม่บันทึกวันนี้</span>':''}
         ${_gLens==='med'?'<span style="color:#ffd166;font-weight:700">🔭 เลนส์ต้นทุนยา: สีจุด = ค่ายา/ตัว เทียบทั้งบริษัท (เขียว = ต่ำกว่าค่ากลาง · เหลือง = สูง · แดง = แพงสุด 20%)</span>':''}
         ${_gLens==='age'?'<span style="color:#ffd166;font-weight:700">🔭 เลนส์อายุรุ่น: ฟ้า <60 วัน · เขียว <120 · เหลือง <170 · ทอง ≥170 วัน = ใกล้จับ (วงกระเพื่อม)</span>':''}
