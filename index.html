@@ -1207,7 +1207,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690822d';
+const APP_BUILD='690822f';
 /* ── 📷 qrcode-generator (c) Kazuhiko Arase — MIT License (https://github.com/kazuhikoarase/qrcode-generator) — ฝังไว้ในไฟล์เพื่อสร้าง QR แม่รายตัวแบบไม่พึ่งเน็ตภายนอก ── */
 var qrcode=function(){function i(t,r){function a(t,r){g=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(l=4*u+17),e(0,0),e(l-7,0),e(0,l-7),i(),o(),v(t,r),7<=u&&h(t),null==n&&(n=w(u,f,c)),d(n,r)}var u=t,f=y[r],g=null,l=0,n=null,c=[],s={},e=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||l<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||l<=r+n||(g[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},o=function(){for(var t=8;t<l-8;t+=1)null==g[t][6]&&(g[t][6]=t%2==0);for(var r=8;r<l-8;r+=1)null==g[6][r]&&(g[6][r]=r%2==0)},i=function(){for(var t=B.getPatternPosition(u),r=0;r<t.length;r+=1)for(var e=0;e<t.length;e+=1){var n=t[r],o=t[e];if(null==g[n][o])for(var i=-2;i<=2;i+=1)for(var a=-2;a<=2;a+=1)g[n+i][o+a]=-2==i||2==i||-2==a||2==a||0==i&&0==a}},h=function(t){for(var r=B.getBCHTypeNumber(u),e=0;e<18;e+=1){var n=!t&&1==(r>>e&1);g[Math.floor(e/3)][e%3+l-8-3]=n}for(e=0;e<18;e+=1){n=!t&&1==(r>>e&1);g[e%3+l-8-3][Math.floor(e/3)]=n}},v=function(t,r){for(var e=f<<3|r,n=B.getBCHTypeInfo(e),o=0;o<15;o+=1){var i=!t&&1==(n>>o&1);o<6?g[o][8]=i:o<8?g[o+1][8]=i:g[l-15+o][8]=i}for(o=0;o<15;o+=1){i=!t&&1==(n>>o&1);o<8?g[8][l-o-1]=i:o<9?g[8][15-o-1+1]=i:g[8][15-o-1]=i}g[l-8][8]=!t},d=function(t,r){for(var e=-1,n=l-1,o=7,i=0,a=B.getMaskFunction(r),u=l-1;0<u;u-=2)for(6==u&&(u-=1);;){for(var f=0;f<2;f+=1)if(null==g[n][u-f]){var c=!1;i<t.length&&(c=1==(t[i]>>>o&1)),a(n,u-f)&&(c=!c),g[n][u-f]=c,-1==(o-=1)&&(i+=1,o=7)}if((n+=e)<0||l<=n){n-=e,e=-e;break}}},w=function(t,r,e){for(var n=b.getRSBlocks(t,r),o=M(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=C(i[u],l.getLength()-1).mod(l);a[u]=new Array(l.getLength()-1);for(g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=0<=s?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};s.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=x(t);break;case"Alphanumeric":e=m(t);break;case"Byte":e=L(t);break;case"Kanji":e=D(t);break;default:throw"mode:"+r}c.push(e),n=null},s.isDark=function(t,r){if(t<0||l<=t||r<0||l<=r)throw t+","+r;return g[t][r]},s.getModuleCount=function(){return l},s.make=function(){if(u<1){for(var t=1;t<40;t++){for(var r=b.getRSBlocks(t,f),e=M(),n=0;n<c.length;n++){var o=c[n];e.put(o.getMode(),4),e.put(o.getLength(),B.getLengthInBits(o.getMode(),t)),o.write(e)}var i=0;for(n=0;n<r.length;n++)i+=r[n].dataCount;if(e.getLengthInBits()<=8*i)break}u=t}a(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){a(!0,e);var n=B.getLostPoint(s);(0==e||n<t)&&(t=n,r=e)}return r}())},s.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<s.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<s.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=s.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},s.createSvgTag=function(t,r,e,n){var o={};"object"==typeof t&&(t=(o=t).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,f,c=s.getModuleCount()*t+2*r,g="";for(f="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",g+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',g+=o.scalable?"":' width="'+c+'px" height="'+c+'px"',g+=' viewBox="0 0 '+c+" "+c+'" ',g+=' preserveAspectRatio="xMinYMin meet"',g+=n.text||e.text?' role="img" aria-labelledby="'+p([n.id,e.id].join(" ").trim())+'"':"",g+=">",g+=n.text?'<title id="'+p(n.id)+'">'+p(n.text)+"</title>":"",g+=e.text?'<description id="'+p(e.id)+'">'+p(e.text)+"</description>":"",g+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',g+='<path d="',a=0;a<s.getModuleCount();a+=1)for(u=a*t+r,i=0;i<s.getModuleCount();i+=1)s.isDark(a,i)&&(g+="M"+(i*t+r)+","+u+f);return g+='" stroke="transparent" fill="black"/>',g+="</svg>"},s.createDataURL=function(o,t){o=o||2,t=void 0===t?4*o:t;var r=s.getModuleCount()*o+2*t,i=t,a=r-t;return I(r,r,function(t,r){if(i<=t&&t<a&&i<=r&&r<a){var e=Math.floor((t-i)/o),n=Math.floor((r-i)/o);return s.isDark(n,e)?0:1}return 1})},s.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=s.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=s.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=p(e),o+='"'),o+="/>"};var p=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return s.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*s.getModuleCount()+2*t,u=t,f=a-t,c={"██":"█","█ ":"▀"," █":"▄","  ":" "},g={"██":"▀","█ ":"▀"," █":" ","  ":" "},l="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<f&&u<=r&&r<f&&s.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<f&&u<=r+1&&r+1<f&&s.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",l+=t<1&&f<=r+1?g[i]:c[i];l+="\n"}return a%2&&0<t?l.substring(0,l.length-a-1)+Array(1+a).join("▀"):l.substring(0,l.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=s.getModuleCount()*t+2*r,u=r,f=a-r,c=Array(t+1).join("██"),g=Array(t+1).join("  "),l="",h="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),h="",n=0;n<a;n+=1)i=1,u<=n&&n<f&&u<=e&&e<f&&s.isDark(o,Math.floor((n-u)/t))&&(i=0),h+=i?c:g;for(o=0;o<t;o+=1)l+=h+"\n"}return l.substring(0,l.length-1)},s.renderTo2dContext=function(t,r){r=r||2;for(var e=s.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=s.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},s}i.stringToBytes=(i.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,i.createStringToBytes=function(u,f){var i=function(){function t(){var t=r.read();if(-1==t)throw"eof";return t}for(var r=S(u),e=0,n={};;){var o=r.read();if(-1==o)break;var i=t(),a=t()<<8|t();n[String.fromCharCode(o<<8|i)]=a,e+=1}if(e!=f)throw e+" != "+f;return n}(),a="?".charCodeAt(0);return function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);if(n<128)r.push(n);else{var o=i[t.charAt(e)];"number"==typeof o?(255&o)==o?r.push(o):(r.push(o>>>8),r.push(255&o)):r.push(a)}}return r}};var r,t,a=1,u=2,o=4,f=8,y={L:1,M:0,Q:3,H:2},e=0,n=1,c=2,g=3,l=4,h=5,s=6,v=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],(t={}).getBCHTypeInfo=function(t){for(var r=t<<10;0<=d(r)-d(1335);)r^=1335<<d(r)-d(1335);return 21522^(t<<10|r)},t.getBCHTypeNumber=function(t){for(var r=t<<12;0<=d(r)-d(7973);)r^=7973<<d(r)-d(7973);return t<<12|r},t.getPatternPosition=function(t){return r[t-1]},t.getMaskFunction=function(t){switch(t){case e:return function(t,r){return(t+r)%2==0};case n:return function(t,r){return t%2==0};case c:return function(t,r){return r%3==0};case g:return function(t,r){return(t+r)%3==0};case l:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case h:return function(t,r){return t*r%2+t*r%3==0};case s:return function(t,r){return(t*r%2+t*r%3)%2==0};case v:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},t.getErrorCorrectPolynomial=function(t){for(var r=C([1],0),e=0;e<t;e+=1)r=r.multiply(C([1,w.gexp(e)],0));return r},t.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case o:case f:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case o:return 16;case f:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case o:return 16;case f:return 12;default:throw"mode:"+t}}},t.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);5<i&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},t);function d(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r}var w=function(){for(var r=new Array(256),e=new Array(256),t=0;t<8;t+=1)r[t]=1<<t;for(t=8;t<256;t+=1)r[t]=r[t-4]^r[t-5]^r[t-6]^r[t-8];for(t=0;t<255;t+=1)e[r[t]]=t;var n={glog:function(t){if(t<1)throw"glog("+t+")";return e[t]},gexp:function(t){for(;t<0;)t+=255;for(;256<=t;)t-=255;return r[t]}};return n}();function C(n,o){if(void 0===n.length)throw n.length+"/"+o;var r=function(){for(var t=0;t<n.length&&0==n[t];)t+=1;for(var r=new Array(n.length-t+o),e=0;e<n.length-t;e+=1)r[e]=n[e+t];return r}(),i={getAt:function(t){return r[t]},getLength:function(){return r.length},multiply:function(t){for(var r=new Array(i.getLength()+t.getLength()-1),e=0;e<i.getLength();e+=1)for(var n=0;n<t.getLength();n+=1)r[e+n]^=w.gexp(w.glog(i.getAt(e))+w.glog(t.getAt(n)));return C(r,0)},mod:function(t){if(i.getLength()-t.getLength()<0)return i;for(var r=w.glog(i.getAt(0))-w.glog(t.getAt(0)),e=new Array(i.getLength()),n=0;n<i.getLength();n+=1)e[n]=i.getAt(n);for(n=0;n<t.getLength();n+=1)e[n]^=w.gexp(w.glog(t.getAt(n))+r);return C(e,0).mod(t)}};return i}function p(){var e=[],o={writeByte:function(t){e.push(255&t)},writeShort:function(t){o.writeByte(t),o.writeByte(t>>>8)},writeBytes:function(t,r,e){r=r||0,e=e||t.length;for(var n=0;n<e;n+=1)o.writeByte(t[n+r])},writeString:function(t){for(var r=0;r<t.length;r+=1)o.writeByte(t.charCodeAt(r))},toByteArray:function(){return e},toString:function(){var t="";t+="[";for(var r=0;r<e.length;r+=1)0<r&&(t+=","),t+=e[r];return t+="]"}};return o}var k,A,b=(k=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],(A={}).getRSBlocks=function(t,r){var e=function(t,r){switch(r){case y.L:return k[4*(t-1)+0];case y.M:return k[4*(t-1)+1];case y.Q:return k[4*(t-1)+2];case y.H:return k[4*(t-1)+3];default:return}}(t,r);if(void 0===e)throw"bad rs block @ typeNumber:"+t+"/errorCorrectionLevel:"+r;for(var n,o,i=e.length/3,a=[],u=0;u<i;u+=1)for(var f=e[3*u+0],c=e[3*u+1],g=e[3*u+2],l=0;l<f;l+=1)a.push((n=g,o=void 0,(o={}).totalCount=c,o.dataCount=n,o));return a},A),M=function(){var e=[],n=0,o={getBuffer:function(){return e},getAt:function(t){var r=Math.floor(t/8);return 1==(e[r]>>>7-t%8&1)},put:function(t,r){for(var e=0;e<r;e+=1)o.putBit(1==(t>>>r-e-1&1))},getLengthInBits:function(){return n},putBit:function(t){var r=Math.floor(n/8);e.length<=r&&e.push(0),t&&(e[r]|=128>>>n%8),n+=1}};return o},x=function(t){var r=a,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+2<r.length;)t.put(o(r.substring(e,e+3)),10),e+=3;e<r.length&&(r.length-e==1?t.put(o(r.substring(e,e+1)),4):r.length-e==2&&t.put(o(r.substring(e,e+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return e},m=function(t){var r=u,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+1<r.length;)t.put(45*o(r.charAt(e))+o(r.charAt(e+1)),11),e+=2;e<r.length&&t.put(o(r.charAt(e)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return e},L=function(t){var r=o,e=i.stringToBytes(t),n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=0;r<e.length;r+=1)t.put(e[r],8)}};return n},D=function(t){var r=f,e=i.stringToBytesFuncs.SJIS;if(!e)throw"sjis not supported.";!function(){var t=e("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=e(t),n={getMode:function(){return r},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return n},S=function(t){var e=t,n=0,o=0,i=0,r={read:function(){for(;i<8;){if(n>=e.length){if(0==i)return-1;throw"unexpected end of file./"+i}var t=e.charAt(n);if(n+=1,"="==t)return i=0,-1;t.match(/^\s$/)||(o=o<<6|a(t.charCodeAt(0)),i+=6)}var r=o>>>i-8&255;return i-=8,r}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return r},I=function(t,r,e){for(var n=function(t,r){var n=t,o=r,l=new Array(t*r),e={setPixel:function(t,r,e){l[r*n+t]=e},write:function(t){t.writeString("GIF87a"),t.writeShort(n),t.writeShort(o),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(n),t.writeShort(o),t.writeByte(0);var r=i(2);t.writeByte(2);for(var e=0;255<r.length-e;)t.writeByte(255),t.writeBytes(r,e,255),e+=255;t.writeByte(r.length-e),t.writeBytes(r,e,r.length-e),t.writeByte(0),t.writeString(";")}},i=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,o=h(),i=0;i<r;i+=1)o.add(String.fromCharCode(i));o.add(String.fromCharCode(r)),o.add(String.fromCharCode(e));var a=p(),u=function(t){var e=t,n=0,o=0,r={write:function(t,r){if(t>>>r!=0)throw"length over";for(;8<=n+r;)e.writeByte(255&(t<<n|o)),r-=8-n,t>>>=8-n,n=o=0;o|=t<<n,n+=r},flush:function(){0<n&&e.writeByte(o)}};return r}(a);u.write(r,n);var f=0,c=String.fromCharCode(l[f]);for(f+=1;f<l.length;){var g=String.fromCharCode(l[f]);f+=1,o.contains(c+g)?c+=g:(u.write(o.indexOf(c),n),o.size()<4095&&(o.size()==1<<n&&(n+=1),o.add(c+g)),c=g)}return u.write(o.indexOf(c),n),u.write(e,n),u.flush(),a.toByteArray()},h=function(){var r={},e=0,n={add:function(t){if(n.contains(t))throw"dup key:"+t;r[t]=e,e+=1},size:function(){return e},indexOf:function(t){return r[t]},contains:function(t){return void 0!==r[t]}};return n};return e}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=p();n.write(a);for(var u=function(){function e(t){a+=String.fromCharCode(r(63&t))}var n=0,o=0,i=0,a="",t={},r=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return t.writeByte=function(t){for(n=n<<8|255&t,o+=8,i+=1;6<=o;)e(n>>>o-6),o-=6},t.flush=function(){if(0<o&&(e(n<<6-o),o=n=0),i%3!=0)for(var t=3-i%3,r=0;r<t;r+=1)a+="="},t.toString=function(){return a},t}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return i}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||57344<=n?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});
 /* ── จบ qrcode-generator ── */
@@ -6095,7 +6095,7 @@ function custRateForWeight(custName,w,type){ // ราคา/กก. จาก�
   return (r===''||r==null)?null:Number(r);
 }
 let VAXPROG=[]; // 📋 โปรแกรมวัคซีนของฟาร์ม (เอกสารกลาง หมอเปิดดู เจ้าของ/ผู้ดูแลเขียน — 18 ก.ค. 69) · [{id,title,ref,rows:[{no,age,name,dose,brand,strain,medium,note}]}]
-let BRCFG={}; // ⚙️ ตัวแปรนาฬิกาแม่พันธุ์ต่อฟาร์ม (รอบสัด/ตั้งท้อง/ตรวจท้อง/ให้นม/อายุสาว) — ซิงก์ผ่าน options
+let BRCFG={}; // ⚙️ ค่ารอบการผลิตแม่พันธุ์ต่อฟาร์ม (รอบสัด/ตั้งท้อง/ตรวจท้อง/ให้นม/อายุสาว) — ซิงก์ผ่าน options
 function snapOpts(){return {death:DEATH_TYPES,cull:CULL_TYPES,cust:CUSTOMERS,source:SOURCE_OPTIONS,price:PRICE_TABLE,scust:SB_CUST,feedsrc:VET_FEEDSRC,feedno:VET_FEEDNO,vaxprog:VAXPROG,brcfg:BRCFG,sackkg:FEED_SACK,feedstd:FEED_STD,feedprice:FEED_PRICE};}
 function applyOpts(o){ if(!o) return;
   if(Array.isArray(o.death)) DEATH_TYPES=o.death;
@@ -6107,7 +6107,7 @@ function applyOpts(o){ if(!o) return;
   if(Array.isArray(o.feedsrc)&&o.feedsrc.length){ VET_FEEDSRC.length=0; o.feedsrc.forEach(x=>VET_FEEDSRC.push(x)); }   // 🌾 แหล่ง/เบอร์อาหารฟอร์มหมอ (const array → แทนที่เนื้อในเพื่อคงตัวอ้างอิงเดิม)
   if(Array.isArray(o.feedno)&&o.feedno.length){ VET_FEEDNO.length=0; o.feedno.forEach(x=>VET_FEEDNO.push(x)); }
   if(Array.isArray(o.vaxprog)) VAXPROG=o.vaxprog;   // 📋 โปรแกรมวัคซีน — ซิงก์ทุกเครื่องผ่าน app_config 'options'
-  if(o.brcfg&&typeof o.brcfg==='object'&&!Array.isArray(o.brcfg)) BRCFG=o.brcfg;   // ⚙️ นาฬิกาแม่พันธุ์ต่อฟาร์ม
+  if(o.brcfg&&typeof o.brcfg==='object'&&!Array.isArray(o.brcfg)) BRCFG=o.brcfg;   // ⚙️ กำหนดงานแม่พันธุ์ต่อฟาร์ม
   if(o.sackkg&&typeof o.sackkg==='object'&&!Array.isArray(o.sackkg)) FEED_SACK=Object.assign({def:0,byNo:{}},o.sackkg);
   if(Array.isArray(o.feedstd)&&o.feedstd.length) FEED_STD=o.feedstd;   // 📏 เกณฑ์การกินต่อวัน — เจ้าของแก้แล้วซิงก์ทุกเครื่อง // 🌾 น้ำหนักอาหาร 1 กระสอบ (แปลงกระสอบ→กก. เวลาชนยอดใบสั่ง)
   if(o.feedprice&&Array.isArray(o.feedprice.rows)&&o.feedprice.rows.length) FEED_PRICE=fpFillDefMed(o.feedprice);   // 💰 ตารางราคาอาหาร — เจ้าของแก้แล้วซิงก์ทุกเครื่อง (+ เติมสูตรยาตั้งต้นให้ตารางรุ่นก่อนมีฟีเจอร์ยา)
@@ -6877,8 +6877,8 @@ function renderVaxProgram(){
 }
 
 /* ── 🐷 ตั้งค่าแม่พันธุ์ (690820e — เจ้าของขอ 20 ส.ค. 69: "ควรสร้างหัวข้อเรื่องแม่พันธุ์ในหน้าผู้ดูแล เพื่อกำหนด/แก้ไข การแจ้งเตือน")
-   รวมทุกอย่างที่เป็น "ค่าตั้ง" ของระบบแม่พันธุ์ไว้หน้าเดียว: โปรแกรมวัคซีนแม่อุ้มท้อง · วัคซีนลูกหมูเล้าคลอด · ทางไปนาฬิกา/KPI
-   โปรแกรมที่ตั้งที่นี่ = ตัวกำหนดการแจ้งเตือนทั้งรายตัว (นาฬิกาแม่ brClock) และรายชุด (การ์ดหน้าเล้า) ── */
+   รวมทุกอย่างที่เป็น "ค่าตั้ง" ของระบบแม่พันธุ์ไว้หน้าเดียว: โปรแกรมวัคซีนแม่อุ้มท้อง · วัคซีนลูกหมูเล้าคลอด · ทางไปกำหนดงาน/KPI
+   โปรแกรมที่ตั้งที่นี่ = ตัวกำหนดการแจ้งเตือนทั้งรายตัว (กำหนดงานแม่ brClock) และรายชุด (การ์ดหน้าเล้า) ── */
 function renderBreedingAdmin(){
   if(!(ROLE==='owner'||ROLE==='admin')){ toast('เจ้าของ/ผู้ดูแลเท่านั้น'); return; }
   histPush('bradmin',renderBreedingAdmin); vpBrHost=renderBreedingAdmin;
@@ -10914,7 +10914,7 @@ function renderAdmin(){
           📌 <b>รหัสหลังเป็นตัวบอกระบบว่าหลังนี้เป็นเล้าอะไร</b><br>
           • <b>เล้าขุน/อนุบาล</b> — รหัสปกติ เช่น A1 · P12 · อ3<br>
           • <b>เล้าแม่พันธุ์</b> (เฉพาะฟาร์มแม่พันธุ์) — ต้องมี <b>ยูนิต + ชนิด + เลขหลัง</b>: <b>U1ท14</b> = อุ้มท้อง/ผสม ยูนิต 1 · <b>U1ค9</b> = คลอด ยูนิต 1 · <b>ส10</b> = เล้าสาว (ไม่ต้องมียูนิต)<br>
-          • ตั้งถูกแบบ = ระบบผูกการ์ดหน้างาน · จัดยูนิต · นาฬิกางาน · รายชื่อเล้าปลายทางให้เองทันที ไม่ต้องตั้งค่าเพิ่ม · ถ้าเปิดยูนิตใหม่ ไปติ๊กสิทธิ์ยูนิตให้หมอในจัดการผู้ใช้ด้วย<br>
+          • ตั้งถูกแบบ = ระบบผูกการ์ดหน้างาน · จัดยูนิต · กำหนดงาน · รายชื่อเล้าปลายทางให้เองทันที ไม่ต้องตั้งค่าเพิ่ม · ถ้าเปิดยูนิตใหม่ ไปติ๊กสิทธิ์ยูนิตให้หมอในจัดการผู้ใช้ด้วย<br>
           • ⚠️ <b>อย่าแก้รหัสทีหลังเมื่อมีแม่อยู่ในหลังแล้ว</b> — แม่ผูกกับรหัสตรงตัว แก้แล้วแม่จะหลุดเป็น "อยู่เล้าที่ไม่มีจริง"
         </div>
         <div class="grid2" style="margin-top:10px">
@@ -13847,7 +13847,7 @@ function brHouseObj(sc){ return brHousesFor(brFarm).find(h=>h.s===sc)||null; }
 function brSows(){ return BR.all.filter(s=>s.farm===brFarm&&(s.kind||'')!=='boar'); }
 function brBoars(){ return BR.all.filter(s=>s.farm===brFarm&&(s.kind||'')==='boar'); }
 function brSowByEar(ear){ const e=String(ear||'').trim().toLowerCase(); return brSows().find(s=>String(s.ear).toLowerCase()===e); }
-/* ⚙️ ตัวแปรนาฬิกาต่อฟาร์ม (BRCFG ซิงก์ผ่าน options) — ไม่ตั้ง = ค่าตำรากลาง */
+/* ⚙️ ตัวแปรกำหนดงานต่อฟาร์ม (BRCFG ซิงก์ผ่าน options) — ไม่ตั้ง = ค่าตำรากลาง */
 const BR_CFG_DEF={cycle:21,gest:114,pregchk:28,lact:28,giltIn:245,giltMate:240};
 /* 🌾 ไกด์อาหารต่อแม่ (กก./ตัว/วัน) — ตำรามาตรฐาน: ต้นท้องคุมอาหารช่วงฝังตัวอ่อน · กลางท้องตามสภาพร่างกาย · ปลายท้องเร่ง (ลูกโต 70% ช่วงนี้) · เลี้ยงลูกไต่ขึ้นวันละ ~0.5 กก. · หย่าแล้วให้เต็มที่กระตุ้นไข่ตก */
 const BR_FG_DEF={fgEarly:2.2,fgMid:2.4,fgLate:3.2,fgLact:6.5,fgOpen:3.0,fgGilt:2.3};
@@ -13903,7 +13903,7 @@ async function brPersist(s){
 async function brFlushSows(){ const d=(BR.all||[]).filter(s=>s._dirty); if(!d.length){ if(_brRetry){clearInterval(_brRetry);_brRetry=null;} return; } for(const s of d) brPersist(s); }
 function brRe(){ (brViewFn||renderBreeding)(); }
 
-/* ── นาฬิกาแม่ (ตามตำรา: กลับสัด 18-24 · ตรวจท้อง 28-35 · วัคซีน 100-110 · ขึ้นคลอด 108-112 · หย่านม 21-28 · สัดหลังหย่า 4-5) ── */
+/* ── กำหนดงานแม่ (ตามตำรา: กลับสัด 18-24 · ตรวจท้อง 28-35 · วัคซีน 100-110 · ขึ้นคลอด 108-112 · หย่านม 21-28 · สัดหลังหย่า 4-5) ── */
 function brClock(s){
   const out=[]; const mate=brLastEv(s,'mate'), far=brLastEv(s,'farrow'), wean=brLastEv(s,'wean');
   const chkToday=s.hc===brTodayISO();
@@ -14052,7 +14052,7 @@ function brWorkHTML(){
     ${keys.length?keys.map(k=>`<div style="margin:10px 0 4px;font-weight:800">${escA(k)} <span class="more">${fmt(grp[k].length)} แม่</span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${grp[k].map(s=>`<button class="sbhchip" onclick="brHouseOpen='${escA(s.house)}';brHouseDetail()">${escA(s.ear)} <span style="opacity:.6">${escA(s.house)}</span></button>`).join('')}</div>`).join('')
     :'<div class="sub">— ไม่มีงานถึงกำหนด'+(brHouseF?' ในหลัง '+escA(brHouseF):'')+' —</div>'}
-    <div class="sub" style="margin-top:12px">💡 แตะแม่ตัวไหน = เปิดหน้าทำงานของหลังนั้น ลงผลได้ทันที · นาฬิกา: กลับสัด 18-24 · ตรวจท้อง 28-35 · วัคซีน 100-110 · ขึ้นคลอด 108-112 · หย่านม 21-28 วัน · สัดหลังหย่า 4-5 วัน</div></div>`;
+    <div class="sub" style="margin-top:12px">💡 แตะแม่ตัวไหน = เปิดหน้าทำงานของหลังนั้น ลงผลได้ทันที · กำหนดงาน: กลับสัด 18-24 · ตรวจท้อง 28-35 · วัคซีน 100-110 · ขึ้นคลอด 108-112 · หย่านม 21-28 วัน · สัดหลังหย่า 4-5 วัน</div></div>`;
 }
 
 /* ═══ 🎯 ชุดผสมราย Week (weekly batch system) ═══
@@ -14635,7 +14635,7 @@ function brWnDestOf(s,pick){ const p=String(pick||'').trim(); if(p) return p; co
 function brWnDestWhy(s){ if(brWnBackOf(s)) return 'หลังเดิมที่แม่มาจาก'; const sc=String((s&&s.house)||''); if(brWnHomeOf(sc)) return 'หลังรับแม่หย่าของ '+(brUnitOf(sc)||'ฟาร์ม')+' (ตั้งค่า)'; if(brWnUnitFirst(sc)) return 'หลัง ท แรกใน'+(brUnitOf(sc)?'ยูนิต '+brUnitOf(sc):'ฟาร์ม')+' (ไม่มีข้อมูล — ควรตั้งหลังรับแม่หย่าใน ⚙️)'; return ''; }
 /* ═══ 📅 ลงข้อมูลย้อนหลังได้ (12 ส.ค. 69) ═══════════════════════════════════════════
    เดิมทุกปุ่มในหน้าเล้าล็อกวันที่เป็น "วันนี้" ตายตัว — แม่คลอดเมื่อวานแล้วหมอมาลงวันนี้
-   ระบบจดว่าคลอดวันนี้ ⇒ นาฬิกาเลื่อนทั้งตัว (กำหนดหย่า · อายุลูก · ระยะอุ้มท้อง · PSY เพี้ยนตาม)
+   ระบบจดว่าคลอดวันนี้ ⇒ กำหนดงานเลื่อนทั้งตัว (กำหนดหย่า · อายุลูก · ระยะอุ้มท้อง · PSY เพี้ยนตาม)
    ตอนนี้เลือกวันได้ ย้อนได้ไม่เกิน BR_BD_MAX วัน · ห้ามลงล่วงหน้า · ติดธง bd + เวลาที่ลงจริงไว้ในเหตุการณ์ */
 const BR_BD_MAX=7;
 let brEDate='', brEDateSc='';                     // '' = วันนี้ · brEDateSc = ผูกกับหลังที่ตั้งไว้ (เปลี่ยนหลัง = กลับเป็นวันนี้เสมอ กันวันที่ค้างข้ามเล้า)
@@ -14661,7 +14661,7 @@ function brEDateBarHTML(){
   </div>`;
 }
 /* ═══ ⚠️ แม่ที่ข้อมูลค้าง — เลยกำหนดแล้วยังไม่มีใครลง ═══════════════════════════════
-   นาฬิกาเตือนแค่ "ตอนถึงกำหนด" พอเลยกำหนดไปแล้วมันเงียบ → แม่ค้างสถานะโดยไม่มีใครเห็น
+   กำหนดงานเตือนแค่ "ตอนถึงกำหนด" พอเลยกำหนดไปแล้วมันเงียบ → แม่ค้างสถานะโดยไม่มีใครเห็น
    (ตรวจของจริง 12 ส.ค. 69: ท้องเกิน 125 วันยังไม่ลงคลอด 315 ตัว · เลี้ยงลูกเกิน 35 วันยังไม่ลงหย่า 320 ตัว) */
 function brStuckOf(s,C){
   if(!s||s.stage==='cull') return null;
@@ -14696,7 +14696,7 @@ function brStuckCardHTML(h){
 /* ═══ 🏃 โหมดตามให้ทัน — ตามลงผลค้างเป็นชุด (690820b) ═══════════════════════════════
    ข้อมูลนำเข้าเป็นสแนปช็อตเก่า + ทีมลงไม่ทัน → แม่ค้างสถานะทีละหลายร้อยตัว การไล่เปิดแผงทีละตัว
    + ย้อนหลังได้แค่ 7 วัน ทำให้ตามไม่ไหว ⇒ เปิดจากการ์ด ⚠️ แม่ที่ข้อมูลค้าง: ตารางลงผลทีละหลายแม่
-   · วันที่ตั้งต้น = วันคาดตามนาฬิกา (คลอด = ผสม+gest · หย่า = คลอด+lact) หมอแก้เป็นวันจริงได้
+   · วันที่ตั้งต้น = วันคาดตามกำหนด (คลอด = ผสม+gest · หย่า = คลอด+lact) หมอแก้เป็นวันจริงได้
    · ย้อนหลังได้ไกลถึง BR_CU_MAX วัน (เฉพาะโหมดนี้ — ปุ่มปกติยังจำกัด BR_BD_MAX=7 เหมือนเดิม)
    · ต้องติ๊ก ✔ หน้าแถวก่อนถึงจะบันทึก (กันกดเหมาโดยไม่ได้ดู) · ทุกเหตุการณ์ติดธง cu:1 + bd:1 ตรวจย้อนได้
    · แม่ที่ลงคลอดย้อนหลังไปนานแล้ว จะไปโผล่กลุ่ม "รอลงหย่านม" ต่อ — ไล่ลงเป็นทอดๆ จนตามทัน */
@@ -14744,7 +14744,7 @@ function brCuBodyHTML(h){
         <td style="padding:4px 6px;white-space:nowrap"><button class="btn ghost sm" title="ตรวจแล้วไม่ท้อง/กลับสัด" onclick="brCuNotPreg(${i})">🔁</button>
           <button class="btn ghost sm" title="ตาย/คัด/ปลด" onclick="brSowCull('${escA(r.s.ear)}')">❌</button></td></tr>`; }).join('');
     sec.push(`<div style="margin-top:11px"><div style="font-weight:800;font-size:13px">👶 รอลงคลอด <span class="more">${fmt(G.farrow.length)} ตัว</span></div>
-      <div class="sub" style="font-size:11px;margin:2px 0 4px">วันที่ตั้งให้ = กำหนดคลอดตามนาฬิกา (วันผสม + ${fmt(C.gest)} วัน) — แก้เป็นวันคลอดจริงได้ · ไม่ท้องกด 🔁</div>
+      <div class="sub" style="font-size:11px;margin:2px 0 4px">วันที่ตั้งให้ = กำหนดคลอดตามกำหนด (วันผสม + ${fmt(C.gest)} วัน) — แก้เป็นวันคลอดจริงได้ · ไม่ท้องกด 🔁</div>
       ${wrap(`<tr>${tickHead('F')}${th('เบอร์')}${th('📅 วันคลอด')}${th('รอด')}${th('ตายคลอด')}${th('มัมมี่')}${th('')}</tr>${tr}`)}
       <div style="margin-top:7px"><button class="btn sm" onclick="brCuFarrowSave()">💾 ลงคลอดตามแถวที่ติ๊ก ✔</button></div>${more('farrow',G.farrow.length)}</div>`);
   }
@@ -14762,7 +14762,7 @@ function brCuBodyHTML(h){
         ${isK?`<td style="padding:4px 6px"><select id="cuW_h_${i}" class="cin" style="padding:5px 6px;max-width:150px">${brWnHouseOpts(sc,'')}</select></td>`:''}
         <td style="padding:4px 6px"><button class="btn ghost sm" title="ตาย/คัด/ปลด" onclick="brSowCull('${escA(r.s.ear)}')">❌</button></td></tr>`; }).join('');
     sec.push(`<div style="margin-top:11px"><div style="font-weight:800;font-size:13px">🍼 รอลงหย่านม <span class="more">${fmt(G.wean.length)} ตัว</span></div>
-      <div class="sub" style="font-size:11px;margin:2px 0 4px">วันที่ตั้งให้ = กำหนดหย่าตามนาฬิกา (วันคลอด + ${fmt(C.lact)} วัน) · จำนวนลูกเติมจากที่เหลือในครอก — เช็คก่อนติ๊ก${isK?' · หย่าแล้วแม่ย้ายกลับเล้า ท ให้เอง':''}</div>
+      <div class="sub" style="font-size:11px;margin:2px 0 4px">วันที่ตั้งให้ = กำหนดหย่าตามกำหนด (วันคลอด + ${fmt(C.lact)} วัน) · จำนวนลูกเติมจากที่เหลือในครอก — เช็คก่อนติ๊ก${isK?' · หย่าแล้วแม่ย้ายกลับเล้า ท ให้เอง':''}</div>
       ${wrap(`<tr>${tickHead('W')}${th('เบอร์')}${th('📅 วันหย่า')}${th('ลูกหย่า')}${isK?th('🏠 กลับเล้า'):''}${th('')}</tr>${tr}`)}
       <div style="margin-top:7px"><button class="btn sm" onclick="brCuWeanSave()">💾 ลงหย่านมตามแถวที่ติ๊ก ✔</button></div>${more('wean',G.wean.length)}</div>`);
   }
@@ -15306,7 +15306,7 @@ function brHouseDetail(){
     <div class="card"><h3>🚚 รับแม่เข้าเล้านี้ <span class="more">รับเข้าของเล้าแม่พันธุ์ = ลงเบอร์แม่ที่เข้ามา</span></h3>
       ${brRcvSectionHTML(h.s,brFarm,true)}</div>
     ${brHouseMoveLogHTML(h.s)}
-    ${(function(){   /* 📱 เดิมวาดแม่ "ทุกตัว" พร้อมคำนวณนาฬิการายตัว — หลัง 277 แม่ = HTML ~90KB ต่อการวาด 1 ครั้ง
+    ${(function(){   /* 📱 เดิมวาดแม่ "ทุกตัว" พร้อมคำนวณกำหนดงานรายตัว — หลัง 277 แม่ = HTML ~90KB ต่อการวาด 1 ครั้ง
                         และหน้านี้วาดใหม่ทั้งหน้าทุกครั้งที่กดปุ่ม → มือถือหน่วง/ค้าง (เจ้าของแจ้ง 4 ส.ค. 69)
                         → แสดงทีละ 60 ตัว + ปุ่มขยาย (เหมือนกล่องแม่ในหน้าบันทึกรายวันที่มีเพดานอยู่แล้ว) */
       const cap=brHdCap||60, shown=ss.slice(0,cap);
@@ -16327,7 +16327,7 @@ function brFRBodyHTML(h,noLog){   // noLog = ไม่ต้องต่อท�
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="btn ghost sm" onclick="brFR.push({ear:'',alive:'',still:'',mummy:'',wt:''});brFRRe()">＋ เพิ่มแถว</button>
         <button class="btn sm" onclick="brFRSave()">💾 บันทึกลงคลอด</button></div>
-      <div class="sub" style="margin-top:8px">เลือกได้เฉพาะแม่รอคลอดที่อยู่ในเล้านี้ <b>${fmt(cands.length)}</b> ตัว · บันทึกแล้วแม่เปลี่ยนเป็น 🍼 เลี้ยงลูก และเริ่มนับนาฬิกาหย่านมให้เอง · แม่ที่เพิ่งมาถึงแต่ยังไม่มีในรายชื่อ ให้รับเข้าที่หัวข้อ 🚚 แม่เข้า-ออกเล้านี้ ก่อน</div>
+      <div class="sub" style="margin-top:8px">เลือกได้เฉพาะแม่รอคลอดที่อยู่ในเล้านี้ <b>${fmt(cands.length)}</b> ตัว · บันทึกแล้วแม่เปลี่ยนเป็น 🍼 เลี้ยงลูก และเริ่มนับกำหนดหย่านมให้เอง · แม่ที่เพิ่งมาถึงแต่ยังไม่มีในรายชื่อ ให้รับเข้าที่หัวข้อ 🚚 แม่เข้า-ออกเล้านี้ ก่อน</div>
       ${(!noLog&&doneToday.length)?`<div style="margin-top:10px;background:var(--soft);border-radius:10px;padding:9px 12px">
         <div style="font-weight:700;font-size:13.5px">👶 คลอดวันนี้ ${fmt(doneToday.length)} แม่ · ลูกมีชีวิตรวม ${fmt(tot.a)} ตัว${doneToday.length?' · เฉลี่ย '+(tot.a/doneToday.length).toFixed(1)+' ตัว/ครอก':''}${tot.s?' · ตายคลอด '+fmt(tot.s):''}${tot.m?' · มัมมี่ '+fmt(tot.m):''}</div>
         ${doneToday.map(s=>{ const e=(s.events||[]).find(x=>x&&x.t==='farrow'&&x.date===today)||{};
@@ -16372,7 +16372,7 @@ async function brFRDel(ear){
   brPersist(s); toast('ลบรายการคลอดของ '+ear+' แล้ว'); brDailyRe();
 }
 /* 📊 ภาพรวมหลังแม่พันธุ์ (Peter 28 ก.ค. 69: "หมอประจำยูนิตเปิดหลังแล้วต้องเห็นภาพรวมทันที")
-   บนสุดของหน้าบันทึกรายวันหลัง ท/ค/ส: องค์ประกอบแม่ตามสถานะ + งานวันนี้จากนาฬิกาแม่ (จับเบอร์ไหนทำอะไร) + งานล่วงหน้า 7 วัน */
+   บนสุดของหน้าบันทึกรายวันหลัง ท/ค/ส: องค์ประกอบแม่ตามสถานะ + งานวันนี้จากกำหนดงานแม่ (จับเบอร์ไหนทำอะไร) + งานล่วงหน้า 7 วัน */
 /* 📱 กลุ่มงานในภาพรวมหลัง — สรุปจำนวนก่อน กดหัวข้อค่อยกางรายตัว + กางทีละหน้า (เจ้าของ 3 ส.ค. 69: หลังละ 700 แม่ เลื่อนมือถือไม่ไหว) */
 let brOvOpen={}, brOvCap={}, brOvKeys=[], brSowChipAll=false, brSowBoxSc='', brOvSel={}, brChipDense=false;   // brChipDense = 🗜 โหมดย่อปุ่มเบอร์ เห็นทั้งเล้าจอเดียว (เจ้าของขอ 5 ส.ค. 69)
 let brHdCap=60, brHdCapSc='';   // 📱 เพดานรายชื่อแม่ในหน้าทำงานรายหลัง (กันหน้าอืดตอนหลังมีแม่หลายร้อย) — รีเซ็ตเมื่อเปลี่ยนหลัง
@@ -16400,11 +16400,11 @@ function brOvSendTicked(){
 }
 function brOvSet(i,v){ const k=brOvKeys[i]; if(k==null) return; brOvOpen[k]=!!v; brRe(); }
 function brOvMore(i){ const k=brOvKeys[i]; if(k==null) return; brOvCap[k]=(brOvCap[k]||30)+50; brRe(); }
-/* 📋 งานวันนี้ตามนาฬิกาแม่ + งานล่วงหน้า 7 วัน — แยกออกมาใช้ร่วมกัน 2 ที่ (4 ส.ค. 69):
+/* 📋 งานวันนี้ตามกำหนดงานแม่ + งานล่วงหน้า 7 วัน — แยกออกมาใช้ร่วมกัน 2 ที่ (4 ส.ค. 69):
    ท/ส = การ์ด 📊 ภาพรวมหลัง (เหมือนเดิม) · ค = ยุบเข้าไปอยู่ในหัวข้อ 🐷 แม่ในหลังนี้ (เจ้าของสั่งรวม 4 หัวข้อเหลือ 2) */
 function brOvTasks(h){
   const sc=brShortOf(h);
-  const prevFarm=brFarm; brFarm=h.farm||brFarm;   // ให้ brClock/brCfg ใช้ค่าตั้งนาฬิกาของฟาร์มนี้
+  const prevFarm=brFarm; brFarm=h.farm||brFarm;   // ให้ brClock/brCfg ใช้ค่าตั้งกำหนดงานของฟาร์มนี้
   try{
     const sows=brDMSows(h).filter(s=>s.house===sc&&s.stage!=='cull');
     const groups={}, urgent={}, gitem={};
@@ -16437,7 +16437,7 @@ function brOvTasks(h){
         </div>`:''}
         </div>`;
       }).join(''))
-        :'<div class="sub" style="margin-top:5px">✅ วันนี้ไม่มีงานตามนาฬิกาแม่ของหลังนี้</div>'}`;
+        :'<div class="sub" style="margin-top:5px">✅ วันนี้ไม่มีงานตามกำหนดงานแม่ของหลังนี้</div>'}`;
     const soon=(look.preg||look.farrow||look.wean)?`<div class="sub" style="margin-top:10px">📅 กำลังจะมาใน 7 วัน: ${[look.preg?'🔍 ตรวจท้อง '+fmt(look.preg)+' แม่':'',look.farrow?'🏠 ขึ้นเล้าคลอด '+fmt(look.farrow)+' แม่':'',look.wean?'🍼 หย่านม '+fmt(look.wean)+' แม่':''].filter(Boolean).join(' · ')}</div>`:'';
     return {total:totTask, html:html, soon:soon, sows:sows};
   } finally { brFarm=prevFarm; }
@@ -16453,7 +16453,7 @@ function brHouseOverviewHTML(h){
     const chips=[['🐷 แม่ในหลัง',sows.length,1],['⏳ รอผสม',cnt('open')],['💕 ผสมแล้ว',cnt('mated')],['🤰 อุ้มท้อง',cnt('preg')],['🍼 เลี้ยงลูก',cnt('nurse')],['🌸 สาว',cnt('gilt')]]
       .filter(c=>c[1]>0||c[2]);
     return `<div class="card" style="border-color:var(--brand)">
-      <h3>📊 ภาพรวมหลัง ${escA(sc)} <span class="more">สดจากทะเบียนแม่ · นาฬิกาตามค่าตั้งฟาร์ม</span></h3>
+      <h3>📊 ภาพรวมหลัง ${escA(sc)} <span class="more">สดจากทะเบียนแม่ · กำหนดงานตามค่าตั้งฟาร์ม</span></h3>
       <div style="display:flex;gap:7px;flex-wrap:wrap">${chips.map(c=>`<span class="sbchip" style="font-size:13.5px">${c[0]} <b>${fmt(c[1])}</b></span>`).join('')}</div>
       <div style="margin-top:11px;font-weight:800;font-size:14px">📋 งานวันนี้${t.total?` <span style="background:var(--brand);color:#fff;border-radius:999px;padding:1px 10px;font-size:12px">${fmt(t.total)} รายการ</span>`:''}</div>
       ${t.html}${t.soon}</div>`;
@@ -17058,7 +17058,7 @@ function brDbList(){
     parity:(a,b)=>(+b.parity||0)-(+a.parity||0),
     age:(a,b)=>String(a.born||'9999').localeCompare(String(b.born||'9999'))
   };
-  if(brDbSort==='due'){ // เรียงตามงานค้าง — คำนวณนาฬิกาครั้งเดียวต่อแม่ (เดิมคำนวณซ้ำใน sort ช้ากับทะเบียน 1,500)
+  if(brDbSort==='due'){ // เรียงตามงานค้าง — คำนวณกำหนดงานครั้งเดียวต่อแม่ (เดิมคำนวณซ้ำใน sort ช้ากับทะเบียน 1,500)
     const d={}; list.forEach(s=>{ d[s.ear]=brClock(s).filter(c=>c.due).length; });
     return list.sort((a,b)=>(d[b.ear]-d[a.ear])||S.ear(a,b));
   }
@@ -17411,7 +17411,7 @@ function brOpen(ear){
         ${kpi('ตายแรกคลอด+มัมมี่',fmt(totStill),'รวมทุกครอก','#a5342a')}
       </div></div>
 
-    <div class="card"><h3>⏰ นาฬิกาแม่ตัวนี้</h3>
+    <div class="card"><h3>⏰ กำหนดงานแม่ตัวนี้</h3>
       ${brClock(s).map(c=>`<div style="margin:5px 0;font-weight:${c.due?800:500};color:${c.due?'#b7791f':'inherit'}">${c.due?'👉 ':''}${escA(c.label)}</div>`).join('')||'<div class="sub">— ไม่มีงานค้าง —</div>'}
     </div>
 
@@ -17470,7 +17470,7 @@ function brRegHTML(){
       <div class="frow"><label>หมายเหตุ</label><input class="cin" id="brR_note" placeholder="เช่น มาจากครอกลูกดก / ซื้อเข้า"></div>
     </div>
     <button class="btn" style="margin-top:12px" onclick="brRegSave()">💾 ขึ้นทะเบียน</button>
-    <div class="sub" style="margin-top:10px">📌 สำคัญ: แม่ที่กำลังท้อง/เลี้ยงลูกอยู่ ให้ใส่วันที่ผสม/วันคลอดย้อนหลังด้วย — นาฬิกางาน (ตรวจท้อง/ขึ้นคลอด/หย่านม) จะเดินถูกทันที<br>📦 มีไฟล์ทะเบียนแม่ทั้งฟาร์มอยู่แล้ว (Excel/รูป)? ส่งให้ผู้ดูแลระบบนำเข้าเป็นชุดทีเดียวได้</div></div>`;
+    <div class="sub" style="margin-top:10px">📌 สำคัญ: แม่ที่กำลังท้อง/เลี้ยงลูกอยู่ ให้ใส่วันที่ผสม/วันคลอดย้อนหลังด้วย — กำหนดงาน (ตรวจท้อง/ขึ้นคลอด/หย่านม) จะเดินถูกทันที<br>📦 มีไฟล์ทะเบียนแม่ทั้งฟาร์มอยู่แล้ว (Excel/รูป)? ส่งให้ผู้ดูแลระบบนำเข้าเป็นชุดทีเดียวได้</div></div>`;
 }
 function brRegSave(){
   const g=id=>{ const el=document.getElementById(id); return el?el.value:''; };
@@ -17478,7 +17478,7 @@ function brRegSave(){
   if(!ear){ toast('ใส่เบอร์หูแม่ก่อน'); return; }
   if(brSowByEar(ear)){ toast('⚠️ เบอร์ '+ear+' มีในทะเบียน '+brFarm+' แล้ว'); return; }
   const stage=g('brR_stage'), refD=g('brR_date'), boar=(g('brR_boar')||'').trim();
-  if((stage==='mated'||stage==='preg'||stage==='nurse')&&!refD){ toast('สถานะนี้ต้องใส่วันที่ (ผสม/คลอด) เพื่อให้นาฬิกาเดินถูก'); return; }
+  if((stage==='mated'||stage==='preg'||stage==='nurse')&&!refD){ toast('สถานะนี้ต้องใส่วันที่ (ผสม/คลอด) เพื่อให้กำหนดงานเดินถูก'); return; }
   const s={farm:brFarm,ear:ear,breed:g('brR_breed')||'',born:g('brR_born')||'',teats:+g('brR_teats')||0,
     parity:+g('brR_parity')||0,house:g('brR_house')||'',stage:stage,hc:'',note:(g('brR_note')||'').trim(),events:[]};
   const by=brBy();
@@ -17507,7 +17507,7 @@ function brEvHTML(){
     mate:`<div class="grid2">
       <div class="frow"><label>เบอร์พ่อพันธุ์ / น้ำเชื้อ</label><input class="cin" id="brF_boar" list="brBoarDL" placeholder="พิมพ์เบอร์พ่อ"><datalist id="brBoarDL">${brBoars().map(b=>`<option value="${escA(b.ear)}">${escA(b.breed||'')}</option>`).join('')}</datalist></div>
       <div class="frow"><label>ผสมครั้งที่ (1/2/3)</label><input class="cin" id="brF_round" type="number" value="1" min="1" max="3"></div></div>
-      <div class="sub">เบอร์พ่อเลือกจากทะเบียนพ่อพันธุ์ได้เลย · ระบบตั้งนาฬิกาให้เองตามค่าตั้งฟาร์ม (ดูแท็บ ⚙️)</div>`,
+      <div class="sub">เบอร์พ่อเลือกจากทะเบียนพ่อพันธุ์ได้เลย · ระบบตั้งกำหนดงานให้เองตามค่าตั้งฟาร์ม (ดูแท็บ ⚙️)</div>`,
     preg:`<div class="frow"><label>ผลตรวจ</label><select class="cin tl" id="brF_result"><option>ท้อง</option><option>ไม่ท้อง</option><option>กลับสัด</option></select></div>
       <div class="sub">ไม่ท้อง/กลับสัด → แม่กลับสถานะ "รอผสม" อัตโนมัติ</div>`,
     farrow:`<div class="grid2">
@@ -17576,11 +17576,11 @@ function brEvSave(){
   toast('✅ บันทึก '+s.ear+' แล้ว'); brOpen(s.ear);
 }
 
-/* ── แท็บ: KPI + ⚙️ ค่าตั้งนาฬิกาฟาร์ม ── */
+/* ── แท็บ: KPI + ⚙️ ค่าตั้งกำหนดงานฟาร์ม ── */
 function brCfgCardHTML(){
   const C=brCfg(); const can=(ROLE==='owner'||ROLE==='admin');
   const inp=(id,lab,val)=>`<div class="frow"><label>${lab}</label><input class="cin" id="${id}" type="number" min="0.5" step="0.1" value="${val}" ${can?'':'disabled'}></div>`;
-  return `<div class="card"><h3>⚙️ ตัวแปรนาฬิกาของ ${escA(brFarm)} <span class="more">${can?'แก้แล้วกดบันทึก — มีผลทุกเครื่องทั้งฟาร์ม':'เจ้าของ/ผู้ดูแลเป็นผู้ตั้งค่า'}</span></h3>
+  return `<div class="card"><h3>⚙️ ค่ารอบการผลิตของ ${escA(brFarm)} <span class="more">${can?'แก้แล้วกดบันทึก — มีผลทุกเครื่องทั้งฟาร์ม':'เจ้าของ/ผู้ดูแลเป็นผู้ตั้งค่า'}</span></h3>
     <div class="grid2">
       ${inp('brC_cycle','รอบการเป็นสัด (วัน)',C.cycle)}
       ${inp('brC_gest','ระยะตั้งท้อง (วัน)',C.gest)}
@@ -17620,7 +17620,7 @@ function brCfgCardHTML(){
         return units.map(u=>`<div class="frow"><label>🏛️ ${escA(u)} · หย่าแล้วเข้าหลัง</label><select class="cin tl" id="brC_wnHome_${escA(u)}" ${can?'':'disabled'}><option value="">— อัตโนมัติ (หลัง ท แรกของยูนิต) —</option>${hs.filter(h=>h.unit===u).map(h=>`<option value="${escA(h.s)}" ${cur[u]===h.s?'selected':''}>${escA(h.s)}${(h.vet&&h.vet!=='-')?' · '+escA(h.vet):''}</option>`).join('')}</select></div>`).join(''); })()}
     </div>
     ${can?`<button class="btn" style="margin-top:12px" onclick="brCfgSave()">💾 บันทึกค่าตั้ง</button>`:''}
-    <div class="sub" style="margin-top:8px">นาฬิกางานคำนวณจากค่าชุดนี้: เช็คกลับสัดวัน ${C.cycle-3}-${C.cycle+3} · ตรวจท้องวัน ${C.pregchk}-${C.pregchk+7} · วัคซีนก่อนคลอดวัน ${C.gest-14}-${C.gest-6} · ขึ้นเล้าคลอดวัน ${C.gest-6} · คาดคลอดวัน ${C.gest} · หย่านมวัน ${C.lact-7}-${C.lact} · สัดหลังหย่า 4-5 วัน</div></div>`;
+    <div class="sub" style="margin-top:8px">กำหนดงานคำนวณจากค่าชุดนี้: เช็คกลับสัดวัน ${C.cycle-3}-${C.cycle+3} · ตรวจท้องวัน ${C.pregchk}-${C.pregchk+7} · วัคซีนก่อนคลอดวัน ${C.gest-14}-${C.gest-6} · ขึ้นเล้าคลอดวัน ${C.gest-6} · คาดคลอดวัน ${C.gest} · หย่านมวัน ${C.lact-7}-${C.lact} · สัดหลังหย่า 4-5 วัน</div></div>`;
 }
 function brCfgSave(){
   if(!(ROLE==='owner'||ROLE==='admin')){ toast('เจ้าของ/ผู้ดูแลเท่านั้นที่แก้ค่าตั้งได้'); return; }
@@ -17632,13 +17632,13 @@ function brCfgSave(){
   ['biSowBad','biSowLo','biSowHi','biPigLo','biPigHi'].forEach(k=>{ const v=g('brC_'+k); if(v>0) c[k]=v; });   // 🍽️ เกณฑ์กินได้เล้าคลอด
   ['pgOut','pgMax'].forEach(k=>{ const v=g('brC_'+k); if(v>0) c[k]=v; });   // 🐖 อายุลูกหมูค้างเล้าคลอด
   { const wh={}; brUnitsOf(brHousesFor(brFarm).filter(h=>h.kind==='ท')).filter(Boolean).forEach(u=>{ const el=document.getElementById('brC_wnHome_'+u); const v=el?String(el.value||'').trim():''; if(v) wh[u]=v; }); c.wnHome=wh; }   // 🏠 หลังรับแม่หย่านมประจำยูนิต
-  const _oldCfg=BRCFG&&BRCFG[brFarm]||{}; if(Array.isArray(_oldCfg.pxVax)) c.pxVax=_oldCfg.pxVax;   // 💉 โปรแกรมวัคซีนลูก — ตั้งจากหน้าเล้าคลอด ห้ามหายตอนบันทึกค่านาฬิกา
+  const _oldCfg=BRCFG&&BRCFG[brFarm]||{}; if(Array.isArray(_oldCfg.pxVax)) c.pxVax=_oldCfg.pxVax;   // 💉 โปรแกรมวัคซีนลูก — ตั้งจากหน้าเล้าคลอด ห้ามหายตอนบันทึกค่ากำหนดงาน
   if(Array.isArray(_oldCfg.gsVax)) c.gsVax=_oldCfg.gsVax;   // 🤰 โปรแกรมวัคซีนแม่อุ้มท้อง (690820a) — ตั้งจากหน้า 📋 โปรแกรมวัคซีน ห้ามหายเหมือนกัน
   if(c.gest<100||c.gest>125){ if(!confirm('ระยะตั้งท้อง '+c.gest+' วัน ดูผิดปกติ (ปกติ ~114-116) — ยืนยัน?')) return; }
   if(typeof BRCFG!=='object'||!BRCFG||Array.isArray(BRCFG)) BRCFG={};
   BRCFG[brFarm]=c;
   try{ syncConfig(); }catch(e){}
-  toast('✅ บันทึกค่านาฬิกาของ '+brFarm+' แล้ว');
+  toast('✅ บันทึกค่ารอบการผลิตของ '+brFarm+' แล้ว');
   renderBreeding();
 }
 /* ── 📊 KPI ฝูงแม่พันธุ์ — คำนวณจากประวัติเหตุการณ์จริงทั้งหมด (1 ส.ค. 69) ──
