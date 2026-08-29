@@ -16819,8 +16819,11 @@ function brHouseOverviewHTML(h){
     return `<div class="card" style="border-color:var(--brand)">
       <h3>📊 ภาพรวมหลัง ${escA(sc)} <span class="more">สดจากทะเบียนแม่ · กำหนดงานตามค่าตั้งฟาร์ม</span></h3>
       <div style="display:flex;gap:7px;flex-wrap:wrap">${chips.map(c=>`<span class="sbchip" style="font-size:13.5px">${c[0]} <b>${fmt(c[1])}</b></span>`).join('')}</div>
-      <div style="margin-top:11px;font-weight:800;font-size:14px">📋 งานวันนี้${t.total?` <span style="background:var(--brand);color:#fff;border-radius:999px;padding:1px 10px;font-size:12px">${fmt(t.total)} รายการ</span>`:''}</div>
-      ${t.html}${t.soon}</div>`;
+      <div style="margin-top:11px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none" onclick="brFold['ovt${h.id}']=!brFold['ovt${h.id}'];brRe()">
+        <b style="font-size:14px">📋 งานวันนี้</b>
+        ${t.total?`<span style="background:${brFold['ovt'+h.id]?'var(--brand)':'#fbe9e7'};color:${brFold['ovt'+h.id]?'#fff':'#8f2f2f'};border-radius:999px;padding:1px 10px;font-size:12px;font-weight:800">${fmt(t.total)} รายการ</span>`:'<span class="sub">— ไม่มี —</span>'}
+        <span style="margin-left:auto;font-weight:800;color:var(--brand)">${brFold['ovt'+h.id]?'▴ ปิด':'▾ เปิด'}</span></div>
+      ${brFold['ovt'+h.id]?t.html+t.soon:''}</div>`;
   } finally { brFarm=prevFarm; }
 }
 /* ══ 🐖 ลูกหมูค้างเล้าคลอด (12 ส.ค. 69 — เจ้าของอธิบายวงจรจริง) ══════════════════════
