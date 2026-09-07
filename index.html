@@ -583,8 +583,19 @@ body.theme-dark .sbchip.bad{background:rgba(226,75,74,.16)}
 .fptbl tbody tr:nth-child(even) td{background:#fafcfb}
 .densetbl tr.clk{cursor:pointer}
 .densetbl tr.clk:hover td{background:rgba(31,125,110,.07)}
+/* 📗 690907h ตารางแบบ Excel (เจ้าของ 7 ก.ย. 69) — เส้นตารางครบ หัวติดบน แถวสลับสี แถวกลุ่ม/แถวรวมเข้ม ใช้คู่กับ .densetbl */
+.xtbl{border:1px solid #cfd9d4;background:#fff;font-size:12.5px}
+.xtbl th{background:#e8efec;color:#1f2d2a;font-size:11.5px;font-weight:800;padding:6px 8px;border:1px solid #cfd9d4;text-align:left}
+.xtbl th.num,.xtbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+.xtbl td{padding:4px 8px;border:1px solid #dfe7e3;vertical-align:middle}
+.xtbl tbody tr:nth-child(even) td{background:#f7faf8}
+.xtbl tr.clk:hover td{background:rgba(31,125,110,.10)}
+.xtbl tr.grp td{background:#eaf4f1;font-weight:800;color:#0f6b5f}
+.xtbl tr.sum td{background:#f1f5f3;font-weight:800;border-top:2px solid #cfd9d4}
 body.theme-dark .densetbl th{background:#26304e}
 body.theme-dark .densetbl td{border-bottom-color:#2b3554}
+body.theme-dark .xtbl{border-color:#2b3554;background:transparent}body.theme-dark .xtbl th{background:#26304e;color:#e6ecf5;border-color:#2b3554}body.theme-dark .xtbl td{border-color:#2b3554}
+body.theme-dark .xtbl tbody tr:nth-child(even) td{background:rgba(255,255,255,.03)}body.theme-dark .xtbl tr.grp td{background:#1f3b36;color:#9fd8c8}body.theme-dark .xtbl tr.sum td{background:#26304e;border-top-color:#3a4670}
 .cfchip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;background:var(--panel,#fff);color:var(--ink-2)}
 .cfchip.on{background:var(--brand);border-color:var(--brand);color:#fff}
 /* ── (SS) แผนผังฟาร์ม: ชั้นผู้ซื้อ — ป้ายเรียบ+แถบสีฟาร์ม · เส้นเงินซ่อนไว้ โชว์เฉพาะเจ้าที่ถูกแตะ ── */
@@ -1315,7 +1326,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690907e';
+const APP_BUILD='690907h';
 /* ── 📷 qrcode-generator (c) Kazuhiko Arase — MIT License (https://github.com/kazuhikoarase/qrcode-generator) — ฝังไว้ในไฟล์เพื่อสร้าง QR แม่รายตัวแบบไม่พึ่งเน็ตภายนอก ── */
 var qrcode=function(){function i(t,r){function a(t,r){g=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(l=4*u+17),e(0,0),e(l-7,0),e(0,l-7),i(),o(),v(t,r),7<=u&&h(t),null==n&&(n=w(u,f,c)),d(n,r)}var u=t,f=y[r],g=null,l=0,n=null,c=[],s={},e=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||l<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||l<=r+n||(g[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},o=function(){for(var t=8;t<l-8;t+=1)null==g[t][6]&&(g[t][6]=t%2==0);for(var r=8;r<l-8;r+=1)null==g[6][r]&&(g[6][r]=r%2==0)},i=function(){for(var t=B.getPatternPosition(u),r=0;r<t.length;r+=1)for(var e=0;e<t.length;e+=1){var n=t[r],o=t[e];if(null==g[n][o])for(var i=-2;i<=2;i+=1)for(var a=-2;a<=2;a+=1)g[n+i][o+a]=-2==i||2==i||-2==a||2==a||0==i&&0==a}},h=function(t){for(var r=B.getBCHTypeNumber(u),e=0;e<18;e+=1){var n=!t&&1==(r>>e&1);g[Math.floor(e/3)][e%3+l-8-3]=n}for(e=0;e<18;e+=1){n=!t&&1==(r>>e&1);g[e%3+l-8-3][Math.floor(e/3)]=n}},v=function(t,r){for(var e=f<<3|r,n=B.getBCHTypeInfo(e),o=0;o<15;o+=1){var i=!t&&1==(n>>o&1);o<6?g[o][8]=i:o<8?g[o+1][8]=i:g[l-15+o][8]=i}for(o=0;o<15;o+=1){i=!t&&1==(n>>o&1);o<8?g[8][l-o-1]=i:o<9?g[8][15-o-1+1]=i:g[8][15-o-1]=i}g[l-8][8]=!t},d=function(t,r){for(var e=-1,n=l-1,o=7,i=0,a=B.getMaskFunction(r),u=l-1;0<u;u-=2)for(6==u&&(u-=1);;){for(var f=0;f<2;f+=1)if(null==g[n][u-f]){var c=!1;i<t.length&&(c=1==(t[i]>>>o&1)),a(n,u-f)&&(c=!c),g[n][u-f]=c,-1==(o-=1)&&(i+=1,o=7)}if((n+=e)<0||l<=n){n-=e,e=-e;break}}},w=function(t,r,e){for(var n=b.getRSBlocks(t,r),o=M(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=C(i[u],l.getLength()-1).mod(l);a[u]=new Array(l.getLength()-1);for(g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=0<=s?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};s.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=x(t);break;case"Alphanumeric":e=m(t);break;case"Byte":e=L(t);break;case"Kanji":e=D(t);break;default:throw"mode:"+r}c.push(e),n=null},s.isDark=function(t,r){if(t<0||l<=t||r<0||l<=r)throw t+","+r;return g[t][r]},s.getModuleCount=function(){return l},s.make=function(){if(u<1){for(var t=1;t<40;t++){for(var r=b.getRSBlocks(t,f),e=M(),n=0;n<c.length;n++){var o=c[n];e.put(o.getMode(),4),e.put(o.getLength(),B.getLengthInBits(o.getMode(),t)),o.write(e)}var i=0;for(n=0;n<r.length;n++)i+=r[n].dataCount;if(e.getLengthInBits()<=8*i)break}u=t}a(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){a(!0,e);var n=B.getLostPoint(s);(0==e||n<t)&&(t=n,r=e)}return r}())},s.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<s.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<s.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=s.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},s.createSvgTag=function(t,r,e,n){var o={};"object"==typeof t&&(t=(o=t).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,f,c=s.getModuleCount()*t+2*r,g="";for(f="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",g+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',g+=o.scalable?"":' width="'+c+'px" height="'+c+'px"',g+=' viewBox="0 0 '+c+" "+c+'" ',g+=' preserveAspectRatio="xMinYMin meet"',g+=n.text||e.text?' role="img" aria-labelledby="'+p([n.id,e.id].join(" ").trim())+'"':"",g+=">",g+=n.text?'<title id="'+p(n.id)+'">'+p(n.text)+"</title>":"",g+=e.text?'<description id="'+p(e.id)+'">'+p(e.text)+"</description>":"",g+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',g+='<path d="',a=0;a<s.getModuleCount();a+=1)for(u=a*t+r,i=0;i<s.getModuleCount();i+=1)s.isDark(a,i)&&(g+="M"+(i*t+r)+","+u+f);return g+='" stroke="transparent" fill="black"/>',g+="</svg>"},s.createDataURL=function(o,t){o=o||2,t=void 0===t?4*o:t;var r=s.getModuleCount()*o+2*t,i=t,a=r-t;return I(r,r,function(t,r){if(i<=t&&t<a&&i<=r&&r<a){var e=Math.floor((t-i)/o),n=Math.floor((r-i)/o);return s.isDark(n,e)?0:1}return 1})},s.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=s.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=s.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=p(e),o+='"'),o+="/>"};var p=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return s.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*s.getModuleCount()+2*t,u=t,f=a-t,c={"██":"█","█ ":"▀"," █":"▄","  ":" "},g={"██":"▀","█ ":"▀"," █":" ","  ":" "},l="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<f&&u<=r&&r<f&&s.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<f&&u<=r+1&&r+1<f&&s.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",l+=t<1&&f<=r+1?g[i]:c[i];l+="\n"}return a%2&&0<t?l.substring(0,l.length-a-1)+Array(1+a).join("▀"):l.substring(0,l.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=s.getModuleCount()*t+2*r,u=r,f=a-r,c=Array(t+1).join("██"),g=Array(t+1).join("  "),l="",h="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),h="",n=0;n<a;n+=1)i=1,u<=n&&n<f&&u<=e&&e<f&&s.isDark(o,Math.floor((n-u)/t))&&(i=0),h+=i?c:g;for(o=0;o<t;o+=1)l+=h+"\n"}return l.substring(0,l.length-1)},s.renderTo2dContext=function(t,r){r=r||2;for(var e=s.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=s.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},s}i.stringToBytes=(i.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,i.createStringToBytes=function(u,f){var i=function(){function t(){var t=r.read();if(-1==t)throw"eof";return t}for(var r=S(u),e=0,n={};;){var o=r.read();if(-1==o)break;var i=t(),a=t()<<8|t();n[String.fromCharCode(o<<8|i)]=a,e+=1}if(e!=f)throw e+" != "+f;return n}(),a="?".charCodeAt(0);return function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);if(n<128)r.push(n);else{var o=i[t.charAt(e)];"number"==typeof o?(255&o)==o?r.push(o):(r.push(o>>>8),r.push(255&o)):r.push(a)}}return r}};var r,t,a=1,u=2,o=4,f=8,y={L:1,M:0,Q:3,H:2},e=0,n=1,c=2,g=3,l=4,h=5,s=6,v=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],(t={}).getBCHTypeInfo=function(t){for(var r=t<<10;0<=d(r)-d(1335);)r^=1335<<d(r)-d(1335);return 21522^(t<<10|r)},t.getBCHTypeNumber=function(t){for(var r=t<<12;0<=d(r)-d(7973);)r^=7973<<d(r)-d(7973);return t<<12|r},t.getPatternPosition=function(t){return r[t-1]},t.getMaskFunction=function(t){switch(t){case e:return function(t,r){return(t+r)%2==0};case n:return function(t,r){return t%2==0};case c:return function(t,r){return r%3==0};case g:return function(t,r){return(t+r)%3==0};case l:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case h:return function(t,r){return t*r%2+t*r%3==0};case s:return function(t,r){return(t*r%2+t*r%3)%2==0};case v:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},t.getErrorCorrectPolynomial=function(t){for(var r=C([1],0),e=0;e<t;e+=1)r=r.multiply(C([1,w.gexp(e)],0));return r},t.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case o:case f:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case o:return 16;case f:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case o:return 16;case f:return 12;default:throw"mode:"+t}}},t.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);5<i&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},t);function d(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r}var w=function(){for(var r=new Array(256),e=new Array(256),t=0;t<8;t+=1)r[t]=1<<t;for(t=8;t<256;t+=1)r[t]=r[t-4]^r[t-5]^r[t-6]^r[t-8];for(t=0;t<255;t+=1)e[r[t]]=t;var n={glog:function(t){if(t<1)throw"glog("+t+")";return e[t]},gexp:function(t){for(;t<0;)t+=255;for(;256<=t;)t-=255;return r[t]}};return n}();function C(n,o){if(void 0===n.length)throw n.length+"/"+o;var r=function(){for(var t=0;t<n.length&&0==n[t];)t+=1;for(var r=new Array(n.length-t+o),e=0;e<n.length-t;e+=1)r[e]=n[e+t];return r}(),i={getAt:function(t){return r[t]},getLength:function(){return r.length},multiply:function(t){for(var r=new Array(i.getLength()+t.getLength()-1),e=0;e<i.getLength();e+=1)for(var n=0;n<t.getLength();n+=1)r[e+n]^=w.gexp(w.glog(i.getAt(e))+w.glog(t.getAt(n)));return C(r,0)},mod:function(t){if(i.getLength()-t.getLength()<0)return i;for(var r=w.glog(i.getAt(0))-w.glog(t.getAt(0)),e=new Array(i.getLength()),n=0;n<i.getLength();n+=1)e[n]=i.getAt(n);for(n=0;n<t.getLength();n+=1)e[n]^=w.gexp(w.glog(t.getAt(n))+r);return C(e,0).mod(t)}};return i}function p(){var e=[],o={writeByte:function(t){e.push(255&t)},writeShort:function(t){o.writeByte(t),o.writeByte(t>>>8)},writeBytes:function(t,r,e){r=r||0,e=e||t.length;for(var n=0;n<e;n+=1)o.writeByte(t[n+r])},writeString:function(t){for(var r=0;r<t.length;r+=1)o.writeByte(t.charCodeAt(r))},toByteArray:function(){return e},toString:function(){var t="";t+="[";for(var r=0;r<e.length;r+=1)0<r&&(t+=","),t+=e[r];return t+="]"}};return o}var k,A,b=(k=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],(A={}).getRSBlocks=function(t,r){var e=function(t,r){switch(r){case y.L:return k[4*(t-1)+0];case y.M:return k[4*(t-1)+1];case y.Q:return k[4*(t-1)+2];case y.H:return k[4*(t-1)+3];default:return}}(t,r);if(void 0===e)throw"bad rs block @ typeNumber:"+t+"/errorCorrectionLevel:"+r;for(var n,o,i=e.length/3,a=[],u=0;u<i;u+=1)for(var f=e[3*u+0],c=e[3*u+1],g=e[3*u+2],l=0;l<f;l+=1)a.push((n=g,o=void 0,(o={}).totalCount=c,o.dataCount=n,o));return a},A),M=function(){var e=[],n=0,o={getBuffer:function(){return e},getAt:function(t){var r=Math.floor(t/8);return 1==(e[r]>>>7-t%8&1)},put:function(t,r){for(var e=0;e<r;e+=1)o.putBit(1==(t>>>r-e-1&1))},getLengthInBits:function(){return n},putBit:function(t){var r=Math.floor(n/8);e.length<=r&&e.push(0),t&&(e[r]|=128>>>n%8),n+=1}};return o},x=function(t){var r=a,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+2<r.length;)t.put(o(r.substring(e,e+3)),10),e+=3;e<r.length&&(r.length-e==1?t.put(o(r.substring(e,e+1)),4):r.length-e==2&&t.put(o(r.substring(e,e+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return e},m=function(t){var r=u,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+1<r.length;)t.put(45*o(r.charAt(e))+o(r.charAt(e+1)),11),e+=2;e<r.length&&t.put(o(r.charAt(e)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return e},L=function(t){var r=o,e=i.stringToBytes(t),n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=0;r<e.length;r+=1)t.put(e[r],8)}};return n},D=function(t){var r=f,e=i.stringToBytesFuncs.SJIS;if(!e)throw"sjis not supported.";!function(){var t=e("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=e(t),n={getMode:function(){return r},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return n},S=function(t){var e=t,n=0,o=0,i=0,r={read:function(){for(;i<8;){if(n>=e.length){if(0==i)return-1;throw"unexpected end of file./"+i}var t=e.charAt(n);if(n+=1,"="==t)return i=0,-1;t.match(/^\s$/)||(o=o<<6|a(t.charCodeAt(0)),i+=6)}var r=o>>>i-8&255;return i-=8,r}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return r},I=function(t,r,e){for(var n=function(t,r){var n=t,o=r,l=new Array(t*r),e={setPixel:function(t,r,e){l[r*n+t]=e},write:function(t){t.writeString("GIF87a"),t.writeShort(n),t.writeShort(o),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(n),t.writeShort(o),t.writeByte(0);var r=i(2);t.writeByte(2);for(var e=0;255<r.length-e;)t.writeByte(255),t.writeBytes(r,e,255),e+=255;t.writeByte(r.length-e),t.writeBytes(r,e,r.length-e),t.writeByte(0),t.writeString(";")}},i=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,o=h(),i=0;i<r;i+=1)o.add(String.fromCharCode(i));o.add(String.fromCharCode(r)),o.add(String.fromCharCode(e));var a=p(),u=function(t){var e=t,n=0,o=0,r={write:function(t,r){if(t>>>r!=0)throw"length over";for(;8<=n+r;)e.writeByte(255&(t<<n|o)),r-=8-n,t>>>=8-n,n=o=0;o|=t<<n,n+=r},flush:function(){0<n&&e.writeByte(o)}};return r}(a);u.write(r,n);var f=0,c=String.fromCharCode(l[f]);for(f+=1;f<l.length;){var g=String.fromCharCode(l[f]);f+=1,o.contains(c+g)?c+=g:(u.write(o.indexOf(c),n),o.size()<4095&&(o.size()==1<<n&&(n+=1),o.add(c+g)),c=g)}return u.write(o.indexOf(c),n),u.write(e,n),u.flush(),a.toByteArray()},h=function(){var r={},e=0,n={add:function(t){if(n.contains(t))throw"dup key:"+t;r[t]=e,e+=1},size:function(){return e},indexOf:function(t){return r[t]},contains:function(t){return void 0!==r[t]}};return n};return e}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=p();n.write(a);for(var u=function(){function e(t){a+=String.fromCharCode(r(63&t))}var n=0,o=0,i=0,a="",t={},r=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return t.writeByte=function(t){for(n=n<<8|255&t,o+=8,i+=1;6<=o;)e(n>>>o-6),o-=6},t.flush=function(){if(0<o&&(e(n<<6-o),o=n=0),i%3!=0)for(var t=3-i%3,r=0;r<t;r+=1)a+="="},t.toString=function(){return a},t}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return i}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||57344<=n?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});
 /* ── จบ qrcode-generator ── */
@@ -1598,7 +1609,7 @@ async function cloudLoad(){
    ทำงานเมื่อ CONFIG.supabase.backend==='v2' (กฎสิทธิ์ตามบทบาท/ฟาร์มบังคับที่เซิร์ฟเวอร์)
    ============================================================ */
 const VET_KEYS=['vetLog','meds','feedReqs','vaccineLog','piglets','brBatch'];   // brBatch = รุ่นเล้าคลอด (690822i: หมอเปิด/ปิดรุ่นเองได้ — อยู่ฝั่งหมอ เขียนผ่าน RPC set_farrow_batch/close_farrow_batch) // "งานหมอ" (vaccineLog = ประวัติการทำวัคซีนรายครั้ง · piglets = ลูกหมูค้างเล้าคลอดหลังแม่หย่านมออกไปแล้ว — หมอเป็นคนดูแล/ตัดสินใจส่ง)
-const CORE_KEYS=['code','farm','zone','cap','area','fanTotal','fanNo','fanSh','breed','vet','worker','assistant','source','status','cleanStart','closedDate','sick','mortality','fcr','note','pigletHistory','vaccineHistory','originVet','originAsst','originWorker','pen','capOld','sowCap']; // "ข้อมูลหลัง" · pen/capOld = ตารางคอก (690819a นำเข้าจาก Excel วันครู2/3 — อยู่ core ไม่ใช่ clerk กันเสมียนเซฟแล้วคีย์ย้ายช่อง)
+const CORE_KEYS=['code','farm','zone','cap','area','fanTotal','fanNo','fanSh','breed','vet','worker','assistant','source','status','cleanStart','closedDate','sick','mortality','fcr','note','pigletHistory','vaccineHistory','originVet','originAsst','originWorker','pen','capOld','sowCap','geo'];   // geo={lat,lng} พิกัดหลังบนแผนที่ (690907g) // "ข้อมูลหลัง" · pen/capOld = ตารางคอก (690819a นำเข้าจาก Excel วันครู2/3 — อยู่ core ไม่ใช่ clerk กันเสมียนเซฟแล้วคีย์ย้ายช่อง)
 function _pick(o,keys){const r={};keys.forEach(k=>{if(o[k]!==undefined)r[k]=o[k];});return r;}
 function houseCoreData(h){ return _pick(h,CORE_KEYS); }
 function houseVetData(h){ const d=_pick(h,VET_KEYS); d.editLog=(h.editLog||[]).filter(e=>e&&e._dom==='vet'); return d; }
@@ -8466,8 +8477,8 @@ function renderBreedingAdmin(){
     ${vpGsSectionHTML(canEdit)}
     ${vpPxSectionHTML(canEdit)}
     <div class="card"><h3>⚙️ รอบการผลิตแม่ · เป้าผสม · ไกด์อาหาร · หลังรับแม่หย่า</h3>
-      <div class="sub">ระยะตั้งท้อง · วันตรวจท้อง · รอบสัด · ระยะเลี้ยงลูก · เป้าผสม/สัปดาห์ · ไกด์อาหาร — อยู่ที่แท็บ 📊 KPI·ตั้งค่า ในระบบแม่พันธุ์ (ตั้งแยกรายฟาร์ม)</div>
-      <button class="btn sm" style="margin-top:8px" onclick="brTab='kpi';renderBreeding()">⚙️ ไปตั้งค่ารอบการผลิตแม่ (ระยะตั้งท้อง/หย่านม/ตรวจท้อง)</button></div>`;
+      <div class="sub">ระยะตั้งท้อง · วันตรวจท้อง · รอบสัด · ระยะเลี้ยงลูก · เป้าผสม/สัปดาห์ · ไกด์อาหาร — อยู่ที่หัวข้อ ⚙️ ตั้งค่า ในระบบแม่พันธุ์ (ตั้งแยกรายฟาร์ม)</div>
+      <button class="btn sm" style="margin-top:8px" onclick="brTab='cfg';renderBreeding()">⚙️ ไปตั้งค่ารอบการผลิตแม่ (ระยะตั้งท้อง/หย่านม/ตรวจท้อง)</button></div>`;
 }
 /* ---------- 💰 ตารางราคาอาหาร (มุมผู้ดูแล — เจ้าของแก้ได้เท่านั้น · Peter สั่ง 31 ก.ค. 69)
    ราคา บ./กก. รายเบอร์ เทียบทุกเจ้า · เก็บใน FEED_PRICE → ซิงก์ผ่าน options key 'feedprice' ทุกเครื่องเห็นชุดเดียวกัน ---------- */
@@ -15844,9 +15855,9 @@ function sbExportXlsObj(b){
    เล้า ท/ค/ส ใช้หลังจริงจากระบบ (HOUSES) — เบิกยา/วัคซีน/สั่งอาหารใช้เมนูเดิมของเล้าได้เลย */
 const BR_FARMS=['ฟาร์มเบิกไพร','ฟาร์มวันครู1','ฟาร์มแม่พันธุ์ท่าม่วง'];
 let BR={all:[],loaded:false}, brFarm='ฟาร์มเบิกไพร';
-let brTab='dash', brEvKind='mate', brQ='', brHouseF='', brEvHouse='', brHouseOpen='', brViewFn=null, _brRetry=null, brDashOpen={}, brShowAll=false, brBQ='', brRankView='all', brRankQ='';
+let brTab='', brEvKind='mate', brQ='', brHouseF='', brEvHouse='', brHouseOpen='', brViewFn=null, _brRetry=null, brDashOpen={}, brShowAll=false, brBQ='', brRankView='all', brRankQ='';
 /* 🗄️ ตัวกรองของแท็บฐานข้อมูลแม่ (ยูนิต → เล้า → สถานะ) */
-let brDbUnit='', brDbHouse='', brDbStage='live', brDbSort='ear', brDbCap=200, brDbAuditOpen=false;
+let brDbUnit='', brDbHouse='', brDbStage='live', brDbSort='ear', brDbCap=200, brDbAuditOpen=false, brDbPanel='';   // brDbPanel: ''|'filter'|'audit'|'export' (690907f)
 let brBM=[{ear:'',boar:'',round:1}];
 function brToday(){ return new Date(); }
 function brISO(d){ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); }
@@ -16016,17 +16027,162 @@ async function renderBreeding(){
   const due=brDueList();
   const fchips=BR_FARMS.map(f=>{ const n=BR.all.filter(s=>s.farm===f&&s.stage!=='cull'&&(s.kind||'')!=='boar').length;
     return `<button class="sbfchip${brFarm===f?' on':''}" onclick="brFarm='${escA(f)}';brHouseF='';brHouseOpen='';brDbUnit='';brDbHouse='';brDbCap=200;renderBreeding()">${escA(f.replace('ฟาร์ม',''))} (${fmt(n)})</button>`; }).join('');
-  const tabs=[['dash','📊 ภาพรวม'],['work','📋 งานวันนี้'+(due.length?' ('+due.length+')':'')],['week','🎯 ชุดผสม Week'],['houses','🏠 รายหลัง'],['rank','🏅 จัดอันดับแม่'],['sows','🗄️ ฐานข้อมูลแม่'],['boar','🐗 พ่อพันธุ์'+(brBoars().length?' ('+fmt(brBoars().length)+')':'')],['reg','➕ ขึ้นทะเบียน'],['ev','📝 ฟอร์มบันทึก'],['kpi','📊 KPI·ตั้งค่า']];
+  const sec=brSecOf(brTab);
+  /* 🗂️ 690907f (เจ้าของ 7 ก.ย. 69 "ข้อมูลเยอะไป อยากกระชับ แยกเป็นรายหัวข้อ"): หน้าแรก = ชิปฟาร์ม + หัวข้อ 4 หัวข้อ (BR_SECS)
+     กดหัวข้อแล้วค่อยเห็นแท็บย่อยของหัวข้อนั้น · การ์ดตัวเลข 6 ใบย้ายไปอยู่ใน 📊 ผลงานฝูง › ภาพรวม · ตั้งค่าแยกออกจาก KPI
+     brTab เดิมยังใช้ได้ทุกค่า (ปุ่มเก่าที่ตั้ง brTab='sows'/'ev'/... จะเด้งเข้าหัวข้อที่ถูกเอง) · brTab='' = หน้าแรก */
+  if(!sec){
+    const stuck=(typeof brStuckOf==='function')?alive.filter(s=>{ try{ return !!brStuckOf(s); }catch(e){ return false; } }).length:0;
+    const A=brDbAudit();
+    const rows=BR_SECS.map((S,i)=>{
+      let d=S.d;
+      if(S.k==='daily') d='งานวันนี้ '+fmt(due.length)+' รายการ'+(stuck?' · ข้อมูลค้าง '+fmt(stuck)+' ตัว':'')+' · ชุดผสม Week · รายหลัง';
+      if(S.k==='reg') d='แม่ในฝูง '+fmt(alive.length)+' ตัว · พ่อพันธุ์ '+fmt(brBoars().length)+' ตัว'+(A.total?' · ⚠️ ข้อมูลไม่เชื่อมกัน '+fmt(A.total)+' จุด':' · เชื่อมโยงครบ ✓');
+      if(S.k==='perf') d='ท้อง '+fmt(cnt('preg'))+' · เลี้ยงลูก '+fmt(cnt('nurse'))+' · รอผสม '+fmt(cnt('open'))+' · สาว '+fmt(cnt('gilt'))+' — ภาพรวม · จัดอันดับ · KPI';
+      return homeRowBtn("brTab='"+S.tabs[0][0]+"';renderBreeding()",S.i,S.t,d,'เข้าหน้านี้',undefined,undefined,undefined,i);
+    }).join('');
+    $("#view").innerHTML=`
+      <h2 class="page">🐷 ระบบแม่พันธุ์ <span class="more">${escA(brFarm)}</span></h2>
+      <div class="sub">เลือกฟาร์ม:</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 6px">${fchips}</div>
+      <div class="seclab">หัวข้อ</div>
+      <div class="homelist">${rows}</div>`;
+    return;
+  }
+  const S=BR_SECS.find(x=>x.k===sec);
+  const tabs=S.tabs.map(t=>t[0]==='work'&&due.length?[t[0],t[1]+' ('+due.length+')']:t[0]==='boar'&&brBoars().length?[t[0],t[1]+' ('+fmt(brBoars().length)+')']:t);
   $("#view").innerHTML=`
-    <h2 class="page">🐷 ระบบแม่พันธุ์ <span class="more">ฐานข้อมูลแม่รายตัว · ${escA(brFarm)}</span></h2>
-    <div class="sub">เลือกฟาร์ม:</div>
+    <button class="back" onclick="brTab='';renderBreeding()">‹ หัวข้อระบบแม่พันธุ์</button>
+    <h2 class="page">${S.i} ${escA(S.t)} <span class="more">${escA(brFarm)}</span></h2>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 10px">${fchips}</div>
-    <div style="display:flex;gap:9px 14px;flex-wrap:wrap;margin:4px 0 12px">
+    ${tabs.length>1?`<div class="seg" style="max-width:860px">${tabs.map(t=>`<button class="${brTab===t[0]?'on':''}" onclick="brTab='${t[0]}';renderBreeding()">${t[1]}</button>`).join('')}</div>`:''}
+    <div id="brBody">${brTab==='dash'?brCountCardsHTML(alive,cnt)+brDashHTML():brTab==='work'?brWorkHTML():brTab==='week'?brWeekHTML():brTab==='houses'?brHousesHTML():brTab==='rank'?brRankHTML():brTab==='sows'?brSowsHTML():brTab==='boar'?brBoarHTML():brTab==='reg'?brRegHTML():brTab==='ev'?brEvHTML():brTab==='cfg'?brCfgSecHTML():brTab==='map'?brMapHTML():brKpiHTML()}</div>`;
+  if(brTab==='map') setTimeout(brMapInit,0);   // 🗺️ วาด Leaflet หลัง DOM มีกล่องแล้ว
+}
+/* 🗂️ หัวข้อของหน้าระบบแม่พันธุ์ (690907f) — แท็บย่อยเรียงตามลำดับงานจริง */
+const BR_SECS=[
+  {k:'daily',i:'📋',t:'งานประจำวัน',d:'งานวันนี้ · ชุดผสมราย Week · รายหลัง',tabs:[['work','📋 งานวันนี้'],['week','🎯 ชุดผสม Week'],['houses','🏠 รายหลัง'],['map','🗺️ แผนที่เล้า']]},
+  {k:'reg',i:'🗄️',t:'ทะเบียนแม่',d:'ฐานข้อมูลแม่รายตัว · พ่อพันธุ์ · ขึ้นทะเบียน · ฟอร์มบันทึก',tabs:[['sows','🗄️ ฐานข้อมูลแม่'],['boar','🐗 พ่อพันธุ์'],['reg','➕ ขึ้นทะเบียน'],['ev','📝 ฟอร์มบันทึก']]},
+  {k:'perf',i:'📊',t:'ผลงานฝูง',d:'ภาพรวม · จัดอันดับแม่ · KPI',tabs:[['dash','📊 ภาพรวม'],['rank','🏅 จัดอันดับแม่'],['kpi','📈 KPI ฝูง']]},
+  {k:'cfg',i:'⚙️',t:'ตั้งค่า',d:'รอบผลิต · เป้าผสม · ไกด์อาหาร · หลังรับแม่หย่า · โปรแกรมวัคซีน',tabs:[['cfg','⚙️ ตั้งค่า']]}
+];
+function brSecOf(tab){ const s=BR_SECS.find(x=>x.tabs.some(t=>t[0]===tab)); return s?s.k:''; }
+function brCountCardsHTML(alive,cnt){
+  return `<div style="display:flex;gap:9px 14px;flex-wrap:wrap;margin:4px 0 12px">
       ${[['🐷 แม่ทั้งหมด',alive.length],['🌸 สาว',cnt('gilt')],['⏳ รอผสม',cnt('open')],['💕 ผสมแล้ว',cnt('mated')],['🤰 ท้อง',cnt('preg')],['🍼 เลี้ยงลูก',cnt('nurse')]].map(x=>
         `<div class="card" style="margin:0;padding:10px 16px;min-width:96px"><div class="sub" style="margin:0;font-size:11.5px">${x[0]}</div><div style="font-size:22px;font-weight:800">${fmt(x[1])}</div></div>`).join('')}
-    </div>
-    <div class="seg" style="max-width:860px">${tabs.map(t=>`<button class="${brTab===t[0]?'on':''}" onclick="brTab='${t[0]}';renderBreeding()">${t[1]}</button>`).join('')}</div>
-    <div id="brBody">${brTab==='dash'?brDashHTML():brTab==='work'?brWorkHTML():brTab==='week'?brWeekHTML():brTab==='houses'?brHousesHTML():brTab==='rank'?brRankHTML():brTab==='sows'?brSowsHTML():brTab==='boar'?brBoarHTML():brTab==='reg'?brRegHTML():brTab==='ev'?brEvHTML():brKpiHTML()}</div>`;
+    </div>`;
+}
+/* ═══ 🗺️ แผนที่เล้า (690907g — เจ้าของ 7 ก.ย. 69: "อยากเชื่อมกับ Google Map เพื่อระบุว่าหลังเลขที่เท่าไหร่อยู่ตรงไหน")
+   พิกัดเก็บที่ h.geo={lat,lng} ใน section core ของ houses (CORE_KEYS มี 'geo') — หลังทุกชนิดของฟาร์มนั้นขึ้นแผนที่ (เล้าแม่ ท/ค/ส ระบายสี · ขุน/อนุบาลเป็นเทา)
+   แผนที่ใช้ Leaflet (โหลดจาก cdnjs ตอนเปิดแท็บเท่านั้น แบบเดียวกับ tesseract) + ภาพดาวเทียม Esri / แผนที่ OSM — ไม่ต้องมี API key
+   "เชื่อมกับ Google Maps" = ทุกหมุดมีปุ่ม 🧭 นำทาง เปิด Google Maps ที่พิกัดหลังนั้น (ใช้แอป Google Maps บนมือถือได้เลย)
+   ปักหมุด: เจ้าของ/ผู้ดูแล/เสมียน เลือกหลัง → แตะบนแผนที่ หรือกด 📍 GPS ตรงที่ยืนอยู่ · ลากหมุดปรับได้ · บันทึกผ่าน syncHouseCore + audit */
+let brMapSel=null, brMapLayer='sat', _brMap=null, _brMarkers={}, _brLeaflet=null;
+function brMapCanEdit(){ return ROLE==='owner'||ROLE==='admin'||ROLE==='clerk'; }
+function brMapHouses(){ return (HOUSES||[]).filter(h=>(h.farm||'')===brFarm); }
+function brMapKind(h){ const k=brDailyHouseKind(h); if(k) return k; const c=String(h.code||''); return /(^|\s)อ\d/.test(c)?'อ':'ข'; }
+const BR_MAP_COLOR={'ท':'#2b6cb0','ค':'#c2417a','ส':'#2f855a','อ':'#b7791f','ข':'#5a6b66'};
+const BR_MAP_KTXT={'ท':'เล้าอุ้มท้อง','ค':'เล้าคลอด','ส':'เล้าสาว','อ':'เล้าอนุบาล','ข':'เล้าขุน'};
+function brGeoOk(g){ return g&&isFinite(+g.lat)&&isFinite(+g.lng)&&Math.abs(+g.lat)<=90&&Math.abs(+g.lng)<=180; }
+function brGmapsUrl(g){ return 'https://www.google.com/maps/dir/?api=1&destination='+(+g.lat).toFixed(6)+','+(+g.lng).toFixed(6); }
+function brLeafletLoad(){
+  if(window.L&&window.L.map) return Promise.resolve(window.L);
+  if(_brLeaflet) return _brLeaflet;
+  _brLeaflet=new Promise((res,rej)=>{
+    if(!document.getElementById('brLeafletCss')){ const l=document.createElement('link'); l.id='brLeafletCss'; l.rel='stylesheet'; l.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(l); }
+    const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    s.onload=()=>res(window.L); s.onerror=()=>{ _brLeaflet=null; rej(new Error('leaflet_load_failed')); };
+    document.head.appendChild(s);
+  });
+  return _brLeaflet;
+}
+function brMapHTML(){
+  const hs=brMapHouses(); const pinned=hs.filter(h=>brGeoOk(h.geo)).length;
+  const canE=brMapCanEdit();
+  const groups={}; hs.forEach(h=>{ const k=brMapKind(h); (groups[k]=groups[k]||[]).push(h); });
+  const ord=['ท','ค','ส','อ','ข'];
+  const chip=h=>{ const ok=brGeoOk(h.geo), on=brMapSel===h.id;
+    return `<button class="sbfchip${on?' on':''}" style="${ok?'':'border-style:dashed;opacity:.85'}" onclick="brMapPick(${h.id})" title="${ok?'ปักแล้ว — แตะเพื่อดูบนแผนที่':'ยังไม่ปัก — แตะแล้วไปแตะจุดบนแผนที่'}">${ok?'📍':'○'} ${escA(brShortOf(h))}</button>`; };
+  return `<div class="card" style="padding-bottom:8px">
+    <div class="sbarch-head"><h3 style="margin:0">🗺️ แผนที่เล้า <span class="more">${escA(brFarm)} · ปักหมุดแล้ว ${fmt(pinned)}/${fmt(hs.length)} หลัง</span></h3>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn ghost sm" id="brMapSatBtn" onclick="brMapSetLayer('sat')">🛰️ ดาวเทียม</button>
+        <button class="btn ghost sm" id="brMapOsmBtn" onclick="brMapSetLayer('osm')">🗺️ แผนที่</button>
+        <button class="btn ghost sm" onclick="brMapLocate()">🎯 ตำแหน่งฉัน</button>
+      </div></div>
+    <div id="brMapHint" class="sub" style="margin:2px 0 6px">${canE?(brMapSel?'<b style="color:var(--brand)">กำลังปักหมุด '+escA(brShortOf(HOUSES.find(h=>h.id===brMapSel)||{}))+'</b> — แตะจุดบนแผนที่ที่หลังนี้ตั้งอยู่ หรือกด 📍 GPS ถ้ายืนอยู่หน้าหลังนั้น · หมุดที่ปักแล้วลากปรับได้':'เลือกหลังจากรายการด้านล่างแล้วแตะบนแผนที่เพื่อปักหมุด · แตะหมุดเพื่อดูข้อมูล/นำทางด้วย Google Maps'):'แตะหมุดเพื่อดูข้อมูลหลังและกด 🧭 นำทางด้วย Google Maps'}</div>
+    <div id="brMapEl" style="height:min(62vh,560px);border-radius:12px;overflow:hidden;background:#e6ede9;border:1px solid var(--line)"><div class="sub" style="padding:14px">⏳ กำลังโหลดแผนที่…</div></div>
+    ${canE&&brMapSel?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn sm" onclick="brMapGps()">📍 ใช้ GPS ตรงที่ยืนอยู่</button>
+      ${brGeoOk((HOUSES.find(h=>h.id===brMapSel)||{}).geo)?`<button class="btn ghost sm" onclick="brMapClear(${brMapSel})">🗑️ ลบหมุดหลังนี้</button>`:''}
+      <button class="btn ghost sm" onclick="brMapSel=null;brRe()">ยกเลิก</button></div>`:''}
+    <div style="margin-top:10px">${ord.filter(k=>groups[k]).map(k=>`<div style="margin:6px 0 4px;font-weight:800;font-size:12.5px;color:${BR_MAP_COLOR[k]}">${escA(BR_MAP_KTXT[k])} <span class="more">${fmt(groups[k].filter(h=>brGeoOk(h.geo)).length)}/${fmt(groups[k].length)} ปักแล้ว</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${groups[k].slice().sort((a,b)=>{ try{ return byCode(a,b); }catch(e){ return String(a.code).localeCompare(String(b.code),undefined,{numeric:true}); } }).map(chip).join('')}</div>`).join('')}</div>
+  </div>`;
+}
+function brMapPick(id){
+  const h=HOUSES.find(x=>x.id===id); if(!h) return;
+  if(brGeoOk(h.geo)&&_brMap){ if(brMapCanEdit()){ brMapSel=id; brRe(); brMapFocus(h); } else brMapFocus(h); return; }
+  if(!brMapCanEdit()){ toast('หลังนี้ยังไม่ได้ปักหมุด'); return; }
+  brMapSel=id; brRe();
+}
+function brMapFocus(h){ if(!_brMap||!brGeoOk(h.geo)) return; _brMap.setView([+h.geo.lat,+h.geo.lng],Math.max(_brMap.getZoom(),18)); const m=_brMarkers[h.id]; if(m) m.openPopup(); }
+function brMapSetLayer(k){ brMapLayer=k; if(!_brMap||!_brMap._brLayers) return; Object.keys(_brMap._brLayers).forEach(x=>{ if(x===k) _brMap._brLayers[x].addTo(_brMap); else _brMap.removeLayer(_brMap._brLayers[x]); }); brMapLayerBtns(); }
+function brMapLayerBtns(){ const a=document.getElementById('brMapSatBtn'), b=document.getElementById('brMapOsmBtn'); if(a) a.style.fontWeight=brMapLayer==='sat'?'800':''; if(b) b.style.fontWeight=brMapLayer==='osm'?'800':''; }
+function brMapLocate(){ if(!_brMap) return; if(!navigator.geolocation){ toast('เครื่องนี้ไม่มี GPS'); return; }
+  navigator.geolocation.getCurrentPosition(p=>{ _brMap.setView([p.coords.latitude,p.coords.longitude],18); L.circleMarker([p.coords.latitude,p.coords.longitude],{radius:7,color:'#fff',weight:2,fillColor:'#1a73e8',fillOpacity:1}).addTo(_brMap).bindPopup('📍 ตำแหน่งฉัน (±'+Math.round(p.coords.accuracy)+' ม.)').openPopup(); },
+    ()=>toast('อ่านตำแหน่งไม่ได้ — เปิด GPS/อนุญาตตำแหน่งให้เบราว์เซอร์ก่อน'),{enableHighAccuracy:true,timeout:12000}); }
+function brMapGps(){ const h=HOUSES.find(x=>x.id===brMapSel); if(!h) return; if(!navigator.geolocation){ toast('เครื่องนี้ไม่มี GPS'); return; }
+  toast('📡 กำลังอ่านตำแหน่ง GPS…');
+  navigator.geolocation.getCurrentPosition(p=>{ if(p.coords.accuracy>60&&!confirm('GPS คลาดเคลื่อน ±'+Math.round(p.coords.accuracy)+' เมตร — ปักเลยไหม? (ลากหมุดปรับทีหลังได้)')) return; brMapSave(h,p.coords.latitude,p.coords.longitude,'GPS'); },
+    ()=>toast('อ่านตำแหน่งไม่ได้ — เปิด GPS/อนุญาตตำแหน่งให้เบราว์เซอร์ก่อน'),{enableHighAccuracy:true,timeout:15000}); }
+function brMapSave(h,lat,lng,how){
+  if(!brMapCanEdit()){ toast('เจ้าของ/ผู้ดูแล/เสมียนเท่านั้นที่ปักหมุดได้'); return; }
+  const old=brGeoOk(h.geo)?{lat:+h.geo.lat,lng:+h.geo.lng}:null;
+  h.geo={lat:+(+lat).toFixed(6),lng:+(+lng).toFixed(6),by:whoNow(),ts:Date.now()};
+  syncHouseCore(h);
+  try{ logAudit('แผนที่เล้า',old?'ย้ายหมุด':'ปักหมุด',(h.code||'')+' → '+h.geo.lat+','+h.geo.lng+' ('+(how||'แตะแผนที่')+')',h.id,''); }catch(e){}
+  toast((old?'📍 ย้ายหมุด ':'📍 ปักหมุด ')+brShortOf(h)+' แล้ว');
+  brMapSel=null; brRe();
+}
+function brMapClear(id){ const h=HOUSES.find(x=>x.id===id); if(!h||!brMapCanEdit()) return; if(!confirm('ลบหมุดของ '+brShortOf(h)+' ออกจากแผนที่?')) return;
+  delete h.geo; syncHouseCore(h); try{ logAudit('แผนที่เล้า','ลบหมุด',h.code||'',h.id,''); }catch(e){} brMapSel=null; brRe(); }
+function brMapInit(){
+  const el=document.getElementById('brMapEl'); if(!el) return;
+  brLeafletLoad().then(L=>{
+    const el2=document.getElementById('brMapEl'); if(!el2) return;
+    if(_brMap){ try{ _brMap.remove(); }catch(e){} _brMap=null; } _brMarkers={};
+    el2.innerHTML='';
+    const map=L.map(el2,{zoomControl:true,attributionControl:true}); _brMap=map;
+    const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18,attribution:'ภาพดาวเทียม © Esri'});
+    const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,maxNativeZoom:19,attribution:'© OpenStreetMap'});
+    map._brLayers={sat:sat,osm:osm}; (brMapLayer==='osm'?osm:sat).addTo(map); brMapLayerBtns();
+    const hs=brMapHouses(), pts=[];
+    hs.forEach(h=>{ if(!brGeoOk(h.geo)) return; const k=brMapKind(h), col=BR_MAP_COLOR[k]||'#5a6b66', sc=brShortOf(h);
+      const ico=L.divIcon({className:'',html:`<div style="transform:translate(-50%,-100%);white-space:nowrap;display:inline-flex;flex-direction:column;align-items:center"><div style="background:${col};color:#fff;font-weight:800;font-size:12px;padding:3px 8px;border-radius:999px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)">${escA(sc)}</div><div style="width:2px;height:8px;background:#fff"></div></div>`,iconSize:[0,0],iconAnchor:[0,0]});
+      const m=L.marker([+h.geo.lat,+h.geo.lng],{icon:ico,draggable:brMapCanEdit()}).addTo(map);
+      const brk=brDailyHouseKind(h); let info='';
+      if(brk){ const ss=(BR.all||[]).filter(s=>s.farm===h.farm&&(s.kind||'')!=='boar'&&s.stage!=='cull'&&s.house===sc); info='🐷 แม่ในเล้า '+fmt(ss.length)+' ตัว'; }
+      else info='🐖 หมู '+fmt(h.pigs||0)+' ตัว'+(h.status?' · '+escA(h.status):'');
+      m.bindPopup(`<div style="font-size:13px;min-width:170px"><b style="font-size:15px">${escA(h.code||'')}</b><div style="color:${col};font-weight:700">${escA(BR_MAP_KTXT[k]||'')}${h.vet?' · 🩺 '+escA(h.vet):''}</div><div style="margin:4px 0">${info}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${brk?`<button class="btn sm" onclick="brHouseOpen=${escA(JSON.stringify(sc))};brHouseDetail()">🐷 เปิดหน้าเล้า</button>`:''}<a class="btn ghost sm" href="${brGmapsUrl(h.geo)}" target="_blank" rel="noopener" style="text-decoration:none">🧭 นำทาง Google Maps</a></div>
+        <div class="sub" style="margin-top:4px;font-size:11px">${(+h.geo.lat).toFixed(6)}, ${(+h.geo.lng).toFixed(6)}${h.geo.by?' · ปักโดย '+escA(h.geo.by):''}</div></div>`);
+      if(brMapCanEdit()) m.on('dragend',()=>{ const ll=m.getLatLng(); brMapSave(h,ll.lat,ll.lng,'ลากหมุด'); });
+      _brMarkers[h.id]=m; pts.push([+h.geo.lat,+h.geo.lng]); });
+    if(pts.length>1) map.fitBounds(pts,{padding:[30,30],maxZoom:18});
+    else if(pts.length===1) map.setView(pts[0],17);
+    else map.setView([13.75,100.5],6);
+    map.on('click',e=>{ if(!brMapSel) return; const h=HOUSES.find(x=>x.id===brMapSel); if(!h) return;
+      if(brGeoOk(h.geo)&&!confirm('ย้ายหมุด '+brShortOf(h)+' มาจุดนี้?')) return; brMapSave(h,e.latlng.lat,e.latlng.lng,'แตะแผนที่'); });
+    if(brMapSel){ const h=HOUSES.find(x=>x.id===brMapSel); if(h&&brGeoOk(h.geo)) brMapFocus(h); el2.style.cursor='crosshair'; }
+    setTimeout(()=>{ try{ map.invalidateSize(); }catch(e){} },300);
+  }).catch(()=>{ const e=document.getElementById('brMapEl'); if(e) e.innerHTML='<div class="banner warn" style="margin:10px">⚠️ <div>โหลดแผนที่ไม่ได้ — ต้องต่ออินเทอร์เน็ต (แผนที่ดึงจากเซิร์ฟเวอร์ภายนอกตอนเปิดหน้านี้)</div></div>'; });
+}
+function brCfgSecHTML(){
+  return brCfgCardHTML()+`<div class="card"><h3>💉 โปรแกรมวัคซีน</h3>
+    <div class="sub">วัคซีนแม่อุ้มท้อง (นับเป็นวันท้อง) และวัคซีนลูกหมูเล้าคลอด (นับเป็นอายุลูก) — ตั้งที่หน้าตั้งค่าแม่พันธุ์ หน้างานของหมอจะเตือนตามนี้เอง</div>
+    <button class="btn sm" style="margin-top:8px" onclick="renderBreedingAdmin()">💉 เปิดหน้าโปรแกรมวัคซีน</button></div>`;
 }
 function brEmptyHTML(){
   return `<div class="card"><h3>🐷 ${escA(brFarm)} ยังไม่มีแม่ในทะเบียน</h3>
@@ -16039,63 +16195,60 @@ function brEmptyHTML(){
 const BR_TASK_SHORT={ret:'🔁 เช็คกลับสัด',preg:'🔍 ตรวจท้อง',vax:'💉 วัคซีนก่อนคลอด',gsvax:'💉 วัคซีนอุ้มท้อง',move:'🏠 ขึ้นเล้าคลอด',farrow:'👶 ใกล้คลอด',wean:'🍼 หย่านม',care:'✅ ดูแลลูก',heat:'💕 เช็คสัด/ผสม'};
 function brDashTgl(h){ brDashOpen[h]=!brDashOpen[h]; renderBreeding(); }
 function brDashHTML(){
+  /* 📊 690907h (เจ้าของ 7 ก.ย. 69 "ทุกอย่างในระบบแม่พันธุ์ให้อ่านง่ายเหมือนตาราง Excel"): ภาพรวม = ตารางสรุปรายยูนิต 1 ตาราง
+     (หลัง ท/ค · แม่ยืน · แยกสถานะ · งานถึงกำหนด · ข้อมูลค้าง) + แถวรวมทั้งฟาร์ม · รายหลังอยู่ที่แท็บ 🏠 รายหลัง (ตารางรายหลัง) */
   if(!brSows().length) return brEmptyHTML();
   const alive=brSows().filter(s=>s.stage!=='cull');
-  const hs=brHousesFor(brFarm);
-  const stE={gilt:'🌸',open:'⏳',mated:'💕',preg:'🤰',nurse:'🍼'};
-  const dueMap={}, dueByHouse={};
-  alive.forEach(s=>{ const d=brClock(s).filter(c=>c.due); if(d.length){ dueMap[s.ear]=1; const hb=(dueByHouse[s.house]=dueByHouse[s.house]||{}); d.forEach(c=>hb[c.k]=(hb[c.k]||0)+1); } });
-  const KLBL={'ท':'อุ้มท้อง','ค':'คลอด','ส':'สาว'};
-  const secHouses=(list,title)=>{
-    if(!list.length) return '';
-    const rows=list.map(h=>{
-      const ss=alive.filter(s=>s.house===h.s);
-      const stc={}; ss.forEach(s=>stc[s.stage]=(stc[s.stage]||0)+1);
-      const mini=Object.keys(stE).filter(k=>stc[k]).map(k=>stE[k]+' '+fmt(stc[k])).join(' · ');
-      const hb=dueByHouse[h.s]||{};
-      const tchips=Object.keys(hb).map(k=>`<span style="background:#fdf3e0;color:#b7791f;border-radius:999px;padding:2px 10px;font-size:11.5px;font-weight:700;white-space:nowrap">${BR_TASK_SHORT[k]||k} ${fmt(hb[k])}</span>`).join(' ');
-      const open=!!brDashOpen[h.s];
-      const chips=open?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)">${ss.map(s=>`<button class="sbhchip" title="${brStageTxt(s.stage)}" onclick="brOpen('${escA(s.ear)}')">${stE[s.stage]||''} ${escA(s.ear)}${dueMap[s.ear]?' ❗':''}</button>`).join('')||'<span class="sub">— ว่าง —</span>'}</div>`:'';
-      return `<div class="card" style="margin:0 0 10px;padding:12px 14px">
-        <div style="display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap">
-          <b style="font-size:16px;min-width:64px">${escA(h.s)}</b>
-          <span style="background:${h.kind==='ค'?'#fdeef5;color:#c2537f':h.kind==='ท'?'#eaf1f8;color:#2d5f8a':'#e9f5ee;color:#1a5c3f'};border-radius:7px;padding:1px 8px;font-size:11px;font-weight:800">${KLBL[h.kind]||h.kind}</span>
-          <span style="font-weight:800">${fmt(ss.length)} แม่</span>
-          <span class="sub" style="margin:0">${mini||'— ว่าง —'}</span>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-left:auto">${tchips||'<span class="sub" style="margin:0">✓ ไม่มีงานค้าง</span>'}</div>
-          <button class="btn ghost sm" style="padding:5px 11px" onclick="brDashTgl('${escA(h.s)}')">${open?'▴ ซ่อนเบอร์':'▾ ดูเบอร์แม่'}</button>
-          <button class="btn ghost sm" style="padding:5px 11px" onclick="brHouseOpen='${escA(h.s)}';brHouseDetail()">เปิดหน้าทำงาน ›</button>
-        </div>${chips}</div>`;
-    }).join('');
-    const tot=alive.filter(s=>list.some(h=>h.s===s.house)).length;
-    const dtot=list.reduce((a,h)=>a+Object.values(dueByHouse[h.s]||{}).reduce((x,y)=>x+y,0),0);
-    return `<div style="margin:14px 0 6px;font-weight:800;font-size:15px">${title} <span class="more">${fmt(list.length)} หลัง · ${fmt(tot)} แม่${dtot?' · 📋 งานค้าง '+fmt(dtot):''}</span></div>${rows}`;
-  };
-  const noHouse=alive.filter(s=>!s.house).length;
-  // 🏛️ จัดกลุ่มตาม Unit ก่อน (หมูวนอยู่ในยูนิตตัวเอง) — ภายในยูนิตเรียง ท → ค · เล้า ส ไม่มียูนิต แยกกลุ่มท้าย
-  const units=brUnitsOf(hs);
-  return `${noHouse?`<div class="banner info">⚠️ <div>แม่ <b>${fmt(noHouse)}</b> ตัวยังไม่ระบุเล้า — ย้ายผ่านบัตรแม่ หรือส่งผังให้ผู้ดูแลจัดเป็นชุด</div></div>`:''}
-    ${units.map(u=>secHouses(hs.filter(h=>h.unit===u), u?('🏛️ Unit '+u.slice(1)+' <span style="font-weight:400;font-size:12.5px;color:var(--muted)">(อุ้มท้อง+คลอด วนในยูนิตเดียวกัน)</span>'):'🌸 เล้าหมูสาว (ไม่แยกยูนิต)')).join('')}
-    <div class="sub" style="margin-top:6px">จัดกลุ่มตาม <b>Unit</b> — แม่ส่วนมากวนอยู่ในยูนิตตัวเอง (ท ↔ ค ของยูนิตนั้น) · แตะ "ดูเบอร์แม่" เพื่อกางเบอร์ทั้งหลัง (❗ = มีงานถึงกำหนด) · ป้ายเหลือง = งานที่ต้องจัดการวันนี้</div>`;
+  const hs=brHousesFor(brFarm), units=brUnitsOf(hs);
+  const U={}; const mkU=()=>({houses:0,nT:0,nK:0,nS:0,cap:0,sows:0,gilt:0,open:0,mated:0,preg:0,nurse:0,due:0,stuck:0,noHouse:0});
+  units.forEach(u=>{ U[u]=mkU(); hs.filter(h=>h.unit===u).forEach(h=>{ U[u].houses++; if(h.kind==='ท') U[u].nT++; else if(h.kind==='ค') U[u].nK++; else U[u].nS++; U[u].cap+=(+h.cap||0); }); });
+  const T=mkU(); T.houses=hs.length; T.nT=hs.filter(h=>h.kind==='ท').length; T.nK=hs.filter(h=>h.kind==='ค').length; T.nS=hs.filter(h=>h.kind==='ส').length; T.cap=hs.reduce((a,h)=>a+(+h.cap||0),0);
+  const hUnit={}; hs.forEach(h=>hUnit[h.s]=h.unit);
+  alive.forEach(s=>{ const u=s.house?hUnit[s.house]:undefined; const row=(s.house&&(u in U))?U[u]:null;
+    const due=brClock(s).filter(c=>c.due).length; let st=0; try{ st=brStuckOf(s)?1:0; }catch(e){}
+    [row,T].forEach(r=>{ if(!r) return; r.sows++; if(r[s.stage]!=null) r[s.stage]++; r.due+=due; r.stuck+=st; if(!s.house) r.noHouse++; }); });
+  const num=(v,hi)=>`<td class="num"${hi&&v?' style="color:#b7791f;font-weight:800"':''}>${v?fmt(v):'<span class="sub">-</span>'}</td>`;
+  const row=(name,r,cls,onclick)=>`<tr class="${cls||''}"${onclick?` onclick="${onclick}" style="cursor:pointer"`:''}>
+      <td><b>${name}</b></td><td class="num">${fmt(r.nT)}</td><td class="num">${fmt(r.nK)}</td>${r.nS?`<td class="num">${fmt(r.nS)}</td>`:'<td class="num"><span class="sub">-</span></td>'}
+      <td class="num"><b>${fmt(r.sows)}</b>${r.cap?'<span class="sub">/'+fmt(r.cap)+'</span>':''}</td>
+      ${num(r.gilt)}${num(r.open)}${num(r.mated)}${num(r.preg)}${num(r.nurse)}${num(r.due,1)}${num(r.stuck,1)}</tr>`;
+  const body=units.map(u=>row(u?('🏛️ Unit '+u.slice(1)):'🌸 เล้าสาว (ไม่มียูนิต)',U[u],'clk',`brDbUnit='${u||'_none'}';brTab='houses';renderBreeding()`)).join('');
+  const nH=alive.filter(s=>!s.house).length;
+  return `${nH?`<div class="banner info">⚠️ <div>แม่ <b>${fmt(nH)}</b> ตัวยังไม่ระบุเล้า — ย้ายผ่านบัตรแม่ (ไม่ถูกนับในยูนิตไหน)</div></div>`:''}
+  <div class="card"><h3>📊 สรุปรายยูนิต <span class="more">${escA(brFarm)} · ${fmt(hs.length)} หลัง · ${fmt(alive.length)} แม่ · แตะแถว = ดูรายหลังของยูนิตนั้น</span></h3>
+    <div style="overflow-x:auto"><table class="densetbl xtbl">
+      <thead><tr><th>ยูนิต</th><th class="num">เล้า ท</th><th class="num">เล้า ค</th><th class="num">เล้า ส</th><th class="num">แม่ยืน/ความจุ</th><th class="num">🌸 สาว</th><th class="num">⏳ รอผสม</th><th class="num">💕 ผสมแล้ว</th><th class="num">🤰 ท้อง</th><th class="num">🍼 เลี้ยงลูก</th><th class="num">📋 งานถึงกำหนด</th><th class="num">⚠️ ข้อมูลค้าง</th></tr></thead>
+      <tbody>${body}${row('รวมทั้งฟาร์ม',T,'sum')}</tbody></table></div>
+    <div class="sub" style="margin-top:8px">งานถึงกำหนด = จำนวนงานที่นาฬิกาแม่เด้งวันนี้ (รวมทุกตัวในยูนิต) · ข้อมูลค้าง = แม่ที่เลยกำหนดมานานโดยยังไม่ลงผล (ท้องเกิน ${brCfg().gest+5} วัน · เลี้ยงลูกเกิน ${brCfg().lact+7} วัน · รอผสมเกิน 14 วัน · ผสมแล้วไม่ตรวจท้อง)</div>
+  </div>`;
 }
 
 /* ── แท็บ: คิวงานวันนี้ ── */
 function brWorkHTML(){
+  /* 📋 690907h: คิวงานวันนี้เป็นตาราง Excel — แถวละแม่ 1 งาน จัดกลุ่มตามชนิดงาน (แถวหัวกลุ่มบอกจำนวน) · แตะแถว = เปิดหน้าทำงานของหลังนั้น */
   if(!brSows().length) return brEmptyHTML();
   const due=brDueList(brHouseF);
-  const grp={}; due.forEach(x=>{ (grp[x.label]=grp[x.label]||[]).push(x.sow); });
+  const grp={}; due.forEach(x=>{ (grp[x.label]=grp[x.label]||[]).push(x); });
   const keys=Object.keys(grp);
   const hs=brHousesFor(brFarm);
   const hchips=['',...hs.map(h=>h.s)].map(hc=>{ const nn=hc?brDueList(hc).length:due.length;
     if(hc&&!brSows().some(s=>s.house===hc&&s.stage!=='cull')&&!nn) return '';
     return `<button class="sbfchip${brHouseF===hc?' on':''}" onclick="brHouseF='${escA(hc)}';renderBreeding()">${escA(hc)||'ทุกหลัง'}${nn?' ('+fmt(nn)+')':''}</button>`; }).join('');
-  return `<div class="card"><h3>📋 คิวงานวันนี้ <span class="more">${sbThaiDate(brTodayISO())} · ${fmt(due.length)} รายการ${brHouseF?' · เฉพาะ '+escA(brHouseF):''}</span></h3>
-    <div class="sub" style="margin:0 0 4px">เลือกหลัง (หมอประจำหลังกดหลังตัวเองดูเฉพาะงานของหลัง):</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${hchips}</div>
-    ${keys.length?keys.map(k=>`<div style="margin:10px 0 4px;font-weight:800">${escA(k)} <span class="more">${fmt(grp[k].length)} แม่</span></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${grp[k].map(s=>`<button class="sbhchip" onclick="brHouseOpen='${escA(s.house)}';brHouseDetail()">${escA(s.ear)} <span style="opacity:.6">${escA(s.house)}</span></button>`).join('')}</div>`).join('')
+  const cmp=(a,b)=>String(a.sow.house||'').localeCompare(String(b.sow.house||''),undefined,{numeric:true})||String(a.sow.ear).localeCompare(String(b.sow.ear),undefined,{numeric:true});
+  const rows=keys.map(k=>`<tr class="grp"><td colspan="7">${escA(k)} <span style="font-weight:500;color:var(--muted)">· ${fmt(grp[k].length)} แม่</span></td></tr>`+
+    grp[k].sort(cmp).map(x=>{ const s=x.sow, since=brStageSince(s), sd=since?brDays(since):null, mate=brLastEv(s,'mate');
+      return `<tr class="clk" onclick="brHouseOpen='${escA(s.house)}';brHouseDetail()">
+        <td><b>${escA(s.ear)}</b></td><td>${brSowUnit(s)?'<span style="color:#0f6b5f;font-weight:700">'+escA(brSowUnit(s))+'</span> ':''}${escA(s.house||'-')}</td>
+        <td>${brStageTxt(s.stage)}</td><td class="num">${sd!=null?fmt(sd):'-'}</td><td class="num">${fmt(s.parity||0)}</td>
+        <td>${(mate&&brIsISO(mate.date)&&(s.stage==='mated'||s.stage==='preg'))?sbThaiDate(mate.date)+' <span class="sub">'+brWkLabel(brWeekStart(mate.date))+'</span>':'<span class="sub">-</span>'}</td>
+        <td style="white-space:normal;min-width:160px;font-size:12px">${escA(x.note||'')||'<span class="sub">-</span>'}</td></tr>`; }).join('')).join('');
+  return `<div class="card"><div class="sbarch-head"><h3 style="margin:0">📋 คิวงานวันนี้ <span class="more">${sbThaiDate(brTodayISO())} · ${fmt(due.length)} รายการ${brHouseF?' · เฉพาะ '+escA(brHouseF):''}</span></h3></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px">🏠 ${hchips}</div>
+    ${keys.length?`<div style="overflow-x:auto"><table class="densetbl xtbl">
+      <thead><tr><th>เบอร์หู</th><th>ยูนิต / เล้า</th><th>สถานะ</th><th class="num">วันในสถานะ</th><th class="num">ครอกที่</th><th>ผสมล่าสุด · Week</th><th>รายละเอียดงาน</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`
     :'<div class="sub">— ไม่มีงานถึงกำหนด'+(brHouseF?' ในหลัง '+escA(brHouseF):'')+' —</div>'}
-    <div class="sub" style="margin-top:12px">💡 แตะแม่ตัวไหน = เปิดหน้าทำงานของหลังนั้น ลงผลได้ทันที · กำหนดงาน: กลับสัด 18-24 · ตรวจท้อง 28-35 · วัคซีน 100-110 · ขึ้นคลอด 108-112 · หย่านม 21-28 วัน · สัดหลังหย่า 4-5 วัน</div></div>`;
+    <div class="sub" style="margin-top:10px">แตะแถว = เปิดหน้าทำงานของหลังนั้น ลงผลได้ทันที · กำหนดงานตามนาฬิกาแม่ของฟาร์ม (ตั้งที่ ⚙️ ตั้งค่า)</div></div>`;
 }
 
 /* ═══ 🎯 ชุดผสมราย Week (weekly batch system) ═══
@@ -16214,7 +16367,7 @@ function brWeekHTML(){
   </div>
 
   <div class="card"><h3>📅 กระดานชุดผสมราย Week <span class="more">ย้อนหลังถึงชุดที่คลอดแล้ว (~${gestW+6} สัปดาห์) · ล่วงหน้า 5 · แตะแถวดูเบอร์แม่ในชุด</span></h3>
-    <div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
+    <div style="overflow-x:auto"><table class="densetbl xtbl">
       <thead><tr><th>Week</th><th class="num">ผสม/เป้า</th><th class="num">คลอดแล้ว</th><th class="num">ท้อง/รอ</th><th class="num">ไม่ติด</th><th class="num">อัตราติด</th><th class="num">คลอดในสัปดาห์</th><th class="num">หย่า/พร้อมผสม</th></tr></thead>
       <tbody>${rows.map(tr).join('')}</tbody></table></div>
     <div class="sub" style="margin-top:8px;line-height:1.6"><b>อ่านยังไง:</b> <b>ผสม/เป้า</b> = แม่ที่ผสมจริงในสัปดาห์นั้นเทียบเป้า (เขียว=ถึงเป้า) ·
@@ -16364,7 +16517,7 @@ function brUnitPerfHTML(){
   };
   const tot=units.reduce((a,o)=>{ for(const k in o){ if(k!=='u') a[k]=(a[k]||0)+o[k]; } return a; },{u:''});
   return `<div class="card"><h3>🏛️ ผลประกอบการรายยูนิต <span class="more">ตัววัดทีมหมอประจำยูนิต · เข้าคลอด ≥ 90% + ผสมถึงเป้า</span></h3>
-    <div style="overflow-x:auto"><table class="densetbl" style="font-size:14px">
+    <div style="overflow-x:auto"><table class="densetbl xtbl" style="font-size:13.5px">
       <thead><tr><th>ยูนิต</th><th class="num">แม่ในยูนิต</th><th class="num">ผสม 4 สัปดาห์ (แม่)</th><th class="num">อัตราเข้าคลอด</th><th class="num">ลูกมีชีวิต/ครอก</th><th class="num">ลูกหย่า/ครอก</th><th>ผลตามเกณฑ์</th></tr></thead>
       <tbody>${units.map(o=>row(o,false)).join('')}${units.length>1?row(tot,true):''}</tbody></table></div>
     <div class="sub" style="margin-top:8px;line-height:1.6"><b>วิธีวัด (เกณฑ์เจ้าของ):</b> วัดจาก<b>ภาพรวมของยูนิต</b> ไม่แยกรายหลัง/รายคน — ทีมยูนิตรับผลร่วมกัน ·
@@ -17407,35 +17560,48 @@ async function brInbReject(ear){
 
 /* ── แท็บ: รายหลัง ── */
 function brHousesHTML(){
+  /* 🏠 690907h: ตารางรายหลังแบบ Excel — แถวละหลัง จัดกลุ่มตามยูนิต (ท → ค) มีแถวรวมยูนิต · แตะแถว = เปิดหน้าทำงานของหลัง · ▾ กางเบอร์แม่ */
   if(!brSows().length) return brEmptyHTML();
-  const hs=brHousesFor(brFarm);
-  const KLBL={'ท':'อุ้มท้อง','ค':'คลอด','ส':'สาว'};
-  const box=list=>list.map(h=>{
-    const ss=brSows().filter(s=>s.house===h.s&&s.stage!=='cull');
-    const due=brDueList(h.s).length;
-    const stc={}; ss.forEach(s=>stc[s.stage]=(stc[s.stage]||0)+1);
-    const mini=[['gilt','🌸'],['open','⏳'],['mated','💕'],['preg','🤰'],['nurse','🍼']].filter(x=>stc[x[0]]).map(x=>x[1]+' '+stc[x[0]]).join(' · ');
-    const kc=h.kind==='ค'?'#fdeef5;color:#c2537f':h.kind==='ท'?'#eaf1f8;color:#2d5f8a':'#e9f5ee;color:#1a5c3f';
-    return `<div class="card" style="margin:0;cursor:pointer;padding:12px 14px" onclick="brHouseOpen='${escA(h.s)}';brHouseDetail()">
-      <div style="display:flex;gap:8px;align-items:center"><b style="font-size:16px">${escA(h.s)}</b>
-        <span style="background:${kc};border-radius:7px;padding:1px 8px;font-size:11px;font-weight:800">${KLBL[h.kind]||h.kind}</span>
-        ${due?`<span style="background:#fdf3e0;color:#b7791f;border-radius:999px;padding:1px 9px;font-size:11px;font-weight:800">📋 ${due} งาน</span>`:''}
-        <span class="more" style="margin-left:auto">${fmt(ss.length)}${h.cap?'/'+fmt(h.cap):''} แม่</span></div>
-      <div class="sub" style="margin:4px 0 0">${escA(h.vet)}</div>
-      <div class="sub" style="margin:3px 0 0">${mini||'— ว่าง —'}</div></div>`;
-  }).join('');
-  // 🏛️ กลุ่มตาม Unit — ในยูนิตมีทั้ง ท และ ค อยู่ด้วยกัน (หมูวนในยูนิต) · เล้า ส แยกกลุ่มท้าย
-  const units=brUnitsOf(hs);
-  return units.map(u=>{
-    const list=hs.filter(h=>h.unit===u); if(!list.length) return '';
-    const nSow=brSows().filter(s=>s.stage!=='cull'&&list.some(h=>h.s===s.house)).length;
-    const nT=list.filter(h=>h.kind==='ท').length, nK=list.filter(h=>h.kind==='ค').length;
-    const title=u?('🏛️ Unit '+u.slice(1)):'🌸 เล้าหมูสาว (ไม่แยกยูนิต)';
-    const sub=u?('อุ้มท้อง '+fmt(nT)+' · คลอด '+fmt(nK)+' หลัง · '+fmt(nSow)+' แม่'):(fmt(list.length)+' หลัง · '+fmt(nSow)+' แม่');
-    return `<div class="card"><h3>${title} <span class="more">${sub}</span></h3>
-      <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(215px,1fr))">${box(list)}</div></div>`;
-  }).join('')
-    ||'<div class="card"><div class="sub">— ฟาร์มนี้ยังไม่มีเล้า ท/ค/ส ในระบบ —</div></div>';
+  const alive=brSows().filter(s=>s.stage!=='cull');
+  const hs=brHousesFor(brFarm), units=brUnitsOf(hs);
+  const KLBL={'ท':'อุ้มท้อง','ค':'คลอด','ส':'สาว'}, KCOL={'ท':'#2d5f8a','ค':'#c2537f','ส':'#1a5c3f'};
+  const stE={gilt:'🌸',open:'⏳',mated:'💕',preg:'🤰',nurse:'🍼'};
+  const dueMap={}, dueByHouse={}, stuckBy={};
+  alive.forEach(s=>{ const d=brClock(s).filter(c=>c.due); if(d.length){ dueMap[s.ear]=1; const hb=(dueByHouse[s.house]=dueByHouse[s.house]||{}); d.forEach(c=>hb[c.k]=(hb[c.k]||0)+1); }
+    try{ if(brStuckOf(s)) stuckBy[s.house]=(stuckBy[s.house]||0)+1; }catch(e){} });
+  const unitF=brDbUnit;   // มาจากแถวในตารางสรุปรายยูนิต (ภาพรวม) = โฟกัสยูนิตนั้น · ว่าง = ทุกยูนิต
+  const num=v=>`<td class="num">${v?fmt(v):'<span class="sub">-</span>'}</td>`;
+  const out=[];
+  units.forEach(u=>{
+    if(unitF&&unitF!=='_none'&&u!==unitF) return; if(unitF==='_none'&&u) return;
+    const list=hs.filter(h=>h.unit===u); if(!list.length) return;
+    const tot={sows:0,cap:0,gilt:0,open:0,mated:0,preg:0,nurse:0,due:0,stuck:0};
+    out.push(`<tr class="grp"><td colspan="13">${u?('🏛️ Unit '+u.slice(1)):'🌸 เล้าสาว (ไม่มียูนิต)'} <span style="font-weight:500;color:var(--muted)">· อุ้มท้อง ${fmt(list.filter(h=>h.kind==='ท').length)} · คลอด ${fmt(list.filter(h=>h.kind==='ค').length)}${list.some(h=>h.kind==='ส')?' · สาว '+fmt(list.filter(h=>h.kind==='ส').length):''} หลัง</span></td></tr>`);
+    list.forEach(h=>{
+      const ss=alive.filter(s=>s.house===h.s); const stc={}; ss.forEach(s=>stc[s.stage]=(stc[s.stage]||0)+1);
+      const hb=dueByHouse[h.s]||{}, due=Object.values(hb).reduce((a,b)=>a+b,0), st=stuckBy[h.s]||0;
+      tot.sows+=ss.length; tot.cap+=(+h.cap||0); ['gilt','open','mated','preg','nurse'].forEach(k=>tot[k]+=(stc[k]||0)); tot.due+=due; tot.stuck+=st;
+      const tasks=Object.keys(hb).map(k=>(BR_TASK_SHORT[k]||k)+' '+fmt(hb[k])).join(' · ');
+      const open=!!brDashOpen[h.s];
+      out.push(`<tr class="clk" onclick="brHouseOpen='${escA(h.s)}';brHouseDetail()">
+        <td><b>${escA(h.s)}</b></td><td style="color:${KCOL[h.kind]||'inherit'};font-weight:700">${KLBL[h.kind]||h.kind}</td><td>${escA(h.vet&&h.vet!=='-'?h.vet:'')||'<span class="sub">-</span>'}</td>
+        <td class="num"><b>${fmt(ss.length)}</b>${h.cap?'<span class="sub">/'+fmt(h.cap)+'</span>':''}</td>
+        ${num(stc.gilt)}${num(stc.open)}${num(stc.mated)}${num(stc.preg)}${num(stc.nurse)}
+        <td class="num"${due?' style="color:#b7791f;font-weight:800"':''}>${due?fmt(due):'<span class="sub">-</span>'}</td>
+        <td style="font-size:11.5px;color:#b7791f">${tasks||'<span class="sub">✓</span>'}</td>
+        <td class="num"${st?' style="color:#a5342a;font-weight:800"':''}>${st?fmt(st):'<span class="sub">-</span>'}</td>
+        <td><button class="btn ghost sm" style="padding:2px 8px" onclick="event.stopPropagation();brDashTgl('${escA(h.s)}')">${open?'▴ ซ่อน':'▾ เบอร์'}</button></td></tr>`);
+      if(open) out.push(`<tr><td colspan="13" style="background:#f6faf8;white-space:normal"><div style="display:flex;gap:5px;flex-wrap:wrap;padding:4px 0">${ss.map(s=>`<button class="sbhchip" title="${brStageTxt(s.stage)}" onclick="event.stopPropagation();brOpen('${escA(s.ear)}')">${stE[s.stage]||''} ${escA(s.ear)}${dueMap[s.ear]?' ❗':''}</button>`).join('')||'<span class="sub">— ว่าง —</span>'}</div></td></tr>`);
+    });
+    out.push(`<tr class="sum"><td colspan="3">รวม ${u?('Unit '+u.slice(1)):'เล้าสาว'}</td><td class="num">${fmt(tot.sows)}${tot.cap?'<span class="sub">/'+fmt(tot.cap)+'</span>':''}</td>${num(tot.gilt)}${num(tot.open)}${num(tot.mated)}${num(tot.preg)}${num(tot.nurse)}${num(tot.due)}<td></td>${num(tot.stuck)}<td></td></tr>`);
+  });
+  if(!out.length) return '<div class="card"><div class="sub">— ฟาร์มนี้ยังไม่มีเล้า ท/ค/ส ในระบบ —</div></div>';
+  const uChip=(k,t)=>`<button class="sbfchip${brDbUnit===k?' on':''}" onclick="brDbUnit='${k}';renderBreeding()">${t}</button>`;
+  return `<div class="card"><div class="sbarch-head"><h3 style="margin:0">🏠 รายหลัง <span class="more">${escA(brFarm)} · ${fmt(hs.length)} หลัง · ${fmt(alive.length)} แม่ · แตะแถว = เปิดหน้าทำงานของหลัง</span></h3>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">🏛️ ${uChip('','ทุกยูนิต')}${units.map(u=>u?uChip(u,'Unit '+u.slice(1)):uChip('_none','เล้าสาว')).join('')}</div></div>
+    <div style="overflow-x:auto"><table class="densetbl xtbl">
+      <thead><tr><th>เล้า</th><th>ชนิด</th><th>หมอประจำ</th><th class="num">แม่ยืน/ความจุ</th><th class="num">🌸 สาว</th><th class="num">⏳ รอผสม</th><th class="num">💕 ผสมแล้ว</th><th class="num">🤰 ท้อง</th><th class="num">🍼 เลี้ยงลูก</th><th class="num">📋 งาน</th><th>งานที่ถึงกำหนด</th><th class="num">⚠️ ค้าง</th><th></th></tr></thead>
+      <tbody>${out.join('')}</tbody></table></div></div>`;
 }
 
 /* ── หน้าทำงานรายหลัง: งานวันนี้กดลงผลในแถวเดียว + ตารางผสมแบบชุด ── */
@@ -19795,8 +19961,8 @@ function brKindHeal(){
   if(n){ try{ logAudit('แม่พันธุ์','ซ่อมอัตโนมัติ','ย้ายแม่ที่หย่าแล้วค้างเล้าคลอดกลับ ท '+n+' ตัว: '+done.join(', '),null,''); }catch(e){} try{ toast('🩹 ระบบย้ายแม่ที่หย่าแล้วค้างเล้าคลอดกลับเล้าอุ้มท้อง '+n+' ตัว'); }catch(e){} }
   return n;
 }
-function brDbAuditHTML(){
-  const A=brDbAudit();
+function brDbAuditHTML(embedded){
+  const A=brDbAudit(); if(embedded) brDbAuditOpen=true;
   if(!A.total) return `<div class="sub" style="margin:-2px 0 9px;color:#1a5c3f">🔗 <b>ความเชื่อมโยงของฐาน: ✓ ครบทุกตัว</b> — แม่ทุกตัวผูกกับเล้าจริง · สถานะตรงกับประวัติล่าสุด</div>`;
   const row=(s,why)=>`<div class="fieldrow" style="cursor:pointer;padding:5px 8px" onclick="brOpen(${escA(JSON.stringify(String(s.ear)))})">
     <div class="fmeta"><div class="fn" style="font-size:12.5px"><b>${escA(s.ear)}</b> · 🏠 ${escA(s.house||'ไม่ระบุ')} · ${brStageTxt(s.stage)}</div>
@@ -19805,7 +19971,7 @@ function brDbAuditHTML(){
   const sec=(list,title,whyFn)=>list.length?`<div style="margin:8px 0 2px;font-weight:800;font-size:12.5px">${title} <span class="more">${fmt(list.length)} ตัว</span></div>${list.slice(0,CAP).map(whyFn).join('')}${list.length>CAP?`<div class="sub" style="font-size:11.5px">แสดง ${CAP} ตัวแรก — ที่เหลือดูจาก Excel ทั้งฟาร์ม</div>`:''}`:'';
   return `<div class="banner warn" style="margin:0 0 9px"><div style="width:100%">🔗 <b>จุดที่ข้อมูลยังไม่เชื่อมกัน ${fmt(A.total)} จุด</b>
       — เล้าไม่มีจริง ${fmt(A.badHouse.length)} · ไม่ระบุเล้า ${fmt(A.noHouse.length)} · สถานะขัดประวัติ ${fmt(A.stageClash.length)} · อยู่ผิดประเภทเล้า ${fmt(A.wrongKind.length)}
-      <button class="btn ghost sm" style="margin-left:8px;padding:3px 10px" onclick="brDbAuditOpen=!brDbAuditOpen;brRe()">${brDbAuditOpen?'▴ ซ่อน':'▾ ดูรายการ'}</button>
+      ${embedded?'':`<button class="btn ghost sm" style="margin-left:8px;padding:3px 10px" onclick="brDbAuditOpen=!brDbAuditOpen;brRe()">${brDbAuditOpen?'▴ ซ่อน':'▾ ดูรายการ'}</button>`}
     ${brDbAuditOpen?`<div style="margin-top:6px">
       ${sec(A.badHouse,'🏚️ รหัสเล้าไม่มีอยู่จริงในระบบ (พิมพ์ผิด/เล้ายังไม่ถูกสร้าง)',s=>row(s,'เล้า "'+escA(s.house)+'" ไม่พบในทะเบียนเล้าของ '+escA(brFarm)+' — แตะเพื่อเปิดบัตรแม่แล้วย้ายเข้าเล้าที่ถูก'))}
       ${sec(A.noHouse,'❓ ยังไม่ระบุเล้า',s=>row(s,'ไม่รู้ว่าแม่ตัวนี้อยู่เล้าไหน — งานรายหลังจะมองไม่เห็นแม่ตัวนี้'))}
@@ -19841,6 +20007,8 @@ function brDbList(){
 }
 function brSowsHTML(){
   if(!brSows().length) return brEmptyHTML();
+  /* 🗄️ 690907f หน้ากระชับ (เจ้าของ 7 ก.ย. 69): เปิดมาเห็นแค่ ค้นหา + ชิปยูนิต + ตาราง 5 คอลัมน์
+     ตัวกรอง/เรียง · ตรวจความเชื่อมโยง · Excel/QR แยกเป็นหัวข้อย่อย (brDbPanel) กดถึงค่อยกาง · ตัวกรองที่ตั้งไว้โชว์เป็นชิป ✕ ใต้แถบ */
   const all=brSows(), hs=brHousesFor(brFarm), units=brUnitsOf(hs);
   const live=all.filter(s=>s.stage!=='cull').length, culled=all.length-live;
   const list=brDbList();
@@ -19851,62 +20019,76 @@ function brSowsHTML(){
   const grp={}; hOpts.forEach(h=>{ (grp[h.kind]=grp[h.kind]||[]).push(h); });
   const nLive=all.filter(s=>s.stage!=='cull');
   const cnt=k=>nLive.filter(s=>s.stage===k).length;
+  const A=brDbAudit();
+  const pBtn=(k,t,style)=>`<button class="btn ghost sm" style="padding:4px 11px;${style||''}${brDbPanel===k?'border-color:var(--brand);color:var(--brand);font-weight:800':''}" onclick="brDbPanel=brDbPanel==='${k}'?'':'${k}';brRe()">${t}</button>`;
+  const STG={gilt:'🌸 สาว',open:'⏳ รอผสม',mated:'💕 ผสมแล้ว',preg:'🤰 ท้อง',nurse:'🍼 เลี้ยงลูก',cull:'❌ ปลดแล้ว',all:'ทั้งหมด'};
+  const SRT={house:'ยูนิต/เล้า',parity:'ครอกมาก→น้อย',age:'อายุมาก→น้อย',due:'งานค้างมากสุด'};
+  const act=[];   // ชิปสรุปตัวกรองที่ไม่ใช่ค่าตั้งต้น (เห็นได้แม้พับแผงอยู่)
+  if(brDbStage!=='live') act.push(`<span class="sbfchip on" style="cursor:pointer" onclick="brDbStage='live';brDbCap=200;brRe()">📌 ${STG[brDbStage]||brDbStage} ✕</span>`);
+  if(brDbHouse) act.push(`<span class="sbfchip on" style="cursor:pointer" onclick="brDbHouse='';brDbCap=200;brRe()">🏠 ${escA(brDbHouse)} ✕</span>`);
+  if(brDbSort!=='ear') act.push(`<span class="sbfchip on" style="cursor:pointer" onclick="brDbSort='ear';brRe()">↕ ${SRT[brDbSort]||brDbSort} ✕</span>`);
+  let panel='';
+  if(brDbPanel==='filter') panel=`<div class="card" style="margin:6px 0 10px;padding:10px 12px;border-color:var(--brand)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">📌 ${sChip('live','อยู่ในฝูง ('+fmt(live)+')')}${sChip('gilt','🌸 สาว ('+fmt(cnt('gilt'))+')')}${sChip('open','⏳ รอผสม ('+fmt(cnt('open'))+')')}${sChip('mated','💕 ผสมแล้ว ('+fmt(cnt('mated'))+')')}${sChip('preg','🤰 ท้อง ('+fmt(cnt('preg'))+')')}${sChip('nurse','🍼 เลี้ยงลูก ('+fmt(cnt('nurse'))+')')}${culled?sChip('cull','❌ ปลดแล้ว ('+fmt(culled)+')'):''}${sChip('all','ทั้งหมด ('+fmt(all.length)+')')}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">🏠
+        <select class="cin tl" style="max-width:230px;padding:5px 9px" onchange="brDbHouse=this.value;brDbCap=200;brRe()">
+          <option value="">— ทุกเล้าในยูนิตนี้ —</option>
+          ${['ท','ค','ส'].filter(k=>grp[k]).map(k=>`<optgroup label="${k==='ท'?'🔵 เล้าอุ้มท้อง':k==='ค'?'🩷 เล้าคลอด':'🟢 เล้าสาว'}">${grp[k].map(h=>`<option value="${escA(h.s)}" ${brDbHouse===h.s?'selected':''}>${escA(h.s)} · ${fmt(all.filter(s=>s.house===h.s&&s.stage!=='cull').length)} แม่</option>`).join('')}</optgroup>`).join('')}
+        </select>
+        <span class="sub" style="margin:0">เรียงตาม</span>
+        <select class="cin tl" style="max-width:150px;padding:5px 9px" onchange="brDbSort=this.value;brRe()">
+          ${[['ear','เบอร์หู'],['house','ยูนิต/เล้า'],['parity','ครอกมาก→น้อย'],['age','อายุมาก→น้อย'],['due','งานค้างมากสุด']].map(o=>`<option value="${o[0]}" ${brDbSort===o[0]?'selected':''}>${o[1]}</option>`).join('')}
+        </select>
+      </div></div>`;
+  else if(brDbPanel==='audit') panel=`<div style="margin:6px 0 10px">${brDbAuditHTML(true)}</div>`;
+  else if(brDbPanel==='export') panel=`<div class="card" style="margin:6px 0 10px;padding:10px 12px;border-color:var(--brand)">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ghost sm" onclick="brXlsDb()">📊 Excel ตามตัวกรอง (${fmt(list.length)} ตัว)</button>
+        <button class="btn ghost sm" onclick="brXlsDb(1)">📚 Excel ทั้งฟาร์ม (${fmt(all.length)} ตัว)</button>
+        <button class="btn ghost sm" onclick="brQrPrintDb()">📷 พิมพ์ QR แปะบัตรแม่ (${fmt(list.filter(s=>s.stage!=='cull').length)} ป้าย)</button>
+      </div>
+      <div class="sub" style="margin:6px 0 0">Excel มีครบทุกคอลัมน์ (พันธุ์ · อายุ · เต้านม · ผสม/คลอด/หย่าล่าสุด · ลูกหย่า/ครอก · NPD · คะแนน) — ตารางในหน้านี้โชว์เฉพาะที่ใช้บ่อย</div></div>`;
   return `<div class="card">
     <div class="sbarch-head"><h3 style="margin:0">🗄️ ฐานข้อมูลแม่รายตัว <span class="more">${escA(brFarm.replace('ฟาร์ม',''))} · อยู่ในฝูง ${fmt(live)} ตัว${culled?' · ปลดแล้ว '+fmt(culled):''}</span></h3>
       <div class="srch"><input class="cin" placeholder="🔍 เบอร์หู / เล้า / พันธุ์" value="${escA(brQ)}" oninput="brQ=this.value;brDbCap=200;var el=document.getElementById('brSowList');if(el)el.innerHTML=brDbTableHTML()"></div></div>
-    <div class="sub" style="margin:-2px 0 9px">แม่ทุกตัวของฟาร์มอยู่ในฐานนี้ — แยกตาม <b>Unit → เล้า</b> · แตะเบอร์หูเพื่อดู<b>บัตรแม่</b> (อยู่เล้าไหน · สถานะ · ประวัติผสม/คลอด/หย่านม/ย้ายเล้า/ปลดขาย ครบทุกครั้ง) · ฟอร์มบันทึกงานทุกหน้าดึงเบอร์จากฐานนี้ตัวเดียวกัน</div>
-    ${brDbAuditHTML()}
-
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">🏛️ ${uChip('','ทุกยูนิต',live)}${units.map(u=>u?uChip(u,'Unit '+u.slice(1),nInU(u)):uChip('_none','เล้าสาว/ไม่มียูนิต',nInU('_none'))).join('')}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center">🏠
-      <select class="cin tl" style="max-width:230px;padding:5px 9px" onchange="brDbHouse=this.value;brDbCap=200;brRe()">
-        <option value="">— ทุกเล้าในยูนิตนี้ —</option>
-        ${['ท','ค','ส'].filter(k=>grp[k]).map(k=>`<optgroup label="${k==='ท'?'🔵 เล้าอุ้มท้อง':k==='ค'?'🩷 เล้าคลอด':'🟢 เล้าสาว'}">${grp[k].map(h=>`<option value="${escA(h.s)}" ${brDbHouse===h.s?'selected':''}>${escA(h.s)} · ${fmt(all.filter(s=>s.house===h.s&&s.stage!=='cull').length)} แม่</option>`).join('')}</optgroup>`).join('')}
-      </select>
-      <span class="sub" style="margin:0">เรียงตาม</span>
-      <select class="cin tl" style="max-width:150px;padding:5px 9px" onchange="brDbSort=this.value;brRe()">
-        ${[['ear','เบอร์หู'],['house','ยูนิต/เล้า'],['parity','ครอกมาก→น้อย'],['age','อายุมาก→น้อย'],['due','งานค้างมากสุด']].map(o=>`<option value="${o[0]}" ${brDbSort===o[0]?'selected':''}>${o[1]}</option>`).join('')}
-      </select>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 6px">🏛️ ${uChip('','ทุกยูนิต',live)}${units.map(u=>u?uChip(u,'Unit '+u.slice(1),nInU(u)):uChip('_none','เล้าสาว/ไม่มียูนิต',nInU('_none'))).join('')}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 4px">
+      ${pBtn('filter','🔎 ตัวกรอง · เรียง')}
+      ${pBtn('audit',A.total?'🔗 ตรวจความเชื่อมโยง <b style="color:#b7791f">'+fmt(A.total)+' จุด</b>':'🔗 ความเชื่อมโยง ✓ ครบ',A.total?'':'color:#1a5c3f;')}
+      ${pBtn('export','📤 Excel · QR')}
+      ${act.join('')}
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px">📌 ${sChip('live','อยู่ในฝูง ('+fmt(live)+')')}${sChip('gilt','🌸 สาว ('+fmt(cnt('gilt'))+')')}${sChip('open','⏳ รอผสม ('+fmt(cnt('open'))+')')}${sChip('mated','💕 ผสมแล้ว ('+fmt(cnt('mated'))+')')}${sChip('preg','🤰 ท้อง ('+fmt(cnt('preg'))+')')}${sChip('nurse','🍼 เลี้ยงลูก ('+fmt(cnt('nurse'))+')')}${culled?sChip('cull','❌ ปลดแล้ว ('+fmt(culled)+')'):''}${sChip('all','ทั้งหมด ('+fmt(all.length)+')')}</div>
-
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <button class="btn ghost sm" onclick="brXlsDb()">📊 ดึงฐานข้อมูลเป็น Excel (${fmt(list.length)} ตัวตามตัวกรอง)</button>
-      <button class="btn ghost sm" onclick="brXlsDb(1)">📚 ดึงทั้งฟาร์ม (${fmt(all.length)} ตัว)</button>
-      <button class="btn ghost sm" onclick="brQrPrintDb()">📷 พิมพ์ QR แปะบัตรแม่ (${fmt(list.filter(s=>s.stage!=='cull').length)} ป้าย)</button>
-    </div>
+    ${panel}
     <div id="brSowList">${brDbTableHTML(list)}</div></div>`;
 }
 function brDbTableHTML(list){
   if(!list) list=brDbList();
   if(!list.length) return '<div class="sub">— ไม่พบแม่ตามตัวกรองนี้ —</div>';
   const shown=list.slice(0,brDbCap);
-  const cnt=`<div class="sub" style="margin:0 0 6px">พบ <b>${fmt(list.length)}</b> ตัวตามตัวกรอง${brQ.trim()?' · คำค้น "'+escA(brQ.trim())+'"':''}</div>`;
+  const cnt=`<div class="sub" style="margin:4px 0 6px">พบ <b>${fmt(list.length)}</b> ตัว${brQ.trim()?' · คำค้น "'+escA(brQ.trim())+'"':''} · แตะแถวเพื่อเปิดบัตรแม่</div>`;
   let curU=null, curH=null, out='';
   const byHouse=(brDbSort==='house');
   const rows=shown.map(s=>{
-    const c=brClock(s), next=c.find(x=>x.due), st=brSowStats(s);
+    const c=brClock(s), next=c.find(x=>x.due);
     const since=brStageSince(s), sd=since?brDays(since):null;
     let head='';
     if(byHouse){
       const u=brSowUnit(s)||'—';
-      if(u!==curU){ curU=u; curH=null; head+=`<tr><td colspan="9" style="background:#eaf4f1;font-weight:800;color:#0f6b5f;padding:6px 8px">🏛️ ${u==='—'?'ไม่มียูนิต (เล้าสาว)':'Unit '+u.slice(1)}</td></tr>`; }
+      if(u!==curU){ curU=u; curH=null; head+=`<tr><td colspan="5" style="background:#eaf4f1;font-weight:800;color:#0f6b5f;padding:6px 8px">🏛️ ${u==='—'?'ไม่มียูนิต (เล้าสาว)':'Unit '+u.slice(1)}</td></tr>`; }
       if(s.house!==curH){ curH=s.house; const k=brKindOfCode(s.house);
-        head+=`<tr><td colspan="9" style="background:#f6faf8;font-weight:700;padding:4px 8px;font-size:12px">🏠 ${escA(s.house||'ไม่ระบุเล้า')} <span style="color:#5a6b66;font-weight:500">· ${brKindTxt(k)}</span></td></tr>`; }
+        head+=`<tr><td colspan="5" style="background:#f6faf8;font-weight:700;padding:4px 8px;font-size:12px">🏠 ${escA(s.house||'ไม่ระบุเล้า')} <span style="color:#5a6b66;font-weight:500">· ${brKindTxt(k)}</span></td></tr>`; }
     }
+    const stTxt=s.stage==='cull'?(function(){ const c=brLastEv(s,'cull'); return '❌ '+escA((c&&c.kind)||'ปลดแล้ว')+((c&&brIsISO(c.date))?'<div class="sub" style="font-size:11px">'+brThai(c.date)+'</div>':''); })()
+      :brStageTxt(s.stage)+(sd!=null?' <span class="sub" style="font-size:11px;white-space:nowrap">'+fmt(sd)+' วัน</span>':'');
     return head+`<tr class="clk" onclick="brOpen(${escA(JSON.stringify(String(s.ear)))})">
       <td><b>${escA(s.ear)}</b></td>
-      <td>${escA(s.breed||'-')}</td>
       <td>${brSowUnit(s)?'<span style="color:#0f6b5f;font-weight:700">'+escA(brSowUnit(s))+'</span> ':''}${escA(s.house||'-')}</td>
-      <td>${s.stage==='cull'?(function(){ const c=brLastEv(s,'cull'); return '❌ '+escA((c&&c.kind)||'ปลดแล้ว')+((c&&brIsISO(c.date))?'<div class="sub" style="font-size:11px">'+brThai(c.date)+'</div>':''); })():brStageTxt(s.stage)}</td>
-      <td class="num">${sd!=null?fmt(sd):'-'}</td>
+      <td>${stTxt}</td>
       <td class="num">${fmt(s.parity||0)}</td>
-      <td>${brAgeTxt(s.born)}</td>
-      <td class="num">${st.weanedAvg!=null?st.weanedAvg.toFixed(1):'-'}</td>
       <td>${next?`<span style="background:#fdf3e0;color:#b7791f;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap">${escA(next.label)}</span>`:'<span class="sub" style="font-size:11px">—</span>'}</td></tr>`;
   }).join('');
-  out=cnt+`<div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
-    <thead><tr><th>เบอร์หู</th><th>พันธุ์</th><th>ยูนิต / เล้า</th><th>สถานะ</th><th class="num">วันในสถานะ</th><th class="num">ครอกที่</th><th>อายุ</th><th class="num">ลูกหย่า/ครอก</th><th>งานถัดไป</th></tr></thead>
+  out=cnt+`<div style="overflow-x:auto"><table class="densetbl xtbl">
+    <thead><tr><th>เบอร์หู</th><th>ยูนิต / เล้า</th><th>สถานะ · วันในสถานะ</th><th class="num">ครอกที่</th><th>งานถัดไป</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
   if(list.length>brDbCap) out+=`<div style="text-align:center;margin-top:10px"><button class="btn ghost sm" onclick="brDbCap+=500;brRe()">แสดงเพิ่ม (ตอนนี้ ${fmt(brDbCap)} จาก ${fmt(list.length)} ตัว)</button></div>`;
   return out;
@@ -20119,13 +20301,13 @@ function brBoarHTML(){
 }
 function brBoarRows(list){
   if(!list){ const q=(brBQ||'').trim().toLowerCase(); list=brBoars().filter(b=>!q||String(b.ear).toLowerCase().includes(q)||String(b.breed||'').toLowerCase().includes(q)||String(b.line||'').toLowerCase().includes(q)); }
-  return list.slice(0,300).map(b=>{
-    const age=b.born?brDays(b.born):null;
-    const ped=[b.sire?'พ่อ '+escA(b.sire):'',b.dam?'แม่ '+escA(b.dam):''].filter(Boolean).join(' · ');
-    const ped2=[b.gsire?'ปู่ '+escA(b.gsire):'',b.gdam?'ย่า '+escA(b.gdam):'',b.msire?'ตา '+escA(b.msire):'',b.mdam?'ยาย '+escA(b.mdam):''].filter(Boolean).join(' · ');
-    return `<div class="fieldrow"><div class="fmeta"><div class="fn"><b>${escA(b.ear)}</b> · ${escA(b.breed||'-')}${b.line?' · Line '+escA(b.line):''}${b.unit?' · Unit '+escA(b.unit):''}</div>
-      <div class="sub" style="margin:2px 0 0">${b.born?'เกิด '+sbThaiDate(b.born)+(age!=null?' (อายุ '+fmt(Math.floor(age/30.44))+' เดือน)':''):''}${ped?' · '+ped:''}${ped2?'<br>'+ped2:''}</div></div></div>`;
-  }).join('')||'<div class="sub">— ไม่พบ —</div>';
+  if(!list.length) return '<div class="sub">— ไม่พบ —</div>';
+  const rows=list.slice(0,300).map(b=>{ const age=b.born?brDays(b.born):null;
+    return `<tr><td><b>${escA(b.ear)}</b></td><td>${escA(b.breed||'-')}</td><td>${escA(b.line||'')||'<span class="sub">-</span>'}</td><td>${b.unit?'Unit '+escA(b.unit):'<span class="sub">-</span>'}</td>
+      <td>${b.born?sbThaiDate(b.born):'<span class="sub">-</span>'}</td><td class="num">${age!=null?fmt(Math.floor(age/30.44)):'-'}</td>
+      <td>${escA(b.sire||'')||'<span class="sub">-</span>'}</td><td>${escA(b.dam||'')||'<span class="sub">-</span>'}</td>
+      <td style="font-size:11.5px">${[b.gsire?'ปู่ '+escA(b.gsire):'',b.gdam?'ย่า '+escA(b.gdam):'',b.msire?'ตา '+escA(b.msire):'',b.mdam?'ยาย '+escA(b.mdam):''].filter(Boolean).join(' · ')||'<span class="sub">-</span>'}</td></tr>`; }).join('');
+  return `<div style="overflow-x:auto"><table class="densetbl xtbl"><thead><tr><th>เบอร์พ่อ</th><th>พันธุ์</th><th>Line</th><th>ยูนิต</th><th>วันเกิด</th><th class="num">อายุ (เดือน)</th><th>พ่อ</th><th>แม่</th><th>ปู่ · ย่า · ตา · ยาย</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 /* 💔 ลูกคงเหลือ ณ เหตุการณ์ตาย/คัดครั้งนั้น (เจ้าของ 26 ส.ค. 69: แถวประวัติต้องบอกว่าเหลือเท่าไหร่)
@@ -20554,7 +20736,7 @@ function brRankHTML(){
       ${chip('all','ทั้งหมด')}${chip('cull','⚠️ ควรปลดก่อน ('+fmt(nBad)+')')}${chip('top','🏆 ผลงานดี')}
       <input id="brRankQIn" class="cin" placeholder="🔍 ค้นเบอร์หู/เล้า" value="${escA(brRankQ)}" oninput="brRankQ=this.value;brReKeep('brRankQIn')" style="max-width:180px;padding:5px 9px">
     </div>
-    <div style="overflow-x:auto"><table class="densetbl" style="font-size:12.5px">
+    <div style="overflow-x:auto"><table class="densetbl xtbl">
       <thead><tr><th>เบอร์หู</th><th>เล้า</th><th>สถานะ</th><th class="num">ครอก</th><th class="num">ลูกมีชีวิต/ครอก</th><th class="num">ลูกหย่า/ครอก</th><th class="num">ผสม/ครอก</th><th class="num">NPD (วัน/ปี)</th><th class="num">คะแนน</th><th>ข้อสังเกต</th></tr></thead>
       <tbody>${shown.map(r=>{
         const x=r.x, col=r.score>=70?'#1a5c3f':r.score>=50?'#b7791f':'#a5342a';
@@ -20633,55 +20815,39 @@ async function qrTryOpen(){
   brFarm=s.farm; brOpen(s.ear);
 }
 function brKpiHTML(){
-  if(!brSows().length) return brEmptyHTML()+brCfgCardHTML();
+  /* 📈 690907h: KPI เป็นตาราง Excel — ตัวชี้วัด · ค่า · เป้า · ผล · ที่มา + ตารางแนวโน้มรายเดือน (มีแท่งเทียบในช่อง) */
+  if(!brSows().length) return brEmptyHTML();
   const k=brKpi();
-  // การ์ดตัวชี้วัดหลัก: ค่าจริง · เป้า · สีบอกว่าถึงเป้าไหม
-  const card=(ico,name,val,unit,target,ok,note)=>{
-    const col=(ok==null)?'var(--mut)':(ok?'#1a5c3f':'#b7791f');
-    return `<div style="flex:1;min-width:172px;background:#fff;border:1.5px solid var(--line);border-left:5px solid ${col};border-radius:13px;padding:11px 14px">
-      <div style="font-size:12.5px;font-weight:800;color:var(--ink-2)">${ico} ${escA(name)}</div>
-      <div style="font-size:23px;font-weight:900;color:${col};margin:2px 0 1px">${val==null?'—':val}<span style="font-size:12px;font-weight:700"> ${escA(unit||'')}</span></div>
-      <div class="sub" style="margin:0;font-size:11px">เป้า ${escA(target)}${note?' · '+escA(note):''}</div></div>`; };
   const f2=v=>v==null?null:v.toFixed(2), f1=v=>v==null?null:v.toFixed(1), f0=v=>v==null?null:Math.round(v);
-  // แนวโน้มรายเดือน 12 เดือนล่าสุด
+  const R=[
+    ['🏆','PSY (ลูกหย่า/แม่/ปี)',f1(k.psy),'ตัว','25-30',k.psy==null?null:k.psy>=25,'ตัวชี้วัดสำคัญที่สุด = ลูกหย่า/ครอก × ครอก/แม่/ปี'],
+    ['🍼','ลูกหย่า/ครอก',f2(k.weanedAvg),'ตัว','11.5-13',k.weanedAvg==null?null:k.weanedAvg>=11.5,fmt(k.weanEv)+' ครั้งหย่านม'],
+    ['🔄','ครอก/แม่/ปี',f2(k.lpy),'ครอก','2.35-2.45',k.lpy==null?null:k.lpy>=2.35,'365 ÷ ช่วงห่างการคลอด'],
+    ['📅','ช่วงห่างการคลอด',f0(k.fiAvg),'วัน','≤ 150',k.fiAvg==null?null:k.fiAvg<=150,'กลาง '+(f0(k.fiMed)||'-')+' วัน · '+fmt(k.fiN)+' ช่วง · ดีที่สุด ≈ ท้อง '+brCfg().gest+' + เลี้ยงลูก '+brCfg().lact+' + รอผสม 7 = '+(brCfg().gest+brCfg().lact+7)+' วัน'],
+    ['👶','ลูกมีชีวิต/ครอก',f2(k.aliveAvg),'ตัว','13+',k.aliveAvg==null?null:k.aliveAvg>=13,''],
+    ['📦','ลูกเกิดทั้งหมด/ครอก',f2(k.tbAvg),'ตัว','~15.5',k.tbAvg==null?null:k.tbAvg>=14.5,'รวมตายแรกคลอด+มัมมี่'],
+    ['⚰️','% ตายแรกคลอด',f1(k.stillPct),'%','5-8%',k.stillPct==null?null:k.stillPct<=8,''],
+    ['✅','อัตราการคลอด',f0(k.farrowRate),'%','> 85%',k.farrowRate==null?null:k.farrowRate>=85,'จากผสม '+fmt(k.mateDone)+' ครั้งที่รู้ผลแล้ว · ต่ำ = ผสมไม่ติดเยอะ'],
+    ['💕','หย่านม → ผสมใหม่',f1(k.wmAvg),'วัน','≤ 7',k.wmAvg==null?null:k.wmAvg<=7,'กลาง '+(f0(k.wmMed)||'-')+' วัน · '+fmt(k.wmN)+' รอบ']];
+  const rows=R.map(r=>{ const ok=r[5]; const col=(ok==null)?'var(--muted)':(ok?'#1a5c3f':'#b7791f');
+    return `<tr><td>${r[0]} <b>${escA(r[1])}</b></td><td class="num" style="font-size:15px;font-weight:900;color:${col}">${r[2]==null?'—':r[2]}</td><td>${escA(r[3])}</td><td class="num">${escA(r[4])}</td>
+      <td style="color:${col};font-weight:800">${ok==null?'<span class="sub">ไม่มีข้อมูล</span>':(ok?'✓ ถึงเป้า':'✗ ต่ำกว่าเป้า')}</td><td style="white-space:normal;min-width:200px;font-size:12px;color:var(--muted)">${escA(r[6]||'')}</td></tr>`; }).join('');
   const mk=Object.keys(k.monthly).sort().slice(-12);
   const mx=Math.max(1,...mk.map(x=>k.monthly[x].a/Math.max(1,k.monthly[x].n)));
   const THAI_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  const trend=mk.map(key=>{ const m=k.monthly[key], a=m.a/Math.max(1,m.n), p=Math.round(a/mx*100);
-    const y=+key.slice(0,4)+543, mi=+key.slice(5,7)-1;
-    return `<div style="margin:7px 0">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-        <span>${THAI_M[mi]} ${String(y).slice(2)}</span>
-        <span><b>${a.toFixed(2)}</b> <span class="sub">ตัว/ครอก · ${fmt(m.n)} ครอก</span></span></div>
-      <div style="height:12px;background:var(--soft);border-radius:7px;overflow:hidden">
-        <div style="height:100%;width:${p}%;background:linear-gradient(90deg,var(--brand),var(--brand-d))"></div></div></div>`; }).join('');
+  const trend=mk.map(key=>{ const m=k.monthly[key], a=m.a/Math.max(1,m.n), p=Math.round(a/mx*100); const y=+key.slice(0,4)+543, mi=+key.slice(5,7)-1;
+    return `<tr><td>${THAI_M[mi]} ${String(y).slice(2)}</td><td class="num">${fmt(m.n)}</td><td class="num"><b>${a.toFixed(2)}</b></td>
+      <td style="min-width:160px"><div style="height:11px;background:var(--soft);border-radius:6px;overflow:hidden"><div style="height:100%;width:${p}%;background:linear-gradient(90deg,var(--brand),var(--brand-d))"></div></div></td></tr>`; }).join('');
   return `<div class="card">
-    <h3>📊 KPI ฝูงแม่พันธุ์ · ${escA(brFarm)} <span class="more">จาก ${fmt(k.litters)} ครอก · ${fmt(k.mates)} ครั้งผสม</span></h3>
-    <div class="sub" style="margin:-2px 0 10px">ตัวชี้วัดหลักของฝูง คำนวณสดจากประวัติที่บันทึกไว้ทั้งหมด</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      ${card('🏆','PSY (ลูกหย่า/แม่/ปี)',f1(k.psy),'ตัว','25-30',k.psy==null?null:k.psy>=25,'ตัวชี้วัดสำคัญที่สุด')}
-      ${card('🍼','ลูกหย่า/ครอก',f2(k.weanedAvg),'ตัว','11.5-13',k.weanedAvg==null?null:k.weanedAvg>=11.5,fmt(k.weanEv)+' ครั้ง')}
-      ${card('🔄','ครอก/แม่/ปี',f2(k.lpy),'ครอก','2.35-2.45',k.lpy==null?null:k.lpy>=2.35,'')}
-      ${card('📅','ช่วงห่างการคลอด',f0(k.fiAvg),'วัน','≤ 150',k.fiAvg==null?null:k.fiAvg<=150,'กลาง '+(f0(k.fiMed)||'-')+' วัน · '+fmt(k.fiN)+' ช่วง')}
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
-      ${card('👶','ลูกมีชีวิต/ครอก',f2(k.aliveAvg),'ตัว','13+',k.aliveAvg==null?null:k.aliveAvg>=13,'')}
-      ${card('📦','ลูกเกิดทั้งหมด/ครอก',f2(k.tbAvg),'ตัว','~15.5',k.tbAvg==null?null:k.tbAvg>=14.5,'รวมตายแรกคลอด+มัมมี่')}
-      ${card('⚰️','% ตายแรกคลอด',f1(k.stillPct),'%','5-8%',k.stillPct==null?null:k.stillPct<=8,'')}
-      ${card('✅','อัตราการคลอด',f0(k.farrowRate),'%','> 85%',k.farrowRate==null?null:k.farrowRate>=85,'จากผสม '+fmt(k.mateDone)+' ครั้งที่รู้ผลแล้ว')}
-      ${card('💕','หย่านม → ผสมใหม่',f1(k.wmAvg),'วัน','≤ 7',k.wmAvg==null?null:k.wmAvg<=7,'กลาง '+(f0(k.wmMed)||'-')+' วัน · '+fmt(k.wmN)+' รอบ')}
-    </div>
-    <div class="sub" style="margin-top:11px;line-height:1.65">
-      <b>อ่านยังไง:</b> <b>PSY</b> = ลูกหย่า/ครอก × ครอก/แม่/ปี — บอกว่าแม่ 1 ตัวให้ลูกหย่ากี่ตัวต่อปี ยิ่งสูงยิ่งดี ·
-      <b>ช่วงห่างการคลอด</b> ยิ่งสั้นยิ่งได้ครอกเยอะ (ท้อง ${brCfg().gest} + เลี้ยงลูก ${brCfg().lact} + รอผสมใหม่ ≈ ${brCfg().gest+brCfg().lact+7} วันคือดีที่สุด) ·
-      <b>อัตราการคลอด</b> ต่ำ = ผสมแล้วไม่ติดเยอะ เสียเวลาเปล่า
-    </div>
+    <h3>📈 KPI ฝูงแม่พันธุ์ · ${escA(brFarm)} <span class="more">คำนวณสดจาก ${fmt(k.litters)} ครอก · ${fmt(k.mates)} ครั้งผสม</span></h3>
+    <div style="overflow-x:auto"><table class="densetbl xtbl">
+      <thead><tr><th>ตัวชี้วัด</th><th class="num">ค่าจริง</th><th>หน่วย</th><th class="num">เป้า</th><th>ผล</th><th>ที่มา / วิธีอ่าน</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
   </div>
-  ${mk.length?`<div class="card"><h3>📈 แนวโน้มลูกมีชีวิต/ครอก <span class="more">${mk.length} เดือนล่าสุด</span></h3>${trend}
-    <div class="sub" style="margin-top:8px">แท่งยาว = ลูกมีชีวิตต่อครอกสูง · ตัวเลขท้ายบอกจำนวนครอกที่คลอดในเดือนนั้น</div></div>`:''}
-  ${brCfgCardHTML()}`;
+  ${mk.length?`<div class="card"><h3>📈 แนวโน้มลูกมีชีวิต/ครอก รายเดือน <span class="more">${mk.length} เดือนล่าสุด</span></h3>
+    <div style="overflow-x:auto"><table class="densetbl xtbl"><thead><tr><th>เดือน</th><th class="num">ครอกที่คลอด</th><th class="num">ลูกมีชีวิต/ครอก</th><th>เทียบเดือนที่ดีที่สุด</th></tr></thead><tbody>${trend}</tbody></table></div></div>`:''}
+  `;
 }
-
 
 /* ═══ 📚 คู่มือหมอ — โรค · การรักษา · SOP · คำสั่งฟาร์ม (เจ้าของขอ 19 ส.ค. 69: "เพิ่มหัวข้อการรักษาโรคและการทำงานในฟาร์มให้หมอ")
    แหล่งบทความ 2 ทาง ผสานกันด้วย id:
