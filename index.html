@@ -1419,7 +1419,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690924h';
+const APP_BUILD='690924i';
 /* ── 📷 qrcode-generator (c) Kazuhiko Arase — MIT License (https://github.com/kazuhikoarase/qrcode-generator) — ฝังไว้ในไฟล์เพื่อสร้าง QR แม่รายตัวแบบไม่พึ่งเน็ตภายนอก ── */
 var qrcode=function(){function i(t,r){function a(t,r){g=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(l=4*u+17),e(0,0),e(l-7,0),e(0,l-7),i(),o(),v(t,r),7<=u&&h(t),null==n&&(n=w(u,f,c)),d(n,r)}var u=t,f=y[r],g=null,l=0,n=null,c=[],s={},e=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||l<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||l<=r+n||(g[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},o=function(){for(var t=8;t<l-8;t+=1)null==g[t][6]&&(g[t][6]=t%2==0);for(var r=8;r<l-8;r+=1)null==g[6][r]&&(g[6][r]=r%2==0)},i=function(){for(var t=B.getPatternPosition(u),r=0;r<t.length;r+=1)for(var e=0;e<t.length;e+=1){var n=t[r],o=t[e];if(null==g[n][o])for(var i=-2;i<=2;i+=1)for(var a=-2;a<=2;a+=1)g[n+i][o+a]=-2==i||2==i||-2==a||2==a||0==i&&0==a}},h=function(t){for(var r=B.getBCHTypeNumber(u),e=0;e<18;e+=1){var n=!t&&1==(r>>e&1);g[Math.floor(e/3)][e%3+l-8-3]=n}for(e=0;e<18;e+=1){n=!t&&1==(r>>e&1);g[e%3+l-8-3][Math.floor(e/3)]=n}},v=function(t,r){for(var e=f<<3|r,n=B.getBCHTypeInfo(e),o=0;o<15;o+=1){var i=!t&&1==(n>>o&1);o<6?g[o][8]=i:o<8?g[o+1][8]=i:g[l-15+o][8]=i}for(o=0;o<15;o+=1){i=!t&&1==(n>>o&1);o<8?g[8][l-o-1]=i:o<9?g[8][15-o-1+1]=i:g[8][15-o-1]=i}g[l-8][8]=!t},d=function(t,r){for(var e=-1,n=l-1,o=7,i=0,a=B.getMaskFunction(r),u=l-1;0<u;u-=2)for(6==u&&(u-=1);;){for(var f=0;f<2;f+=1)if(null==g[n][u-f]){var c=!1;i<t.length&&(c=1==(t[i]>>>o&1)),a(n,u-f)&&(c=!c),g[n][u-f]=c,-1==(o-=1)&&(i+=1,o=7)}if((n+=e)<0||l<=n){n-=e,e=-e;break}}},w=function(t,r,e){for(var n=b.getRSBlocks(t,r),o=M(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=C(i[u],l.getLength()-1).mod(l);a[u]=new Array(l.getLength()-1);for(g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=0<=s?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};s.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=x(t);break;case"Alphanumeric":e=m(t);break;case"Byte":e=L(t);break;case"Kanji":e=D(t);break;default:throw"mode:"+r}c.push(e),n=null},s.isDark=function(t,r){if(t<0||l<=t||r<0||l<=r)throw t+","+r;return g[t][r]},s.getModuleCount=function(){return l},s.make=function(){if(u<1){for(var t=1;t<40;t++){for(var r=b.getRSBlocks(t,f),e=M(),n=0;n<c.length;n++){var o=c[n];e.put(o.getMode(),4),e.put(o.getLength(),B.getLengthInBits(o.getMode(),t)),o.write(e)}var i=0;for(n=0;n<r.length;n++)i+=r[n].dataCount;if(e.getLengthInBits()<=8*i)break}u=t}a(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){a(!0,e);var n=B.getLostPoint(s);(0==e||n<t)&&(t=n,r=e)}return r}())},s.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<s.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<s.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=s.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},s.createSvgTag=function(t,r,e,n){var o={};"object"==typeof t&&(t=(o=t).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,f,c=s.getModuleCount()*t+2*r,g="";for(f="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",g+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',g+=o.scalable?"":' width="'+c+'px" height="'+c+'px"',g+=' viewBox="0 0 '+c+" "+c+'" ',g+=' preserveAspectRatio="xMinYMin meet"',g+=n.text||e.text?' role="img" aria-labelledby="'+p([n.id,e.id].join(" ").trim())+'"':"",g+=">",g+=n.text?'<title id="'+p(n.id)+'">'+p(n.text)+"</title>":"",g+=e.text?'<description id="'+p(e.id)+'">'+p(e.text)+"</description>":"",g+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',g+='<path d="',a=0;a<s.getModuleCount();a+=1)for(u=a*t+r,i=0;i<s.getModuleCount();i+=1)s.isDark(a,i)&&(g+="M"+(i*t+r)+","+u+f);return g+='" stroke="transparent" fill="black"/>',g+="</svg>"},s.createDataURL=function(o,t){o=o||2,t=void 0===t?4*o:t;var r=s.getModuleCount()*o+2*t,i=t,a=r-t;return I(r,r,function(t,r){if(i<=t&&t<a&&i<=r&&r<a){var e=Math.floor((t-i)/o),n=Math.floor((r-i)/o);return s.isDark(n,e)?0:1}return 1})},s.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=s.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=s.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=p(e),o+='"'),o+="/>"};var p=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return s.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*s.getModuleCount()+2*t,u=t,f=a-t,c={"██":"█","█ ":"▀"," █":"▄","  ":" "},g={"██":"▀","█ ":"▀"," █":" ","  ":" "},l="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<f&&u<=r&&r<f&&s.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<f&&u<=r+1&&r+1<f&&s.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",l+=t<1&&f<=r+1?g[i]:c[i];l+="\n"}return a%2&&0<t?l.substring(0,l.length-a-1)+Array(1+a).join("▀"):l.substring(0,l.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=s.getModuleCount()*t+2*r,u=r,f=a-r,c=Array(t+1).join("██"),g=Array(t+1).join("  "),l="",h="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),h="",n=0;n<a;n+=1)i=1,u<=n&&n<f&&u<=e&&e<f&&s.isDark(o,Math.floor((n-u)/t))&&(i=0),h+=i?c:g;for(o=0;o<t;o+=1)l+=h+"\n"}return l.substring(0,l.length-1)},s.renderTo2dContext=function(t,r){r=r||2;for(var e=s.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=s.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},s}i.stringToBytes=(i.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,i.createStringToBytes=function(u,f){var i=function(){function t(){var t=r.read();if(-1==t)throw"eof";return t}for(var r=S(u),e=0,n={};;){var o=r.read();if(-1==o)break;var i=t(),a=t()<<8|t();n[String.fromCharCode(o<<8|i)]=a,e+=1}if(e!=f)throw e+" != "+f;return n}(),a="?".charCodeAt(0);return function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);if(n<128)r.push(n);else{var o=i[t.charAt(e)];"number"==typeof o?(255&o)==o?r.push(o):(r.push(o>>>8),r.push(255&o)):r.push(a)}}return r}};var r,t,a=1,u=2,o=4,f=8,y={L:1,M:0,Q:3,H:2},e=0,n=1,c=2,g=3,l=4,h=5,s=6,v=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],(t={}).getBCHTypeInfo=function(t){for(var r=t<<10;0<=d(r)-d(1335);)r^=1335<<d(r)-d(1335);return 21522^(t<<10|r)},t.getBCHTypeNumber=function(t){for(var r=t<<12;0<=d(r)-d(7973);)r^=7973<<d(r)-d(7973);return t<<12|r},t.getPatternPosition=function(t){return r[t-1]},t.getMaskFunction=function(t){switch(t){case e:return function(t,r){return(t+r)%2==0};case n:return function(t,r){return t%2==0};case c:return function(t,r){return r%3==0};case g:return function(t,r){return(t+r)%3==0};case l:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case h:return function(t,r){return t*r%2+t*r%3==0};case s:return function(t,r){return(t*r%2+t*r%3)%2==0};case v:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},t.getErrorCorrectPolynomial=function(t){for(var r=C([1],0),e=0;e<t;e+=1)r=r.multiply(C([1,w.gexp(e)],0));return r},t.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case o:case f:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case o:return 16;case f:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case o:return 16;case f:return 12;default:throw"mode:"+t}}},t.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);5<i&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},t);function d(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r}var w=function(){for(var r=new Array(256),e=new Array(256),t=0;t<8;t+=1)r[t]=1<<t;for(t=8;t<256;t+=1)r[t]=r[t-4]^r[t-5]^r[t-6]^r[t-8];for(t=0;t<255;t+=1)e[r[t]]=t;var n={glog:function(t){if(t<1)throw"glog("+t+")";return e[t]},gexp:function(t){for(;t<0;)t+=255;for(;256<=t;)t-=255;return r[t]}};return n}();function C(n,o){if(void 0===n.length)throw n.length+"/"+o;var r=function(){for(var t=0;t<n.length&&0==n[t];)t+=1;for(var r=new Array(n.length-t+o),e=0;e<n.length-t;e+=1)r[e]=n[e+t];return r}(),i={getAt:function(t){return r[t]},getLength:function(){return r.length},multiply:function(t){for(var r=new Array(i.getLength()+t.getLength()-1),e=0;e<i.getLength();e+=1)for(var n=0;n<t.getLength();n+=1)r[e+n]^=w.gexp(w.glog(i.getAt(e))+w.glog(t.getAt(n)));return C(r,0)},mod:function(t){if(i.getLength()-t.getLength()<0)return i;for(var r=w.glog(i.getAt(0))-w.glog(t.getAt(0)),e=new Array(i.getLength()),n=0;n<i.getLength();n+=1)e[n]=i.getAt(n);for(n=0;n<t.getLength();n+=1)e[n]^=w.gexp(w.glog(t.getAt(n))+r);return C(e,0).mod(t)}};return i}function p(){var e=[],o={writeByte:function(t){e.push(255&t)},writeShort:function(t){o.writeByte(t),o.writeByte(t>>>8)},writeBytes:function(t,r,e){r=r||0,e=e||t.length;for(var n=0;n<e;n+=1)o.writeByte(t[n+r])},writeString:function(t){for(var r=0;r<t.length;r+=1)o.writeByte(t.charCodeAt(r))},toByteArray:function(){return e},toString:function(){var t="";t+="[";for(var r=0;r<e.length;r+=1)0<r&&(t+=","),t+=e[r];return t+="]"}};return o}var k,A,b=(k=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],(A={}).getRSBlocks=function(t,r){var e=function(t,r){switch(r){case y.L:return k[4*(t-1)+0];case y.M:return k[4*(t-1)+1];case y.Q:return k[4*(t-1)+2];case y.H:return k[4*(t-1)+3];default:return}}(t,r);if(void 0===e)throw"bad rs block @ typeNumber:"+t+"/errorCorrectionLevel:"+r;for(var n,o,i=e.length/3,a=[],u=0;u<i;u+=1)for(var f=e[3*u+0],c=e[3*u+1],g=e[3*u+2],l=0;l<f;l+=1)a.push((n=g,o=void 0,(o={}).totalCount=c,o.dataCount=n,o));return a},A),M=function(){var e=[],n=0,o={getBuffer:function(){return e},getAt:function(t){var r=Math.floor(t/8);return 1==(e[r]>>>7-t%8&1)},put:function(t,r){for(var e=0;e<r;e+=1)o.putBit(1==(t>>>r-e-1&1))},getLengthInBits:function(){return n},putBit:function(t){var r=Math.floor(n/8);e.length<=r&&e.push(0),t&&(e[r]|=128>>>n%8),n+=1}};return o},x=function(t){var r=a,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+2<r.length;)t.put(o(r.substring(e,e+3)),10),e+=3;e<r.length&&(r.length-e==1?t.put(o(r.substring(e,e+1)),4):r.length-e==2&&t.put(o(r.substring(e,e+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return e},m=function(t){var r=u,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+1<r.length;)t.put(45*o(r.charAt(e))+o(r.charAt(e+1)),11),e+=2;e<r.length&&t.put(o(r.charAt(e)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return e},L=function(t){var r=o,e=i.stringToBytes(t),n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=0;r<e.length;r+=1)t.put(e[r],8)}};return n},D=function(t){var r=f,e=i.stringToBytesFuncs.SJIS;if(!e)throw"sjis not supported.";!function(){var t=e("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=e(t),n={getMode:function(){return r},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return n},S=function(t){var e=t,n=0,o=0,i=0,r={read:function(){for(;i<8;){if(n>=e.length){if(0==i)return-1;throw"unexpected end of file./"+i}var t=e.charAt(n);if(n+=1,"="==t)return i=0,-1;t.match(/^\s$/)||(o=o<<6|a(t.charCodeAt(0)),i+=6)}var r=o>>>i-8&255;return i-=8,r}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return r},I=function(t,r,e){for(var n=function(t,r){var n=t,o=r,l=new Array(t*r),e={setPixel:function(t,r,e){l[r*n+t]=e},write:function(t){t.writeString("GIF87a"),t.writeShort(n),t.writeShort(o),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(n),t.writeShort(o),t.writeByte(0);var r=i(2);t.writeByte(2);for(var e=0;255<r.length-e;)t.writeByte(255),t.writeBytes(r,e,255),e+=255;t.writeByte(r.length-e),t.writeBytes(r,e,r.length-e),t.writeByte(0),t.writeString(";")}},i=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,o=h(),i=0;i<r;i+=1)o.add(String.fromCharCode(i));o.add(String.fromCharCode(r)),o.add(String.fromCharCode(e));var a=p(),u=function(t){var e=t,n=0,o=0,r={write:function(t,r){if(t>>>r!=0)throw"length over";for(;8<=n+r;)e.writeByte(255&(t<<n|o)),r-=8-n,t>>>=8-n,n=o=0;o|=t<<n,n+=r},flush:function(){0<n&&e.writeByte(o)}};return r}(a);u.write(r,n);var f=0,c=String.fromCharCode(l[f]);for(f+=1;f<l.length;){var g=String.fromCharCode(l[f]);f+=1,o.contains(c+g)?c+=g:(u.write(o.indexOf(c),n),o.size()<4095&&(o.size()==1<<n&&(n+=1),o.add(c+g)),c=g)}return u.write(o.indexOf(c),n),u.write(e,n),u.flush(),a.toByteArray()},h=function(){var r={},e=0,n={add:function(t){if(n.contains(t))throw"dup key:"+t;r[t]=e,e+=1},size:function(){return e},indexOf:function(t){return r[t]},contains:function(t){return void 0!==r[t]}};return n};return e}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=p();n.write(a);for(var u=function(){function e(t){a+=String.fromCharCode(r(63&t))}var n=0,o=0,i=0,a="",t={},r=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return t.writeByte=function(t){for(n=n<<8|255&t,o+=8,i+=1;6<=o;)e(n>>>o-6),o-=6},t.flush=function(){if(0<o&&(e(n<<6-o),o=n=0),i%3!=0)for(var t=3-i%3,r=0;r<t;r+=1)a+="="},t.toString=function(){return a},t}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return i}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||57344<=n?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});
 /* ── จบ qrcode-generator ── */
@@ -3955,7 +3955,7 @@ function houseLossPct(h){ const r=houseRecvN(h); if(!(r>0)) return null; try{ co
    เดิมหน้าประสิทธิภาพอ่านจากช่อง h.fcr ซึ่งเป็นค่าตั้งต้นค้างไว้ (2.40 เท่ากันทั้งฟาร์ม หรือว่าง)
    → ตัวเลขไม่เชื่อมกับของจริงเลย (เจ้าของทัก 1 ส.ค. 69) ตอนนี้ทุกหน้าใช้ตัวคำนวณเดียวกันนี้
    ⚠️ คิดได้เฉพาะหลังที่หมูออกหมดแล้ว — ระหว่างเลี้ยง หมูที่ยังอยู่ยังไม่มีน้ำหนักออก จึงเทียบไม่ได้ (คืน null) */
-function houseFeedKg(h){ return ((h&&h.vetLog)||[]).reduce((s,e)=>s+((e&&e.type==='feed')?(Number(e.feedKg)||0):0),0); }
+function houseFeedKg(h){ return fxFeedRows(h).reduce((s,r)=>s+r.kg,0); }   // 🔁 690924i: รับเข้า + เอามาจากหลังอื่น − หลังอื่นเอาไป
 function houseEatKg(h){ return ((h&&h.vetLog)||[]).reduce((s,e)=>s+((e&&e.type==='intake')?(Number(e.eatKg)||0):0),0); }
 function houseAvgInW(h){ const it=(h&&h.intake)||{}; const n=Number(it.inN)||Number(h&&h.received)||0;
   return Number(it.avgW)||(n>0?(Number(it.totalW)||0)/n:0); }
@@ -10228,16 +10228,23 @@ function fpFieldId(r){ return 'f_pr_'+fpSlug(String(r&&r.no||'')+'|'+String(r&&r
    ทั้งที่ 43,730 กก. เป็นของ VCF (13.85) → ค่าอาหารในงบต่ำกว่าจริง 75,653 บาท และไม่ตรงกับตาราง ⑦ ในใบพิมพ์
    (ตาราง ⑦ ใช้ houseFeedLots ซึ่งแยกเจ้าอยู่แล้ว = ถูกต้อง) → ให้สองที่ใช้เกณฑ์เดียวกัน ตัวเลขตรงกันตลอด */
 function feedAgg(h){
-  const m={};
-  (h.vetLog||[]).filter(e=>e.type==='feed').forEach(e=>{
+  const m={}, rows=fxFeedRows(h);
+  rows.filter(r=>r.kg>0).forEach(r=>{ const e=r.e;
     const no=e.feedNo||'(ไม่ระบุเบอร์)';
     const src=String(e.feedSrc||'').trim();
     const k=no+'|'+src;
     if(!m[k]) m[k]={no,src,kg:0,bills:{}};
-    m[k].kg+=Number(e.feedKg)||0;
+    m[k].kg+=r.kg;
     if(e.feedBill) m[k].bills[e.feedBill]=1;
   });
-  return Object.values(m).map(x=>({no:x.no,kg:x.kg,src:x.src,bill:Object.keys(x.bills).join(', ')}))
+  // 🔁 690924i: หลังอื่นเอาไปใช้ → หักจากกองเบอร์เดียวกัน (เจ้าเดียวกันก่อน · ไม่เจอ = เบอร์เดียวกันกองใหญ่สุด · ไม่มีเลย = แถวติดลบ)
+  rows.filter(r=>r.kg<0).forEach(r=>{ const e=r.e, nk=feedNoKey(e.feedNo), src=String(e.feedSrc||'').trim();
+    const vs=Object.values(m).filter(x=>feedNoKey(x.no)===nk);
+    let x=vs.find(v=>v.src===src)||vs.sort((a,b)=>b.kg-a.kg)[0];
+    if(!x){ const k=(e.feedNo||'(ไม่ระบุเบอร์)')+'|'+src; x=m[k]=m[k]||{no:e.feedNo||'(ไม่ระบุเบอร์)',src,kg:0,bills:{}}; }
+    x.kg+=r.kg; x.fx=1;
+  });
+  return Object.values(m).filter(x=>!(x.fx&&Math.abs(x.kg)<0.05)).map(x=>({no:x.no,kg:x.fx?Math.round(x.kg*1000)/1000:x.kg,src:x.src,bill:Object.keys(x.bills).join(', ')}))
     .sort((a,b)=>b.kg-a.kg);   // เรียงมาก→น้อย ให้ลำดับตรงกับตาราง ⑦ ในใบพิมพ์
 }
 // สรุปการกินได้ต่อวัน (จากบันทึก intake ของหมอ) — ล่าสุด / เฉลี่ย / รวม
@@ -10254,7 +10261,7 @@ function intakeAgg(h){
 // สรุปการรับอาหารเข้า (จากบันทึก feed ของหมอ) — รวม กก. + ยาผสมล่าสุด
 function feedRecvAgg(h){
   const recs=(h.vetLog||[]).filter(e=>e.type==='feed');
-  const totalKg=recs.reduce((s,e)=>s+(Number(e.feedKg)||0),0);
+  const totalKg=houseFeedKg(h);   // 🔁 690924i: สุทธิหลังยืม/ให้ยืมข้ามหลัง
   const lastMed=((recs.find(e=>e.feedMed&&e.feedMed.trim())||{}).feedMed||'').trim();
   return {records:recs.length,totalKg,lastMed};
 }
@@ -10751,7 +10758,7 @@ function batchSummary(h){
     deadN:(m.deadN!=null?m.deadN:a.deadN), cullN:(m.cullN!=null?m.cullN:a.cullN), soldN:(m.outN!=null?m.outN:a.soldN), breedTotal:it.breedTotal||0,
     deadBig:deadTypeCounts(h.dailyLog).big, deadRot:deadTypeCounts(h.dailyLog).rot,   // ⚰️ 690921d: จำนวนตายใหญ่/ตายเน่า ณ วันปิดชุด (หน้าจอคำนวณสดจาก dailyLog อยู่แล้ว เก็บไว้เผื่อตารางรวม) // จำนวนตรงกับเลขที่ใช้คิดเงิน (ฟอร์มปิดชุด) ไม่ใช่ dailyAgg ที่อาจต่างเมื่อแก้
     vet:h.vet, worker:h.worker, assistant:h.assistant, source:it.source||h.source||'',
-    intake: it, dailyLog:(h.dailyLog||[]).slice(), vetLog:(h.vetLog||[]).slice(), meds:(h.meds||[]).slice(),
+    intake: it, dailyLog:(h.dailyLog||[]).slice(), vetLog:fxSnapLog(h), meds:(h.meds||[]).slice(),
     vaccineLog:(h.vaccineLog||[]).slice(),   // สแนปช็อตประวัติการทำวัคซีน ณ วันปิดชุด
     feedReqs:(h.feedReqs||[]).slice(),       // 🌾 สแนปช็อตรายการสั่งอาหารของรุ่นนี้ (เดิมลืมเก็บ — ประวัติหายตอนปิดชุด)
     editLog:(h.editLog||[]).slice(), pigletHistory:h.pigletHistory||'', vaccineHistory:h.vaccineHistory||'',
@@ -11093,7 +11100,7 @@ function buildBatchSheets(rec){
     +'</table>';
   // ── ชีต 2: ประวัติประจำหลัง "ทุกอย่าง" จัดตามหัวข้อ (ขาว-ดำ) ──
   const dl=rec.dailyLog||[], meds=rec.meds||[], el=rec.editLog||[];
-  const vl=rec.vetLog||[], treat=vl.filter(e=>e.type==='treat'), feed=vl.filter(e=>e.type==='feed'), eat=vl.filter(e=>e.type==='intake');
+  const vl=rec.vetLog||[], treat=vl.filter(e=>e.type==='treat'), feed=vl.filter(e=>e&&(e.type==='feed'||e.type==='feedx'||e.type==='feedout')), eat=vl.filter(e=>e.type==='intake');   // 🔁 690924i: รวมแถวยืม/ให้ยืมข้ามหลัง (fxKg ติดลบ = หลังอื่นเอาไป)
   // ④ ข้อมูลการรับเข้า / ลูกหมู
   let t4=T+head('ประวัติประจำหลัง — หลัง '+(rec.code||''),2)
     +sec('④ ข้อมูลการรับเข้า / ลูกหมู',2)
@@ -11139,10 +11146,10 @@ function buildBatchSheets(rec){
   let t7=T+logTable('⑦ ประวัติการรักษา — '+treat.length+' ครั้ง',6,['วันที่','อาการ','ยาสูตร','ยาฉีด','หมายเหตุ','หมอ'],[92,210,120,150,230,120],
     treat.map(e=>[{v:e.date},{v:e.symptoms||'-'},{v:e.formula||'-'},{v:e.inject||'-'},{v:e.note||'-'},{v:e.by||'-'}]),'— ไม่มี —')+'</table>';
   // ⑧ ประวัติการรับอาหาร
-  let t8=T+logTable('⑧ ประวัติการรับอาหาร — '+feed.length+' ครั้ง · รวม '+fm(feed.reduce((s,e)=>s+(Number(e.feedKg)||0),0))+' กก. · '+fm(FR.reduce((s,o)=>s+(o.cost||0),0))+' บาท',9,
+  let t8=T+logTable('⑧ ประวัติการรับอาหาร — '+feed.length+' ครั้ง · รวม '+fm(feed.reduce((s,e)=>s+fxKg(e),0))+' กก. · '+fm(FR.reduce((s,o)=>s+(o.cost||0),0))+' บาท',9,
     ['วันที่','แหล่ง','เบอร์อาหาร','ยาผสม','ปริมาณ (กก.)','ราคา/กก.','เป็นเงิน (บาท)','เลขที่บิล','หมอ'],[92,90,100,190,100,90,110,100,110],
-    feed.map(e=>{ const pr=fpAutoPrice(e.feedNo,e.feedSrc), kg=Number(e.feedKg)||0;
-      return [{v:e.date},{v:e.feedSrc||'-'},{v:e.feedNo||'-'},{v:(e.feedMed||'-').replace(/\n/g,' / ')},{v:kg,t:'n'},
+    feed.map(e=>{ const pr=fpAutoPrice(e.feedNo,e.feedSrc), kg=fxKg(e);
+      return [{v:e.date},{v:fxSrcLbl(e)},{v:e.feedNo||'-'},{v:(e.feedMed||'-').replace(/\n/g,' / ')},{v:kg,t:'n'},
         (pr!=null?{v:pr.toFixed(2)}:{v:'-'}),(pr!=null?{v:Math.round(kg*pr),t:'n'}:{v:'-'}),{v:e.feedBill||'-'},{v:e.by||'-'}]; }),
     '— ไม่มี —')+'</table>';
   // ⑨ ประวัติการกินได้ต่อวัน + เทียบเกณฑ์การกินต่อวัน (FEED_STD ตามวันหลังรับเข้า — เจ้าของขอ 23 ส.ค. 69)
@@ -11174,7 +11181,7 @@ function batchPrintHTML(rec){
   const laborEtc=Math.max(0,(rec.otherCost||0)-medSum-exSum);
   const soldN=rec.soldN!=null?rec.soldN:(rec.outN||0);
   const dl=rec.dailyLog||[], meds=rec.meds||[], vax=rec.vaccineLog||[], dtc=deadTypeCounts(dl);   // ⚰️ 690921d ตายใหญ่/ตายเน่า
-  const vl=rec.vetLog||[], treat=vl.filter(e=>e.type==='treat'), feed=vl.filter(e=>e.type==='feed'), eat=vl.filter(e=>e.type==='intake');
+  const vl=rec.vetLog||[], treat=vl.filter(e=>e.type==='treat'), feed=vl.filter(e=>e&&(e.type==='feed'||e.type==='feedx'||e.type==='feedout')), eat=vl.filter(e=>e.type==='intake');   // 🔁 690924i: รวมแถวยืม/ให้ยืมข้ามหลัง (fxKg ติดลบ = หลังอื่นเอาไป)
   const miss=batchMissing(rec);
   const hdr=t=>`<div class="ph"><div class="pt">${esc(t)}</div>
       <div class="ps">หลัง <b>${esc(rec.code||'')}</b> · ${esc(rec.farm||'')}${rec.zone?' · '+esc(rec.zone):''} — รับเข้า ${esc(fmtISOThai(rec.dateIn||it.dateIn)||'-')} → ปิดชุด ${esc(fmtISOThai(rec.closedOn)||'-')} · เลี้ยง ${n(rec.days)} วัน</div></div>`;
@@ -11268,8 +11275,8 @@ function batchPrintHTML(rec){
         (vaxAgeDays(rec,r.dateISO)!=null?fm(vaxAgeDays(rec,r.dateISO)):'-'),r.dose||'-',r.by||'-',(r.value!=null&&r.value!==''?fm(r.value):'-'),r.note||'-']),'— ไม่มี —')}
     <h3>ประวัติการรับอาหาร <span class="hint">${feed.length} ครั้ง · รวม ${fm(FR.reduce((s,o)=>s+(o.cost||0),0))} บาท</span></h3>
     ${tbl([['วันที่'],['แหล่ง'],['เบอร์'],['ยาผสม'],['ปริมาณ (กก.)',1],['ราคา/กก.',1],['เป็นเงิน',1],['เลขที่บิล'],['หมอ']],
-      feed.map(e=>{const pr=fpAutoPrice(e.feedNo,e.feedSrc),kg=Number(e.feedKg)||0;
-        return [e.date,e.feedSrc||'-',e.feedNo||'-',(e.feedMed||'-').replace(/\n/g,' / '),fm(kg),(pr!=null?pr.toFixed(2):'-'),(pr!=null?fm(kg*pr):'-'),e.feedBill||'-',e.by||'-'];}),'— ไม่มี —')}</section>`;
+      feed.map(e=>{const pr=fpAutoPrice(e.feedNo,e.feedSrc),kg=fxKg(e);
+        return [e.date,fxSrcLbl(e),e.feedNo||'-',(e.feedMed||'-').replace(/\n/g,' / '),fm(kg),(pr!=null?pr.toFixed(2):'-'),(pr!=null?fm(kg*pr):'-'),e.feedBill||'-',e.by||'-'];}),'— ไม่มี —')}</section>`;
 
   const p5=`<section class="sheet land">${hdr('ใบสรุปปิดชุด — การรักษา / การกินได้')}
     <h3>ประวัติการรักษา <span class="hint">${treat.length} ครั้ง</span></h3>
@@ -11471,6 +11478,8 @@ function vetForm(){
     </div>
 
     ${houseFeedLinkHTML(h)}
+
+    ${fxCardHTML(h)}
 
     ${vetIntakeCardHTML(h)}
 
@@ -12732,11 +12741,175 @@ function fpMedFor(no,src){   // สูตรยาโรงงานของ (�
   for(const s of srcs){ const col=fpColFor(s); if(col){ const m=fpMedOf(row,col.k); if(m) return Object.assign({},m,{colName:col.n||col.k}); } }
   return null;
 }
+/* 🔁 690924i — เอาอาหารจากหลังอื่นมาใช้ (เจ้าของ 24 ก.ย. 69: "หมอลงได้ว่าไปเอาอาหารหลังไหนมากิน · เลือกหลังก่อนแล้วค่อยโชว์ยอดเหลือ · เอามาแล้วต้องลบน้ำหนักออกจากหลังต้นทางด้วย")
+   · เก็บที่เดียว = แถว {type:'feedx'} ใน vetLog ของ "หลังที่เอามา" (fromId/fromCode/fromCb) — เขียนผ่าน save_house_section ของหลังตัวเองตามเดิม
+     ไม่เขียนลงหลังต้นทางเลย ⇒ หลายหมอลงพร้อมกันไม่ทับกัน · ลบ/แก้แถวนี้ = หลังต้นทางได้คืน/ขยับตามเองทันที
+   · ฝั่งต้นทาง "คำนวณสด" (fxOutRows) จากแถว feedx ทุกหลังที่ชี้มา (รวมสำเนาชุดปิด 3 ชุดล่าสุดของหลังที่เอาไป) · fromCb = ts ชุดปิดล่าสุดของต้นทาง ณ วันที่เอา
+     → ต้นทางปิดชุดแล้ว (ts เปลี่ยน) แถวเก่าไม่ไปหักรุ่นใหม่ · ตอนปิดชุดต้นทาง fxSnapLog เก็บแถว feedout ลงสำเนาให้งบ/ใบพิมพ์ย้อนหลังตรง
+   · ต้นทุน: feedAgg/houseFeedLots/houseFeedKg/feedTankOf ใช้ fxFeedRows ⇒ อาหาร+ต้นทุน+FCR ย้ายตาม (ราคาเดียวกับที่ต้นทางรับมา: เบอร์+เจ้าเดียวกัน)
+   · หมอส่วนใหญ่โหลดแค่หลังตัวเอง → รายชื่อหลัง/ยอดเหลือ/แถว feedx ของทั้งฟาร์มมาจาก RPC feed_xfer_farm (FX_CACHE) */
+var FX_CACHE={}, _fxLoading={}, _fxIdx=null, _fxIdxTs=0;   // var (ไม่ใช่ let) — houseFeedKg อาจถูกเรียกก่อนสคริปต์วิ่งมาถึงบรรทัดนี้
+var fxSel={hid:null,from:0,k:'',no:'',kg:''};
+function fxMarkerOf(h){ let m=0; ((h&&h.closedBatches)||[]).forEach(b=>{ const t=Number(b&&b.ts)||0; if(t>m) m=t; }); return m; }
+function fxInvalidate(){ _fxIdx=null; }
+function fxLoadedHouses(){ return (typeof HOUSES_FULL!=='undefined'&&HOUSES_FULL&&HOUSES_FULL.length)?HOUSES_FULL:(HOUSES||[]); }
+function fxAllRows(){   // { fromId: [แถว feedx + toId/toCode] } — ของในเครื่องชนะเสมอ · แถวจากเซิร์ฟเวอร์ใช้เฉพาะหลังที่เครื่องนี้ไม่ได้โหลด
+  if(_fxIdx) return _fxIdx;   // แคชอยู่แค่รอบวาดเดียว (ล้างเองใน microtask — ไม่โดนหน่วงเวลาแบบ setTimeout ตอนแอปอยู่เบื้องหลัง) — แก้/ลบ/โหลดใหม่เมื่อไหร่ รอบถัดไปเห็นทันที ไม่ต้องไล่ล้างทุกจุด
+  const by={}, seen=new Set(), loaded=new Set();
+  const add=(e,hid,hcode)=>{ if(!e||e.type!=='feedx'||!e._id||seen.has(e._id)) return; seen.add(e._id);
+    const f=Number(e.fromId); if(!f||f===hid) return; (by[f]=by[f]||[]).push(Object.assign({},e,{toId:hid,toCode:hcode})); };
+  fxLoadedHouses().forEach(h=>{ if(!h||!h.id) return; loaded.add(h.id);
+    (h.vetLog||[]).forEach(e=>add(e,h.id,h.code));
+    (h.closedBatches||[]).slice(0,3).forEach(b=>((b&&b.vetLog)||[]).forEach(e=>add(e,h.id,h.code))); });
+  Object.keys(FX_CACHE||{}).forEach(f=>{ const c=FX_CACHE[f]; if(!c||!c.xfers) return; const codeOf={}; (c.houses||[]).forEach(x=>codeOf[x.id]=x.code);
+    c.xfers.forEach(e=>{ if(e&&!loaded.has(Number(e.hid))) add(e,Number(e.hid),codeOf[e.hid]||''); }); });
+  _fxIdx=by; _fxIdxTs=Date.now(); try{ (typeof queueMicrotask==='function'?queueMicrotask:(f=>Promise.resolve().then(f)))(fxInvalidate); }catch(e){ _fxIdx=null; } return by;
+}
+function fxOutRows(h){ if(!h||!h.id) return []; const m=fxMarkerOf(h);
+  return (fxAllRows()[h.id]||[]).filter(e=>(Number(e.fromCb)||0)===m&&(Number(e.feedKg)||0)>0); }
+function fxFeedRows(h){   // แถวอาหารเข้า-ออกของหลัง: kg บวก = รับเข้า/เอามาจากหลังอื่น · ลบ = หลังอื่นเอาไป
+  const live=!!(h&&h.id), out=[];
+  ((h&&h.vetLog)||[]).forEach(e=>{ if(!e) return;
+    if(e.type==='feed'||e.type==='feedx'){ const q=Number(e.feedKg)||0; if(q) out.push({e,kg:q}); }
+    else if(e.type==='feedout'&&!live){ const q=Number(e.feedKg)||0; if(q) out.push({e,kg:-q}); } });   // feedout = สำเนาชุดปิดเท่านั้น (หลังที่ยังเลี้ยงคำนวณสด)
+  if(live) fxOutRows(h).forEach(e=>out.push({e,kg:-(Number(e.feedKg)||0),out:1}));
+  return out;
+}
+function fxSnapLog(h){   // สำเนา vetLog ตอนปิดชุด + แถว feedout (หลังอื่นเอาไป) ให้งบ/ใบพิมพ์ย้อนหลังหักตรงกับวันปิด
+  return ((h&&h.vetLog)||[]).filter(e=>!(e&&e.type==='feedout')).concat(fxOutRows(h).map(e=>({type:'feedout',_id:'fo|'+e._id,date:e.date,by:e.by,
+    feedNo:e.feedNo,feedSrc:e.feedSrc,feedKg:Number(e.feedKg)||0,toId:e.toId,toCode:e.toCode,ts:e.ts})));
+}
+function fxKg(e){ const q=Number(e&&e.feedKg)||0; return (e&&e.type==='feedout')?-q:q; }
+function fxSrcLbl(e){ if(!e) return '-'; if(e.type==='feedx') return '🔁 จากหลัง '+(e.fromCode||'-'); if(e.type==='feedout') return '🔁 หลัง '+(e.toCode||'-')+' เอาไป'; return e.feedSrc||'-'; }
+function fxCanUse(){ return ['owner','admin','vet'].indexOf(ROLE)>=0; }
+async function fxLoad(farm,force){
+  if(!farm) return null;
+  const c=FX_CACHE[farm]; if(!force&&c&&Date.now()-c.ts<(c.err?30000:60000)) return c;
+  if(_fxLoading[farm]) return _fxLoading[farm];
+  const p=(async()=>{
+    try{
+      const ok=CONFIG&&CONFIG.supabase&&CONFIG.supabase.enabled&&CONFIG.supabase.backend==='v2';
+      const r=ok?await supaFetch('/rest/v1/rpc/feed_xfer_farm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_farm:farm})}):null;
+      if(r&&r.ok){ const j=await r.json(); FX_CACHE[farm]={ts:Date.now(),houses:(j&&j.houses)||[],xfers:(j&&j.xfers)||[]}; }
+      else FX_CACHE[farm]=fxLocalFarm(farm,ok?(r?('HTTP '+r.status):'no response'):'');
+    }catch(e){ FX_CACHE[farm]=fxLocalFarm(farm,String((e&&e.message)||e)); }
+    fxInvalidate();
+    return FX_CACHE[farm];
+  })();
+  _fxLoading[farm]=p; p.then(()=>{ if(_fxLoading[farm]===p) delete _fxLoading[farm]; },()=>{ if(_fxLoading[farm]===p) delete _fxLoading[farm]; });   // ลบธงหลังตั้งเสมอ (เดิมทางไม่มี await ลบก่อนตั้ง → ค้างถาวร)
+  return p;
+}
+function fxLocalFarm(farm,err){   // เซิร์ฟเวอร์ไม่ตอบ → ใช้หลังที่เครื่องนี้โหลดไว้ (เจ้าของ/ผู้ดูแลมีครบ · หมอมีแค่หลังตัวเอง)
+  const houses=fxLoadedHouses().filter(h=>h&&h.id&&(h.farm||'')===farm).map(h=>{ const m={};
+    ((h.vetLog)||[]).forEach(e=>{ if(!e) return; const isEat=e.type==='intake'; if(!(isEat||e.type==='feed'||e.type==='feedx')) return;
+      const full=String((isEat?e.eatNo:e.feedNo)||'').trim(), k=feedNoKey(full); if(!k) return; const q=Number(isEat?e.eatKg:e.feedKg)||0;
+      const o=m[k]=m[k]||{k,no:'',src:'',in:0,eat:0,_s:{}}; if(isEat) o.eat+=q; else { o.in+=q; const s=String(e.feedSrc||'').trim(); if(s) o._s[s]=(o._s[s]||0)+q; } if(!o.no&&full) o.no=full; });
+    const tank=Object.values(m).map(o=>{ const ss=Object.keys(o._s).sort((a,b)=>o._s[b]-o._s[a]); return {k:o.k,no:o.no||o.k,src:ss[0]||'',in:o.in,eat:o.eat}; });
+    return {id:h.id,code:h.code,zone:h.zone||'',vet:h.vet||'',pigs:h.pigs||0,cb:fxMarkerOf(h),tank}; });
+  return {ts:Date.now(),houses,xfers:[],local:1,err:err||''};
+}
+function fxSrcTank(src){   // ยอดเหลือรายเบอร์ของหลังต้นทาง = รับเข้า(รวมที่เอามา) − กินได้ − หลังอื่นเอาไป (ชุดปัจจุบันของต้นทาง)
+  if(!src) return [];
+  const outs=(fxAllRows()[src.id]||[]).filter(e=>(Number(e.fromCb)||0)===(Number(src.cb)||0));
+  const m={}; (src.tank||[]).forEach(t=>{ m[t.k]={k:t.k,no:t.no||t.k,src:t.src||'',in:Number(t.in)||0,eat:Number(t.eat)||0,out:0}; });
+  outs.forEach(e=>{ const k=feedNoKey(e.feedNo); if(!k) return; const o=m[k]=m[k]||{k,no:String(e.feedNo||k).trim(),src:String(e.feedSrc||'').trim(),in:0,eat:0,out:0}; o.out+=Number(e.feedKg)||0; });
+  return Object.values(m).map(o=>Object.assign(o,{left:Math.round((o.in-o.eat-o.out)*10)/10}))
+    .sort((a,b)=>b.left-a.left||String(a.k).localeCompare(String(b.k),'th',{numeric:true}));
+}
+function fxCardHTML(h){
+  if(!h||!h.id||!fxCanUse()) return '';
+  return `<div class="card" id="fxCard"><h3>🔁 เอาอาหารจากหลังอื่นมาใช้ <span class="more">ยอดที่เอามา หักออกจากหลังต้นทางทั้งอาหารในถังและต้นทุน</span></h3><div id="fxBox">${fxBodyHTML(h)}</div></div>`;
+}
+function fxRe(){ const b=document.getElementById('fxBox'); if(b&&currentHouse) b.innerHTML=fxBodyHTML(currentHouse); }
+function fxBodyHTML(h){
+  if(fxSel.hid!==h.id) fxSel={hid:h.id,from:0,k:'',no:'',kg:''};
+  const farm=h.farm||'', c=FX_CACHE[farm];
+  if(!c||Date.now()-c.ts>(c.err?30000:60000)) fxLoad(farm,!!(c&&c.err)).then(()=>{   // โหลดล้ม = รอ 30 วิค่อยลองใหม่ (กันยิงวนไม่หยุด)
+    const box=document.getElementById('fxBox'), ae=document.activeElement;
+    if(currentHouse&&currentHouse.id===h.id&&!(box&&ae&&box.contains(ae)&&ae.tagName==='INPUT')) fxRe(); });   // กำลังพิมพ์กิโลอยู่ = ไม่วาดทับ
+  const outs=fxOutRows(h), mine=((h.vetLog)||[]).filter(e=>e&&e.type==='feedx'&&(Number(e.feedKg)||0)>0);
+  const line=(e,dir)=>`<div class="sub" style="margin:2px 0">${escA(e.date||'-')} · เบอร์ ${escA(e.feedNo||'-')} <b>${fmt(Number(e.feedKg)||0)}</b> กก. ${dir} · ${escA(e.by||'-')}</div>`;
+  const hist=(outs.length||mine.length)?`<div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:9px;font-size:13px">
+      ${mine.length?`<div style="font-weight:700;margin-bottom:3px">📥 หลังนี้เอามาจากหลังอื่น (รุ่นนี้)</div>${mine.slice(0,8).map(e=>line(e,'← หลัง '+escA(e.fromCode||'-'))).join('')}${mine.length>8?`<div class="sub">… อีก ${mine.length-8} รายการ (ดูในประวัติการรับอาหาร)</div>`:''}`:''}
+      ${outs.length?`<div style="font-weight:700;margin:${mine.length?'8px':'0'} 0 3px">📤 หลังอื่นเอาอาหารหลังนี้ไปใช้ (หักออกแล้ว)</div>${outs.slice(0,8).map(e=>line(e,'→ หลัง '+escA(e.toCode||'-'))).join('')}${outs.length>8?`<div class="sub">… อีก ${outs.length-8} รายการ</div>`:''}<div class="sub" style="margin-top:4px">ลงผิด → แจ้งหมอหลังที่เอาไปให้แก้/ลบในประวัติการรับอาหารของหลังนั้น แล้วยอดจะคืนเอง</div>`:''}
+    </div>`:'';
+  if(!c) return `<div class="sub">⏳ กำลังโหลดรายชื่อหลังในฟาร์ม…</div>${hist}`;
+  const others=(c.houses||[]).filter(x=>x&&x.id!==h.id);
+  if(!others.length) return `<div class="sub">${c.err?'⚠️ โหลดรายชื่อหลังไม่สำเร็จ — ':''}ไม่มีหลังอื่นในฟาร์มนี้ให้เลือก ${c.err?`<button class="btn ghost sm" onclick="fxLoad(currentHouse&&currentHouse.farm,true).then(fxRe)">🔄 ลองใหม่</button>`:''}</div>${hist}`;
+  const zones={}; others.forEach(x=>{ const z=x.zone||''; (zones[z]=zones[z]||[]).push(x); });
+  const zk=Object.keys(zones).sort((a,b)=>(a===''?1:0)-(b===''?1:0)||a.localeCompare(b,'th',{numeric:true}));
+  const opts=zk.map(z=>`<optgroup label="${escA(z===''?'หลังอื่นๆ':'โซน '+z)}">${zones[z].sort((a,b)=>String(a.code).localeCompare(String(b.code),'th',{numeric:true})).map(x=>`<option value="${x.id}"${x.id===fxSel.from?' selected':''}>${escA(x.code)}</option>`).join('')}</optgroup>`).join('');
+  const src=others.find(x=>x.id===fxSel.from);
+  let after='';
+  if(src){
+    const tank=fxSrcTank(src), have=tank.filter(t=>t.left>0);
+    if(fxSel.k&&!fxSel.no&&!have.some(t=>t.k===fxSel.k)) fxSel.k='';
+    if(!fxSel.k&&!fxSel.no&&have.length===1) fxSel.k=have[0].k;
+    const chip=t=>`<button type="button" class="btn ${t.k===fxSel.k?'':'ghost'} sm" style="margin:0 6px 6px 0" onclick="fxPick(this.dataset.k)" data-k="${escA(t.k)}">เบอร์ ${escA(t.no)} · เหลือ <b>${fmt(t.left)}</b> กก.</button>`;
+    after=`<div style="background:var(--soft);border-radius:11px;padding:9px 12px;margin:10px 0">
+        <div style="font-size:13px;font-weight:800;margin-bottom:7px">🥫 อาหารหลัง ${escA(src.code)} เหลือตอนนี้ (ประมาณ)</div>
+        ${have.length?`<div>${have.map(chip).join('')}</div><div class="sub" style="margin-top:2px">แตะเลือกเบอร์ที่เอามา</div>`
+          :`<div style="color:#8a6a20;font-size:13px">⚠️ หลัง ${escA(src.code)} ไม่มีอาหารเหลือในระบบ (อาจยังไม่ได้ลงรับอาหาร) — ถ้าเอามาจริง เลือกเบอร์ด้านล่างแล้วลงต่อได้</div>
+             <select class="cin tl" style="margin-top:7px" onchange="fxPickNo(this.value)"><option value="">— เลือกเบอร์อาหาร —</option>${VET_FEEDNO.map(n=>`<option${n===fxSel.no?' selected':''}>${escA(n)}</option>`).join('')}</select>`}
+        <div class="sub" style="margin-top:6px">ยอดเหลือ = รับเข้า − กินได้ที่หมอลง − หลังอื่นเอาไป · ถ้าหลังนั้นลงกินได้ไม่ครบ ตัวเลขจะสูงกว่าของจริง</div>
+      </div>
+      ${(fxSel.k||fxSel.no)?`<div class="frow" style="margin-bottom:0"><label>เอาเบอร์ ${escA((fxCur()||{}).no||'')} มากี่กิโล</label><div class="unit"><input id="fxKg" class="cin tl" type="number" inputmode="decimal" placeholder="0" value="${escA(fxSel.kg)}" oninput="fxSel.kg=this.value;fxPrev()"><span class="u">กก.</span></div></div>
+      <div id="fxPrev">${fxPrevHTML()}</div>
+      <div class="actions" style="margin:10px 0 0"><button type="button" class="btn" onclick="fxSave()">💾 บันทึกเอาอาหารจากหลัง ${escA(src.code)}</button></div>`:''}`;
+  }
+  return `<div class="frow" style="margin-bottom:0"><label>เอามาจากหลังไหน</label>
+      <select id="fxFrom" class="cin tl" onchange="fxFromSet(this.value)"><option value="">— เลือกหลัง —</option>${opts}</select></div>
+    ${c.local&&c.err&&ROLE==='vet'?'<div class="sub" style="margin-top:5px;color:#8a6a20">⚠️ ต่อระบบกลางไม่ได้ — เห็นแค่หลังที่เครื่องนี้มีข้อมูล</div>':''}
+    ${after}${hist}`;
+}
+function fxFromSet(v){ fxSel.from=Number(v)||0; fxSel.k=''; fxSel.no=''; fxRe(); }
+function fxPick(k){ fxSel.k=k||''; fxSel.no=''; fxRe(); const i=document.getElementById('fxKg'); if(i) i.focus(); }
+function fxPickNo(n){ fxSel.no=n||''; fxSel.k=n?feedNoKey(n):''; fxRe(); }
+function fxCur(){   // {src, t(ยอดเบอร์ที่เลือก), no, feedSrc}
+  const h=currentHouse, c=h&&FX_CACHE[h.farm||'']; if(!c) return null;
+  const src=(c.houses||[]).find(x=>x.id===fxSel.from); if(!src||!(fxSel.k||fxSel.no)) return null;
+  const t=fxSrcTank(src).find(x=>x.k===fxSel.k)||null;
+  return {src,t,no:fxSel.no||(t&&t.no)||fxSel.k,feedSrc:(t&&t.src)||''};
+}
+function fxPrevHTML(){
+  const x=fxCur(), h=currentHouse; if(!x||!h) return '';
+  const kg=Number(fxSel.kg)||0, left=x.t?x.t.left:0;
+  if(!(kg>0)) return '<div class="sub" style="margin-top:6px">ใส่จำนวนกิโลที่เอามา</div>';
+  const over=kg>left+0.05;
+  return `<div style="margin-top:8px;background:${over?'#fdf3e0':'#e9f5ee'};border:1px solid ${over?'#e5b96e':'#9fd0b5'};border-radius:9px;padding:8px 11px;font-size:13px;color:${over?'#8a6a20':'#1a5c3f'}">
+      ${over?`⚠️ เกินยอดที่ระบบคิดว่าเหลือ ${fmt(Math.round((kg-left)*10)/10)} กก. — บันทึกได้ แต่ขอให้เช็คกิโลอีกครั้ง<br>`:''}
+      หลังบันทึก: หลัง ${escA(x.src.code)} เบอร์ ${escA(x.no)} เหลือ <b>${fmt(Math.max(0,Math.round((left-kg)*10)/10))}</b> กก. · หลัง ${escA(h.code)} ได้เพิ่ม <b>${fmt(kg)}</b> กก.</div>`;
+}
+function fxPrev(){ const b=document.getElementById('fxPrev'); if(b) b.innerHTML=fxPrevHTML(); }
+function fxSave(){
+  if(blockIfReadonly()) return;
+  const h=currentHouse; if(!h||!h.id) return;
+  if(!fxCanUse()){ toast('🔒 ลงได้เฉพาะหมอ/ผู้ดูแล/เจ้าของ'); return; }
+  const x=fxCur(); if(!x){ toast('เลือกหลังและเบอร์อาหารก่อน'); return; }
+  if(x.src.id===h.id){ toast('⛔ เลือกหลังตัวเองไม่ได้'); return; }
+  const kg=Math.round((Number(fxSel.kg)||0)*100)/100;
+  if(!(kg>0)){ toast('ใส่จำนวนกิโลที่เอามาก่อน'); const i=document.getElementById('fxKg'); if(i) i.focus(); return; }
+  const left=x.t?x.t.left:0;
+  if(!confirm('🔁 ยืนยันเอาอาหารจากหลังอื่น\n\nจากหลัง '+x.src.code+' → หลัง '+h.code+'\nเบอร์ '+x.no+' จำนวน '+fmt(kg)+' กก.'
+    +(kg>left+0.05?'\n\n⚠️ เกินยอดที่ระบบคิดว่าหลัง '+x.src.code+' เหลือ ('+fmt(Math.max(0,left))+' กก.)':'')
+    +'\n\nน้ำหนักและต้นทุนอาหารก้อนนี้จะหักออกจากหลัง '+x.src.code+' ไปอยู่หลัง '+h.code)) return;
+  const row={type:'feedx',_id:newRecId('fx'),date:DEMO_DATE_DAY,by:whoNow(),feedNo:x.no,feedSrc:x.feedSrc,feedKg:kg,
+    fromId:x.src.id,fromCode:x.src.code,fromFarm:h.farm||'',fromCb:Number(x.src.cb)||0,ts:Date.now()};
+  h.vetLog=h.vetLog||[]; h.vetLog.unshift(row);
+  h.editLog=h.editLog||[];
+  h.editLog.unshift({time:nowStamp(),ts:Date.now(),by:whoNow(),role:ROLE_LABEL[ROLE]||'-',_dom:'vet',
+    changes:[{label:'เอาอาหารจากหลังอื่น',from:'หลัง '+x.src.code,to:'เบอร์ '+x.no+' · '+fmt(kg)+' กก.'}],note:'🔁 เอาอาหารจากหลัง '+x.src.code+' · '+row.date});
+  try{ logAudit('ประวัติหมอ',(h.farm||'')+' · '+h.code,'เอาอาหารจากหลังอื่น',[{label:'เบอร์ '+x.no,from:'หลัง '+x.src.code,to:'หลัง '+h.code+' '+fmt(kg)+' กก.'}],''); }catch(e){}
+  fxInvalidate(); try{ _cfoIdx=null; }catch(e){}
+  syncHouseVet(h);
+  fxSel={hid:h.id,from:0,k:'',no:'',kg:''};
+  toast('🔁 บันทึกแล้ว — เอาเบอร์ '+x.no+' '+fmt(kg)+' กก. จากหลัง '+x.src.code+' ✓');
+  try{ rerenderCurrent(); }catch(e){ fxRe(); }
+}
 function houseFeedLots(h){   // รวมของที่รับเข้าจริงตาม (เบอร์ × เจ้า) แล้วผูกราคา+ยาจากตาราง 💰 ราคาอาหาร
-  const map={};
-  (h&&h.vetLog||[]).forEach(e=>{
-    if(!e||e.type!=='feed') return;
-    const kg=Number(e.feedKg)||0; if(!(kg>0)) return;
+  const map={}, rows=fxFeedRows(h);
+  rows.forEach(r=>{ const e=r.e;
+    const kg=r.kg; if(!(kg>0)) return;
     const no=feedNoKey(e.feedNo)||String(e.feedNo||'').trim()||'-';
     const src=String(e.feedSrc||'').trim()||'-';
     const k=no+'|'+src, o=map[k]=map[k]||{no,src,kg:0,n:0,meds:[],last:''};
@@ -12744,7 +12917,15 @@ function houseFeedLots(h){   // รวมของที่รับเข้า
     if(e.feedMed&&String(e.feedMed).trim()) o.meds.push(String(e.feedMed).trim());
     if(e.date&&!o.last) o.last=e.date;
   });
-  return Object.values(map).map(o=>{
+  // 🔁 690924i: หลังอื่นเอาไปใช้ → หักจากกองเบอร์เดียวกัน (เจ้าเดียวกันก่อน) — ต้นทุนอาหารย้ายไปหลังที่เอาไป
+  rows.forEach(r=>{ if(!(r.kg<0)) return; const e=r.e;
+    const no=feedNoKey(e.feedNo)||String(e.feedNo||'').trim()||'-', src=String(e.feedSrc||'').trim()||'-';
+    const vs=Object.values(map).filter(o=>o.no===no);
+    let o=map[no+'|'+src]||vs.sort((a,b)=>b.kg-a.kg)[0];
+    if(!o) o=map[no+'|'+src]={no,src,kg:0,n:0,meds:[],last:''};
+    o.kg+=r.kg; o.fx=1;
+  });
+  return Object.values(map).filter(o=>!(o.fx&&Math.abs(o.kg)<0.05)).map(o=>{
     const price=fpAutoPrice(o.no,o.src), mill=fpMedFor(o.no,o.src);
     const millKeys=mill?[...new Set(mill.d.map(d=>fpDrugKey(d.n)).filter(Boolean))]:[];
     const vetText=o.meds.join(' ').toLowerCase();
@@ -12786,12 +12967,15 @@ function houseFeedLinkHTML(h){
 }
 function feedTankOf(h){
   const m={}, add=(no,k,v)=>{ const key=feedNoKey(no)||'-'; const o=m[key]=m[key]||{no:key,full:'',inKg:0,eatKg:0,lastIn:'',lastEat:''}; o[k]+=(Number(v)||0); return o; };
+  fxFeedRows(h).forEach(r=>{ const e=r.e, q=r.kg;   // 🔁 690924i: รับเข้า + เอามาจากหลังอื่น − หลังอื่นเอาไป
+    if(q>0){ const o=add(e.feedNo,'inKg',q); if(!o.full&&String(e.feedNo||'').trim()) o.full=String(e.feedNo).trim(); if(!o.lastIn) o.lastIn=e.date||''; }
+    else if(q<0){ const o=add(e.feedNo,'inKg',q); if(!o.full&&String(e.feedNo||'').trim()) o.full=String(e.feedNo).trim(); }
+  });
   (h&&h.vetLog||[]).forEach(e=>{
     if(!e) return;
-    if(e.type==='feed'){ const q=Number(e.feedKg)||0; if(q>0){ const o=add(e.feedNo,'inKg',q); if(!o.full&&String(e.feedNo||'').trim()) o.full=String(e.feedNo).trim(); if(!o.lastIn) o.lastIn=e.date||''; } }
-    else if(e.type==='intake'){ const q=Number(e.eatKg)||0; if(q>0){ const o=add(e.eatNo,'eatKg',q); if(!o.full&&String(e.eatNo||'').trim()) o.full=String(e.eatNo).trim(); if(!o.lastEat) o.lastEat=e.date||''; } }
+    if(e.type==='intake'){ const q=Number(e.eatKg)||0; if(q>0){ const o=add(e.eatNo,'eatKg',q); if(!o.full&&String(e.eatNo||'').trim()) o.full=String(e.eatNo).trim(); if(!o.lastEat) o.lastEat=e.date||''; } }
   });
-  return Object.values(m).map(o=>Object.assign(o,{left:Math.round((o.inKg-o.eatKg)*10)/10}))
+  return Object.values(m).filter(o=>!(o.inKg<=0.05&&o.eatKg<=0)).map(o=>Object.assign(o,{left:Math.round((o.inKg-o.eatKg)*10)/10}))
     .sort((a,b)=>b.left-a.left||String(a.no).localeCompare(String(b.no),'th',{numeric:true}));
 }
 function feedTankHTML(h){
@@ -12929,7 +13113,7 @@ function rerenderCurrent(){captureVetDraft();const t=navHist[navHist.length-1];i
 // 🔒 หมอแก้รายการรับอาหารได้เฉพาะวันที่ลง และไม่เกิน 12 ชม. นับจากเวลาที่ลง (เจ้าของ 24 ก.ย. 69) · เจ้าของ/ผู้ดูแลแก้ได้ตลอด · คืน '' = แก้ได้ · ไม่งั้นคืนเหตุผล
 const VET_FEED_EDIT_HRS=12;
 function vetFeedEditLock(e){
-  if(!e||e.type!=='feed'||ROLE!=='vet') return '';
+  if(!e||(e.type!=='feed'&&e.type!=='feedx')||ROLE!=='vet') return '';
   const ts=Number(e.ts)||0;
   if(!ts) return 'รายการนี้ไม่มีเวลาที่ลง — แก้ได้เฉพาะเจ้าของ/ผู้ดูแล';
   const now=Date.now(), d0=new Date(ts), d1=new Date(now);
@@ -12945,9 +13129,10 @@ function cancelVetEdit(){vetEdit={hid:null,id:null};rerenderCurrent();}
 const VET_EDIT_FIELDS={
   treat:[['symptoms','อาการ','text'],['formula','ยาสูตร','text'],['inject','ยาฉีด','text'],['note','หมายเหตุ','text']],
   feed:[['feedSrc','แหล่ง','text'],['feedNo','เบอร์อาหาร','text'],['feedMed','ยาผสม','area'],['feedKg','ปริมาณ(กก.)','num'],['feedBill','เลขที่บิล','text']],
-  intake:[['eatNo','อาหารเบอร์','text'],['eatKg','น้ำหนักที่กิน(กก.)','num']]
+  intake:[['eatNo','อาหารเบอร์','text'],['eatKg','น้ำหนักที่กิน(กก.)','num']],
+  feedx:[['feedKg','ปริมาณ(กก.)','num']]   // 🔁 690924i เอาอาหารจากหลังอื่น — แก้ได้แค่กิโล · ล้างกิโล = ลบ (หลังต้นทางได้คืนเอง)
 };
-const VET_TYPE_LABEL={treat:'การรักษา',feed:'การรับอาหาร',intake:'การกินได้'};
+const VET_TYPE_LABEL={treat:'การรักษา',feed:'การรับอาหาร',intake:'การกินได้',feedx:'การเอาอาหารจากหลังอื่น'};
 function saveVetEdit(hid,id){ if(blockIfReadonly())return;
   const h=HOUSES.find(x=>x.id===hid); if(!h) return;
   const rec=(h.vetLog||[]).find(e=>e._id===id); if(!rec) return;
@@ -13011,7 +13196,8 @@ function vetLogHTML(h,withEdit){
   ensureVetIds(h);
   const log=(h.vetLog||[]).filter(e=>!vetRecBlank(e));   // ไม่โชว์แถวเปล่าที่มาจากเครื่องรุ่นเก่า (ล้างข้อมูลออกหมด = เจตนาลบ)
   const treat=log.filter(e=>e.type==='treat');
-  const feed=log.filter(e=>e.type==='feed');
+  const feed=log.filter(e=>e.type==='feed'||e.type==='feedx');   // 🔁 690924i: รวมแถวเอาอาหารจากหลังอื่น
+  const fxOut=fxOutRows(h);                                      // 🔁 หลังอื่นเอาอาหารหลังนี้ไป (อ่านอย่างเดียว — แก้/ลบที่หลังที่เอาไป)
   const intake=log.filter(e=>e.type==='intake');
   const isEd=e=>withEdit&&vetEdit.hid===h.id&&vetEdit.id===e._id;
   const inp=(rid,k,v)=>`<input class="cin tl" id="ve_${rid}_${k}" value="${escA(v)}" style="min-width:84px">`;
@@ -13024,7 +13210,10 @@ function vetLogHTML(h,withEdit){
   const treatRow=e=>isEd(e)
     ? `<tr><td><b>${e.date}</b></td><td>${area(e._id,'symptoms',e.symptoms)}</td><td>${inp(e._id,'formula',e.formula)}</td><td>${inp(e._id,'inject',e.inject)}</td><td>${area(e._id,'note',e.note)}</td><td>${e.by||'-'}</td>${act(e)}</tr>`
     : `<tr><td><b>${e.date}</b></td><td style="white-space:normal;min-width:150px;max-width:260px">${escA(e.symptoms||'-')}</td><td>${escA(e.formula||'-')}</td><td>${escA(e.inject||'-')}</td><td style="white-space:normal;min-width:120px;max-width:220px">${escA(e.note||'-')}</td><td>${escA(e.by||'-')}</td>${act(e)}</tr>`;
-  const feedRow=e=>isEd(e)
+  const feedRow=e=>e.type==='feedx'?(isEd(e)
+    ? `<tr><td><b>${e.date}</b></td><td>🔁 จากหลัง ${escA(e.fromCode||'-')}</td><td>${escA(e.feedNo||'-')}</td><td>-</td><td class="num">${inpNum(e._id,'feedKg',e.feedKg)}<div class="sub" style="font-size:10.5px">ล้างช่อง = ลบ</div></td><td>-</td><td>${escA(e.by||'-')}</td>${act(e)}</tr>`
+    : `<tr style="background:#f3f8fc"><td><b>${e.date}</b></td><td>🔁 จากหลัง ${escA(e.fromCode||'-')}</td><td>${escA(e.feedNo||'-')}</td><td>-</td><td class="num">${e.feedKg?fmt(e.feedKg):'-'}</td><td>-</td><td>${escA(e.by||'-')}</td>${act(e)}</tr>`)
+    : isEd(e)
     ? `<tr><td><b>${e.date}</b></td><td>${inp(e._id,'feedSrc',e.feedSrc)}</td><td>${inp(e._id,'feedNo',e.feedNo)}</td><td>${area(e._id,'feedMed',e.feedMed)}</td><td class="num">${inpNum(e._id,'feedKg',e.feedKg)}</td><td>${inp(e._id,'feedBill',e.feedBill)}</td><td>${e.by||'-'}</td>${act(e)}</tr>`
     : `<tr><td><b>${e.date}</b></td><td>${escA(e.feedSrc||'-')}</td><td>${escA(e.feedNo||'-')}</td><td style="white-space:normal;min-width:140px;max-width:260px">${escA(e.feedMed||'-').replace(/\n/g,'<br>')}</td><td class="num">${e.feedKg?fmt(e.feedKg):'-'}</td><td>${escA(e.feedBill||'-')}</td><td>${escA(e.by||'-')}</td>${act(e)}</tr>`;
   const intakeRow=e=>{const kg=Number(e.eatKg)||0,pg=housePigsOnDate(h,e.date),rate=pg>0?(kg/pg):0;return isEd(e)
@@ -13037,10 +13226,10 @@ function vetLogHTML(h,withEdit){
       <tbody>${treat.length? treat.map(treatRow).join("") : `<tr><td colspan="${withEdit?7:6}" class="sub">ยังไม่มีบันทึกการรักษา</td></tr>`}</tbody>
     </table></div>
   </div>
-  <div class="card"><h3>🌾 ประวัติการรับอาหาร <span class="more">${feed.length} ครั้ง · รวม ${fmt(Math.round(feed.reduce((s,e)=>s+(Number(e.feedKg)||0),0)))} กก.${withEdit&&ROLE==='vet'?' · 🔒 หมอแก้ได้เฉพาะวันที่ลง ไม่เกิน '+VET_FEED_EDIT_HRS+' ชม.':''}</span></h3>
+  <div class="card"><h3>🌾 ประวัติการรับอาหาร <span class="more">${feed.length} ครั้ง · รวม${fxOut.length?'สุทธิ':''} ${fmt(Math.round(houseFeedKg(h)))} กก.${withEdit&&ROLE==='vet'?' · 🔒 หมอแก้ได้เฉพาะวันที่ลง ไม่เกิน '+VET_FEED_EDIT_HRS+' ชม.':''}</span></h3>
     <div class="densewrap" style="max-height:44vh"><table class="densetbl">
       <thead><tr><th>วันที่</th><th>แหล่ง</th><th>เบอร์อาหาร</th><th>ยาผสม</th><th class="num">ปริมาณ(กก.)</th><th>เลขที่บิล</th><th>หมอ</th>${ehCol}</tr></thead>
-      <tbody>${feed.length? feed.map(feedRow).join("") : `<tr><td colspan="${withEdit?8:7}" class="sub">ยังไม่มีบันทึกการรับอาหาร</td></tr>`}</tbody>
+      <tbody>${feed.length? feed.map(feedRow).join("") : `<tr><td colspan="${withEdit?8:7}" class="sub">ยังไม่มีบันทึกการรับอาหาร</td></tr>`}${fxOut.map(e=>`<tr style="background:#fdf6ec"><td><b>${escA(e.date||'-')}</b></td><td>🔁 หลัง ${escA(e.toCode||'-')} เอาไป</td><td>${escA(e.feedNo||'-')}</td><td>-</td><td class="num" style="color:#a15c00">−${fmt(Number(e.feedKg)||0)}</td><td>-</td><td>${escA(e.by||'-')}</td>${withEdit?'<td class="num sub" style="font-size:11px">แก้ที่หลัง '+escA(e.toCode||'-')+'</td>':''}</tr>`).join('')}</tbody>
     </table></div>
   </div>
   <div class="card"><h3>🍽️ ประวัติการกินได้ต่อวัน <span class="more">${intake.length} ครั้ง${(intake.length&&housePigsOnDate(h,intake[0].date)>0&&Number(intake[0].eatKg))?' · ล่าสุด '+(Number(intake[0].eatKg)/housePigsOnDate(h,intake[0].date)).toFixed(2)+' กก./ตัว/วัน':''}</span></h3>
@@ -20596,7 +20785,7 @@ async function brFbClose(){
   const rec={kind:'farrow',code:h.code,farm:h.farm||'',open:openD,closedOn:today,ts:Date.now(),by:whoNow(),days:S.days+1,
     sows:{inN:S.sowsInN,out:S.sowsOut,cull:S.sowsCull},farrow:S.farrow,ploss:S.ploss,wean:{litters:S.wean.litters,n:S.wean.n,perLitter:S.weanPerLitter},
     pig:S.pig,feed:S.feed,feedCost:S.feedCost,medCats:S.medCats,medCost:S.medCost,total:S.total,perWeaned:S.perWeaned,perOut:S.perOut,preWeanLoss:S.preWeanLoss,
-    feedSplit:B.feedSplit||{},vetLog:(h.vetLog||[]).slice(),meds:(h.meds||[]).slice(),vaccineLog:(h.vaccineLog||[]).slice(),feedReqs:(h.feedReqs||[]).slice(),piglets:h.piglets?JSON.parse(JSON.stringify(h.piglets)):null};
+    feedSplit:B.feedSplit||{},vetLog:fxSnapLog(h),meds:(h.meds||[]).slice(),vaccineLog:(h.vaccineLog||[]).slice(),feedReqs:(h.feedReqs||[]).slice(),piglets:h.piglets?JSON.parse(JSON.stringify(h.piglets)):null};
   h._closing=true;
   toast('⏳ กำลังบันทึกสรุปรุ่นขึ้นระบบกลาง…');
   /* 🔒 ปิดรุ่นแบบ "ก้อนเดียวบนเซิร์ฟเวอร์" (690822i): RPC close_farrow_batch เอาสำเนาเข้า closedBatches (section เสมียน) + ล้าง vet/piglets/brBatch
