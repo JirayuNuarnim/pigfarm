@@ -628,6 +628,24 @@ body.theme-dark .sbchip.bad{background:rgba(226,75,74,.16)}
 .brbd .wl .wn{white-space:nowrap} .brbd .wl .wd{white-space:nowrap;color:#62748a;font-weight:500;font-variant-numeric:tabular-nums} .brbd .wl .wt{white-space:nowrap;font-variant-numeric:tabular-nums} .brbd .wl .ws{white-space:nowrap;font-weight:700}
 .brbd .wl.done .ws{color:#1e7e4f} .brbd .wl.now .ws{color:#a5342a} .brbd .wl.late .ws{color:#a5342a}
 body.theme-dark .brbd .wls{background:rgba(0,0,0,.25);color:#cbd5e1}
+/* 690928b หัวชุด Week แบบ minimal — เจ้าของ 28 ก.ย. 69 "หัวข้อแต่ละชุดอ่านยาก / ข้อความไม่ต้องเยอะ": ป้ายชุด · สรุปสั้น 1 บรรทัด · งานตอนนี้ 1 บรรทัด · ชิปขั้นตอนแถวเดียว */
+.brbd .wkh2{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.brbd .wkh2,.brbd .wchips{position:sticky;left:0;max-width:calc(100vw - 80px)}   /* ตารางกว้างกว่าจอ: หัวชุด+ปุ่มเกาะขอบซ้ายไว้ */
+.brbd .wkh2 .wkid{display:inline-flex;align-items:center;background:#4b3266;color:#fff;border-radius:9px;padding:4px 12px;font-size:18px;font-weight:900;white-space:nowrap;line-height:1.2}
+.brbd tr.wk.m .wkid{background:#8a2f52} .brbd tr.wk.bad .wkid{background:#a5342a}
+.brbd .wkh2 .wkmeta{font-size:15.5px;font-weight:700;color:#3a4f61;white-space:normal;line-height:1.35} .brbd .wkh2 .wkmeta .sep{margin:0 6px;color:#9aa8b6;font-weight:400}
+.brbd .wkh2 .wkb{display:flex;gap:6px;flex-wrap:wrap}
+.brbd .wknow{font-size:16px;font-weight:800;color:#3a4f61;line-height:1.3;white-space:normal;margin-top:5px}
+.brbd .wknow.now,.brbd .wknow.late{color:#a5342a} .brbd .wknow.done{color:#1e7e4f}
+.brbd .wchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.brbd .wchip{display:inline-flex;align-items:baseline;gap:6px;background:rgba(255,255,255,.85);border:1.5px solid #dfe8e4;border-radius:999px;padding:4px 12px;font-size:13.5px;font-weight:700;color:#3a4f61;white-space:nowrap;line-height:1.3}
+.brbd .wchip .wcd{font-variant-numeric:tabular-nums;color:#1f2d3a} .brbd .wchip .wcs{color:#62748a;font-weight:700}
+.brbd .wchip.done{border-color:#9fd0b5;background:#e4f5ec} .brbd .wchip.done .wcs{color:#1e7e4f}
+.brbd .wchip.now{border-color:#c94a3d;background:#fdecea;box-shadow:0 0 0 2px rgba(201,74,61,.18)} .brbd .wchip.now .wcs,.brbd .wchip.now .wcd{color:#a5342a}
+.brbd .wchip.late{border-color:#e0a0a0;background:#fdecea} .brbd .wchip.late .wcs{color:#a5342a}
+.brbd .wchip.soon{border-color:#e3b45c;background:#fdf3df} .brbd .wchip.soon .wcs{color:#8a6a20}
+body.theme-dark .brbd .wchip{background:rgba(0,0,0,.25);border-color:#2b3554;color:#cbd5e1} body.theme-dark .brbd .wchip .wcd{color:#e2e8f0} body.theme-dark .brbd .wkh2 .wkmeta,body.theme-dark .brbd .wknow{color:#cbd5e1}
+body.theme-dark .brbd .wchip.done{background:rgba(30,126,79,.22)} body.theme-dark .brbd .wchip.now,body.theme-dark .brbd .wchip.late{background:rgba(165,52,42,.25)} body.theme-dark .brbd .wchip.soon{background:rgba(138,106,32,.25)}
 .brbd .tl{font-size:11px;font-weight:600;color:#3a4f61;background:#fff;border:1px solid #dfe8e4;border-radius:7px;padding:1px 7px;white-space:nowrap}
 .brbd .tl.done{color:#1e7e4f;border-color:#9fd0b5} .brbd .tl.now{color:#a5342a;border-color:#e0a0a0;background:#fdecea} .brbd .tl.late{color:#a5342a;border-color:#e0a0a0}
 .brbd .tag{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:700;white-space:nowrap}
@@ -641,6 +659,43 @@ body.theme-dark .brbd .wls{background:rgba(0,0,0,.25);color:#cbd5e1}
 .brbd .act{padding:3px 9px!important;font-size:11.5px!important;line-height:1.5;min-height:0;white-space:nowrap}
 .brbd td .sub{font-size:10.5px;line-height:1.2}
 .brbd input[type=checkbox]{width:19px;height:19px;margin:0;vertical-align:middle}
+/* 📋 690928c ตารางแม่ในหลังแบบใหม่ (BR_VIEW='list') — เจ้าของ 28 ก.ย. 69: เรียงตามความสำคัญ · ติ๊กแล้วปุ่มโผล่ล่างจอ · แตะเบอร์ = บัตรแม่ */
+.lschips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}.lschips::-webkit-scrollbar{display:none}
+.lschip{display:inline-flex;align-items:center;gap:4px;border:1.5px solid #dfe8e4;background:#fff;border-radius:999px;padding:5px 10px;font-size:12.5px;font-weight:700;color:#3a4f61;white-space:nowrap;cursor:pointer}
+.lschip.on{background:#1f2d3a;color:#fff;border-color:#1f2d3a}.lschip .n{background:#eef3f1;border-radius:999px;padding:0 6px;font-size:11.5px;color:#3a4f61}.lschip.on .n{background:rgba(255,255,255,.25);color:#fff}
+.brls{width:100%;table-layout:fixed;border-collapse:collapse;background:#fff;font-size:17px}
+.brls th{background:#e6eef2;color:#3a4f61;font-size:12.5px;font-weight:700;text-align:left;padding:8px 8px;border-bottom:1px solid #dfe8e4}
+.brls td{padding:8px 8px;overflow:hidden;border-bottom:1px solid #eef2f0;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;vertical-align:middle}
+.brls td.ck{padding:6px 4px;text-align:center}.brls td.ck input{width:22px;height:22px;margin:0;vertical-align:middle}
+.brls td.e a.ear{font-size:17px;font-weight:800;color:#1f2d3a;text-decoration:none;border-bottom:1.5px dotted #9aa8b6}
+.brls td.s{font-size:13px;font-weight:700;color:#62748a;white-space:nowrap;padding-left:4px;padding-right:4px}
+.brls td.s.now,.brls td.s.late{color:#a5342a}.brls td.s.soon{color:#8a6a20}.brls td.s.ok{color:#1e7e4f}
+.brls td.s small{display:block;font-size:11px;font-weight:600;color:#9aa8b6;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brls td.d{text-align:right;font-size:15px;color:#62748a}.brls td.d.late{color:#a5342a;font-weight:800}
+.brls tr.sel td{background:#e9f5ee!important}.brls tr[data-ear]{cursor:pointer}
+.brls tr.lsg td{background:#e6eef2;color:#3a4f61;font-size:15px;font-weight:800;padding:10px 12px;white-space:normal;scroll-margin-top:72px}
+.brls tr.lsg.o td{background:#fdf3df;color:#8a6a20}.brls tr.lsg.m td{background:#fbeaf0;color:#8a2f52}.brls tr.lsg.p td{background:#efeafc;color:#4b3266}.brls tr.lsg.s td{background:#ddf1ec;color:#18655a}.brls tr.lsg.x td{background:#fdecea;color:#8f2f2f}
+.brls tr.lsg td label,.brls tr.wk td label{float:right;font-size:12px;font-weight:600;opacity:.85;cursor:pointer}.brls tr.lsg td label input,.brls tr.wk td label input{width:17px;height:17px;vertical-align:middle;margin:0 3px 0 0}
+.brls tr.wk td{background:#f6f3fc;color:#4b3266;font-size:13px;font-weight:700;padding:6px 8px 6px 40px;border-bottom:1px solid #e6e0f3;white-space:normal}
+.brls tr.wk.m td{background:#fdf1f5;color:#8a2f52}.brls tr.wk.due td{background:#fdecea;color:#a5342a}
+.brlsbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #dfe8e4;box-shadow:0 -2px 10px rgba(0,0,0,.1);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:none;z-index:60}
+.brlsbar.on{display:block}.brlsbar .in{max-width:560px;margin:0 auto}
+.brlsbar .t{font-size:15px;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}.brlsbar .t a{font-size:13px;font-weight:600;color:#62748a;text-decoration:none}
+.brlsbs{display:flex;gap:8px;flex-wrap:wrap}
+.btn.brlsb{flex:1 1 30%;border:0;border-radius:10px;padding:10px 4px;font-size:13.5px;font-weight:800;color:#fff;background:#1f7d6e;min-height:0;line-height:1.3}
+.btn.brlsb.pink{background:#c2537f}.btn.brlsb.red{background:#a5342a}.btn.brlsb.gray{background:#eef3f1;color:#3a4f61}.btn.brlsb.purple{background:#7e57a5}.btn.brlsb.blue{background:#3b6fb6}
+.brlssheet{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;z-index:70;align-items:flex-end}.brlssheet.on{display:flex}
+.brlssheet .p{background:#fff;width:100%;max-width:560px;margin:0 auto;border-radius:16px 16px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));box-sizing:border-box;max-height:88vh;overflow:auto;color:#1f2d3a}
+.brlssheet h2{font-size:17px;margin:0 0 8px;font-weight:800;display:flex;justify-content:space-between;align-items:center}.brlssheet h2 .x{font-size:22px;color:#9aa8b6;cursor:pointer;padding:0 4px}
+.brlssheet .ears{font-size:13px;color:#3a4f61;line-height:1.6;max-height:110px;overflow:auto;background:#eef3f1;border-radius:8px;padding:6px 10px;margin-bottom:8px}
+.brlssheet label{display:block;font-size:13px;font-weight:700;color:#3a4f61;margin:8px 0 4px}
+.brlssheet input.cin,.brlssheet select.cin{width:100%;box-sizing:border-box;font-size:16px;padding:9px 10px}
+.brlssheet .note{font-size:12px;color:#62748a;margin-top:6px;line-height:1.4}
+.brlssheet .rt{width:100%;border-collapse:collapse;margin-top:4px}.brlssheet .rt td{padding:4px 3px;font-size:13px;font-weight:600;border-bottom:1px solid #eef2f0;vertical-align:top}.brlssheet .rt td:first-child{font-weight:800;white-space:nowrap}.brlssheet .rt td small{color:#62748a;font-weight:600}
+.brlssheet .rt input.cin{padding:6px 6px;font-size:14px}
+.brlssheet .brlsbs{margin-top:12px}
+body.theme-dark .brls{background:#1e2740}body.theme-dark .brls td{border-color:#2b3554;color:#e2e8f0}body.theme-dark .brls th{background:#26304e;color:#cbd5e1}body.theme-dark .brls td.e a.ear{color:#e2e8f0}body.theme-dark .brls tr.sel td{background:#1f3b30!important}
+body.theme-dark .brlsbar,body.theme-dark .brlssheet .p{background:#1e2740;color:#e2e8f0}body.theme-dark .lschip{background:#242e4c;color:#cbd5e1;border-color:#2b3554}
 .bdstage{border-width:1.5px;margin-top:12px;scroll-margin-top:70px}
 .bdhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:9px;padding:8px 12px}
 .bdhead h3{margin:0;font-size:15px}
@@ -1437,7 +1492,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='690928a';
+const APP_BUILD='690928c';
 /* ── 📷 qrcode-generator (c) Kazuhiko Arase — MIT License (https://github.com/kazuhikoarase/qrcode-generator) — ฝังไว้ในไฟล์เพื่อสร้าง QR แม่รายตัวแบบไม่พึ่งเน็ตภายนอก ── */
 var qrcode=function(){function i(t,r){function a(t,r){g=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(l=4*u+17),e(0,0),e(l-7,0),e(0,l-7),i(),o(),v(t,r),7<=u&&h(t),null==n&&(n=w(u,f,c)),d(n,r)}var u=t,f=y[r],g=null,l=0,n=null,c=[],s={},e=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||l<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||l<=r+n||(g[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},o=function(){for(var t=8;t<l-8;t+=1)null==g[t][6]&&(g[t][6]=t%2==0);for(var r=8;r<l-8;r+=1)null==g[6][r]&&(g[6][r]=r%2==0)},i=function(){for(var t=B.getPatternPosition(u),r=0;r<t.length;r+=1)for(var e=0;e<t.length;e+=1){var n=t[r],o=t[e];if(null==g[n][o])for(var i=-2;i<=2;i+=1)for(var a=-2;a<=2;a+=1)g[n+i][o+a]=-2==i||2==i||-2==a||2==a||0==i&&0==a}},h=function(t){for(var r=B.getBCHTypeNumber(u),e=0;e<18;e+=1){var n=!t&&1==(r>>e&1);g[Math.floor(e/3)][e%3+l-8-3]=n}for(e=0;e<18;e+=1){n=!t&&1==(r>>e&1);g[e%3+l-8-3][Math.floor(e/3)]=n}},v=function(t,r){for(var e=f<<3|r,n=B.getBCHTypeInfo(e),o=0;o<15;o+=1){var i=!t&&1==(n>>o&1);o<6?g[o][8]=i:o<8?g[o+1][8]=i:g[l-15+o][8]=i}for(o=0;o<15;o+=1){i=!t&&1==(n>>o&1);o<8?g[8][l-o-1]=i:o<9?g[8][15-o-1+1]=i:g[8][15-o-1]=i}g[l-8][8]=!t},d=function(t,r){for(var e=-1,n=l-1,o=7,i=0,a=B.getMaskFunction(r),u=l-1;0<u;u-=2)for(6==u&&(u-=1);;){for(var f=0;f<2;f+=1)if(null==g[n][u-f]){var c=!1;i<t.length&&(c=1==(t[i]>>>o&1)),a(n,u-f)&&(c=!c),g[n][u-f]=c,-1==(o-=1)&&(i+=1,o=7)}if((n+=e)<0||l<=n){n-=e,e=-e;break}}},w=function(t,r,e){for(var n=b.getRSBlocks(t,r),o=M(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=C(i[u],l.getLength()-1).mod(l);a[u]=new Array(l.getLength()-1);for(g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=0<=s?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};s.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=x(t);break;case"Alphanumeric":e=m(t);break;case"Byte":e=L(t);break;case"Kanji":e=D(t);break;default:throw"mode:"+r}c.push(e),n=null},s.isDark=function(t,r){if(t<0||l<=t||r<0||l<=r)throw t+","+r;return g[t][r]},s.getModuleCount=function(){return l},s.make=function(){if(u<1){for(var t=1;t<40;t++){for(var r=b.getRSBlocks(t,f),e=M(),n=0;n<c.length;n++){var o=c[n];e.put(o.getMode(),4),e.put(o.getLength(),B.getLengthInBits(o.getMode(),t)),o.write(e)}var i=0;for(n=0;n<r.length;n++)i+=r[n].dataCount;if(e.getLengthInBits()<=8*i)break}u=t}a(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){a(!0,e);var n=B.getLostPoint(s);(0==e||n<t)&&(t=n,r=e)}return r}())},s.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<s.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<s.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=s.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},s.createSvgTag=function(t,r,e,n){var o={};"object"==typeof t&&(t=(o=t).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,f,c=s.getModuleCount()*t+2*r,g="";for(f="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",g+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',g+=o.scalable?"":' width="'+c+'px" height="'+c+'px"',g+=' viewBox="0 0 '+c+" "+c+'" ',g+=' preserveAspectRatio="xMinYMin meet"',g+=n.text||e.text?' role="img" aria-labelledby="'+p([n.id,e.id].join(" ").trim())+'"':"",g+=">",g+=n.text?'<title id="'+p(n.id)+'">'+p(n.text)+"</title>":"",g+=e.text?'<description id="'+p(e.id)+'">'+p(e.text)+"</description>":"",g+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',g+='<path d="',a=0;a<s.getModuleCount();a+=1)for(u=a*t+r,i=0;i<s.getModuleCount();i+=1)s.isDark(a,i)&&(g+="M"+(i*t+r)+","+u+f);return g+='" stroke="transparent" fill="black"/>',g+="</svg>"},s.createDataURL=function(o,t){o=o||2,t=void 0===t?4*o:t;var r=s.getModuleCount()*o+2*t,i=t,a=r-t;return I(r,r,function(t,r){if(i<=t&&t<a&&i<=r&&r<a){var e=Math.floor((t-i)/o),n=Math.floor((r-i)/o);return s.isDark(n,e)?0:1}return 1})},s.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=s.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=s.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=p(e),o+='"'),o+="/>"};var p=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return s.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*s.getModuleCount()+2*t,u=t,f=a-t,c={"██":"█","█ ":"▀"," █":"▄","  ":" "},g={"██":"▀","█ ":"▀"," █":" ","  ":" "},l="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<f&&u<=r&&r<f&&s.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<f&&u<=r+1&&r+1<f&&s.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",l+=t<1&&f<=r+1?g[i]:c[i];l+="\n"}return a%2&&0<t?l.substring(0,l.length-a-1)+Array(1+a).join("▀"):l.substring(0,l.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=s.getModuleCount()*t+2*r,u=r,f=a-r,c=Array(t+1).join("██"),g=Array(t+1).join("  "),l="",h="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),h="",n=0;n<a;n+=1)i=1,u<=n&&n<f&&u<=e&&e<f&&s.isDark(o,Math.floor((n-u)/t))&&(i=0),h+=i?c:g;for(o=0;o<t;o+=1)l+=h+"\n"}return l.substring(0,l.length-1)},s.renderTo2dContext=function(t,r){r=r||2;for(var e=s.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=s.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},s}i.stringToBytes=(i.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,i.createStringToBytes=function(u,f){var i=function(){function t(){var t=r.read();if(-1==t)throw"eof";return t}for(var r=S(u),e=0,n={};;){var o=r.read();if(-1==o)break;var i=t(),a=t()<<8|t();n[String.fromCharCode(o<<8|i)]=a,e+=1}if(e!=f)throw e+" != "+f;return n}(),a="?".charCodeAt(0);return function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);if(n<128)r.push(n);else{var o=i[t.charAt(e)];"number"==typeof o?(255&o)==o?r.push(o):(r.push(o>>>8),r.push(255&o)):r.push(a)}}return r}};var r,t,a=1,u=2,o=4,f=8,y={L:1,M:0,Q:3,H:2},e=0,n=1,c=2,g=3,l=4,h=5,s=6,v=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],(t={}).getBCHTypeInfo=function(t){for(var r=t<<10;0<=d(r)-d(1335);)r^=1335<<d(r)-d(1335);return 21522^(t<<10|r)},t.getBCHTypeNumber=function(t){for(var r=t<<12;0<=d(r)-d(7973);)r^=7973<<d(r)-d(7973);return t<<12|r},t.getPatternPosition=function(t){return r[t-1]},t.getMaskFunction=function(t){switch(t){case e:return function(t,r){return(t+r)%2==0};case n:return function(t,r){return t%2==0};case c:return function(t,r){return r%3==0};case g:return function(t,r){return(t+r)%3==0};case l:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case h:return function(t,r){return t*r%2+t*r%3==0};case s:return function(t,r){return(t*r%2+t*r%3)%2==0};case v:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},t.getErrorCorrectPolynomial=function(t){for(var r=C([1],0),e=0;e<t;e+=1)r=r.multiply(C([1,w.gexp(e)],0));return r},t.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case o:case f:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case o:return 16;case f:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case o:return 16;case f:return 12;default:throw"mode:"+t}}},t.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);5<i&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},t);function d(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r}var w=function(){for(var r=new Array(256),e=new Array(256),t=0;t<8;t+=1)r[t]=1<<t;for(t=8;t<256;t+=1)r[t]=r[t-4]^r[t-5]^r[t-6]^r[t-8];for(t=0;t<255;t+=1)e[r[t]]=t;var n={glog:function(t){if(t<1)throw"glog("+t+")";return e[t]},gexp:function(t){for(;t<0;)t+=255;for(;256<=t;)t-=255;return r[t]}};return n}();function C(n,o){if(void 0===n.length)throw n.length+"/"+o;var r=function(){for(var t=0;t<n.length&&0==n[t];)t+=1;for(var r=new Array(n.length-t+o),e=0;e<n.length-t;e+=1)r[e]=n[e+t];return r}(),i={getAt:function(t){return r[t]},getLength:function(){return r.length},multiply:function(t){for(var r=new Array(i.getLength()+t.getLength()-1),e=0;e<i.getLength();e+=1)for(var n=0;n<t.getLength();n+=1)r[e+n]^=w.gexp(w.glog(i.getAt(e))+w.glog(t.getAt(n)));return C(r,0)},mod:function(t){if(i.getLength()-t.getLength()<0)return i;for(var r=w.glog(i.getAt(0))-w.glog(t.getAt(0)),e=new Array(i.getLength()),n=0;n<i.getLength();n+=1)e[n]=i.getAt(n);for(n=0;n<t.getLength();n+=1)e[n]^=w.gexp(w.glog(t.getAt(n))+r);return C(e,0).mod(t)}};return i}function p(){var e=[],o={writeByte:function(t){e.push(255&t)},writeShort:function(t){o.writeByte(t),o.writeByte(t>>>8)},writeBytes:function(t,r,e){r=r||0,e=e||t.length;for(var n=0;n<e;n+=1)o.writeByte(t[n+r])},writeString:function(t){for(var r=0;r<t.length;r+=1)o.writeByte(t.charCodeAt(r))},toByteArray:function(){return e},toString:function(){var t="";t+="[";for(var r=0;r<e.length;r+=1)0<r&&(t+=","),t+=e[r];return t+="]"}};return o}var k,A,b=(k=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],(A={}).getRSBlocks=function(t,r){var e=function(t,r){switch(r){case y.L:return k[4*(t-1)+0];case y.M:return k[4*(t-1)+1];case y.Q:return k[4*(t-1)+2];case y.H:return k[4*(t-1)+3];default:return}}(t,r);if(void 0===e)throw"bad rs block @ typeNumber:"+t+"/errorCorrectionLevel:"+r;for(var n,o,i=e.length/3,a=[],u=0;u<i;u+=1)for(var f=e[3*u+0],c=e[3*u+1],g=e[3*u+2],l=0;l<f;l+=1)a.push((n=g,o=void 0,(o={}).totalCount=c,o.dataCount=n,o));return a},A),M=function(){var e=[],n=0,o={getBuffer:function(){return e},getAt:function(t){var r=Math.floor(t/8);return 1==(e[r]>>>7-t%8&1)},put:function(t,r){for(var e=0;e<r;e+=1)o.putBit(1==(t>>>r-e-1&1))},getLengthInBits:function(){return n},putBit:function(t){var r=Math.floor(n/8);e.length<=r&&e.push(0),t&&(e[r]|=128>>>n%8),n+=1}};return o},x=function(t){var r=a,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+2<r.length;)t.put(o(r.substring(e,e+3)),10),e+=3;e<r.length&&(r.length-e==1?t.put(o(r.substring(e,e+1)),4):r.length-e==2&&t.put(o(r.substring(e,e+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return e},m=function(t){var r=u,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+1<r.length;)t.put(45*o(r.charAt(e))+o(r.charAt(e+1)),11),e+=2;e<r.length&&t.put(o(r.charAt(e)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return e},L=function(t){var r=o,e=i.stringToBytes(t),n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=0;r<e.length;r+=1)t.put(e[r],8)}};return n},D=function(t){var r=f,e=i.stringToBytesFuncs.SJIS;if(!e)throw"sjis not supported.";!function(){var t=e("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=e(t),n={getMode:function(){return r},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return n},S=function(t){var e=t,n=0,o=0,i=0,r={read:function(){for(;i<8;){if(n>=e.length){if(0==i)return-1;throw"unexpected end of file./"+i}var t=e.charAt(n);if(n+=1,"="==t)return i=0,-1;t.match(/^\s$/)||(o=o<<6|a(t.charCodeAt(0)),i+=6)}var r=o>>>i-8&255;return i-=8,r}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return r},I=function(t,r,e){for(var n=function(t,r){var n=t,o=r,l=new Array(t*r),e={setPixel:function(t,r,e){l[r*n+t]=e},write:function(t){t.writeString("GIF87a"),t.writeShort(n),t.writeShort(o),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(n),t.writeShort(o),t.writeByte(0);var r=i(2);t.writeByte(2);for(var e=0;255<r.length-e;)t.writeByte(255),t.writeBytes(r,e,255),e+=255;t.writeByte(r.length-e),t.writeBytes(r,e,r.length-e),t.writeByte(0),t.writeString(";")}},i=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,o=h(),i=0;i<r;i+=1)o.add(String.fromCharCode(i));o.add(String.fromCharCode(r)),o.add(String.fromCharCode(e));var a=p(),u=function(t){var e=t,n=0,o=0,r={write:function(t,r){if(t>>>r!=0)throw"length over";for(;8<=n+r;)e.writeByte(255&(t<<n|o)),r-=8-n,t>>>=8-n,n=o=0;o|=t<<n,n+=r},flush:function(){0<n&&e.writeByte(o)}};return r}(a);u.write(r,n);var f=0,c=String.fromCharCode(l[f]);for(f+=1;f<l.length;){var g=String.fromCharCode(l[f]);f+=1,o.contains(c+g)?c+=g:(u.write(o.indexOf(c),n),o.size()<4095&&(o.size()==1<<n&&(n+=1),o.add(c+g)),c=g)}return u.write(o.indexOf(c),n),u.write(e,n),u.flush(),a.toByteArray()},h=function(){var r={},e=0,n={add:function(t){if(n.contains(t))throw"dup key:"+t;r[t]=e,e+=1},size:function(){return e},indexOf:function(t){return r[t]},contains:function(t){return void 0!==r[t]}};return n};return e}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=p();n.write(a);for(var u=function(){function e(t){a+=String.fromCharCode(r(63&t))}var n=0,o=0,i=0,a="",t={},r=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return t.writeByte=function(t){for(n=n<<8|255&t,o+=8,i+=1;6<=o;)e(n>>>o-6),o-=6},t.flush=function(){if(0<o&&(e(n<<6-o),o=n=0),i%3!=0)for(var t=3-i%3,r=0;r<t;r+=1)a+="="},t.toString=function(){return a},t}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return i}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||57344<=n?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});
 /* ── จบ qrcode-generator ── */
@@ -18825,7 +18880,167 @@ function brBdStuckTgl(){
     toast('⚠️ กำลังโชว์เฉพาะแม่ค้าง/เลยกำหนด — แตะแถบแดง ✕ เพื่อดูแม่ทั้งหมด');
   } else toast('แสดงแม่ทั้งหมดในหลังแล้ว');
 }
-function brBoardHTML(h){ return (typeof BR_VIEW!=='undefined'&&BR_VIEW==='batch')?brBatchHTML(h):brBoardTableHTML(h); }   // 690925b: สวิตช์ผัง — 'batch' การ์ดชุดผสม (แบบ D) · 'board' ตารางเดิม
+/* ═══ 📋 ตารางแม่ในหลังแบบใหม่ — BR_VIEW='list' (690928c · เจ้าของ 28 ก.ย. 69 "ลองเอาลงจริง" หลังดูตัวอย่าง mock-ears.html)
+   1 เบอร์ = 1 แถว เรียงตามความสำคัญ: ⏳ รอผสม (ว่างนานสุดก่อน) → 💕 ผสมแล้ว → 🤰 อุ้มท้อง (ท้องแก่สุดก่อน · แถบชุด Week คั่น) → 📤 แจ้งส่งแล้ว → 🍼 ค้าง ท
+   คอลัมน์ "งานตอนนี้" = สิ่งเดียวที่ต้องทำกับแม่ตัวนั้น (brLsTask) · แตะเบอร์ = บัตรแม่ (brOpen) · แตะที่อื่นในแถว = ติ๊ก (brBdTick เดิม)
+   ติ๊กแล้วแถบปุ่มโผล่ล่างจอ (brLsBar) เฉพาะปุ่มที่ใช้ได้กับแม่ที่ติ๊ก → แผ่นลงข้อมูล (brLsSheet) → ตัวบันทึกเดิมทั้งหมด:
+   ผสม/รอบ 2 = brDM+brDMSave (พ่อ/วันรายแถว · เช็คทะเบียนพ่อ) · ลบผสมวันนี้ = brDMDel · ท้อง/กลับสัด = brLsPregAll (โค้ดเดียวกับ brBdPregAll · วันตรวจรายแถว brBdPd_)
+   ไม่ท้อง = brQuickPreg · วัคซีน = brBtVaxEars · ส่งขึ้นคลอด = brBdSendEars (#brBdTo) · ยกเลิกส่ง = brBdCancel · ปลด/ขาย = brLsCullSave (แบบ brDMCullSave ทุกสถานะ)
+   ค้นเบอร์/กรองค้าง = brBdFilter เดิม (แถว data-ear + class stk · หัวกลุ่ม tr.lsg ซ่อนเมื่อว่าง) · BR_VIEW='board' = กลับตารางบอร์ด 690909a ทันที */
+function brLsGrpOf(s){ if(!s) return ''; if(s.pend&&s.pend.to) return 's'; if(s.stage==='open'||s.stage==='gilt') return 'o'; if(s.stage==='mated') return 'm'; if(s.stage==='preg') return 'p'; return 'x'; }
+const BR_LS_GG={o:'open',m:'mated',p:'preg',s:'send',x:'nurse'}, BR_LS_GID={o:'brDMCard',m:'brBdMated',p:'brBdPreg',s:'brBdSend',x:'brBdNurse'};
+function brLsD(s){ const md=brBdMateD(s); return md?brDays(md):null; }
+function brLsFirstOf(h){ const sc=brShortOf(h), f={}; brDMSows(h).forEach(s=>{ if(s.house!==sc||s.stage!=='preg') return; const ws=brBdWkOf(s), md=brBdMateD(s); if(!md) return; if(!f[ws]||md<f[ws]) f[ws]=md; }); return f; }
+function brLsVaxNext(s,X){   // เข็มถัดไปที่ยังไม่ลง: {name,left} — นับจากแม่ตัวแรกของชุด (ตรรกะเดียวกับ brBtVaxEars) · ไม่มี = null
+  if(!X.prog.length) return null; const md=brBdMateD(s); if(!md) return null; const first=X.firstOf[brBdWkOf(s)]||md;
+  for(const p of X.prog){ if(brBdVaxEv(s,p,X.prog)) continue; return {name:(p.no?p.name+' '+p.no:p.name),left:brDnum(brAddDays(first,+p.d||0))-X.tD}; }
+  return null; }
+function brLsCtx(h){ const C=brCfg(), today=brTodayISO(), tD=brDnum(today), sendDay=C.gest-BR_SEND_BEFORE, sc=brShortOf(h);
+  const prog=vpGsList(h.farm||brFarm).slice().sort((a,b)=>(+a.d||0)-(+b.d||0)); const firstOf=brLsFirstOf(h), wkDue={};
+  brDMSows(h).forEach(s=>{ if(s.house!==sc||s.stage!=='preg'||(s.pend&&s.pend.to)) return; const d=brLsD(s); if(d!=null&&d>=sendDay&&d<=C.gest) wkDue[brBdWkOf(s)]=true; });
+  return {C,today,tD,sendDay,sc,prog,firstOf,wkDue}; }
+function brLsTask(s,X){   // งานตอนนี้ของแม่ 1 ตัว → [ข้อความสั้น, สี: ''|soon|now|late|ok]
+  const C=X.C, g=brLsGrpOf(s), d=brLsD(s);
+  if(g==='s') return ['รอเล้าคลอดรับ',''];
+  if(g==='o'){ const sd=brStageSince(s), dd=(sd&&brIsISO(sd))?brDays(sd):null;
+    if(s.stage==='gilt'){ const ag=(s.born&&brIsISO(s.born))?brDays(s.born):null; return [(ag!=null&&ag>=C.giltMate)?'🌸 สาว ถึงวัยผสม':'🌸 สาว รอถึงวัย','']; }
+    const n=brOpenNote(dd,C); if(n) return [n.lvl>=3?'❌ พิจารณาปลด':(n.lvl>=2?'🔴 ข้ามรอบสัด':'⚠️ เลยกำหนดผสม'),'late'];
+    const w=brLastEv(s,'wean'), p=brLastEv(s,'preg'); if(p&&(!w||String(p.date)>=String(w.date))) return ['🔁 กลับสัด รอผสม','soon'];
+    return [(dd!=null&&dd>=4)?'🔍 เช็คสัด/ผสม':'รอเป็นสัด','']; }
+  if(g==='m'){ if(d==null) return ['-','']; const r=+(brLastEv(s,'mate')||{}).round||1;
+    if(d<=1) return [r>=2?'✓ ครบ 2 รอบ':'💕 รอบ 2 วันนี้',r>=2?'ok':'now'];
+    if(d<C.cycle-3) return ['เช็คสัด อีก '+fmt(C.cycle-3-d),''];
+    if(d<=C.cycle+3) return ['🔍 เช็คกลับสัด','now'];
+    if(d<C.pregchk) return ['ตรวจท้อง อีก '+fmt(C.pregchk-d),''];
+    if(d<=C.pregchk+7) return ['🤰 ตรวจท้อง','now'];
+    return ['⚠️ เลยตรวจ '+fmt(d-C.pregchk-7)+' วัน','late']; }
+  if(g==='p'){ if(d==null) return ['-',''];
+    const bk=(s.events||[]).find(e=>e&&e.t==='care'&&/^↩️ ตีกลับ/.test(e.note||'')); if(bk&&brIsISO(bk.date)&&brDays(bk.date)<=7) return ['↩️ ตีกลับ เช็คตัว','late'];
+    if(d>C.gest) return ['⚠️ เกินคลอด '+fmt(d-C.gest)+' วัน','late'];
+    const nv=brLsVaxNext(s,X); if(nv&&nv.left<=0) return ['💉 '+nv.name+(nv.left<0?' ค้าง '+fmt(-nv.left):' วันนี้'),nv.left===0?'now':'late'];
+    if(d>X.sendDay) return ['📤 ส่ง เลย '+fmt(d-X.sendDay)+' วัน','late'];
+    if(X.wkDue[brBdWkOf(s)]) return ['📤 ส่งทั้งชุด','now'];
+    if(nv&&nv.left<X.sendDay-d) return ['💉 '+nv.name+' อีก '+fmt(nv.left),nv.left<=3?'soon':''];
+    return ['📤 ส่ง อีก '+fmt(X.sendDay-d),(X.sendDay-d)<=3?'soon':'']; }
+  if(g==='x') return ['ควรอยู่เล้าคลอด','late'];
+  return ['','']; }
+function brListHTML(h){
+  const prevFarm=brFarm; brFarm=h.farm||brFarm;
+  try{
+    const sc=brShortOf(h), farm=brFarm, X=brLsCtx(h);
+    if(brBdSc!==sc){ brBdTick={}; brBdSc=sc; brBdStuckOnly=false; }
+    const all=brDMSows(h).filter(s=>s.house===sc&&s.stage!=='cull');
+    const days=s=>{ if(s.stage==='mated'||s.stage==='preg'||s.stage==='nurse') return brLsD(s); const sd=brStageSince(s); return (sd&&brIsISO(sd))?brDays(sd):null; };
+    const ORD={o:1,m:2,p:3,s:4,x:5}, GN={o:'⏳ รอผสม',m:'💕 ผสมแล้ว รอตรวจท้อง',p:'🤰 อุ้มท้อง',s:'📤 แจ้งส่งแล้ว รอเล้าคลอดรับ',x:'🍼 เลี้ยงลูก — ควรอยู่เล้าคลอด (อาจลืมลงหย่า)'};
+    const rows=all.map(s=>({s,g:brLsGrpOf(s),d:days(s),t:brLsTask(s,X),w:(s.stage==='mated'||s.stage==='preg')?brBdWkOf(s):''}));
+    rows.sort((a,b)=>(ORD[a.g]-ORD[b.g])||((b.d==null?-1:b.d)-(a.d==null?-1:a.d))||String(a.s.ear).localeCompare(String(b.s.ear),undefined,{numeric:true}));
+    const E=s=>escA(JSON.stringify(String(s.ear)));
+    /* ชิปเล้า ท อื่นในยูนิตเดียวกัน — แตะ = เปิดหลังนั้น (หมอเห็นเฉพาะหลังในขอบเขตตัวเอง) */
+    const unit=brUnitOf(sc); const sib=brHousesFor(farm).filter(x=>x.kind==='ท'&&x.unit===unit);
+    const chips=sib.length>1?`<div class="lschips">${sib.map(x=>{ const hh=HOUSES.find(y=>y.code===x.full); const n=brDMSows(h).filter(s=>s.house===x.s&&s.stage!=='cull').length;
+      return `<span class="lschip${x.s===sc?' on':''}"${(hh&&x.s!==sc)?` onclick="openForm(${escA(JSON.stringify(hh.id))})"`:''}>${escA(x.s)} <span class="n">${fmt(n)}</span></span>`; }).join('')}</div>`:'';
+    let body='', last='', lastW='';
+    rows.forEach(r=>{ const s=r.s, g=r.g;
+      if(g!==last){ const n=rows.filter(x=>x.g===g).length; body+=`<tr class="lsg ${g}" id="${BR_LS_GID[g]}"><td colspan="4">${GN[g]} <span style="font-weight:600;opacity:.75">${fmt(n)} ตัว</span><label onclick="event.stopPropagation()"><input type="checkbox" onchange="brLsTickGroup('${BR_LS_GG[g]}',this.checked)">ทั้งกลุ่ม</label></td></tr>`; last=g; lastW=''; }
+      if((g==='m'||g==='p')&&r.w&&r.w!==lastW){ const wr=rows.filter(x=>x.g===g&&x.w===r.w); const ds=wr.map(x=>brBdMateD(x.s)).filter(Boolean).sort(); const due=g==='p'&&X.wkDue[r.w];
+        body+=`<tr class="wk ${g}${due?' due':''}" data-wk="${escA(r.w)}"><td colspan="4">${brWkLabel(r.w)} · ${fmt(wr.length)} ตัว · ผสม ${brBdRange(ds[0],ds[ds.length-1])}${due?' · <b>📤 ถึงคิวส่ง</b>':''}<label onclick="event.stopPropagation()"><input type="checkbox" onchange="brBdTickWeek(${escA(JSON.stringify(String(r.w)))},'${BR_LS_GG[g]}');brLsBar()">ทั้งชุด</label></td></tr>`; lastW=r.w; }
+      const on=!!brBdTick[s.ear], m=brLastEv(s,'mate')||{};
+      const sub=(g==='p'||g==='s')?((r.w?brWkLabel(r.w):'')+' · ครอก '+fmt(s.parity||0)+(g==='s'?' · ไป '+escA(s.pend.to):'')):(g==='m'?((r.w?brWkLabel(r.w):'')+' · พ่อ '+escA(m.boar||'-')):(g==='o'?(s.stage==='gilt'?'สาว':'ครอก '+fmt(s.parity||0)):''));
+      body+=`<tr data-ear="${escA(s.ear)}" data-g="${BR_LS_GG[g]}"${r.w?` data-w="${escA(r.w)}"`:''} class="${r.t[1]==='late'?'stk':''}${on?' sel':''}" onclick="brLsRowTap(event,${E(s)})"><td class="ck"><input type="checkbox" ${on?'checked':''} onclick="event.stopPropagation()" onchange="brBdTk(${E(s)},this,'${BR_LS_GG[g]}');brLsBar()"></td><td class="e">${brBdEar(s)}</td><td class="s ${r.t[1]}">${r.t[0]}${sub?`<small>${sub}</small>`:''}</td><td class="d${r.t[1]==='late'?' late':''}">${r.d==null?'-':fmt(r.d)}</td></tr>`; });
+    if(!rows.length) body=`<tr><td colspan="4" class="sub" style="font-size:13px;font-weight:600;padding:14px">— ยังไม่มีแม่ในหลังนี้ — รับแม่เข้าที่การ์ด 🚚 รับแม่เข้าเล้านี้ ด้านล่าง</td></tr>`;
+    return brEDateBarHTML()+chips
+      +`<div class="card" style="padding:0;overflow:hidden"><table class="brls"><colgroup><col style="width:34px"><col><col style="width:120px"><col style="width:42px"></colgroup>
+        <thead><tr><th></th><th>เบอร์แม่ <small style="font-weight:600;color:#9aa8b6">แตะ = บัตรแม่</small></th><th>งานตอนนี้</th><th style="text-align:right">วัน</th></tr></thead><tbody>${body}</tbody></table></div>
+      <div class="sub" style="margin-top:6px;font-size:11.5px">ติ๊กแม่ (แตะแถว) → ปุ่มลงข้อมูลโผล่ล่างจอ · ติ๊ก "ทั้งชุด" ที่แถบ Week ลงทั้งชุดทีเดียว · แตะเบอร์ = เปิดบัตรแม่ · วัน = อยู่ในสถานะนี้มากี่วัน (ท้อง = นับจากวันผสม)</div>
+      <div id="brLsSpace"></div>
+      <div class="brlsbar" id="brLsBar"><div class="in"><div class="t"><span>ติ๊กแล้ว <span id="brLsBn">0</span> ตัว</span><a href="#" onclick="brLsClear();return false">✕ ล้าง</a></div><div class="brlsbs" id="brLsBs"></div></div></div>
+      <div class="brlssheet" id="brLsSheet" onclick="if(event.target===this)brLsClose()"><div class="p" id="brLsSp"></div></div>`;
+  } finally { brFarm=prevFarm; }
+}
+function brLsRowTap(ev,ear){ if(ev.target.closest('a,input,button,label,select')) return; const tr=ev.currentTarget; const cb=tr.querySelector('input[type=checkbox]'); if(!cb) return; cb.checked=!cb.checked; brBdTk(ear,cb,tr.dataset.g); brLsBar(); }
+function brLsTickGroup(g,on){ const b=document.getElementById('brBoardBox'); if(!b) return; b.querySelectorAll('tr[data-g="'+g+'"]').forEach(tr=>{ if(tr.hidden) return; if(on) brBdTick[tr.dataset.ear]=1; else delete brBdTick[tr.dataset.ear]; tr.classList.toggle('sel',on); const cb=tr.querySelector('input[type=checkbox]'); if(cb) cb.checked=on; }); brBdCount(); brLsBar(); }
+function brLsClear(){ brBdTick={}; const b=document.getElementById('brBoardBox'); if(b) b.querySelectorAll('tr[data-ear].sel').forEach(tr=>{ tr.classList.remove('sel'); const cb=tr.querySelector('input[type=checkbox]'); if(cb) cb.checked=false; }); brLsBar(); }
+function brLsSel(){ const h=currentHouse; const b=document.getElementById('brBoardBox'); const out=[]; if(!h||!b) return out; const sc=brShortOf(h);
+  b.querySelectorAll('tr[data-ear].sel').forEach(tr=>{ const s=brSowByEar(tr.dataset.ear); if(s&&s.house===sc&&s.stage!=='cull') out.push({s,g:tr.dataset.g}); }); return out; }
+const BR_LS_ACTS=[   // ปุ่มล่างจอ — โผล่เฉพาะที่ใช้ได้กับแม่ที่ติ๊ก (ok รับ s + กลุ่มของแถว)
+  {k:'mate',   t:'💕 ผสม',         cls:'pink',  ok:(s,g,X)=>g==='open'},
+  {k:'r2',     t:'💕 รอบ 2',       cls:'pink',  ok:(s,g,X)=>g==='mated'&&brLsD(s)!=null&&brLsD(s)<=1&&(+(brLastEv(s,'mate')||{}).round||1)<2},
+  {k:'unmate', t:'🗑 ลบผสมวันนี้',  cls:'gray',  ok:(s,g,X)=>g==='mated'&&(brLastEv(s,'mate')||{}).date===brTodayISO()},
+  {k:'preg',   t:'✅ ท้อง',         cls:'',      ok:(s,g,X)=>g==='mated'&&brLsD(s)!=null&&brLsD(s)>1},
+  {k:'ret',    t:'🔁 กลับสัด',     cls:'gray',  ok:(s,g,X)=>g==='mated'&&brLsD(s)!=null&&brLsD(s)>1},
+  {k:'notpreg',t:'🔁 ไม่ท้อง',     cls:'gray',  ok:(s,g,X)=>g==='preg'&&brLsD(s)!=null&&brLsD(s)>X.C.gest},
+  {k:'vax',    t:'💉 วัคซีน',      cls:'purple',ok:(s,g,X)=>{ if(g!=='preg') return false; const v=brLsVaxNext(s,X); return !!(v&&v.left<=0); }},
+  {k:'send',   t:'📤 ส่งขึ้นคลอด',  cls:'blue',  ok:(s,g,X)=>g==='preg'},
+  {k:'unsend', t:'↩ ยกเลิกส่ง',    cls:'gray',  ok:(s,g,X)=>g==='send'},
+  {k:'cull',   t:'❌ ปลด/ขาย',     cls:'red',   ok:(s,g,X)=>true}];
+function brLsBar(){ const bar=document.getElementById('brLsBar'), h=currentHouse; if(!bar||!h) return; const prevFarm=brFarm; brFarm=h.farm||brFarm;
+  try{ const sel=brLsSel(), n=sel.length; bar.classList.toggle('on',n>0); const sp=document.getElementById('brLsSpace'); if(sp) sp.style.height=n?'130px':'0';
+    if(!n) return; const X=brLsCtx(h); document.getElementById('brLsBn').textContent=fmt(n);
+    document.getElementById('brLsBs').innerHTML=BR_LS_ACTS.map(a=>{ const c=sel.filter(x=>a.ok(x.s,x.g,X)).length; return c?`<button type="button" class="btn brlsb ${a.cls}" onclick="brLsSheet('${a.k}')">${a.t} (${fmt(c)})</button>`:''; }).join('');
+  } finally { brFarm=prevFarm; } }
+function brLsClose(){ const el=document.getElementById('brLsSheet'); if(el) el.classList.remove('on'); }
+function brLsSheet(k,one){ const h=currentHouse; if(!h) return; const prevFarm=brFarm; brFarm=h.farm||brFarm;
+  try{ const a=BR_LS_ACTS.find(x=>x.k===k); if(!a) return; const X=brLsCtx(h), sc=brShortOf(h), farm=brFarm, F=escA(h.farm||'');
+    let list=one?[brSowByEar(one)].filter(Boolean).map(s=>({s,g:BR_LS_GG[brLsGrpOf(s)]})):brLsSel(); list=list.filter(x=>a.ok(x.s,x.g,X));
+    if(!list.length){ toast('ไม่มีแม่ที่ติ๊กตรงกับงานนี้'); return; }
+    const ears=list.map(x=>String(x.s.ear)), today=brTodayISO(), cu=brAddDays(today,-BR_CU_MAX), D=brEvDate();
+    const chips=`<div class="ears">${ears.map(e=>escA(e)).join(' · ')}</div>`;
+    const dateNote=`<div class="note">📅 ลงเป็นวันที่ <b>${escA(brThai(D))}</b> — เปลี่ยนได้ที่แถบ 📅 บนตาราง (ย้อนได้ ${fmt(BR_BD_MAX)} วัน)</div>`;
+    const boarIn=(id,ph)=>`<input class="cin" id="${id}" placeholder="${ph}" autocomplete="off" onfocus="brBoarType(this,'${F}')" oninput="brBoarType(this,'${F}')" onblur="brBoarBlur(this,'${F}')">`;
+    let f=`<h2>${a.t} ${fmt(ears.length)} ตัว<span class="x" onclick="brLsClose()">✕</span></h2>`;
+    if(k==='mate') f+=`<label>🐗 เบอร์พ่อชุดนี้ (ใช้กับแม่ที่ไม่ได้ระบุพ่อรายแถว)</label>${boarIn('brLsBoar','แตะเลือกจากทะเบียน · พิมพ์รหัสย่อได้')}<label>📅 วันผสมชุดนี้</label><input type="date" class="cin" id="brLsDate" value="${D}" min="${cu}" max="${today}">
+      <div class="note">ผสมคนละวัน / คนละพ่อ → ใส่ในแถวของแม่ตัวนั้น (ว่าง = ใช้ค่าชุด) · ผสมซ้ำภายใน 2 วัน = รอบ 2 อัตโนมัติ</div>
+      <table class="rt">${list.map(x=>{ const w=brLastEv(x.s,'wean'); const mn=(w&&brIsISO(w.date)&&w.date>cu)?w.date:cu; return `<tr><td>${escA(x.s.ear)}<br><small>${x.s.stage==='gilt'?'สาว':'ครอก '+fmt(x.s.parity||0)}</small></td><td><input type="date" class="cin" id="brLsRd_${escA(x.s.ear)}" min="${mn}" max="${today}"></td><td>${boarIn('brLsRb_'+escA(x.s.ear),'= พ่อชุด')}</td></tr>`; }).join('')}</table>`;
+    else if(k==='r2') f+=chips+`<label>🐗 เบอร์พ่อ (ว่าง = พ่อรอบแรกของแม่ตัวนั้น)</label>${boarIn('brLsBoar','= พ่อเดิม')}`+dateNote;
+    else if(k==='unmate') f+=chips+`<div class="note">ลบรายการผสมที่ลงวันนี้ (ลงผิดตัว/ผิดพ่อ) — แม่กลับสถานะเดิม · ระบบถามยืนยันทีละตัว</div>`;
+    else if(k==='preg'||k==='ret') f+=`<div class="note">วันตรวจจริงรายแถว — ห้ามก่อนวันผสม · ย้อนได้ ${fmt(BR_CU_MAX)} วัน</div><table class="rt">${list.map(x=>{ const md=brBdMateD(x.s); const mn=(md&&md>cu)?md:cu; const v=D<mn?mn:D; return `<tr><td>${escA(x.s.ear)}<br><small>ผสม ${escA(brThai(md))} · วัน ${fmt(brLsD(x.s))}</small></td><td><input type="date" class="cin tl" id="brBdPd_${escA(x.s.ear)}" value="${v}" min="${mn}" max="${today}"></td></tr>`; }).join('')}</table>`;
+    else if(k==='notpreg') f+=chips+dateNote+`<div class="note">แม่ท้องเกินกำหนดแล้วตรวจซ้ำไม่ท้อง → กลับไปกลุ่ม ⏳ รอผสม (คลอดจริงลงที่เล้าคลอด)</div>`;
+    else if(k==='vax') f+=`<div class="ears">${list.map(x=>{ const v=brLsVaxNext(x.s,X); return escA(x.s.ear)+' → 💉 '+escA(v?v.name:'-'); }).join('<br>')}</div>`+dateNote+`<div class="note">ลงทุกเข็มที่ถึงกำหนดแล้วและยังไม่ได้ลง (นับจากแม่ตัวแรกของชุด) · ห้ามก่อนวันผสม</div>`;
+    else if(k==='send') f+=chips+`<label>🏠 ไปเล้าคลอด — เล้าคลอดเช็คเบอร์แล้วกดรับ (แม่ยังนับอยู่หลังนี้จนกว่าจะรับ)</label><select class="cin" id="brBdTo">${brBdDestOpts(sc,farm)}</select>`;
+    else if(k==='unsend') f+=chips+`<div class="note">ยกเลิกการแจ้งส่ง แม่กลับไปกลุ่ม 🤰 · ระบบถามยืนยันทีละตัว</div>`;
+    else if(k==='cull') f+=chips+`<label>ประเภท</label><select class="cin" id="brLsKind">${['คัดขาย','ปลดฝูง','ตาย','ป่วยพิเศษ'].map(x=>`<option>${x}</option>`).join('')}</select>`+dateNote+`<div class="note">ลงแค่ประเภท ไม่ต้องใส่น้ำหนัก/ราคา/ผู้ซื้อ — แม่หายจากหลังนี้ ประวัติยังอยู่ในทะเบียนถาวร (ลงเพิ่มทีหลังในบัตรแม่ได้)</div>`;
+    f+=`<div class="brlsbs"><button type="button" class="btn brlsb gray" onclick="brLsClose()">ยกเลิก</button><button type="button" class="btn brlsb ${a.cls==='gray'?'':a.cls}" onclick="brLsDo('${k}',${escA(JSON.stringify(ears))})">✅ บันทึก</button></div>`;
+    const sp=document.getElementById('brLsSp'), sh=document.getElementById('brLsSheet'); if(!sp||!sh) return; sp.innerHTML=f; sh.classList.add('on');
+  } finally { brFarm=prevFarm; } }
+async function brLsDo(k,ears){ if(typeof blockIfReadonly==='function'&&blockIfReadonly()) return; const h=currentHouse; if(!h) return; ears=(ears||[]).map(String); const prevFarm=brFarm; brFarm=h.farm||brFarm;
+  try{
+    const gv=id=>String((document.getElementById(id)||{}).value||'').trim();
+    if(k==='mate'){ const gb=gv('brLsBoar'), gd=gv('brLsDate');
+      const rows=ears.map(e=>({ear:e,boar:gv('brLsRb_'+e)||gb,date:gv('brLsRd_'+e)||gd}));
+      const miss=rows.filter(r=>!r.boar).map(r=>r.ear); if(miss.length){ toast('ใส่เบอร์พ่อชุดก่อน (ต้องมีในทะเบียน) หรือใส่รายแถว: '+miss.join(' · ')); return; }
+      ears.forEach(e=>delete brBdTick[e]); brDM=rows; brLsClose(); await brDMSave(); return; }
+    if(k==='r2'){ const gb=gv('brLsBoar'); const rows=[];
+      for(const e of ears){ const s=brSowByEar(e), m=s?brLastEv(s,'mate'):null; const b=gb||String((m&&m.boar)||'').trim(); if(!b){ toast('ใส่เบอร์พ่อรอบ 2 ก่อน: '+e); return; } rows.push({ear:e,boar:b}); }
+      ears.forEach(e=>delete brBdTick[e]); brDM=rows; brLsClose(); await brDMSave(); return; }
+    if(k==='unmate'){ brLsClose(); ears.forEach(e=>{ delete brBdTick[e]; brDMDel(e); }); return; }
+    if(k==='preg'||k==='ret'){ brLsPregAll(k==='preg'?'ท้อง':'กลับสัด',ears); return; }   // อ่านช่อง brBdPd_ ในแผ่น → ต้องเรียกก่อนปิดแผ่น (brRe วาดใหม่ปิดให้เอง)
+    if(k==='notpreg'){ brLsClose(); ears.forEach(e=>{ delete brBdTick[e]; brQuickPreg(e,'ไม่ท้อง'); }); return; }
+    if(k==='vax'){ brLsClose(); ears.forEach(e=>delete brBdTick[e]); brBtVaxEars(ears); return; }
+    if(k==='send'){ brBdSendEars(ears); return; }   // อ่าน #brBdTo ในแผ่น
+    if(k==='unsend'){ brLsClose(); ears.forEach(e=>{ delete brBdTick[e]; brBdCancel(e); }); return; }
+    if(k==='cull'){ const kind=gv('brLsKind')||'คัดขาย'; brLsClose(); brLsCullSave(ears,kind); return; }
+  } finally { brFarm=prevFarm; } }
+function brLsPregAll(res,ears){   // ✅/🔁 ตามรายการเบอร์ — โค้ดเดียวกับ brBdPregAll (preg event · วันตรวจจากช่อง brBdPd_ ในแผ่น · ห้ามก่อนวันผสม)
+  const h=currentHouse; if(!h) return; const prevFarm=brFarm; brFarm=h.farm||brFarm; let n=0, back=0; const skip=[];
+  try{ ears.forEach(ear=>{ const s=brSowByEar(ear); if(!s||s.stage!=='mated'){ skip.push(ear+' (สถานะเปลี่ยนแล้ว)'); return; }
+      const r=brBdPregDate(s); if(r.err){ skip.push(ear+' ('+r.err+')'); return; }
+      const d=r.D; if(d!==brTodayISO()) back++;
+      s.events=s.events||[]; const e={t:'preg',date:d,result:res,house:s.house,by:brBy()}; if(d!==brTodayISO()){ e.bd=1; e.bdTs=Date.now(); } if(r.cu) e.cu=1; s.events.unshift(e);
+      if(res==='ท้อง') s.stage='preg'; else { s.stage='open'; s.hc=''; }
+      delete brBdTick[ear]; brPersist(s); n++; });
+  } finally { brFarm=prevFarm; }
+  toast((res==='ท้อง'?'🤰 ท้อง ':'🔁 กลับสัด ')+fmt(n)+' แม่'+(back?' · 📅 ลงย้อนหลัง '+fmt(back)+' แม่':'')+(skip.length?' · ข้าม: '+skip.join(' '):''));
+  brRe(); }
+function brLsCullSave(ears,kind){   // ❌ ปลด/ขาย หลายตัวจากทุกกลุ่ม — cull event ช่องเดียวกับ brDMCullSave/brSowCull (ลงแค่ประเภท · วันที่จากแถบ 📅)
+  const h=currentHouse; if(!h) return; const sc=brShortOf(h), cd=brEvDate();
+  if(!confirm('ยืนยัน '+kind+' แม่ '+fmt(ears.length)+' ตัว — ลงวันที่ '+brThai(cd)+' ?\n'+ears.join(' · ')+'\nแม่จะหายจากหลังนี้ แต่ประวัติยังเก็บอยู่ในทะเบียนถาวร')) return;
+  const prevFarm=brFarm; brFarm=h.farm||brFarm; let n=0; const skip=[];
+  try{ ears.forEach(ear=>{ const s=brSowByEar(ear); if(!s||s.stage==='cull'||s.house!==sc){ skip.push(ear+' (ไม่อยู่ในหลัง/ปลดแล้ว)'); return; }
+      s.events=s.events||[]; s.events.unshift(brEvStamp({t:'cull',date:cd,kind:kind,reason:'',note:'',house:sc,by:brBy()})); s.stage='cull'; brPendClear(s);
+      brPersist(s); n++; delete brBdTick[ear]; delete brDMTick[ear]; }); }
+  finally { brFarm=prevFarm; }
+  brSowSel=''; toast('❌ บันทึก'+kind+' '+fmt(n)+' แม่'+brBackSfx()+(skip.length?' · ข้าม: '+skip.join(' '):'')); brDailyRe(); }
+function brBoardHTML(h){ return (typeof BR_VIEW!=='undefined'&&BR_VIEW==='list')?brListHTML(h):((typeof BR_VIEW!=='undefined'&&BR_VIEW==='batch')?brBatchHTML(h):brBoardTableHTML(h)); }   // 690928c: 'list' ตารางแบบใหม่ · 690925b: 'batch' การ์ดชุดผสม (แบบ D) · 'board' ตารางบอร์ด 690909a   // 690925b: สวิตช์ผัง — 'batch' การ์ดชุดผสม (แบบ D) · 'board' ตารางเดิม
 function brBoardTableHTML(h){
   const prevFarm=brFarm; brFarm=h.farm||brFarm;
   try{
@@ -18844,6 +19059,12 @@ function brBoardTableHTML(h){
     const E=s=>escA(JSON.stringify(String(s.ear)));
     const cull=s=>`<button class="btn ghost sm act" style="color:var(--bad)" title="ตาย/คัด/ปลด" onclick="brSowCull(${E(s)})">❌</button>`;
     const TR=(s,g,cls,ws)=>`<tr data-ear="${escA(s.ear)}" data-g="${g}"${ws?` data-w="${escA(ws)}"`:''} class="${cls}${brBdTick[s.ear]?' sel':''}">`;
+    /* 690928b หัวชุด Week minimal: o={ic,no,meta,now,cls,btns,chips:[{ic,name,date,st,cls}]} — ป้ายชุด · สรุปสั้น · งานตอนนี้ · ชิปขั้นตอน (done/now/late/soon) */
+    const WKH=o=>`<div class="wkh2"><span class="wkid">${o.ic} ${o.no}</span><span class="wkmeta">${o.meta}</span>${o.btns?`<span class="wkb">${o.btns}</span>`:''}</div>`
+      +(o.now?`<div class="wknow ${o.cls||''}">${o.now}</div>`:'')
+      +(o.chips&&o.chips.length?`<div class="wchips">${o.chips.map(t=>`<span class="wchip ${t.cls||''}"><span>${t.ic} ${t.name}</span><span class="wcd">${t.date}</span>${t.st?`<span class="wcs">${t.st}</span>`:''}</span>`).join('')}</div>`:'');
+    const SEP='<span class="sep">·</span>';
+    const dayRange=(dLo,dHi)=>dLo==null?'-':(dHi===dLo?fmt(dLo):fmt(dLo)+'–'+fmt(dHi));
     const stage=(id,color,soft,title,n,body)=>`<div class="card bdstage" id="${id}" style="border-color:${color}">
       <div class="bdhead" style="background:${soft};border-left:5px solid ${color}"><h3>${title}</h3><span class="cnt" style="color:${color}">${fmt(n)}</span></div>${body}</div>`;
     /* ── ⏳ รอผสม = การ์ดแจ้งผสมเดิม (id เดิมคงไว้ให้ brOvJump/brSowMate/brDMRe ทำงานต่อ) ── */
@@ -18861,9 +19082,20 @@ function brBoardTableHTML(h){
       const first=g.map(brBdMateD).filter(Boolean).sort()[0]||'';
       const d0=first?brDays(first):null;
       const lastM=g.map(brBdMateD).filter(Boolean).sort().slice(-1)[0]||first;
-      mBody+=`<tr class="wk m" data-wk="${escA(ws)}"><td colspan="10"><div class="wkh"><b>💕 ชุด ${ws?brWkLabel(ws):'ไม่รู้ Week'}</b><span>ผสม ${brBdRange(first,lastM)}</span><span>${fmt(g.length)} ตัว</span><span class="wkb">
-        ${g.length>1?`<button class="btn ghost sm act" onclick="brBdTickWeek(${escA(JSON.stringify(String(ws)))},'mated')">☑ ติ๊กทั้งชุด</button>`:''}</span></div>
-        <div class="wls"><span class="wl"><span class="wn">📋 งานของชุด</span><span class="wd">วัน ${d0==null?'-':fmt(d0)}</span><span class="wt"></span><span class="ws" style="color:var(--ink)">${escA(wkTask(d0))}</span></span></div></td></tr>${mHead}`;
+      const dLm=lastM?brDays(lastM):d0;
+      const stM=(lo,hi)=>d0==null?['',''] : d0<lo?['อีก '+fmt(lo-d0)+' วัน',lo-d0<=3?'soon':''] : d0<=hi?['🔴 ช่วงนี้','now'] : ['✓','done'];
+      const rc=stM(C.cycle-3,C.cycle+3), pc=stM(C.pregchk,C.pregchk+7);
+      if(d0!=null&&d0>C.pregchk+7){ pc[0]='⚠️ เลย '+fmt(d0-C.pregchk-7)+' วัน'; pc[1]='late'; }
+      let mNow='', mNowCls='';
+      if(d0!=null){ if(d0<=1){ mNow='รอบ 2 ภายใน 1 วัน'; } else if(d0>C.pregchk+7){ mNow='⚠️ เลยกำหนดตรวจท้อง '+fmt(d0-C.pregchk-7)+' วัน'; mNowCls='late'; }
+        else if(d0>=C.pregchk){ mNow='🔴 ตรวจท้อง'; mNowCls='now'; } else if(d0>=C.cycle-3&&d0<=C.cycle+3){ mNow='🔴 เช็คกลับสัด'; mNowCls='now'; }
+        else if(d0<C.cycle-3){ mNow='เช็คกลับสัด อีก '+fmt(C.cycle-3-d0)+' วัน'; } else { mNow='ตรวจท้อง อีก '+fmt(C.pregchk-d0)+' วัน'; } }
+      mBody+=`<tr class="wk m" data-wk="${escA(ws)}"><td colspan="10">${WKH({ic:'💕',no:ws?brWkLabel(ws):'?',
+        meta:`${brBdRange(first,lastM)}${SEP}${fmt(g.length)} ตัว${SEP}วัน ${dayRange(dLm,d0)}`,
+        now:mNow,cls:mNowCls,
+        btns:g.length>1?`<button class="btn ghost sm act" onclick="brBdTickWeek(${escA(JSON.stringify(String(ws)))},'mated')">☑ ติ๊กทั้งชุด</button>`:'',
+        chips:[{ic:'🔍',name:'เช็คกลับสัด',date:brBdRange(brAddDays(first,C.cycle-3),brAddDays(lastM,C.cycle+3)),st:rc[0],cls:rc[1]},
+          {ic:'🤰',name:'ตรวจท้อง',date:brBdRange(brAddDays(first,C.pregchk),brAddDays(lastM,C.pregchk+7)),st:pc[0],cls:pc[1]}]})}</td></tr>${mHead}`;
       g.forEach(s=>{ const m=brLastEv(s,'mate')||{}, d=brDays(brBdMateD(s)); const stk=d!=null&&d>C.pregchk+7;
         let task='', act='';
         if(d!=null&&d<=1){ const r2=(+m.round||1)>=2;
@@ -18893,7 +19125,8 @@ function brBoardTableHTML(h){
     let pBody='';
     const over=preg.filter(s=>{ const d=brDays(brBdMateD(s)); return d!=null&&d>C.gest; }).sort((a,b)=>brBdMateD(a).localeCompare(brBdMateD(b)));
     if(over.length){
-      pBody+=`<tr class="wk bad"><td colspan="${NC}"><div class="wkh"><b>⚠️ ท้องเกินกำหนด</b><span>${fmt(over.length)} ตัว</span></div><div class="wls"><span class="wl"><span class="wn">📋 งาน</span><span class="wd">เกินวัน ${fmt(C.gest)}</span><span class="wt"></span><span class="ws" style="color:var(--ink)">ยังไม่มีการลงคลอด/ไม่ท้อง — เช็คตัวจริงแล้วลงผล (คลอดจริงลงที่เล้า ค)</span></span></div></td></tr>${pHead}`;
+      pBody+=`<tr class="wk bad"><td colspan="${NC}">${WKH({ic:'⚠️',no:'ท้องเกินกำหนด',meta:`${fmt(over.length)} ตัว${SEP}เกินวัน ${fmt(C.gest)} ยังไม่ลงผล`,
+        now:'เช็คตัวจริง → คลอดลงที่เล้า ค · ไม่ท้อง 🔁 · ตาย/ปลด ❌',cls:'late'})}</td></tr>${pHead}`;
       over.forEach(s=>{ const md=brBdMateD(s), d=brDays(md);
         pBody+=`${TR(s,'preg','stk','')}<td class="c">${CB(s,'preg')}</td><td>${brBdEar(s)}<div class="sub" style="font-size:10.5px">ผสม ${brBdWkOf(s)?brWkLabel(brBdWkOf(s)):'-'}</div></td><td class="c num">${fmt(s.parity||0)}</td><td class="d">${brBdD(md)}</td><td class="c num" style="font-weight:800;color:var(--bad)">${fmt(d)}</td>${prog.map(p=>`<td class="c">${vaxDone(s,p)?'<span class="tag ok">✓</span>':'<span class="tag mute">—</span>'}</td>`).join('')}<td class="d">${brBdD(brAddDays(md,sendDay))}</td><td class="d">${brBdD(brAddDays(md,C.gest))}</td><td class="c num" style="font-weight:800;color:var(--bad)">−${fmt(d-C.gest)}</td>
           <td style="white-space:nowrap"><button class="btn ghost sm act" onclick="brQuickPreg(${E(s)},'ไม่ท้อง')">🔁 ไม่ท้อง/กลับสัด</button> <button class="btn ghost sm act" onclick="brBdSendEars([${E(s)}])">📤 แจ้งส่งขึ้นคลอด</button> ${cull(s)}</td></tr>`; });
@@ -18905,16 +19138,27 @@ function brBoardTableHTML(h){
       const vDate=prog.map(p=>brAddDays(first,+p.d||0));   // ทำทั้งชุดวันเดียว นับจากแม่ตัวแรกของชุด
       const sFrom=brAddDays(first,sendDay), sTo=brAddDays(last,sendDay), fFrom=brAddDays(first,C.gest), fTo=brAddDays(last,C.gest);
       const sN=brDnum(sFrom)-tD;
-      const L=(ic,name,day,date,st,cls)=>`<span class="wl ${cls||''}"><span class="wn">${ic} ${name}</span><span class="wd">วัน ${fmt(day)}</span><span class="wt">${date}</span><span class="ws">${st}</span></span>`;
       const fN=brDnum(fFrom)-tD;
-      const tl=prog.map((p,i)=>{ const dn=g.filter(s=>vaxDone(s,p)).length, left=brDnum(vDate[i])-tD, all=dn>=g.length;
-          return L('💉',escA((p.no?'เข็ม '+p.no+' ':'')+p.name),+p.d||0,brBdD(vDate[i]),all?'✓ ครบ '+fmt(g.length)+' ตัว':(left>0?'อีก '+fmt(left)+' วัน':(left===0?'🔴 วันนี้':'⚠️ ทำแล้ว '+fmt(dn)+'/'+fmt(g.length))),all?'done':(left===0?'now':(left<0?'late':''))); }).join('')
-        +L('📤','ส่งขึ้นคลอด',sendDay,brBdRange(sFrom,sTo),sN>0?'อีก '+fmt(sN)+' วัน':(sN===0?'🔴 วันนี้':'⚠️ ถึงคิวแล้ว '+fmt(-sN)+' วัน'),sN<0?'late':(sN===0?'now':''))
-        +L('👶','กำหนดคลอด',C.gest,brBdRange(fFrom,fTo),fN>0?'อีก '+fmt(fN)+' วัน':(fN===0?'🔴 วันนี้':'เลยมา '+fmt(-fN)+' วัน'),fN<=0?'late':'');
-      pBody+=`<tr class="wk p" data-wk="${escA(ws)}"><td colspan="${NC}"><div class="wkh"><b>🤰 ชุด ${ws?brWkLabel(ws):'ไม่รู้ Week'}</b><span>ผสม ${brBdRange(first,last)}</span><span>${fmt(g.length)} ตัว</span><span class="wkb">
-          ${g.length>1?`<button class="btn ghost sm act" onclick="brBdTickWeek(${escA(JSON.stringify(String(ws)))},'preg')">☑ ติ๊กทั้งชุด</button>`:''}
-          ${sN<=0?`<button class="btn sm act" onclick="brBdSendWeek(${escA(JSON.stringify(String(ws)))})">📤 แจ้งส่งทั้งชุดขึ้นคลอด</button>`:''}</span></div>
-        <div class="wls">${tl}</div></td></tr>${pHead}`;
+      const vx=prog.map((p,i)=>{ const dn=g.filter(s=>vaxDone(s,p)).length, left=brDnum(vDate[i])-tD, all=dn>=g.length; return {p,i,dn,left,all,name:escA((p.no?p.name+' '+p.no:p.name))}; });
+      const chips=vx.map(v=>({ic:'💉',name:v.name,date:brBdD(vDate[v.i]),
+          st:v.all?'✓':(v.left>0?'อีก '+fmt(v.left)+' วัน':(v.left===0?'🔴 วันนี้':'⚠️ '+fmt(v.dn)+'/'+fmt(g.length))),
+          cls:v.all?'done':(v.left===0?'now':(v.left<0?'late':(v.left<=3?'soon':'')))}))
+        .concat([{ic:'📤',name:'ส่ง',date:brBdRange(sFrom,sTo),st:sN>0?'อีก '+fmt(sN)+' วัน':(sN===0?'🔴 วันนี้':'⚠️ เลย '+fmt(-sN)+' วัน'),cls:sN<0?'late':(sN===0?'now':(sN<=3?'soon':''))},
+          {ic:'👶',name:'คลอด',date:brBdRange(fFrom,fTo),st:fN>0?'อีก '+fmt(fN)+' วัน':(fN===0?'🔴 วันนี้':'⚠️ เลย '+fmt(-fN)+' วัน'),cls:fN<=0?'late':''}]);
+      /* งานตอนนี้ของชุด — สั้นบรรทัดเดียว: ส่งค้าง > ส่งวันนี้ > วัคซีนค้าง/วันนี้ > งานถัดไป */
+      const vxDue=vx.filter(v=>!v.all&&v.left<=0).sort((a,b)=>a.left-b.left);
+      let now='', nowCls='';
+      if(sN<0){ now='⚠️ ส่งขึ้นคลอด เลยมา '+fmt(-sN)+' วัน'; nowCls='late'; }
+      else if(sN===0){ now='🔴 วันนี้ ส่งขึ้นคลอด'; nowCls='now'; }
+      else if(vxDue.length){ const v=vxDue[0]; now=(v.left===0?'🔴 วันนี้ 💉 ':'⚠️ ค้าง 💉 ')+v.name+' ('+fmt(v.dn)+'/'+fmt(g.length)+')'; nowCls=v.left===0?'now':'late'; }
+      else { const nv=vx.filter(v=>!v.all&&v.left>0).sort((a,b)=>a.left-b.left)[0];
+        if(nv&&nv.left<sN){ now='💉 '+nv.name+' อีก '+fmt(nv.left)+' วัน'; nowCls=nv.left<=3?'now':''; }
+        else { now='📤 ส่งขึ้นคลอด อีก '+fmt(sN)+' วัน'; nowCls=sN<=3?'now':''; } }
+      const dF=brDays(first), dL=brDays(last);
+      pBody+=`<tr class="wk p" data-wk="${escA(ws)}"><td colspan="${NC}">${WKH({ic:'🤰',no:ws?brWkLabel(ws):'?',
+        meta:`${brBdRange(first,last)}${SEP}${fmt(g.length)} ตัว${SEP}วัน ${dayRange(dL,dF)}`,now,cls:nowCls,
+        btns:`${g.length>1?`<button class="btn ghost sm act" onclick="brBdTickWeek(${escA(JSON.stringify(String(ws)))},'preg')">☑ ติ๊กทั้งชุด</button>`:''}
+          ${sN<=0?`<button class="btn sm act" onclick="brBdSendWeek(${escA(JSON.stringify(String(ws)))})">📤 แจ้งส่งทั้งชุด</button>`:''}`,chips})}</td></tr>${pHead}`;
       g.forEach(s=>{ const md=brBdMateD(s), d=brDays(md), stk=d>sendDay;
         const bc=(function(){ const e=(s.events||[]).find(x=>x&&x.t==='care'&&/^↩️ ตีกลับ/.test(x.note||'')); return (e&&brIsISO(e.date)&&brDays(e.date)<=7)?`<span class="tag bad" title="${escA(e.note||'')}">↩️ ตีกลับ ${brBdD(e.date)}: ${escA(String(e.note||'').replace(/^↩️ ตีกลับ[^:]*:?\s*/,'').slice(0,40))}</span> `:''; })();
         const st=bc+(stk?`<span class="tag bad">⚠️ เกินวัน ${fmt(sendDay)} มา ${fmt(d-sendDay)} วัน ยังไม่ส่ง</span>`:(sN<=0?'<span class="tag warn">📤 ถึงคิวส่งทั้งชุด</span>':(vDate.some((v,i)=>brDnum(v)===tD&&!vaxDone(s,prog[i]))?'<span class="tag warn">💉 วัคซีนวันนี้</span>':'<span class="tag mute">—</span>')));
@@ -18950,7 +19194,7 @@ function brBoardTableHTML(h){
    ใช้ตัวบันทึกเดิมทั้งหมด ไม่มีทางเขียนใหม่: ⏳ รอผสม = brDMBodyHTML (แจ้งผสม/รอบ 2/คัดหลายตัว) · 🔍 ตรวจท้อง-กลับสัดทั้งชุด = brPcEntryHTML/brPcSave
    · 📤 แจ้งส่งทั้งชุด = brBdSendEars · 💉 วัคซีนทั้งชุด = brBtVaxEars (ตรรกะเดียวกับ brBdVaxTicked) · ⚠️ ท้องเกิน/ค้าง = 🏃 brStuckCardHTML บนสุด
    ค้นเบอร์/กรองค้าง (brBdFilter) ทำงานกับชิป .btear + ซ่อนการ์ดที่ไม่มีชิปเหลือ */
-const BR_VIEW='board';   // 690925c เจ้าของ 25 ก.ย. 69 ลองแบบ D ในของจริงแล้ว "แบบเดิมดีกว่า" → กลับตารางบอร์ด 690909a (โค้ดแบบ D ยังอยู่ใน brBatchHTML เปิดได้ด้วย 'batch')
+const BR_VIEW='list';   // 690928c เจ้าของ 28 ก.ย. 69 "ลองเอาลงจริง" ตารางแบบใหม่ (brListHTML) · 'board' = ตารางบอร์ด 690909a · 'batch' = แบบ D   // 690925c เจ้าของ 25 ก.ย. 69 ลองแบบ D ในของจริงแล้ว "แบบเดิมดีกว่า" → กลับตารางบอร์ด 690909a (โค้ดแบบ D ยังอยู่ใน brBatchHTML เปิดได้ด้วย 'batch')
 function brBtVaxEars(ears){   // 💉 ลงวัคซีนให้แม่ตามรายการ — เข็มที่ถึงกำหนดแล้ว (นับจากแม่ตัวแรกของชุด) และยังไม่มีบันทึก
   if(typeof blockIfReadonly==='function'&&blockIfReadonly()) return;
   ears=(ears||[]).map(String); if(!ears.length){ toast('ไม่มีแม่อุ้มท้องในชุดนี้'); return; }
@@ -19063,6 +19307,8 @@ function brBdFilter(){   // ค้นเบอร์ + กรองค้าง 
   b.querySelectorAll('tr.wk').forEach(w=>{ let n=w.nextElementSibling, any=false; while(n&&!n.classList.contains('wk')){ if(n.dataset.ear&&!n.hidden) any=true; n=n.nextElementSibling; } w.hidden=!any; const hd=w.nextElementSibling; if(hd&&!hd.dataset.ear) hd.hidden=!any; });
   /* แถวในตารางแจ้งผสม (brDMBodyHTML) — กรองด้วยเบอร์ในแถว */
   b.querySelectorAll('tr[id^="brDMTr_"]').forEach(tr=>{ const ear=tr.id.slice(7).toLowerCase(); tr.hidden=!!(q&&!ear.includes(q))||(brBdStuckOnly&&!tr.dataset.stk); });   // 690923g: กรองค้างครอบกลุ่ม ⏳ รอผสม ด้วย
+  b.querySelectorAll('tr.lsg').forEach(g=>{ let n=g.nextElementSibling, any=false; while(n&&!n.classList.contains('lsg')){ if(n.dataset.ear&&!n.hidden) any=true; n=n.nextElementSibling; } g.hidden=!any; });   // 690928c: หัวกลุ่มตารางแบบใหม่
+  try{ brLsBar(); }catch(e){}
 }
 function brBdCount(){ const n={mated:0,preg:0}; const b=document.getElementById('brBoardBox'); if(!b) return;
   b.querySelectorAll('tr[data-ear].sel').forEach(tr=>{ const g=tr.dataset.g; if(n[g]!=null) n[g]++; });
