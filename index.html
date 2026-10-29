@@ -23451,7 +23451,8 @@ function brSemOrdCenterHTML(farm){ const all=SEMORD[farm]; if(!all) return '<div
       <div class="frow" style="margin-top:6px"><input class="cin" id="bso_note" placeholder="หมายเหตุการส่ง (ถ้ามี)"></div>
       <div style="display:flex;gap:8px;margin-top:6px"><button class="btn sm" onclick="brSemOrdSend(${escA(JSON.stringify(farm))},${escA(JSON.stringify(o.id))})">🚚 ยืนยันส่ง</button><button class="btn ghost sm" onclick="brSemSendId='';brSemCtrRe()">ยกเลิก</button></div></div>`; };
   const ord=open.slice().sort((a,b)=>((a.status==='new'?0:1)-(b.status==='new'?0:1))||String(a.need||'9').localeCompare(String(b.need||'9'))||String(a.ts||'').localeCompare(String(b.ts||'')));   // 📋 691029d รอจัดส่ง + ใช้เร็วสุดขึ้นก่อน
-  return brSemPrepHTML(farm,open)+(ord.length?ord.map(o=>brSemOrdCardHTML(o,farm,
+  if(brSemView()==='table') return brSemTblWrapHTML(farm,ord,done,can,sendForm);   // 📋 691029f ตาราง 1 ใบ = 1 แถว
+  return brSemTblBarHTML(farm)+brSemPrepHTML(farm,open)+(ord.length?ord.map(o=>brSemOrdCardHTML(o,farm,
       (can&&o.status==='new'&&brSemSendId!==o.id?`<div style="margin-top:8px"><button class="btn sm" onclick="brSemSendId=${escA(JSON.stringify(o.id))};brSemCtrRe()">📦 จัดส่ง</button></div>`:'')
       +(brSemSendId===o.id?sendForm(o):''))).join(''):'<div class="sub">— ไม่มีใบสั่งค้าง —</div>')
     +(done.length?`<div class="sub" style="margin-top:8px">รับแล้วล่าสุด: ${done.map(o=>(brSemFromOf(o)&&brSemFromOf(o)!==farm?escA(brSemFarmShort(brSemFromOf(o)))+' ':'')+escA(o.house||'')+' '+fmt(+o.n||0)+' โดส ('+brThai(o.need)+')').join(' · ')}</div>`:''); }
@@ -23498,6 +23499,103 @@ function brSemPrepHTML(farm,open){ const nw=(open||[]).filter(o=>o.status==='new
   return `<div style="padding:10px;border-radius:12px;background:#fff8e8;border:1px solid #e3c98d;margin-bottom:4px">
     <div style="font-weight:800;font-size:15px;margin-bottom:7px">🧪 ต้องเตรียมโดส — รอจัดส่ง ${fmt(nw.length)} ใบ · รวม ${fmt(total)} โดส</div>
     <div style="display:flex;flex-wrap:wrap;gap:8px">${cells}</div></div>`; }
+/* 📋 691029f เจ้าของ 29 ต.ค. 69 "ใบสั่งน้ำเชื้อ ออกแบบเป็นตารางที่เข้าใจง่าย + ปริ๊น A4 ได้": 1 ใบสั่ง = 1 แถว · คอลัมน์ = พันธุ์ (L/Y/D…) + ไม่ระบุ + รวม
+   ท้ายตาราง = รวมที่ต้องเตรียม (เฉพาะใบรอจัดส่ง) / โดสคงเหลือวันนี้ / ขาด · ขอพ่อ/หมายเหตุ/ส่งแล้ว = บรรทัดเล็กใต้แถว · ฟอร์มจัดส่ง = กล่องใต้ตาราง (sendForm เดิม)
+   สวิตช์ brSemView() 'table'|'card' จำต่อเครื่อง (card = การ์ด 691029d เดิมทุกบรรทัด) · 🖨️ brSemPrint(farm) = A4 แนวตั้ง ใบรอจัดส่ง+ส่งแล้ว + ช่องเขียนส่งจริง/ลงชื่อ */
+function brSemView(){ try{ return localStorage.getItem('brSemView')==='card'?'card':'table'; }catch(e){ return 'table'; } }
+function brSemViewSet(v){ try{ localStorage.setItem('brSemView',v); }catch(e){} brSemCtrRe(); }
+function brSemOrdCnt(o,farm){ const by={}, prefs=[]; let any=0;
+  brSemOrdBreedRows(o,farm).forEach(x=>{ if(x.k==='boar') prefs.push(x); if(x.k!=='any'&&x.br) by[x.br]=(by[x.br]||0)+x.n; else any+=x.n; });
+  return {by,any,prefs}; }
+function brSemHaveBy(farm){ const have={}; (BR.all||[]).filter(b=>b.farm===farm&&(b.kind||'')==='boar'&&b.stage!=='cull').forEach(b=>{ const br=String(b.breed||'').trim().toUpperCase(); if(br) have[br]=(have[br]||0)+brSemenStock(b,brTodayISO()).avail; }); return have; }
+function brSemTblModel(farm,ord){ const rows=ord.map(o=>({o,c:brSemOrdCnt(o,farm)}));
+  const brs=[...new Set(rows.flatMap(r=>Object.keys(r.c.by)))].sort(brBreedSort), anyCol=rows.some(r=>r.c.any>0);
+  const need={}; let needAny=0, needN=0, nNew=0;
+  rows.filter(r=>r.o.status==='new').forEach(r=>{ nNew++; needN+=+r.o.n||0; needAny+=r.c.any; Object.keys(r.c.by).forEach(b=>need[b]=(need[b]||0)+r.c.by[b]); });
+  return {rows,brs,anyCol,need,needAny,needN,nNew,have:brSemHaveBy(farm)}; }
+function brSemOrdSorted(list){ return list.slice().sort((a,b)=>((a.status==='new'?0:1)-(b.status==='new'?0:1))||String(a.need||'9').localeCompare(String(b.need||'9'))||String(a.ts||'').localeCompare(String(b.ts||''))); }
+function brSemTblBarHTML(farm){ const v=brSemView();
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin:0 0 8px">
+    <button class="btn ghost sm" onclick="brSemViewSet('${v==='table'?'card':'table'}')">${v==='table'?'🗂 ดูแบบการ์ด':'📋 ดูแบบตาราง'}</button>
+    <button class="btn sm" onclick="brSemPrint(${escA(JSON.stringify(farm))})">🖨️ พิมพ์ A4</button></div>`; }
+function brSemGoSend(){ setTimeout(()=>{ try{ brBdGo('brSemSendBox'); }catch(e){} },60); }
+function brSemTblWrapHTML(farm,ord,done,can,sendForm){ const M=brSemTblModel(farm,ord);
+  const th='padding:7px 5px;background:#f3ead4;border-bottom:2px solid #c9a45a;font-size:13px;white-space:nowrap;text-align:center';
+  const num=n=>n?`<b style="font-size:17px">${fmt(n)}</b>`:'<span style="color:#c4c9d0">–</span>';
+  const line='border-bottom:1px solid var(--line)';
+  const body=M.rows.map((r,i)=>{ const o=r.o, isNew=o.status==='new', nd=brSemNeedTxt(o.need), urgent=isNew&&brIsISO(o.need)&&-brDays(o.need)<=1, ff=brSemFromOf(o)||farm, cross=ff!==farm, sel=brSemSendId===o.id;
+    const items=(o.items||[]).filter(x=>+x.n>0);
+    const extra=[r.c.prefs.length?'⭐ ขอพ่อ '+r.c.prefs.map(p=>'<b>'+escA(p.ear)+'</b> ×'+fmt(p.n)).join(' · '):'', o.note?'📝 '+escA(o.note):'',
+      items.length?'<span style="color:#1e5e3f">🚚 ส่งแล้ว '+items.map(x=>'<b>'+escA(x.ear)+'</b> ×'+fmt(+x.n)).join(' · ')+(o.sendBy?' · '+escA(o.sendBy):'')+'</span>':''].filter(Boolean).join('<br>');
+    const bg=sel?'#fdf3e0':(urgent?'#fff6f4':(isNew?'#fff':'#f5fbf7')), td='padding:8px 5px;vertical-align:middle;'+line;
+    const act=isNew?(can?(sel?'<span class="tag warn" style="font-size:11.5px">กำลังจัด…</span>':`<button class="btn sm" style="white-space:nowrap" onclick="brSemSendId=${escA(JSON.stringify(o.id))};brSemCtrRe();brSemGoSend()">📦 จัดส่ง</button>`):'<span class="tag warn" style="font-size:11.5px">🟡 รอจัด</span>')
+      :'<span class="tag ok" style="font-size:11.5px;white-space:nowrap">🚚 ส่งแล้ว รอรับ</span>';
+    return `<tr style="background:${bg}"><td style="${td};padding-left:8px;line-height:1.45"><div style="font-size:13px">📅 <b style="color:${nd.c}">${escA(nd.t)}</b> · ${escA(brThai(o.need)||'-')}</div><div style="font-size:15.5px"><b>${escA(o.house||'-')}</b> <span style="font-size:12px;color:#5b6470">${escA(brSemFarmShort(ff))}</span>${cross?' <span class="tag info" style="font-size:10.5px;padding:0 4px">🚚 ข้ามฟาร์ม</span>':''}</div>
+      <div title="สั่ง ${escA(brSemTsTxt(o.ts))}">🩺 <b>${escA(o.by||'-')}</b></div>
+      ${extra?`<div style="font-size:12px;margin-top:2px">${extra}</div>`:''}<div style="margin-top:5px">${act}</div></td>
+      ${M.brs.map(b=>`<td style="${td};text-align:center">${num(r.c.by[b]||0)}</td>`).join('')}${M.anyCol?`<td style="${td};text-align:center">${num(r.c.any)}</td>`:''}
+      <td style="${td};text-align:center;background:#f7f1e3"><b style="font-size:19px">${fmt(+o.n||0)}</b></td></tr>`; }).join('');
+  const ft=(lbl,vals,anyV,tot,style)=>`<tr style="${style}"><td style="padding:7px 8px;font-weight:800;text-align:right;font-size:13.5px">${lbl}</td>${M.brs.map(b=>`<td style="padding:7px 4px;text-align:center">${vals(b)}</td>`).join('')}${M.anyCol?`<td style="padding:7px 4px;text-align:center">${anyV}</td>`:''}<td style="padding:7px 4px;text-align:center">${tot}</td></tr>`;
+  const short=b=>Math.max(0,(M.need[b]||0)-(M.have[b]||0)), anyShort=M.brs.some(b=>short(b)>0);
+  const foot=M.nNew?ft('🧪 ต้องเตรียม<div style="font-weight:600;font-size:11.5px">'+fmt(M.nNew)+' ใบรอจัดส่ง</div>',b=>'<b style="font-size:18px">'+fmt(M.need[b]||0)+'</b>',M.needAny?'<b style="font-size:18px">'+fmt(M.needAny)+'</b>':'–','<b style="font-size:19px">'+fmt(M.needN)+'</b>','background:#fff8e8;border-top:2px solid #c9a45a')
+    +ft('📦 คงเหลือวันนี้',b=>'<b>'+fmt(M.have[b]||0)+'</b>','','','background:#f5f7fa')
+    +ft(anyShort?'⚠️ ขาด':'✓ โดสพอ',b=>short(b)?'<b style="color:#a5342a;font-size:16px">−'+fmt(short(b))+'</b>':((M.need[b]||0)?'<span style="color:#1e7e4f;font-weight:800">✓ พอ</span>':'<span style="color:#c4c9d0">–</span>'),'','','background:'+(anyShort?'#fff1ef':'#f2faf5')):'';
+  const tbl=M.rows.length?`<div style="overflow-x:auto;border:1px solid #e3c98d;border-radius:10px;background:#fff"><table style="width:100%;border-collapse:collapse;font-size:14px">
+    <thead><tr><th style="${th};text-align:left;padding-left:8px">ใบสั่ง</th>${M.brs.map(b=>`<th style="${th};font-size:17px;min-width:34px">${escA(b)}</th>`).join('')}${M.anyCol?`<th style="${th};min-width:34px" title="ไม่ระบุพันธุ์ — ศูนย์ AI เลือกเอง">🎲</th>`:''}<th style="${th};background:#ead9b0">รวม</th></tr></thead>
+    <tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div><div class="sub" style="margin:5px 2px 0;font-size:12px">${M.brs.map(b=>'<b>'+escA(b)+'</b> = '+escA(BR_BREED_NM[b]||b)).join(' · ')}${M.anyCol?' · 🎲 = ไม่ระบุพันธุ์ (ศูนย์ AI เลือกเอง)':''} · ตัวเลข = จำนวนโดส</div>`:'<div class="sub">— ไม่มีใบสั่งค้าง —</div>';
+  const so=brSemSendId&&ord.find(o=>o.id===brSemSendId);
+  const sendBox=so?`<div id="brSemSendBox" style="margin-top:10px;padding:10px;border:1.5px solid #c9a45a;border-radius:10px;background:#fffdf6"><div style="font-weight:800;font-size:15px">📦 จัดส่งใบ: เล้า ${escA(so.house||'-')} · ${escA(brSemFarmShort(brSemFromOf(so)||farm))} · ${escA(so.by||'-')} · รวม ${fmt(+so.n||0)} โดส</div>${sendForm(so)}</div>`:'';
+  const doneTxt=done.length?`<div class="sub" style="margin-top:8px">✅ รับแล้วล่าสุด: ${done.map(o=>(brSemFromOf(o)&&brSemFromOf(o)!==farm?escA(brSemFarmShort(brSemFromOf(o)))+' ':'')+escA(o.house||'')+' '+fmt(+o.n||0)+' โดส ('+brThai(o.need)+')').join(' · ')}</div>`:'';
+  return brSemTblBarHTML(farm)+tbl+sendBox+doneTxt; }
+function brSemPrintHTML(farm){ const e=escA, ord=brSemOrdSorted((SEMORD[farm]||[]).filter(o=>o.status==='new'||o.status==='sent')), M=brSemTblModel(farm,ord);
+  const d=new Date(), nowTxt=brThai(brTodayISO())+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' น.';
+  const nc=M.brs.length+(M.anyCol?1:0);
+  const body=M.rows.map((r,i)=>{ const o=r.o, ff=brSemFromOf(o)||farm, nd=brSemNeedTxt(o.need), items=(o.items||[]).filter(x=>+x.n>0);
+    const ask=[r.c.prefs.length?'ขอพ่อ '+r.c.prefs.map(p=>e(p.ear)+' ×'+fmt(p.n)).join(', '):'', o.note?e(o.note):''].filter(Boolean).join('<br>');
+    return `<tr class="${o.status==='sent'?'snt':''}"><td class="c">${i+1}</td><td><b>${e(brThai(o.need)||'-')}</b><small>${e(nd.t)}</small></td>
+      <td><b>${e(o.house||'-')}</b><small>${e(brSemFarmShort(ff))}${ff!==farm?' (ข้ามฟาร์ม)':''}</small></td><td>${e(o.by||'-')}<small>${e(brSemTsTxt(o.ts))}</small></td>
+      ${M.brs.map(b=>`<td class="c big">${r.c.by[b]?fmt(r.c.by[b]):''}</td>`).join('')}${M.anyCol?`<td class="c big">${r.c.any?fmt(r.c.any):''}</td>`:''}
+      <td class="c big tot">${fmt(+o.n||0)}</td><td class="wr">${ask}</td>
+      <td class="wr">${items.length?'<b>ส่งแล้ว</b> '+items.map(x=>e(x.ear)+' ×'+fmt(+x.n)).join(', ')+(o.sendBy?'<small>'+e(o.sendBy)+' '+e(brSemTsTxt(o.sendTs))+'</small>':''):''}</td><td></td></tr>`; }).join('');
+  const short=b=>Math.max(0,(M.need[b]||0)-(M.have[b]||0));
+  const foot=M.nNew?`<tr class="ft"><td colspan="4" class="r">รวมที่ต้องเตรียม (${fmt(M.nNew)} ใบรอจัดส่ง)</td>${M.brs.map(b=>`<td class="c big">${fmt(M.need[b]||0)}</td>`).join('')}${M.anyCol?`<td class="c big">${M.needAny?fmt(M.needAny):''}</td>`:''}<td class="c big tot">${fmt(M.needN)}</td><td colspan="3"></td></tr>
+    <tr class="ft2"><td colspan="4" class="r">โดสคงเหลือ ณ วันพิมพ์</td>${M.brs.map(b=>`<td class="c">${fmt(M.have[b]||0)}</td>`).join('')}${M.anyCol?'<td class="c"><small>AI เลือก</small></td>':''}<td></td><td colspan="3"></td></tr>
+    <tr class="ft2"><td colspan="4" class="r">ขาด</td>${M.brs.map(b=>`<td class="c ${short(b)?'bad':''}">${short(b)?fmt(short(b)):'พอ'}</td>`).join('')}${M.anyCol?'<td></td>':''}<td></td><td colspan="3"></td></tr>`:'';
+  const sum=M.brs.map(b=>`<div class="bx ${short(b)?'bxbad':''}"><div class="bt">${e(brBreedNm(b))}</div><div class="bn">${fmt(M.need[b]||0)} <span>โดส</span></div><div class="bs">มีคงเหลือ ${fmt(M.have[b]||0)}${short(b)?' · ขาด '+fmt(short(b)):' · พอ'}</div></div>`).join('')
+    +(M.needAny?`<div class="bx"><div class="bt">ไม่ระบุพันธุ์</div><div class="bn">${fmt(M.needAny)} <span>โดส</span></div><div class="bs">ศูนย์ AI เลือกเอง</div></div>`:'');
+  const nSent=ord.length-M.nNew;
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ใบสั่งน้ำเชื้อ '+e(farm)+' '+e(brTodayISO())+'</title><style>'
+    +'@page{size:A4 portrait;margin:10mm}body{font-family:Tahoma,"Segoe UI",sans-serif;font-size:10pt;color:#111;margin:0}'
+    +'h1{font-size:15pt;margin:0}.hs{font-size:9.5pt;color:#333;margin:2px 0 8px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}'
+    +'.sum{display:flex;gap:6px;margin:0 0 8px}.bx{flex:1;border:1.5px solid #555;border-radius:6px;padding:4px 8px}.bxbad{border-color:#b3261e;background:#fdeceb}.bt{font-weight:700;font-size:10pt}.bn{font-size:17pt;font-weight:700;line-height:1.15}.bn span{font-size:9.5pt;font-weight:400}.bs{font-size:8.5pt}'
+    +'table{width:100%;border-collapse:collapse;font-size:9.2pt}th,td{border:1px solid #888;padding:3px 4px;vertical-align:middle}th{background:#ece3cc;font-weight:700}th small,td small{display:block;font-size:7.6pt;color:#444;font-weight:400}'
+    +'td.c,th.c{text-align:center}td.r{text-align:right;font-weight:700}td.big{font-size:11.5pt;font-weight:700}td.tot,th.tot{background:#f4eedf}td.wr{font-size:8.5pt;line-height:1.35}tr.snt td{background:#f1f7f3}'
+    +'tr{page-break-inside:avoid}tr.ft td{border-top:2px solid #333;background:#fbf5e6}tr.ft2 td{background:#f6f6f6}td.bad{color:#b3261e;font-weight:700}'
+    +'.sig{display:flex;gap:16px;margin-top:22px}.sig div{flex:1;text-align:center;font-size:9.5pt}.sig .ln{border-bottom:1px dotted #333;height:26px;margin-bottom:3px}'
+    +'.nt{font-size:8.3pt;color:#444;margin-top:6px}'
+    +'</style></head><body>'
+    +'<h1>🧪 ใบสั่งน้ำเชื้อ — ศูนย์ AI '+e(farm)+'</h1>'
+    +'<div class="hs"><span>รอจัดส่ง <b>'+fmt(M.nNew)+'</b> ใบ · รวม <b>'+fmt(M.needN)+'</b> โดส'+(nSent?' · ส่งแล้ว รอเล้ารับ '+fmt(nSent)+' ใบ':'')+'</span><span>พิมพ์ '+e(nowTxt)+' · โดย '+e(brBy()||'-')+'</span></div>'
+    +(M.nNew?'<div class="sum">'+sum+'</div>':'')
+    +'<table><thead><tr><th class="c" style="width:4%">#</th><th style="width:10%">ใช้วันที่</th><th style="width:10%">เล้า<small>ฟาร์ม</small></th><th style="width:13%">หมอผู้สั่ง<small>สั่งเมื่อ</small></th>'
+    +M.brs.map(b=>`<th class="c" style="width:6%">${e(b)}<small>${e(BR_BREED_NM[b]||'')}</small></th>`).join('')+(M.anyCol?'<th class="c" style="width:6%">ไม่ระบุ<small>AI เลือก</small></th>':'')
+    +'<th class="c tot" style="width:6%">รวม<small>โดส</small></th><th>ขอพ่อ / หมายเหตุ</th><th style="width:'+(nc>3?16:20)+'%">ส่งจริง<small>เบอร์พ่อ × โดส</small></th><th style="width:9%">ผู้รับ<small>ลงชื่อ</small></th></tr></thead>'
+    +'<tbody>'+body+'</tbody><tfoot>'+foot+'</tfoot></table>'
+    +'<div class="sig"><div><div class="ln"></div>ผู้จัดเตรียม (ศูนย์ AI)<br>วันที่ ........../........../..........</div><div><div class="ln"></div>ผู้ส่ง<br>วันที่ ........../........../..........</div><div><div class="ln"></div>ผู้รับ (เล้าผสม)<br>วันที่ ........../........../..........</div></div>'
+    +'<div class="nt">แถวพื้นเขียว = จัดส่งแล้ว รอเล้ากดรับในระบบ · ช่อง "ส่งจริง" ว่าง = ยังไม่จัดส่ง ให้เขียนเบอร์พ่อ × โดส ที่ส่งจริงแล้วลงระบบที่ปุ่ม 📦 จัดส่ง</div>'
+    +'</body></html>'; }
+function brSemPrint(farm){
+  if(!SEMORD[farm]){ toast('⏳ กำลังโหลดใบสั่ง — ลองกดอีกครั้ง'); brSemOrdLoad(farm); return; }
+  if(!(SEMORD[farm]||[]).some(o=>o.status==='new'||o.status==='sent')){ toast('ไม่มีใบสั่งค้างให้พิมพ์'); return; }
+  const old=document.getElementById('printFrame'); if(old) old.remove();
+  const f=document.createElement('iframe'); f.id='printFrame';
+  f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(f);
+  const d=f.contentWindow.document; d.open(); d.write(brSemPrintHTML(farm)); d.close();
+  const go=()=>{ try{ pfPrintWin(f.contentWindow); }catch(e){ toast('พิมพ์ไม่สำเร็จ — ลองใหม่อีกครั้ง'); } };
+  if(d.readyState==='complete') setTimeout(go,120); else f.onload=()=>setTimeout(go,120);
+  toast('🖨️ เปิดหน้าต่างพิมพ์ — กระดาษ A4 แนวตั้ง');
+}
 async function brSemOrdSend(farm,id){
   if(typeof blockIfReadonly==='function'&&blockIfReadonly()) return;
   const items=[...document.querySelectorAll('input[id^="bso_"][data-ear]')].map(el=>({ear:el.dataset.ear,n:Math.round(+el.value||0),max:+el.max||0})).filter(x=>x.n>0);
