@@ -1670,7 +1670,7 @@ function vetDeathAlertCheck(){
    ไม่ยอมดึงเวอร์ชันใหม่จากเซิร์ฟเวอร์ → เคยทำให้เขียนข้อมูลลงเซิร์ฟเวอร์เก่าหลังย้ายบ้าน
    → แอปเช็ค version.json (ข้ามแคชด้วย no-store + ?t=) ทุก 5 นาที + ตอนกลับมาเปิดจอ
      เจอ build ใหม่ → เซฟของค้าง แล้วรีโหลดด้วย ?v=<build> ใหม่ (query เปลี่ยน = เบราว์เซอร์ต้องดึงของจริง) */
-const APP_BUILD='691121a';
+const APP_BUILD='691122a';
 /* ── 📷 qrcode-generator (c) Kazuhiko Arase — MIT License (https://github.com/kazuhikoarase/qrcode-generator) — ฝังไว้ในไฟล์เพื่อสร้าง QR แม่รายตัวแบบไม่พึ่งเน็ตภายนอก ── */
 var qrcode=function(){function i(t,r){function a(t,r){g=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(l=4*u+17),e(0,0),e(l-7,0),e(0,l-7),i(),o(),v(t,r),7<=u&&h(t),null==n&&(n=w(u,f,c)),d(n,r)}var u=t,f=y[r],g=null,l=0,n=null,c=[],s={},e=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||l<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||l<=r+n||(g[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},o=function(){for(var t=8;t<l-8;t+=1)null==g[t][6]&&(g[t][6]=t%2==0);for(var r=8;r<l-8;r+=1)null==g[6][r]&&(g[6][r]=r%2==0)},i=function(){for(var t=B.getPatternPosition(u),r=0;r<t.length;r+=1)for(var e=0;e<t.length;e+=1){var n=t[r],o=t[e];if(null==g[n][o])for(var i=-2;i<=2;i+=1)for(var a=-2;a<=2;a+=1)g[n+i][o+a]=-2==i||2==i||-2==a||2==a||0==i&&0==a}},h=function(t){for(var r=B.getBCHTypeNumber(u),e=0;e<18;e+=1){var n=!t&&1==(r>>e&1);g[Math.floor(e/3)][e%3+l-8-3]=n}for(e=0;e<18;e+=1){n=!t&&1==(r>>e&1);g[e%3+l-8-3][Math.floor(e/3)]=n}},v=function(t,r){for(var e=f<<3|r,n=B.getBCHTypeInfo(e),o=0;o<15;o+=1){var i=!t&&1==(n>>o&1);o<6?g[o][8]=i:o<8?g[o+1][8]=i:g[l-15+o][8]=i}for(o=0;o<15;o+=1){i=!t&&1==(n>>o&1);o<8?g[8][l-o-1]=i:o<9?g[8][15-o-1+1]=i:g[8][15-o-1]=i}g[l-8][8]=!t},d=function(t,r){for(var e=-1,n=l-1,o=7,i=0,a=B.getMaskFunction(r),u=l-1;0<u;u-=2)for(6==u&&(u-=1);;){for(var f=0;f<2;f+=1)if(null==g[n][u-f]){var c=!1;i<t.length&&(c=1==(t[i]>>>o&1)),a(n,u-f)&&(c=!c),g[n][u-f]=c,-1==(o-=1)&&(i+=1,o=7)}if((n+=e)<0||l<=n){n-=e,e=-e;break}}},w=function(t,r,e){for(var n=b.getRSBlocks(t,r),o=M(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=C(i[u],l.getLength()-1).mod(l);a[u]=new Array(l.getLength()-1);for(g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=0<=s?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};s.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=x(t);break;case"Alphanumeric":e=m(t);break;case"Byte":e=L(t);break;case"Kanji":e=D(t);break;default:throw"mode:"+r}c.push(e),n=null},s.isDark=function(t,r){if(t<0||l<=t||r<0||l<=r)throw t+","+r;return g[t][r]},s.getModuleCount=function(){return l},s.make=function(){if(u<1){for(var t=1;t<40;t++){for(var r=b.getRSBlocks(t,f),e=M(),n=0;n<c.length;n++){var o=c[n];e.put(o.getMode(),4),e.put(o.getLength(),B.getLengthInBits(o.getMode(),t)),o.write(e)}var i=0;for(n=0;n<r.length;n++)i+=r[n].dataCount;if(e.getLengthInBits()<=8*i)break}u=t}a(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){a(!0,e);var n=B.getLostPoint(s);(0==e||n<t)&&(t=n,r=e)}return r}())},s.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<s.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<s.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=s.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},s.createSvgTag=function(t,r,e,n){var o={};"object"==typeof t&&(t=(o=t).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,f,c=s.getModuleCount()*t+2*r,g="";for(f="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",g+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',g+=o.scalable?"":' width="'+c+'px" height="'+c+'px"',g+=' viewBox="0 0 '+c+" "+c+'" ',g+=' preserveAspectRatio="xMinYMin meet"',g+=n.text||e.text?' role="img" aria-labelledby="'+p([n.id,e.id].join(" ").trim())+'"':"",g+=">",g+=n.text?'<title id="'+p(n.id)+'">'+p(n.text)+"</title>":"",g+=e.text?'<description id="'+p(e.id)+'">'+p(e.text)+"</description>":"",g+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',g+='<path d="',a=0;a<s.getModuleCount();a+=1)for(u=a*t+r,i=0;i<s.getModuleCount();i+=1)s.isDark(a,i)&&(g+="M"+(i*t+r)+","+u+f);return g+='" stroke="transparent" fill="black"/>',g+="</svg>"},s.createDataURL=function(o,t){o=o||2,t=void 0===t?4*o:t;var r=s.getModuleCount()*o+2*t,i=t,a=r-t;return I(r,r,function(t,r){if(i<=t&&t<a&&i<=r&&r<a){var e=Math.floor((t-i)/o),n=Math.floor((r-i)/o);return s.isDark(n,e)?0:1}return 1})},s.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=s.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=s.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=p(e),o+='"'),o+="/>"};var p=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return s.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*s.getModuleCount()+2*t,u=t,f=a-t,c={"██":"█","█ ":"▀"," █":"▄","  ":" "},g={"██":"▀","█ ":"▀"," █":" ","  ":" "},l="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<f&&u<=r&&r<f&&s.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<f&&u<=r+1&&r+1<f&&s.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",l+=t<1&&f<=r+1?g[i]:c[i];l+="\n"}return a%2&&0<t?l.substring(0,l.length-a-1)+Array(1+a).join("▀"):l.substring(0,l.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=s.getModuleCount()*t+2*r,u=r,f=a-r,c=Array(t+1).join("██"),g=Array(t+1).join("  "),l="",h="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),h="",n=0;n<a;n+=1)i=1,u<=n&&n<f&&u<=e&&e<f&&s.isDark(o,Math.floor((n-u)/t))&&(i=0),h+=i?c:g;for(o=0;o<t;o+=1)l+=h+"\n"}return l.substring(0,l.length-1)},s.renderTo2dContext=function(t,r){r=r||2;for(var e=s.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=s.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},s}i.stringToBytes=(i.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,i.createStringToBytes=function(u,f){var i=function(){function t(){var t=r.read();if(-1==t)throw"eof";return t}for(var r=S(u),e=0,n={};;){var o=r.read();if(-1==o)break;var i=t(),a=t()<<8|t();n[String.fromCharCode(o<<8|i)]=a,e+=1}if(e!=f)throw e+" != "+f;return n}(),a="?".charCodeAt(0);return function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);if(n<128)r.push(n);else{var o=i[t.charAt(e)];"number"==typeof o?(255&o)==o?r.push(o):(r.push(o>>>8),r.push(255&o)):r.push(a)}}return r}};var r,t,a=1,u=2,o=4,f=8,y={L:1,M:0,Q:3,H:2},e=0,n=1,c=2,g=3,l=4,h=5,s=6,v=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],(t={}).getBCHTypeInfo=function(t){for(var r=t<<10;0<=d(r)-d(1335);)r^=1335<<d(r)-d(1335);return 21522^(t<<10|r)},t.getBCHTypeNumber=function(t){for(var r=t<<12;0<=d(r)-d(7973);)r^=7973<<d(r)-d(7973);return t<<12|r},t.getPatternPosition=function(t){return r[t-1]},t.getMaskFunction=function(t){switch(t){case e:return function(t,r){return(t+r)%2==0};case n:return function(t,r){return t%2==0};case c:return function(t,r){return r%3==0};case g:return function(t,r){return(t+r)%3==0};case l:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case h:return function(t,r){return t*r%2+t*r%3==0};case s:return function(t,r){return(t*r%2+t*r%3)%2==0};case v:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},t.getErrorCorrectPolynomial=function(t){for(var r=C([1],0),e=0;e<t;e+=1)r=r.multiply(C([1,w.gexp(e)],0));return r},t.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case o:case f:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case o:return 16;case f:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case o:return 16;case f:return 12;default:throw"mode:"+t}}},t.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);5<i&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},t);function d(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r}var w=function(){for(var r=new Array(256),e=new Array(256),t=0;t<8;t+=1)r[t]=1<<t;for(t=8;t<256;t+=1)r[t]=r[t-4]^r[t-5]^r[t-6]^r[t-8];for(t=0;t<255;t+=1)e[r[t]]=t;var n={glog:function(t){if(t<1)throw"glog("+t+")";return e[t]},gexp:function(t){for(;t<0;)t+=255;for(;256<=t;)t-=255;return r[t]}};return n}();function C(n,o){if(void 0===n.length)throw n.length+"/"+o;var r=function(){for(var t=0;t<n.length&&0==n[t];)t+=1;for(var r=new Array(n.length-t+o),e=0;e<n.length-t;e+=1)r[e]=n[e+t];return r}(),i={getAt:function(t){return r[t]},getLength:function(){return r.length},multiply:function(t){for(var r=new Array(i.getLength()+t.getLength()-1),e=0;e<i.getLength();e+=1)for(var n=0;n<t.getLength();n+=1)r[e+n]^=w.gexp(w.glog(i.getAt(e))+w.glog(t.getAt(n)));return C(r,0)},mod:function(t){if(i.getLength()-t.getLength()<0)return i;for(var r=w.glog(i.getAt(0))-w.glog(t.getAt(0)),e=new Array(i.getLength()),n=0;n<i.getLength();n+=1)e[n]=i.getAt(n);for(n=0;n<t.getLength();n+=1)e[n]^=w.gexp(w.glog(t.getAt(n))+r);return C(e,0).mod(t)}};return i}function p(){var e=[],o={writeByte:function(t){e.push(255&t)},writeShort:function(t){o.writeByte(t),o.writeByte(t>>>8)},writeBytes:function(t,r,e){r=r||0,e=e||t.length;for(var n=0;n<e;n+=1)o.writeByte(t[n+r])},writeString:function(t){for(var r=0;r<t.length;r+=1)o.writeByte(t.charCodeAt(r))},toByteArray:function(){return e},toString:function(){var t="";t+="[";for(var r=0;r<e.length;r+=1)0<r&&(t+=","),t+=e[r];return t+="]"}};return o}var k,A,b=(k=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],(A={}).getRSBlocks=function(t,r){var e=function(t,r){switch(r){case y.L:return k[4*(t-1)+0];case y.M:return k[4*(t-1)+1];case y.Q:return k[4*(t-1)+2];case y.H:return k[4*(t-1)+3];default:return}}(t,r);if(void 0===e)throw"bad rs block @ typeNumber:"+t+"/errorCorrectionLevel:"+r;for(var n,o,i=e.length/3,a=[],u=0;u<i;u+=1)for(var f=e[3*u+0],c=e[3*u+1],g=e[3*u+2],l=0;l<f;l+=1)a.push((n=g,o=void 0,(o={}).totalCount=c,o.dataCount=n,o));return a},A),M=function(){var e=[],n=0,o={getBuffer:function(){return e},getAt:function(t){var r=Math.floor(t/8);return 1==(e[r]>>>7-t%8&1)},put:function(t,r){for(var e=0;e<r;e+=1)o.putBit(1==(t>>>r-e-1&1))},getLengthInBits:function(){return n},putBit:function(t){var r=Math.floor(n/8);e.length<=r&&e.push(0),t&&(e[r]|=128>>>n%8),n+=1}};return o},x=function(t){var r=a,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+2<r.length;)t.put(o(r.substring(e,e+3)),10),e+=3;e<r.length&&(r.length-e==1?t.put(o(r.substring(e,e+1)),4):r.length-e==2&&t.put(o(r.substring(e,e+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return e},m=function(t){var r=u,n=t,e={getMode:function(){return r},getLength:function(t){return n.length},write:function(t){for(var r=n,e=0;e+1<r.length;)t.put(45*o(r.charAt(e))+o(r.charAt(e+1)),11),e+=2;e<r.length&&t.put(o(r.charAt(e)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return e},L=function(t){var r=o,e=i.stringToBytes(t),n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=0;r<e.length;r+=1)t.put(e[r],8)}};return n},D=function(t){var r=f,e=i.stringToBytesFuncs.SJIS;if(!e)throw"sjis not supported.";!function(){var t=e("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=e(t),n={getMode:function(){return r},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return n},S=function(t){var e=t,n=0,o=0,i=0,r={read:function(){for(;i<8;){if(n>=e.length){if(0==i)return-1;throw"unexpected end of file./"+i}var t=e.charAt(n);if(n+=1,"="==t)return i=0,-1;t.match(/^\s$/)||(o=o<<6|a(t.charCodeAt(0)),i+=6)}var r=o>>>i-8&255;return i-=8,r}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return r},I=function(t,r,e){for(var n=function(t,r){var n=t,o=r,l=new Array(t*r),e={setPixel:function(t,r,e){l[r*n+t]=e},write:function(t){t.writeString("GIF87a"),t.writeShort(n),t.writeShort(o),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(n),t.writeShort(o),t.writeByte(0);var r=i(2);t.writeByte(2);for(var e=0;255<r.length-e;)t.writeByte(255),t.writeBytes(r,e,255),e+=255;t.writeByte(r.length-e),t.writeBytes(r,e,r.length-e),t.writeByte(0),t.writeString(";")}},i=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,o=h(),i=0;i<r;i+=1)o.add(String.fromCharCode(i));o.add(String.fromCharCode(r)),o.add(String.fromCharCode(e));var a=p(),u=function(t){var e=t,n=0,o=0,r={write:function(t,r){if(t>>>r!=0)throw"length over";for(;8<=n+r;)e.writeByte(255&(t<<n|o)),r-=8-n,t>>>=8-n,n=o=0;o|=t<<n,n+=r},flush:function(){0<n&&e.writeByte(o)}};return r}(a);u.write(r,n);var f=0,c=String.fromCharCode(l[f]);for(f+=1;f<l.length;){var g=String.fromCharCode(l[f]);f+=1,o.contains(c+g)?c+=g:(u.write(o.indexOf(c),n),o.size()<4095&&(o.size()==1<<n&&(n+=1),o.add(c+g)),c=g)}return u.write(o.indexOf(c),n),u.write(e,n),u.flush(),a.toByteArray()},h=function(){var r={},e=0,n={add:function(t){if(n.contains(t))throw"dup key:"+t;r[t]=e,e+=1},size:function(){return e},indexOf:function(t){return r[t]},contains:function(t){return void 0!==r[t]}};return n};return e}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=p();n.write(a);for(var u=function(){function e(t){a+=String.fromCharCode(r(63&t))}var n=0,o=0,i=0,a="",t={},r=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return t.writeByte=function(t){for(n=n<<8|255&t,o+=8,i+=1;6<=o;)e(n>>>o-6),o-=6},t.flush=function(){if(0<o&&(e(n<<6-o),o=n=0),i%3!=0)for(var t=3-i%3,r=0;r<t;r+=1)a+="="},t.toString=function(){return a},t}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return i}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||57344<=n?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}(function(){return qrcode});
 /* ── จบ qrcode-generator ── */
@@ -8596,9 +8596,9 @@ function ovDailyRows(){
   (typeof SALE_BILLS!=='undefined'?SALE_BILLS:[]).forEach(b=>{ if(!b||!b.dateISO||b.dateISO<from||b.dateISO>today) return; if(_ovdFarm&&(b.farm||'')!==_ovdFarm) return;
     if(!(myFarms()==='*'||(myFarms()||[]).includes(b.farm||'ไม่ระบุฟาร์ม'))) return;
     const c=sbCalc(b); const d=day(b.dateISO); const it=b.items||[];
-    const row={id:b.id,kind:b.kind,buyer:b.buyer||'',webNo:b.webNo||'',billNo:b.billNo?((b.billBook||'')+'/'+b.billNo):'',n:c.n,w:c.totW,net:c.net,pending:c.pending||c.net==null,farm:b.farm||'',dead:0,cull:0};
+    const row={id:b.id,kind:b.kind,buyer:b.buyer||'',webNo:b.webNo||'',billNo:b.billNo?((b.billBook||'')+'/'+b.billNo):'',n:c.n,w:c.totW,net:c.net,pending:c.pending||c.net==null,farm:b.farm||'',dead:0,cull:0,sow:c.sowN||0};
     if(b.kind==='deadcull'){ row.dead=it.filter(x=>x&&x.type==='dead').length; row.cull=it.filter(x=>x&&x.type!=='dead').length; d.bDeadN+=row.dead; d.bCullN+=row.cull; d.bDcVal+=(c.net||0); }
-    else { d.bSoldN+=c.n; d.bSoldW+=c.totW; d.bSoldVal+=(c.net||0); }
+    else { d.bSoldN+=(c.sowN?c.fatN:c.n); d.bSoldW+=(c.sowN?c.fatW:c.totW); d.bSoldVal+=(c.net||0); }   // 🐷 691122a แม่/พ่อพันธุ์ไม่ใช่หมูขุนของหลัง
     d.bills.push(row); });
   return {rows:Object.values(days).sort((a,b)=>b.iso.localeCompare(a.iso)),from,today,nDays,farms:hs.map(h=>h.farm||'ไม่ระบุฟาร์ม').filter((v,i,a)=>a.indexOf(v)===i).sort()};
 }
@@ -8629,7 +8629,7 @@ function ovDailyHTML(){
               <tbody>${d.houses.slice().sort((a,b)=>byCode(a,b)).map(x=>`<tr class="clk" onclick="event.stopPropagation();gOpenHouse(${x.id})"><td style="text-align:left"><b>${escA(x.code)}</b> <span class="sub">${escA(String(x.farm).replace(/^ฟาร์ม/,''))}</span>${x.closed?' <span class="sub">(ปิดชุดแล้ว)</span>':''}</td><td class="num">${x.deadN||'-'}</td><td class="num">${x.cullN||'-'}</td><td class="num">${x.soldN||'-'}</td><td class="num">${x.soldW?fmt(x.soldW):'-'}</td><td style="text-align:left;font-size:11.5px">${escA(x.cust||'')}${x.bill?' · '+escA(x.bill):''}${x.moveN?' · ย้ายออก '+fmt(x.moveN):''}${x.moveInN?' · ย้ายเข้า '+fmt(x.moveInN):''}</td></tr>`).join('')||'<tr><td colspan="6" class="sub">— ไม่มีบันทึก —</td></tr>'}</tbody></table></div>
             <div><div class="sub" style="margin-bottom:3px"><b>🧾 บิลแท่นขายวันนี้</b> — ${d.bills.length} ใบ · แตะเปิดบิล</div>
               <table class="densetbl" style="font-size:12px"><thead><tr><th style="text-align:left">บิล</th><th style="text-align:left">ผู้ซื้อ</th><th class="num">ตัว</th><th class="num">กก.</th><th class="num">บาท</th></tr></thead>
-              <tbody>${d.bills.map(b=>`<tr class="clk" onclick="event.stopPropagation();sbEdit(${escA(JSON.stringify(b.id))})"><td style="text-align:left;white-space:nowrap">${b.kind==='deadcull'?'⚰️🔪':'🐖'} <b>${escA(b.billNo||b.webNo||'-')}</b>${b.billNo&&b.webNo?' <span class="sub">'+escA(b.webNo)+'</span>':''}</td><td style="text-align:left">${escA(b.buyer||'-')} <span class="sub">${escA(String(b.farm).replace(/^ฟาร์ม/,''))}</span></td><td class="num">${fmt(b.n)}${b.kind==='deadcull'?' <span class="sub">(ตาย '+b.dead+' คัด '+b.cull+')</span>':''}</td><td class="num">${fmt(Math.round(b.w))}</td><td class="num">${b.pending?'<span style="color:#b7791f">รอราคา</span>':fmt(Math.round(b.net||0))}</td></tr>`).join('')||'<tr><td colspan="5" class="sub">— ไม่มีบิลวันนี้ —</td></tr>'}</tbody></table></div>
+              <tbody>${d.bills.map(b=>`<tr class="clk" onclick="event.stopPropagation();sbEdit(${escA(JSON.stringify(b.id))})"><td style="text-align:left;white-space:nowrap">${b.kind==='deadcull'?'⚰️🔪':'🐖'} <b>${escA(b.billNo||b.webNo||'-')}</b>${b.billNo&&b.webNo?' <span class="sub">'+escA(b.webNo)+'</span>':''}</td><td style="text-align:left">${escA(b.buyer||'-')} <span class="sub">${escA(String(b.farm).replace(/^ฟาร์ม/,''))}</span></td><td class="num">${fmt(b.n)}${b.kind==='deadcull'?' <span class="sub">(ตาย '+b.dead+' คัด '+b.cull+')</span>':''}${b.sow?' <span class="sub">(🐷 แม่/พ่อ '+b.sow+')</span>':''}</td><td class="num">${fmt(Math.round(b.w))}</td><td class="num">${b.pending?'<span style="color:#b7791f">รอราคา</span>':fmt(Math.round(b.net||0))}</td></tr>`).join('')||'<tr><td colspan="5" class="sub">— ไม่มีบิลวันนี้ —</td></tr>'}</tbody></table></div>
             </div></td></tr>`:''); }).join(''):'<tr><td colspan="10" class="sub">— ไม่มีรายการตาย/คัด/ขาย ในช่วงนี้ —</td></tr>'}
       ${rows.length?`<tr style="background:var(--soft,#f6f9fc);font-weight:700"><td style="text-align:left">รวม ${rows.length} วัน</td><td class="num">${fmt(T.deadN)}</td><td class="num">${fmt(T.cullN)}</td><td class="num">${bt(T.cullVal)}</td><td class="num">${fmt(T.soldN)}</td><td class="num">${kg(T.soldW)}</td><td class="num" style="color:#1e7e4f">${bt(T.soldVal)}</td><td></td><td class="num">${fmt(T.bills)}</td><td></td></tr>`:''}</tbody>
     </table></div>
@@ -15847,6 +15847,282 @@ async function sbCloudLoad(opt){ // โหลดบิลจากระบบ�
 }
 function syncSaleBill(b){ const on=CONFIG.supabase.enabled && CONFIG.supabase.backend==='v2' && b; if(on){ _dirtySB[b.id]=b; _sbRestored.delete(b.id); } sbPersist(); if(on) scheduleSyncV2(); }   // 691121a: เข้าคิวก่อนค่อยเก็บลงเครื่อง (เดิมเก็บก่อน → งานแก้บิลที่ขึ้นแล้วไม่รอดรีโหลด) · แก้จริงในรอบนี้ = ไม่ใช่สำเนากู้แล้ว
 const SB_KIND={fatten:{ico:'🐖',t:'ขายหมูขุน'}, deadcull:{ico:'⚰️',t:'หมูตาย/คัดขาย'}, breeder:{ico:'🐷',t:'แม่/พ่อพันธุ์'}};
+/* ══ 🐷 691122a แม่/พ่อพันธุ์ในบิลแท่นขาย (เจ้าของ 22 พ.ย. 69 "เชื่อมขายแม่และคัดขายแม่กับแท่นขายหมู · ทำทั้งสองทาง") ══
+   ที่มา: แท่นขายขายแม่อยู่จริงทุกสัปดาห์แต่ลงระบบไม่ได้ ต้องเขียนในหมายเหตุ → ยอดสลิป ≠ ยอดระบบ
+     (TM-F-690924-000211 ขายจริง 100 ตัว ลงได้ 99 ขาด 8,896 บาท · บิลกระดาษ 69/05486 แม่ตาย 2 ตัว 14,013 บาท ไม่มีในระบบ)
+   เก็บ: b.sows=[{id,farm,code,house,type:'dead'|'live',n,w,p}] แยกจาก items/houses ⇒ ไม่ถูกลงเข้าหลัง ไม่ตัดยอดเล้า ไม่เข้าตัวตรวจบิล↔หลัง
+         แท่นไม่ลงเบอร์หู (เจ้าของ 22 พ.ย. 69 — ทำให้เสมียนช้า) · เบอร์มาจากที่หมอลงคัดออก ระบบจับคู่ให้เองด้วย sbSowLink (เล้า+วันที่) · ช่อง ear ยังอ่านได้ถ้าบิลไหนมีติดมา
+         ยอดเงินรวมเข้าบิล → ใบพิมพ์ + บัญชีลูกหนี้ (ผ่าน sbCalc ทางเดียว)
+   ① บิลตาย/คัดขาย: แม่รายตัว · น้ำหนัก + ราคา/กก. ของแม่เอง (ไม่ใช้ช่วงราคาหมูขุน)
+   ② บิลขายขุน: น้ำหนักแม่อยู่ในรายการน้ำหนักรายตัวอยู่แล้ว · w = น้ำหนักรวมของแถว · ราคาเว้นว่าง = ราคารถคันนั้น · แบ่งหลังนับแม่ด้วย · เฉลี่ยรายหลังไม่รวมแม่ (c.favg)
+   ส่วนลดของแม่ (ไม่สด/มีลูกในท้อง/เน่า) = แถวหัก/ลดบิลเดิม ชี้ไปที่แม่ (target type 'sow') — ยอดหักของแม่ไม่ตกถึงหลังขุน
+   SB_SOW=false → ซ่อนกล่องเพิ่มแม่ทันที (บิลที่มีแม่อยู่แล้วยังคิดเงิน/พิมพ์ครบ — ห้ามทำให้ยอดบิลหาย)
+   SB_SOW_NO_FARMS = ฟาร์มที่ไม่มีแม่พันธุ์ (เจ้าของ: "ปากท่อไม่มีแม่พันธุ์ ไม่ต้องมีเรื่องการขายแม่") */
+const SB_SOW=true;
+const SB_SOW_NO_FARMS=['ฟาร์มหมูขุนปากท่อ'];
+function sbSows(b){ return (b&&Array.isArray(b.sows))?b.sows.filter(x=>x&&typeof x==='object'):[]; }
+function sbSowN(x){ const n=parseInt(x&&x.n); return n>0?n:1; }
+function sbSowP(b,x){ // ราคา/กก. ของแถวแม่: ใส่เอง = ใช้ตามนั้น · บิลขายขุนเว้นว่าง = ราคารถคันนั้น · null = ยังไม่มีราคา
+  const p=x&&x.p; if(p!==''&&p!=null&&sbNum(p)>0) return sbNum(p);
+  if(b&&b.kind!=='deadcull'){ const bp=b.pricePerKg; if(bp!==''&&bp!=null&&sbNum(bp)>0) return sbNum(bp); }
+  return null; }
+function sbSowAgg(b){ const o={n:0,w:0,val:0,pending:false,own:false};
+  sbSows(b).forEach(x=>{ const w=sbNum(x.w); if(!(w>0)) return; o.n+=sbSowN(x); o.w+=w; const p=sbSowP(b,x); if(p==null) o.pending=true; else o.val+=w*p;
+    if(x.p!==''&&x.p!=null&&sbNum(x.p)>0) o.own=true; });
+  return o; }
+function sbSowApply(b,c){ // ต่อยอดจากผลคิดเงินเดิม — บิลที่ไม่มีแม่ = คืนค่าเดิมทุกตัว
+  c.sowN=0; c.sowW=0; c.sowVal=0; c.favg=c.avg;
+  const sa=sbSowAgg(b); if(!sa.n) return c;
+  c.sowN=sa.n; c.sowW=sa.w; c.sowVal=sa.pending?null:Math.round(sa.val);
+  if(b.kind==='deadcull'){
+    const fatG=c.gross, fatPend=c.pending;
+    c.fatN=(b.items||[]).filter(x=>x&&sbNum(x.w)>0).length; c.fatW=c.totW; c.fatGross=fatG;   // นับเฉพาะแถวที่มีน้ำหนัก (แถวเปล่าตอนกรอกไม่ใช่หมู)
+    c.n=c.fatN+sa.n; c.totW+=sa.w;
+    if(sa.pending||fatPend){ c.gross=null; c.pending=true; } else { c.gross=(fatG||0)+c.sowVal; c.pending=false; }
+  }else{
+    c.houseN=(c.houseN||0)+sa.n;
+    c.fatN=Math.max(0,c.n-sa.n); c.fatW=Math.max(0,c.totW-sa.w); c.favg=c.fatN>0?(c.fatW/c.fatN):0;
+    const p=b.pricePerKg, hasP=!(p===''||p==null||sbNum(p)<=0);
+    c.fatGross=hasP?Math.round(c.fatW*sbNum(p)):null;
+    if(c.totW>0&&sa.own){ // มีแม่ที่ราคาต่างจากรถ → คิดแยกส่วน (ไม่มี = ใช้ยอดเดิม น้ำหนักรวม × ราคารถ ทุกสตางค์)
+      if(sa.pending||(!hasP&&c.fatW>0)){ c.gross=null; c.pending=true; } else { c.gross=Math.round((hasP?c.fatW*sbNum(p):0)+sa.val); c.pending=false; } }
+    if(c.miss&&c.fatN===0) c.miss=c.miss.filter(m=>m!=='แบ่งหลัง');
+  }
+  c.avg=c.n?(c.totW/c.n):0;
+  if(c.scaleNet!=null) c.diff=Math.round((c.totW-c.scaleNet)*10)/10;
+  c.net=(c.gross!=null)?(c.gross-c.deduct):null;
+  if(c.loadMin!=null&&c.n>0&&c.loadMin>0) c.secPig=Math.round(c.loadMin*60/c.n);
+  return c; }
+function sbHasPostable(b){ return b.kind==='deadcull'?(b.items||[]).some(x=>x&&x.house&&sbNum(x.w)>0):(b.houses||[]).some(x=>x&&x.code&&(parseInt(x.n)||0)>0); }
+function sbFatCount(b){ return b.kind==='deadcull'?(b.items||[]).filter(x=>x&&x.house&&sbNum(x.w)>0).length:Math.max(0,(b.weights||[]).length-sbSowAgg(b).n); }   // หมูที่ต้องลงเข้าหลัง (ไม่นับแม่/พ่อพันธุ์)
+function sbSowOnly(b){ if(!b) return false; const sa=sbSowAgg(b); if(!sa.n) return false;   // บิลนี้มีแต่แม่/พ่อพันธุ์ ไม่มีหมูของหลังขุนเลย
+  return b.kind==='deadcull'?!(b.items||[]).some(x=>x&&sbNum(x.w)>0):(sa.n>=(b.weights||[]).length&&!sbHasPostable(b)); }   // บิลมีแต่แม่/พ่อพันธุ์ = ไม่มีอะไรต้องลงเข้าหลัง
+function sbSowWho(x){ return /(^|\s)พ\d/.test(String((x&&(x.code||x.house))||''))?'พ่อ':'แม่'; }
+function sbSowLab(x){ return sbSowWho(x)+(x&&x.type==='dead'?'ตาย':'เป็น'); }
+function sbSowEars(x){ return String((x&&x.ear)||'').toUpperCase().split(/[\s,;·]+/).map(t=>t.trim()).filter(Boolean); }
+function sbSowHouseList(){ // เล้าแม่พันธุ์/เล้าพ่อ (ท · ค · พ) ที่ผู้ใช้เห็น ยกเว้นฟาร์มที่ไม่มีแม่ — เล้าสาว (ส) ขายผ่านรายการหมูปกติอยู่แล้ว
+  try{ return myHouses().filter(h=>h&&!SB_SOW_NO_FARMS.includes(h.farm||'')&&['ท','ค','พ'].includes(brDailyHouseKind(h))); }catch(e){ return []; } }
+function sbSowCtxFarms(){ // ฟาร์มบริบทของบิล: ชิปกรองฟาร์มที่ติ๊ก → ฟาร์มจากหลังในบิล → ฟาร์มของบิลล่าสุดที่บันทึกบนเครื่องนี้
+  const f=((SB_D&&SB_D.farms)||[]).filter(Boolean); if(f.length) return f;
+  const raw=(SB_D.kind==='deadcull'?(SB_D.items||[]).map(x=>x&&x.house):(SB_D.houses||[]).map(x=>x&&x.code)).filter(Boolean);
+  const d=[...new Set(raw.map(c=>sbResolveFarm(c)).filter(Boolean))]; if(d.length) return d;
+  let last=''; try{ last=localStorage.getItem('sbLastFarm')||''; }catch(e){}
+  return last?String(last).split(' + ').map(t=>t.trim()).filter(Boolean):[]; }
+function sbSowShow(){ if(!SB_D) return false; if(sbSows(SB_D).length) return true; if(!SB_SOW) return false;
+  const ctx=sbSowCtxFarms(); if(!ctx.length||ctx.every(f=>SB_SOW_NO_FARMS.includes(f))) return false;   // ปากท่อ (และบิลที่ยังไม่รู้ฟาร์ม) ไม่เห็นกล่องนี้
+  return sbSowHouseList().length>0; }
+function sbSowPrefill(){ // เติมราคาแม่ช่องที่ว่าง (เฉพาะบิลตาย/คัดขาย): ①ทะเบียนลูกค้า (sowDead/sowLive ถ้าเจ้าของตั้ง) ②บิลล่าสุดของผู้ซื้อรายนี้ที่มีแม่ชนิดเดียวกัน → จำนวนช่องที่เติม
+  if(!SB_D||SB_D.kind!=='deadcull') return 0; const name=gNrm(SB_D.buyer); if(!name) return 0; let n=0;
+  const reg=SB_CUST.find(c=>gNrm(c.name)===name);
+  const past=SALE_BILLS.filter(b=>b&&b.id!==SB_D.id&&gNrm(b.buyer)===name&&sbSows(b).length).sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||'')));
+  sbSows(SB_D).forEach(x=>{ if(x.p!==''&&x.p!=null) return; const t=x.type==='live'?'live':'dead';
+    const rp=reg?(t==='live'?reg.sowLive:reg.sowDead):null;
+    if(rp!==''&&rp!=null&&sbNum(rp)>0){ x.p=String(rp); n++; return; }
+    for(const b of past){ const y=sbSows(b).find(z=>(z.type==='live'?'live':'dead')===t&&z.p!==''&&z.p!=null&&sbNum(z.p)>0); if(y){ x.p=String(y.p); n++; break; } } });
+  return n; }
+function sbSowNewId(){ return 'sw'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function sbSowById(id){ return sbSows(SB_D).find(x=>x.id===id)||null; }
+function sbSowAdd(pre){ if(!SB_D||blockIfReadonly()) return; if(!Array.isArray(SB_D.sows)) SB_D.sows=[];   // แถวเลือกเล้าเอง (แม่ที่หมอยังไม่ได้แจ้ง)
+  const last=SB_D.sows[SB_D.sows.length-1]||{};
+  SB_D.sows.push(Object.assign({id:sbSowNewId(),farm:last.farm||'',code:last.code||'',house:last.house||'',type:SB_D.kind==='deadcull'?'dead':'live',n:1,w:'',p:''},pre||{}));
+  sbSowPrefill(); sbDeriveFarm(); renderSaleBillForm();
+  setTimeout(()=>{ const c=document.getElementById('sbSowManual'); if(!c) return; const ws=c.querySelectorAll('input[data-sowk="w"]'); const el=ws[ws.length-1]; if(el){ el.focus(); try{ el.scrollIntoView({block:'center'}); }catch(e){} } },60); }
+function sbSowDel(id){ const x=sbSowById(id); if(!x||!Array.isArray(SB_D.sows)) return; SB_D.sows.splice(SB_D.sows.indexOf(x),1); if(!SB_D.sows.length) delete SB_D.sows; sbDeriveFarm(); renderSaleBillForm(); }
+function sbSowSet(id,k,v){ const x=sbSowById(id); if(!x) return; x[k]=v;
+  if(k==='type'){ if(!sbCanEditPrice()) x.p=''; sbSowPrefill(); renderSaleBillForm(); return; }   // เปลี่ยน ตาย↔เป็น = ราคาคนละตัว (เสมียนแก้ราคาเองไม่ได้ จึงล้างแล้วเติมใหม่ตามชนิด)
+  sbRefresh(); }
+function sbSowPickHouse(id,v){ const x=sbSowById(id); if(!x) return; const k=String(v||''), j=k.indexOf('|');
+  if(j<0){ x.farm=''; x.code=''; x.house=''; } else { x.farm=k.slice(0,j); x.code=k.slice(j+1); const h=sbSowHouseList().find(y=>(y.farm||'')===x.farm&&y.code===x.code); x.house=h?brShortOf(h):x.code; }
+  sbDeriveFarm(); renderSaleBillForm(); }
+/* 🔗 เบอร์แม่/พ่อที่หมอแจ้งคัด/ขาย → ขึ้นที่แท่นขายเอง · เสมียนใส่น้ำหนักอย่างเดียว
+   เจ้าของ 22 พ.ย. 69: ①"แท่นเอาเบอร์แม่มาใส่รายตัวไม่เหมาะ ทำให้เสมียนช้า" ②"ให้เบอร์แม่ที่หมอเล้าคลอด/ผสมแจ้งขายมาขึ้นที่แท่น เสมียนจะได้ไม่ต้องกรอกซ้ำ ใส่น้ำหนักอย่างเดียว"
+   หมอลงคัดออกตามเดิม (ประเภท + เบอร์ · กติกา 23 ก.ย. 69) → กล่อง 🐷 ในบิลโชว์รายตัว (เล้า · เบอร์ · ประเภทที่หมอแจ้ง) พร้อมช่องน้ำหนัก · พิมพ์น้ำหนัก = ตัวนั้นเข้าบิล (เบอร์ติดไปเอง)
+   แม่ที่หมอยังไม่ได้แจ้ง: เสมียนเพิ่มแบบเลือกเล้าเองได้ (ไม่มีเบอร์) → ระบบจับคู่ให้ทีหลังจาก ฟาร์ม+เล้า+วันที่ (บิลวันที่ D รับรายการคัดออกของเล้าเดียวกัน D-7 … D+2 · ชนิดตรงก่อน แล้ววันใกล้สุด)
+   ที่มาของรายการ: ทะเบียนแม่ในเครื่อง (ถ้าโหลดแล้ว) ไม่งั้นขอรายการเบาจากระบบกลาง RPC sow_culls_recent (ไม่ต้องโหลดทะเบียนทั้งก้อน ~3 MB ที่แท่น) · จับคู่สด ไม่เก็บผลลงบิล */
+const SB_SOW_BEFORE=7, SB_SOW_AFTER=2, SB_SOW_LIST_DAYS=14, SB_SOW_LOAD_DAYS=45;
+let SB_SOWQ=null, _sbSowQAt=0, _sbSowQBusy=false, _sbSowQFail=false, _sbSowPend=[], _sbSowTypeSel={}, _sbSowPendAll=false;
+function sbSowKindType(k){ return String(k||'')==='ตาย'?'dead':'live'; }
+function sbSowKey(farm,ear){ return String(farm||'')+'|'+String(ear||'').toUpperCase(); }
+function sbSowCullSrc(){ // รายการคัดออกดิบ [{farm,ear,boar,house,date,kind,by}] · null = เครื่องนี้ยังไม่มีข้อมูล
+  if(typeof BR!=='undefined'&&BR&&BR.loaded){ const out=[];
+    (BR.all||[]).forEach(s=>{ if(!s||s.stage!=='cull') return; const ev=(s.events||[]).find(e=>e&&e.t==='cull'); if(!ev||!ev.date) return;
+      out.push({farm:s.farm||'',ear:String(s.ear||''),boar:s.kind==='boar',house:String(ev.house||ev.barn||s.house||s.barn||''),date:String(ev.date).slice(0,10),kind:ev.kind||'',by:ev.by||''}); });
+    return out; }
+  return SB_SOWQ; }
+async function sbSowQLoad(force){ // ขอรายการคัดออกล่าสุดจากระบบกลาง (เบา) — true = มีข้อมูลใช้แล้ว
+  if(typeof BR!=='undefined'&&BR&&BR.loaded) return true;
+  if(_sbSowQBusy) return false; if(!force&&SB_SOWQ&&Date.now()-_sbSowQAt<120e3) return true;
+  _sbSowQBusy=true;
+  try{ const r=await supaFetch('/rest/v1/rpc/sow_culls_recent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({p_days:SB_SOW_LOAD_DAYS})});
+    if(r&&r.ok){ let j=null; try{ j=await r.json(); }catch(e){} if(Array.isArray(j)){ SB_SOWQ=j; _sbSowQAt=Date.now(); _sbSowQFail=false; return true; } }
+    _sbSowQFail=true; return false;
+  }catch(e){ _sbSowQFail=true; return false; } finally{ _sbSowQBusy=false; } }
+async function sbSowLoadQ(){ // ปุ่มลองใหม่: รายการเบาก่อน ไม่ได้ค่อยโหลดทะเบียนแม่ทั้งก้อน
+  toast('⏳ กำลังโหลดรายการที่หมอแจ้ง...'); _sbSowQFail=false; let ok=await sbSowQLoad(true);
+  if(!ok&&typeof brCanUse==='function'&&brCanUse()){ try{ ok=await brCloudLoad(); }catch(e){} }
+  if(!ok){ _sbSowQFail=true; toast('⛔ โหลดรายการที่หมอแจ้งไม่สำเร็จ — เพิ่มแบบเลือกเล้าเองไปก่อนได้'); }
+  sbSowCardRe(true); }
+function sbSowCardRe(force){ // วาดเฉพาะกล่องแม่ใหม่ (ไม่แตะส่วนอื่นของฟอร์ม) · กำลังพิมพ์อยู่ในกล่อง = ไม่วาดทับ
+  if(!SB_D) return; const el=document.getElementById('sbSowCard'); if(!el) return; const a=document.activeElement;
+  if(!force&&a&&el.contains(a)&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) return;
+  const html=sbSowCardHTML(); if(html){ el.outerHTML=html; sbSowPaint(); } }
+function sbSowLink(){ // จับคู่ รายการคัดออก ↔ แถวแม่ในบิลทุกใบ → {culls:[{…,hit:แถวที่รับไป|null}], rows:[{b,ix,x,key,d,type,cap,ears:[…]}]} · null = ยังไม่มีรายการคัดออก
+  const src=sbSowCullSrc(); if(!src) return null;
+  const dnum=iso=>{ const p=String(iso||'').slice(0,10).split('-'); return p.length===3?Math.round(Date.UTC(+p[0],+p[1]-1,+p[2])/864e5):NaN; };
+  const culls=[];
+  src.forEach(c=>{ if(!c||SB_SOW_NO_FARMS.includes(c.farm||'')) return; const d=dnum(c.date); if(!isFinite(d)) return;
+    culls.push({farm:c.farm||'',ear:String(c.ear||''),boar:!!c.boar,house:String(c.house||'').trim(),kind:c.kind||'',type:sbSowKindType(c.kind),date:String(c.date).slice(0,10),d:d,by:c.by||'',hit:null}); });
+  const rows=[];
+  (SALE_BILLS||[]).filter(b=>b&&!(SB_D&&b.id===SB_D.id)).concat(SB_D?[SB_D]:[]).forEach(b=>{ const draft=(b===SB_D), d=dnum(b.dateISO); if(!isFinite(d)) return;
+    sbSows(b).forEach((x,ix)=>{ const house=String(x.house||'').trim(), hasEar=sbSowEars(x).length>0; if(!house&&!hasEar) return; if(!draft&&!(sbNum(x.w)>0)) return;   // บิลที่กำลังกรอก: นับแถวที่เลือกเล้าแล้วแม้ยังไม่ใส่น้ำหนัก
+      rows.push({b:b,ix:ix,x:x,key:(x.farm||'')+'|'+house,d:d,type:(b.kind==='deadcull'?(x.type==='live'?'live':'dead'):''),cap:sbSowN(x),ears:[]}); }); });
+  const byKey={}; culls.forEach(c=>{ const k=c.farm+'|'+c.house; (byKey[k]=byKey[k]||[]).push(c); });
+  rows.forEach(r=>{ sbSowEars(r.x).forEach(e=>{ if(r.ears.length>=r.cap) return; const c=culls.find(q=>!q.hit&&q.farm===(r.x.farm||'')&&q.ear.toUpperCase()===e); if(c){ c.hit=r; r.ears.push(c); } }); });   // ① แถวที่มีเบอร์ติดมา (เสมียนใส่น้ำหนักจากรายการที่หมอแจ้ง) = ตรงตัว
+  rows.slice().sort((a,b)=>a.d-b.d||String(a.b.id).localeCompare(String(b.b.id))||a.ix-b.ix).forEach(r=>{   // ② แถวเลือกเล้าเอง (ไม่มีเบอร์) = จับคู่จากเล้า+วันที่
+    if(sbSowEars(r.x).length) return;
+    while(r.ears.length<r.cap){
+      const cand=(byKey[r.key]||[]).filter(c=>!c.hit&&c.d>=r.d-SB_SOW_BEFORE&&c.d<=r.d+SB_SOW_AFTER); if(!cand.length) break;
+      cand.sort((a,b)=>((r.type&&a.type!==r.type)?1:0)-((r.type&&b.type!==r.type)?1:0)||Math.abs(a.d-r.d)-Math.abs(b.d-r.d)||a.d-b.d||a.ear.localeCompare(b.ear));
+      cand[0].hit=r; r.ears.push(cand[0]); } });
+  return {culls:culls,rows:rows}; }
+function sbSowPendList(){ // รายตัวที่หมอแจ้งคัด/ขายไว้และยังไม่มีบิลไหนรับ (SB_SOW_LIST_DAYS วัน) + ตัวที่ใส่น้ำหนักในบิลนี้แล้ว · null = ยังไม่มีรายการ
+  const L=sbSowLink(); if(!L) return null;
+  const cut=Math.round(Date.now()/864e5)-SB_SOW_LIST_DAYS, out=[], seen=new Set(), ctx=sbSowCtxFarms();
+  L.culls.forEach(c=>{ const mine=!!(c.hit&&c.hit.b===SB_D&&sbSowEars(c.hit.x).includes(c.ear.toUpperCase()));
+    if(c.hit&&!mine) return;                 // บิลอื่นรับไปแล้ว หรือแถวเลือกเล้าเองของบิลนี้รับไปแล้ว
+    if(!mine&&!(c.d>=cut)) return;
+    seen.add(sbSowKey(c.farm,c.ear)); out.push({farm:c.farm,ear:c.ear,boar:c.boar,house:c.house,kind:c.kind,type:c.type,date:c.date,by:c.by,row:mine?c.hit.x:null}); });
+  sbSows(SB_D).forEach(x=>{ const es=sbSowEars(x); if(es.length!==1) return; const k=sbSowKey(x.farm,es[0]); if(seen.has(k)) return; seen.add(k);   // แถวมีเบอร์ที่หารายการของหมอไม่เจอแล้ว (หมอถอนคัด/เก่าเกินช่วง) — ยังโชว์ให้แก้/ลบได้
+    out.push({farm:x.farm||'',ear:String(x.ear||es[0]),boar:false,house:x.house||'',kind:x.vkind||'',type:x.type==='live'?'live':'dead',date:x.vdate||'',by:x.vby||'',row:x}); });
+  return out.sort((a,b)=>((ctx.includes(b.farm)?1:0)-(ctx.includes(a.farm)?1:0))||String(a.farm).localeCompare(String(b.farm),'th')||String(a.house).localeCompare(String(b.house),'th',{numeric:true})||String(b.date).localeCompare(String(a.date))||String(a.ear).localeCompare(String(b.ear))); }   // ฟาร์มของบิลก่อน → เรียงตามเล้า (หาง่ายเหมือนบิลกระดาษ)
+function sbSowQRow(q){ return (q&&q.row&&sbSows(SB_D).includes(q.row))?q.row:null; }
+function sbSowQW(el,qi){ // พิมพ์น้ำหนักในรายการที่หมอแจ้ง = ตัวนั้นเข้าบิล (เบอร์/เล้า/ชนิดติดไปเอง) · ลบน้ำหนัก = เอาออกจากบิล
+  const q=(_sbSowPend||[])[qi]; if(!q||!SB_D) return; const v=String(el.value||'').trim(); let x=sbSowQRow(q);
+  if(!x){ if(!(sbNum(v)>0)) return; if(blockIfReadonly()){ el.value=''; return; }
+    const h=sbSowHouseList().find(y=>(y.farm||'')===q.farm&&brShortOf(y)===q.house); if(!Array.isArray(SB_D.sows)) SB_D.sows=[];
+    x={id:sbSowNewId(),farm:q.farm,code:h?h.code:(q.house||''),house:q.house||'',type:SB_D.kind==='deadcull'?(_sbSowTypeSel[sbSowKey(q.farm,q.ear)]||q.type):'live',n:1,w:v,p:'',ear:q.ear,vkind:q.kind,vby:q.by,vdate:q.date};
+    SB_D.sows.push(x); q.row=x; sbSowPrefill(); sbDeriveFarm(); }
+  else if(!(sbNum(v)>0)){ SB_D.sows.splice(SB_D.sows.indexOf(x),1); if(!SB_D.sows.length) delete SB_D.sows; q.row=null; x=null; sbDeriveFarm(); }
+  else x.w=v;
+  const pi=document.querySelector('#sbSowQL_'+qi+' input[data-sowk="p"]'); if(pi){ pi.disabled=!x; if(document.activeElement!==pi) pi.value=x?(x.p==null?'':x.p):''; }
+  sbRefresh(); }
+function sbSowQT(el,qi){ const q=(_sbSowPend||[])[qi]; if(!q||!SB_D) return; const t=el.value==='live'?'live':'dead'; _sbSowTypeSel[sbSowKey(q.farm,q.ear)]=t;
+  const x=sbSowQRow(q); if(!x) return; x.type=t; if(!sbCanEditPrice()) x.p=''; sbSowPrefill();
+  const pi=document.querySelector('#sbSowQL_'+qi+' input[data-sowk="p"]'); if(pi&&document.activeElement!==pi) pi.value=(x.p==null?'':x.p);
+  sbRefresh(); }
+function sbSowQP(el,qi){ const x=sbSowQRow((_sbSowPend||[])[qi]); if(!x) return; x.p=el.value; sbRefresh(); }
+function sbSowPaint(){ if(!SB_D) return; let n=0,w=0,v=0,pend=false; const canP=sbCanEditPrice(), isDC=SB_D.kind==='deadcull';
+  const amt=x=>{ const ww=sbNum(x.w), p=sbSowP(SB_D,x); if(ww>0){ n+=sbSowN(x); w+=ww; if(p==null) pend=true; else v+=ww*p; }
+    return ww>0?(p!=null?fmt(Math.round(ww*p))+' ฿':'<span style="color:#b06000;font-weight:400;font-size:12px">รอราคา</span>'):''; };
+  const done=new Set();
+  (_sbSowPend||[]).forEach((q,qi)=>{ const x=sbSowQRow(q); if(x) done.add(x); const h=x?amt(x):'';
+    const a=document.getElementById('sbSowQA_'+qi), pc=document.getElementById('sbSowQP_'+qi), ln=document.getElementById('sbSowQL_'+qi);
+    if(a) a.innerHTML=h;
+    if(pc&&!canP) pc.innerHTML=x?((x.p!==''&&x.p!=null&&sbNum(x.p)>0)?fmt(sbNum(x.p))+' บาท/กก.':(isDC?'<span style="color:#b06000">🔒 รอเจ้าของใส่ราคา</span>':'ราคาเดียวกับรถ')):'';
+    if(ln){ ln.style.borderColor=x?'#b0679f':'#e3d6df'; ln.style.background=x?'#fdf2fa':'#fff'; }
+    const xr=document.getElementById('sbSowQX_'+qi); if(xr) xr.style.display=x?'flex':'none'; });   // แถวชนิด/ราคา/ยอดเงิน โผล่เมื่อใส่น้ำหนักแล้วเท่านั้น (รายการที่ยังไม่ใส่ = บรรทัดเดียว)
+  sbSows(SB_D).forEach(x=>{ if(done.has(x)) return; const h=amt(x); const el=document.getElementById('sbSowAmt_'+x.id); if(el) el.innerHTML=h; });
+  const s=document.getElementById('sbSowSum'); if(s) s.innerHTML=n?('รวม <b>'+fmt(n)+'</b> ตัว · <b>'+fmt(Math.round(w*10)/10)+'</b> กก.'+(pend?' · <span style="color:#b06000">รอใส่ราคา</span>':' · <b>'+fmt(Math.round(v))+'</b> บาท')):''; }
+function sbSowCardHTML(){
+  if(!sbSowShow()) return '';
+  sbSows(SB_D).forEach(x=>{ if(!x.id) x.id=sbSowNewId(); });
+  const isDC=SB_D.kind==='deadcull', canP=sbCanEditPrice();
+  const hl=sbSowHouseList(), ctx=sbSowCtxFarms();
+  const farmsOrd=[...new Set(hl.map(h=>h.farm||''))].sort((a,b)=>((ctx.includes(b)?1:0)-(ctx.includes(a)?1:0))||String(a).localeCompare(String(b),'th'));
+  const opts=x=>'<option value="">— เลือกเล้า —</option>'+farmsOrd.map(f=>'<optgroup label="'+escA(f)+'">'+hl.filter(h=>(h.farm||'')===f).slice().sort(byCode).map(h=>'<option value="'+escA(f+'|'+h.code)+'"'+((x.farm===f&&x.code===h.code)?' selected':'')+'>'+escA(brShortOf(h))+'</option>').join('')+'</optgroup>').join('')
+    +((x.code&&!hl.some(h=>(h.farm||'')===x.farm&&h.code===x.code))?'<option value="'+escA((x.farm||'')+'|'+x.code)+'" selected>'+escA(x.house||x.code)+'</option>':'');
+  const fld=(lab,inner)=>`<label style="display:flex;flex-direction:column;gap:2px;font-size:12px;color:#62748a;min-width:0">${lab}${inner}</label>`;
+  // ── ① รายตัวที่หมอแจ้งคัด/ขายไว้ — เสมียนใส่น้ำหนักอย่างเดียว ──
+  const pend=sbSowPendList(); _sbSowPend=pend||[];
+  if(pend===null&&!_sbSowQBusy&&!_sbSowQFail) setTimeout(()=>{ sbSowQLoad().then(()=>sbSowCardRe()); },0);
+  else if(pend!==null&&SB_SOWQ&&!(typeof BR!=='undefined'&&BR&&BR.loaded)&&!_sbSowQBusy&&Date.now()-_sbSowQAt>120e3) setTimeout(()=>{ sbSowQLoad(true).then(ok=>{ if(ok) sbSowCardRe(); }); },0);
+  const multi=new Set(_sbSowPend.map(q=>q.farm)).size>1, CAPQ=12;
+  const line=(q,qi)=>{ const x=sbSowQRow(q), typ=x?(x.type==='live'?'live':'dead'):(_sbSowTypeSel[sbSowKey(q.farm,q.ear)]||q.type);
+    return `<div id="sbSowQL_${qi}" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:9px 10px;margin-bottom:7px;border:1.5px solid ${x?'#b0679f':'#e3d6df'};border-radius:10px;background:${x?'#fdf2fa':'#fff'}${(!_sbSowPendAll&&qi>=CAPQ&&!x)?';display:none':''}">
+      <div style="min-width:0"><div style="font-weight:800;font-size:16px;overflow-wrap:anywhere">${escA(q.house||'-')} · ${escA(q.ear)}${q.boar?' <span class="more">พ่อพันธุ์</span>':''}</div>
+        <div class="sub" style="margin:1px 0 0">${multi?escA(String(q.farm).replace(/^ฟาร์ม/,''))+' · ':''}หมอแจ้ง <b>${escA(q.kind||'คัดออก')}</b>${q.date?' · '+sbThaiDate(q.date):''}${q.by?' · '+escA(q.by):''}</div></div>
+      <div style="display:flex;align-items:center;gap:6px"><input class="cin" data-sowk="w" style="width:96px;text-align:right;font-weight:800" type="number" step="0.1" min="0" inputmode="decimal" placeholder="น้ำหนัก" value="${escA(x&&x.w!=null?x.w:'')}" oninput="sbSowQW(this,${qi})"><span class="sub" style="margin:0">กก.</span></div>
+      <div id="sbSowQX_${qi}" style="grid-column:1/-1;display:${x?'flex':'none'};flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end;font-size:13px">
+        ${isDC?`<select class="cin tl" style="width:auto;min-width:0;height:34px;padding:2px 8px;font-size:13px" title="ขายเป็นซาก หรือขายเป็นตัว (ราคาคนละตัว)" onchange="sbSowQT(this,${qi})"><option value="dead"${typ==='dead'?' selected':''}>⚰️ ขายเป็นซาก</option><option value="live"${typ==='live'?' selected':''}>🐷 ขายเป็นตัว</option></select>`:''}
+        ${canP?`<input class="cin nospin" data-sowk="p" style="width:92px;height:34px;text-align:right" type="number" step="0.25" inputmode="decimal" placeholder="${isDC?'บาท/กก.':'ว่าง=ราคารถ'}" value="${escA(x&&x.p!=null?x.p:'')}"${x?'':' disabled'} oninput="sbSowQP(this,${qi})" onkeydown="sbPriceKey(event)">`:`<span id="sbSowQP_${qi}"></span>`}
+        <b id="sbSowQA_${qi}" style="white-space:nowrap;font-size:15px;min-width:70px;text-align:right"></b></div>
+    </div>`; };
+  const hidden=_sbSowPendAll?0:_sbSowPend.filter((q,qi)=>qi>=CAPQ&&!sbSowQRow(q)).length;
+  const pendHTML=(pend===null)
+    ?(_sbSowQFail?`<div class="sub" style="margin:0 0 9px">📋 ยังโหลดรายการที่หมอแจ้งคัด/ขายไม่ได้ <button class="btn ghost sm" onclick="sbSowLoadQ()">ลองใหม่</button></div>`
+      :`<div class="sub" style="margin:0 0 9px">⏳ กำลังโหลดรายการที่หมอแจ้งคัด/ขาย…</div>`)
+    :(_sbSowPend.length?`<div style="font-weight:800;font-size:14px;margin:2px 0 3px">📋 หมอแจ้งคัด/ขายไว้ ${fmt(_sbSowPend.length)} ตัว</div>
+      <div class="sub" style="margin:0 0 7px">ใส่<b>น้ำหนัก</b>เฉพาะตัวที่ขึ้นรถคันนี้ — เบอร์ เล้า และประเภท มาจากที่หมอแจ้ง ไม่ต้องกรอกซ้ำ · ตัวที่ไม่ได้ไปคันนี้เว้นว่างไว้</div>
+      ${_sbSowPend.map(line).join('')}${hidden?`<button class="btn ghost sm" style="margin-bottom:8px" onclick="_sbSowPendAll=true;sbSowCardRe(true)">แสดงอีก ${fmt(hidden)} ตัว ▾</button>`:''}`
+      :`<div class="sub" style="margin:0 0 9px">📋 ตอนนี้ไม่มีแม่/พ่อพันธุ์ที่หมอแจ้งคัด/ขายค้างอยู่</div>`);
+  // ── ② แม่ที่หมอยังไม่ได้แจ้ง — เลือกเล้าเอง (ไม่มีเบอร์ · ระบบจับคู่ให้ทีหลังเมื่อหมอลง) ──
+  const pendRows=new Set(_sbSowPend.map(q=>sbSowQRow(q)).filter(Boolean));
+  const manual=sbSows(SB_D).filter(x=>!pendRows.has(x));
+  const row=x=>`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:8px;align-items:end;margin-bottom:8px;padding:10px;border:1.5px solid #ead2e4;border-radius:10px;background:#fdf7fb">
+      ${fld('เล้า',`<select class="cin tl" onchange="sbSowPickHouse('${escA(x.id)}',this.value)">${opts(x)}</select>`)}
+      ${isDC?fld('ชนิด',`<select class="cin tl" onchange="sbSowSet('${escA(x.id)}','type',this.value)"><option value="dead"${x.type!=='live'?' selected':''}>⚰️ ขายเป็นซาก</option><option value="live"${x.type==='live'?' selected':''}>🐷 ขายเป็นตัว</option></select>`)
+        :fld('จำนวนตัว',`<input class="cin" type="number" min="1" step="1" inputmode="numeric" value="${escA(x.n==null||x.n===''?1:x.n)}" oninput="sbSowSet('${escA(x.id)}','n',this.value)">`)}
+      ${fld(isDC?'น้ำหนัก (กก.)':'น้ำหนักรวมของแถวนี้ (กก.)',`<input class="cin" data-sowk="w" type="number" step="0.1" min="0" inputmode="decimal" value="${escA(x.w==null?'':x.w)}" oninput="sbSowSet('${escA(x.id)}','w',this.value)">`)}
+      ${fld('ราคา (บาท/กก.)',canP?`<input class="cin nospin" type="number" step="0.25" inputmode="decimal" placeholder="${isDC?'':'ว่าง = ราคารถ'}" value="${escA(x.p==null?'':x.p)}" oninput="sbSowSet('${escA(x.id)}','p',this.value)" onkeydown="sbPriceKey(event)">`
+        :`<span class="cin" style="background:var(--soft);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ink)">${(x.p!==''&&x.p!=null)?fmt(sbNum(x.p)):(isDC?'<span style="color:#b06000;font-weight:400;font-size:12.5px">🔒 รอเจ้าของใส่ราคา</span>':'<span style="font-weight:400;font-size:12.5px">ราคาเดียวกับรถ</span>')}</span>`)}
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;min-height:44px"><b id="sbSowAmt_${escA(x.id)}" style="white-space:nowrap;font-size:16px"></b><button class="btn ghost sm" style="color:var(--bad)" title="ลบแถวนี้" onclick="sbSowDel('${escA(x.id)}')">✕</button></div>
+    </div>`;
+  return `<div class="card" id="sbSowCard" style="border:2px solid #b0679f"><h3>🐷 แม่/พ่อพันธุ์ในบิลนี้</h3>
+    <div class="sub" style="margin:0 0 9px">${isDC?'แม่ตาย ป่วย คัด ปลด ที่ขายไปกับรถคันนี้ · ใช้ราคาต่อกิโลของแม่เอง ไม่ใช้ช่วงราคาหมูขุน':((SB_D.kind==='breeder'?'<b>บิลแม่/พ่อพันธุ์ทั้งคัน</b> — ไม่ต้องเลือกช่อง 🏠 มาจากหลังไหนบ้าง · ':'')+'แม่/พ่อพันธุ์ที่ขึ้นรถคันนี้ · น้ำหนักของแม่ต้องอยู่ในรายการน้ำหนักรายตัวด้วย')} · ถ้ารถคันนี้ไม่มีแม่ ไม่ต้องทำอะไรกับกล่องนี้</div>
+    ${pendHTML}
+    <div id="sbSowManual">${manual.length?`<div style="font-weight:800;font-size:14px;margin:8px 0 5px">✍️ แม่ที่หมอยังไม่ได้แจ้ง (เลือกเล้าเอง)</div>`:''}${manual.map(row).join('')}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn ghost sm" onclick="sbSowAdd()">＋ แม่ที่หมอยังไม่ได้แจ้ง (เลือกเล้าเอง)</button><span class="sub" id="sbSowSum" style="margin:0 0 0 auto"></span></div>
+    <div class="sub" style="margin-top:7px">💡 แม่/พ่อพันธุ์ไม่ถูกลงเข้าหลัง ไม่ตัดยอดหมูของหลังไหน · ยอดเงินรวมเข้าบิล ใบพิมพ์ และบัญชีลูกหนี้ · ${isDC?'ใบลดของผู้ซื้อ (ไม่สด · มีลูกในท้อง · เน่า) ลงที่ช่อง ➖ หัก/ลดบิล แล้วเลือกแม่ตัวนั้น':'ราคาเว้นว่าง = ใช้ราคา/กก. ของรถคันนี้ · ยอดแบ่งหลังต้องรวมแม่แล้วเท่าจำนวนที่ชั่ง'}</div>
+  </div>`;
+}
+function sbSowBlock(){ // ตรวจแถวแม่/พ่อพันธุ์ก่อนบันทึก (ไม่แก้ SB_D — กดยกเลิกแล้วแถวบนจอยังตรงกับข้อมูล)
+  const L=sbSows(SB_D).filter(x=>sbNum(x.w)>0||String(x.house||'').trim()||String(x.ear||'').trim());
+  if(!L.length) return false;
+  const jump=()=>{ const el=$("#sbSowCard"); if(el) el.scrollIntoView({block:'center',behavior:'smooth'}); };
+  if(L.some(x=>(!String(x.house||'').trim()&&!String(x.ear||'').trim())||!(sbNum(x.w)>0))){ toast('⛔ แถวแม่/พ่อพันธุ์ต้องมีทั้ง "เล้า" และ "น้ำหนัก" — เติมให้ครบ หรือกด ✕ ลบแถวนั้น'); jump(); return true; }
+  if(SB_D.kind!=='deadcull'){ const c=sbCalc(SB_D), sa=sbSowAgg(SB_D);
+    if(sa.n>c.n||sa.w>c.totW+0.01){ toast('⛔ แม่/พ่อพันธุ์ '+fmt(sa.n)+' ตัว '+fmt(Math.round(sa.w*10)/10)+' กก. มากกว่าที่ชั่งทั้งคัน ('+fmt(c.n)+' ตัว '+fmt(Math.round(c.totW*10)/10)+' กก.) — น้ำหนักแม่ต้องเป็นตัวที่อยู่ในรายการน้ำหนักรายตัวด้วย'); jump(); return true; } }
+  const odd=L.filter(x=>{ const per=sbNum(x.w)/sbSowN(x); return per<60||per>450; }).map(x=>(x.house||'-')+' '+x.w+' กก.'+(sbSowN(x)>1?' / '+sbSowN(x)+' ตัว':''));
+  if(odd.length&&!confirm('⚠️ น้ำหนักแม่/พ่อพันธุ์ดูผิดปกติ: '+odd.join(', ')+'\nบันทึกต่อหรือไม่?')) return true;
+  return false; }
+function sbSowPaperHTML(b,live){ // ตาราง "แม่/พ่อพันธุ์" ในใบส่งขาย หมูตาย/คัดขาย
+  // ⛔ เจ้าของ 22 พ.ย. 69: "ที่แท่นขายหมู เรื่องเบอร์แม่ ไม่ต้องให้ลูกค้าเห็นในบิล" → ตัวบิลไม่มีเบอร์แม่เลยทุกฉบับ (ฉบับฟาร์ม · ฉบับลูกค้า · พรีวิวสด · Excel) กันพิมพ์ผิดฉบับแล้วหลุดถึงลูกค้า
+  //    เบอร์ยังอยู่ในระบบ: ช่องกรอกของเสมียน (เลือกตัวจากที่หมอแจ้ง) + บัตรแม่ฝั่งฟาร์ม
+  const L=sbSows(b).filter(x=>sbNum(x.w)>0); if(!L.length) return '';
+  const cust=true;   // true = ไม่มีคอลัมน์เบอร์
+  const BD='border:1px solid #444', TH='background:#f1f1ea;font-weight:700', S=';font-size:12.5px;text-align:center;padding:2px 4px';
+  const heads=['เล้า'].concat(cust?[]:['เบอร์'],['ชนิด','น.น. (กก.)','ราคาต่อ กก.','จำนวนเงิน (บาท)']);
+  let t='<table style="width:100%;border-collapse:collapse;margin-bottom:8px"><tr><th colspan="'+heads.length+'" style="'+BD+';'+TH+';font-size:13px;padding:3px">แม่/พ่อพันธุ์</th></tr>'
+    +'<tr>'+heads.map(x=>'<th style="'+BD+';'+TH+';font-size:11px">'+x+'</th>').join('')+'</tr>';
+  let tw=0, tv=0, pend=false;
+  L.forEach(x=>{ const w=sbNum(x.w), p=sbSowP(b,x); tw+=w; if(p==null) pend=true; else tv+=w*p;
+    t+='<tr><td style="'+BD+S+'">'+escA(x.house||'-')+'</td>'+(cust?'':'<td style="'+BD+S+'">'+(x.ear?escA(x.ear):'<span style="color:#999">-</span>')+'</td>')
+      +'<td style="'+BD+S+'">'+sbSowLab(x)+'</td><td style="'+BD+S+';font-weight:700">'+fmt(w)+'</td>'
+      +'<td style="'+BD+S+'">'+(p!=null?fmt(p):'<span style="color:#b06000;font-weight:800">รอใส่ราคา</span>')+'</td>'
+      +'<td style="'+BD+S+';font-weight:700">'+(p!=null?fmt(Math.round(w*p)):'-')+'</td></tr>'; });
+  t+='<tr><td colspan="'+(cust?2:3)+'" style="'+BD+';'+TH+';font-size:12px;text-align:center">'+fmt(L.reduce((a,x)=>a+sbSowN(x),0))+' ตัว</td><td style="'+BD+';'+TH+';font-size:12px;text-align:center">'+fmt(Math.round(tw*10)/10)+'</td><td style="'+BD+';'+TH+'"></td>'
+    +'<td style="'+BD+';'+TH+';font-size:12px;text-align:center;font-weight:800">'+(pend?'<span style="color:#b06000">รอใส่ราคา</span>':fmt(Math.round(tv)))+'</td></tr></table>';
+  return t; }
+function sbSowNoteLines(b){ // บรรทัดหมายเหตุในบิลขายขุน (ฉบับฟาร์ม): แม่/พ่อพันธุ์ที่ขึ้นรถคันนี้
+  const L=sbSows(b).filter(x=>sbNum(x.w)>0); if(!L.length||b.kind==='deadcull') return [];
+  return L.map(x=>{ const p=sbSowP(b,x), own=(x.p!==''&&x.p!=null&&sbNum(x.p)>0);
+    return 'แม่/พ่อพันธุ์ '+escA(x.house||'-')+' = '+fmt(sbSowN(x))+' ตัว '+fmt(sbNum(x.w))+' กก.'+(own&&p!=null?' ('+fmt(p)+' บาท/กก.)':''); }); }
+function sbSowSalesOf(s){ // บัตรแม่/พ่อ: การขายที่แท่นของตัวนี้ — ระบบจับคู่จากเล้า+วันที่คัดออกกับบิล (แท่นไม่ได้ใส่เบอร์ หมอไม่ต้องลงซ้ำ)
+  const L=sbSowLink(); if(!L) return []; const ear=String((s&&s.ear)||'').toUpperCase(); if(!ear) return [];
+  const c=L.culls.find(q=>q.farm===(s.farm||'')&&q.ear.toUpperCase()===ear); if(!c||!c.hit) return [];
+  const r=c.hit, b=r.b, x=r.x, mates=L.rows.filter(q=>q.b===b&&q.key===r.key);        // mates = แถวแม่จากเล้าเดียวกันในบิลเดียวกัน
+  const sameT=mates.filter(q=>q.type===r.type);
+  const sure=sbSowEars(x).includes(ear)||(r.cap===1&&(mates.length===1||(sameT.length===1&&c.type===r.type)));   // แถวเดียวตัวเดียว (หรือชนิดไม่ซ้ำกันในเล้านั้น) = รู้แน่ว่าน้ำหนัก/ราคานี้เป็นของตัวนี้
+  const w=sbNum(x.w), p=sbSowP(b,x); let ded=0; const why=[];
+  if(sure) (SALE_BILLS||[]).forEach(b2=>(b2&&b2.deducts||[]).forEach(d=>{ const K=d&&d.link; if(!K||K.billId!==b.id||!(sbNum(d.amt)>0)) return; const T=K.targets||[]; const me=T.find(t=>t.key==='s'+r.ix); if(!me) return;
+    const tw=T.reduce((a,t)=>a+(t.w||0),0); const share=Math.round(sbNum(d.amt)*(tw>0?(me.w||0)/tw:1/T.length)*100)/100; ded+=share; why.push((d.why||'หัก')+' −'+fmt(share)); }));
+  return [{b:b,x:x,sure:sure,w:w,n:r.cap,p:p,val:(sure&&p!=null)?Math.round(w*p):null,ded:ded,why:why,house:String(x.house||''),
+    mates:mates.map(q=>({w:sbNum(q.x.w),n:q.cap})), matesN:mates.reduce((a,q)=>a+q.cap,0)}]; }
+function sbSowSaleCardHTML(s){ let R=[]; try{ R=sbSowSalesOf(s); }catch(e){} if(!R.length) return '';
+  return `<div class="card" style="border-left:5px solid #b0679f"><h3>💰 ขายที่แท่น <span class="more">ระบบจับคู่ให้จากเล้า + วันที่คัดออก · แท่นไม่ต้องใส่เบอร์ หมอไม่ต้องลงซ้ำ</span></h3>
+    <div style="overflow-x:auto"><table><thead><tr><th>วันที่</th><th>บิล</th><th>ผู้ซื้อ</th><th class="num">นน. (กก.)</th><th class="num">บาท/กก.</th><th class="num">เป็นเงิน</th><th class="num">ส่วนลด</th><th class="num">สุทธิ</th></tr></thead><tbody>${R.map(r=>r.sure
+      ?`<tr><td>${sbThaiDate(r.b.dateISO)}</td><td>${escA(r.b.webNo||sbBillRef(r.b))}</td><td>${escA(r.b.buyer||'-')}</td><td class="num">${fmt(r.w)}</td><td class="num">${r.p!=null?fmt(r.p):'รอราคา'}</td><td class="num">${r.val!=null?fmt(r.val):'-'}</td><td class="num" style="color:var(--bad)">${r.ded?'−'+fmt(Math.round(r.ded)):'-'}</td><td class="num"><b>${r.val!=null?fmt(Math.round(r.val-r.ded)):'-'}</b></td></tr>${r.why.length?`<tr><td colspan="8" class="sub" style="padding-top:0">↳ ${escA(r.why.join(' · '))}</td></tr>`:''}`
+      :`<tr><td>${sbThaiDate(r.b.dateISO)}</td><td>${escA(r.b.webNo||sbBillRef(r.b))}</td><td>${escA(r.b.buyer||'-')}</td><td colspan="5" style="text-align:left">ไปกับบิลนี้ — เล้า ${escA(r.house)} มีแม่/พ่อพันธุ์ในบิล ${fmt(r.matesN)} ตัว (${r.mates.map(m=>fmt(m.w)+' กก.'+(m.n>1?' รวม '+fmt(m.n)+' ตัว':'')).join(' · ')}) <span class="sub">แท่นไม่ได้แยกว่าตัวไหนหนักเท่าไร</span></td></tr>`).join('')}</tbody></table></div></div>`; }
 const SB_BANDS_DEF=[[0,9],[10,14],[15,19],[20,29],[30,39],[40,49],[50,59],[60,69],[70,79],[80,89],[90,99],[100,120],[121,150],[151,300]];
 function sbNum(v){ const x=parseFloat(v); return isFinite(x)?x:0; }
 function sbNewId(){ return 'sb'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -15920,7 +16196,8 @@ function sbScHouses(n){ const c=_sbSC; if(!c.hBy){ const m={}; (HOUSES||[]).forE
 function sbScBill(id){ const c=_sbSC; if(!c.bBy){ const m={}; (SALE_BILLS||[]).forEach(x=>{ if(x&&x.id&&!(x.id in m)) m[x.id]=x; }); c.bBy=m; } return c.bBy[id]; }
 function sbScRows(b){ const c=_sbSC; c.rows=c.rows||{}; if(!(b.id in c.rows)) c.rows[b.id]=sbPostRowsFor(b).rows; return c.rows[b.id]; }
 function sbCalc(b){ if(_sbCalcMemo&&b&&typeof b==='object'){ let c=_sbCalcMemo.get(b); if(!c){ c=_sbCalcRaw(b); _sbCalcMemo.set(b,c); } return c; } return _sbCalcRaw(b); }
-function _sbCalcRaw(b){
+function _sbCalcRaw(b){ return sbSowApply(b,_sbCalcBase(b)); }   // 🐷 691122a รวมแม่/พ่อพันธุ์ในบิล (ไม่มีแม่ = ผลเดิม)
+function _sbCalcBase(b){
   const c={n:0,totW:0,avg:0,houseN:0,scaleNet:null,diff:null,gross:null,deduct:0,net:null,pending:false,bandAgg:[]};
   c.houseN=(b.houses||[]).reduce((s,x)=>s+(parseInt(x.n)||0),0);
   if(b.kind==='deadcull'){
@@ -15969,7 +16246,7 @@ let sbMonthSel='', sbStatFilter='', sbSearch='', sbRange='3d', sbFrom='', sbTo='
 function sbMonthLabel(ym,short){ if(!ym) return 'ไม่ระบุวัน'; const p=String(ym).split('-'); try{ return new Date(+p[0],+p[1]-1,1).toLocaleDateString('th-TH',short?{month:'short',year:'2-digit'}:{month:'long',year:'numeric'}); }catch(e){ return ym; } }
 function sbMatchQ(b,q){ // ค้นจากทุกอย่างที่คนจำได้: ผู้ซื้อ · เล่ม/เลขที่ · ทะเบียนรถ · รหัสหลัง · ฟาร์ม · คนกรอก · วันที่ไทย
   const hs=b.kind==='deadcull'?(b.items||[]).map(x=>x&&x.house):(b.houses||[]).map(x=>x&&x.code);
-  const hay=[b.buyer,b.billBook,b.billNo,(b.billBook||'')+'/'+(b.billNo||''),b.webNo,b.scaleBillNo,b.truckScaleNo,b.truck,b.farm,b.by,sbThaiDate(b.dateISO),b.note].concat(hs).filter(Boolean).join(' ').toLowerCase();
+  const hay=[b.buyer,b.billBook,b.billNo,(b.billBook||'')+'/'+(b.billNo||''),b.webNo,b.scaleBillNo,b.truckScaleNo,b.truck,b.farm,b.by,sbThaiDate(b.dateISO),b.note].concat(hs).concat(sbSows(b).map(x=>x.house),sbSows(b).map(x=>x.ear)).filter(Boolean).join(' ').toLowerCase();
   return String(q).trim().toLowerCase().split(/\s+/).every(t=>hay.indexOf(t)>=0); // พิมพ์หลายคำ = ต้องเจอครบทุกคำ (เช่น "มลชัย J40")
 }
 function sbPayState(b){ // 💵 สถานะเก็บเงินของบิล (โยงกับบัญชีลูกค้าอัตโนมัติ): ''=ยังไม่เข้าบัญชี · paid=รับครบ · cash=เงินสดอยู่กับคนเก็บ · credit=ค้างชำระ(ลูกหนี้)
@@ -16015,7 +16292,8 @@ function bhaIndexBuild(force){
   _bhaIdx=idx; _bhaIdxTs=Date.now(); return idx;
 }
 function sbPostCheck(b){ // → {state:'ok'|'bad'|'none'|'legacy'|'empty', txt, title}
-  const n=b.kind==='deadcull'?(b.items||[]).filter(x=>x&&x.house&&sbNum(x.w)>0).length:(b.weights||[]).length;
+  if(!b.postedAt&&sbSowOnly(b)) return {state:'empty',txt:'',title:''};   // 🐷 691122a บิลมีแต่แม่/พ่อพันธุ์ = ไม่มีอะไรต้องลงเข้าหลัง
+  const n=sbFatCount(b);   // 🐷 691122a ไม่นับแม่/พ่อพันธุ์
   if(!b.postedAt) return n>0?{state:'none',txt:'⬇️ ยังไม่ลงหลัง',title:'หมู '+fmt(n)+' ตัวในบิลยังไม่ถูกหักออกจากหลัง — เปิดบิลแล้วกด "ลงเข้าหลัง"'}:{state:'empty',txt:'',title:''};
   if(String(b.dateISO||'')<(typeof BHA_SINCE!=='undefined'?BHA_SINCE:'2026-07-15')) return {state:'legacy',txt:'⬇️ ลงหลังแล้ว',title:'ลงเข้าหลัง: '+(b.postedHouses||[]).join(', ')+' (บิลยุคแรก ตรวจอัตโนมัติไม่ได้)'};
   const exp=bhaExpected(b), act=(bhaIndexBuild()[b.id])||{}; const bad=[]; let nH=0;
@@ -16040,11 +16318,11 @@ function sbRowHTML(b){
     const btn=(label,title,fn,extra)=>`<button class="btn ghost sm" title="${title}" style="padding:6px 11px;white-space:nowrap${extra||''}" onclick="event.stopPropagation();${fn}">${label}</button>`;
     return `<div class="fieldrow" style="cursor:pointer;flex-wrap:wrap;row-gap:7px" onclick="sbEdit('${b.id}')">
       <div class="fmeta" style="flex:1;min-width:230px"><div class="fn">${K.ico} <b>${sbThaiDate(b.dateISO)}</b> · ${escA(b.farm||'-')} → ${escA(b.buyer||'ไม่ระบุผู้ซื้อ')}${ref}</div>
-      <div class="sub" style="margin:3px 0 0">${fmt(c.n)} ตัว · ${fmt(Math.round(c.totW))} กก.${c.n?` · เฉลี่ย ${(c.avg).toFixed(1)} กก./ตัว`:''}${diff}${b.truck?` · 🚚 ${escA(b.truck)}`:''} · ✍️ ${escA(b.by||'-')}${sbSavedStr(b)?` · 🕐 บันทึก ${sbSavedStr(b)} น.`:''}</div></div>
+      <div class="sub" style="margin:3px 0 0">${fmt(c.n)} ตัว · ${fmt(Math.round(c.totW))} กก.${c.n?` · เฉลี่ย ${(c.avg).toFixed(1)} กก./ตัว`:''}${c.sowN?` · 🐷 แม่/พ่อพันธุ์ ${fmt(c.sowN)} ตัว`:''}${diff}${b.truck?` · 🚚 ${escA(b.truck)}`:''} · ✍️ ${escA(b.by||'-')}${sbSavedStr(b)?` · 🕐 บันทึก ${sbSavedStr(b)} น.`:''}</div></div>
       <div style="display:flex;flex-direction:column;gap:7px;align-items:flex-end;margin-left:auto">
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${money}${sbPayChipHTML(b)}${b.locked?`<span title="ตรวจแล้ว·ล็อกโดย ${escA(b.verifiedBy||'')}">🔒</span>`:''}${posted}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-          ${(!b.postedAt&&sbCanWrite())?btn('⬇️ ลงเข้าหลัง','ลงบันทึกเข้าหลัง (ตัดคงเหลือ)',`sbPostToHouses('${b.id}')`,';color:var(--brand);font-weight:800;border-color:var(--brand)'):''}
+          ${(!b.postedAt&&sbCanWrite()&&!sbSowOnly(b))?btn('⬇️ ลงเข้าหลัง','ลงบันทึกเข้าหลัง (ตัดคงเหลือ)',`sbPostToHouses('${b.id}')`,';color:var(--brand);font-weight:800;border-color:var(--brand)'):''}
           ${btn('🖨 พิมพ์','ดูบิล / พิมพ์ A4',`sbPrint('${b.id}')`)}
           ${btn('📊 Excel','ส่งออก Excel บิลนี้',`sbExportXls('${b.id}')`)}
           ${sbCanWrite()?btn('⧉ คัดลอก','คัดลอกเป็นบิลใหม่วันนี้ (คงผู้ซื้อ/ราคา)',`sbDuplicate('${b.id}')`):''}
@@ -16119,8 +16397,8 @@ function sbStuckList(){
     const d=sbStuckDays(b), why=[];
     const nItems=(b.kind==='deadcull')?((b.items||[]).filter(i=>i&&sbNum(i.w)>0).length):((b.weights||[]).length);
     if(!nItems) return;                                   // บิลเปล่า = ร่าง ไม่ใช่บิลค้าง
-    if(!b.postedAt) why.push('ยังไม่ลงเข้าหลัง');
-    if(b.kind!=='deadcull' && !(sbNum(b.pricePerKg)>0)) why.push('ยังไม่ใส่ราคา');
+    if(!b.postedAt&&!sbSowOnly(b)) why.push('ยังไม่ลงเข้าหลัง');   // 🐷 691122a
+    if(b.kind!=='deadcull' && !(sbNum(b.pricePerKg)>0) && !(sbSowAgg(b).own&&!sbCalc(b).pending)) why.push('ยังไม่ใส่ราคา');
     if(!String(b.farm||'').trim()) why.push('ไม่ได้ระบุฟาร์ม');
     if(!why.length) return;
     if(d<2) return;                                        // เพิ่งทำวันนี้-เมื่อวาน ยังไม่ถือว่าค้าง (กันเตือนบิลที่กำลังทำอยู่)
@@ -16167,7 +16445,7 @@ function _renderSaleStand(){ if(vetGuard())return;
     </div>
     ${(function(){ if(!sbCanWrite()) return ''; const ds=sbDraftList(); if(!ds.length) return '';
       return `<div class="banner info" style="border-color:#e0b45c">📥 <div><b>บิลค้างที่ยังไม่ได้บันทึก ${fmt(ds.length)} ใบ</b> <span class="more">— สร้างบิลใหม่เพิ่มได้เลย บิลค้างไม่หาย · กด "กรอกต่อ" เพื่อทำใบไหนต่อก็ได้</span>
-        ${ds.map(x=>{ const n=(x.d.kind==='deadcull'?(x.d.items||[]).filter(i=>i&&sbNum(i.w)>0).length:(x.d.weights||[]).length);
+        ${ds.map(x=>{ const n=(x.d.kind==='deadcull'?(x.d.items||[]).filter(i=>i&&sbNum(i.w)>0).length+sbSowAgg(x.d).n:(x.d.weights||[]).length);
           return `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-top:1px dashed var(--line);padding-top:7px">
           <span>${(SB_KIND[x.d.kind]||{}).ico||''} ${escA((SB_KIND[x.d.kind]||{}).t||'บิล')} · <b>${escA(x.d.buyer||'ยังไม่ระบุผู้ซื้อ')}</b>${n?' · '+fmt(n)+' ตัว':''}${x.d.farm?' · '+escA(x.d.farm):''} · พิมพ์ล่าสุด ${escA(x.t||'')}</span>
           <button class="btn sm" style="margin-left:auto" onclick="sbDraftResume('${x.d.id}')">▶️ กรอกต่อ</button>
@@ -16210,7 +16488,7 @@ function sbFilterFarms(){ const s=((SB_D&&SB_D.farms)||[]).filter(Boolean); retu
 function sbToggleFarmFilter(f){ if(!SB_D)return; SB_D.farms=SB_D.farms||[]; const i=SB_D.farms.indexOf(f); if(i>=0)SB_D.farms.splice(i,1); else SB_D.farms.push(f); renderSaleBillForm(); }
 function sbHasHouse(code){ const n=sbNormCode(code); return (SB_D.houses||[]).some(x=>sbNormCode(x.code)===n); }
 function sbToggleHouse(code){ if(!SB_D)return; SB_D.houses=SB_D.houses||[]; const n=sbNormCode(code); const i=SB_D.houses.findIndex(x=>sbNormCode(x.code)===n); if(i>=0){ SB_D.houses.splice(i,1); } else { SB_D.houses.push({code:String(code).toUpperCase(),n:''}); } sbDeriveFarm(); renderSaleBillForm(); }
-function sbDeriveFarm(){ if(!SB_D)return; const raw=(SB_D.kind==='deadcull'?(SB_D.items||[]).map(x=>x&&x.house):(SB_D.houses||[]).map(x=>x&&x.code)).filter(Boolean); if(!raw.length){ SB_D.farm=''; return; } const fs=[...new Set(raw.map(c=>sbResolveFarm(c)).filter(Boolean))]; if(fs.length) SB_D.farm=fs.join(' + '); }   // ไม่มีหลัง = ไม่มีฟาร์ม (เคลียร์ ไม่ค้างค่าเก่า) · มีหลังแต่ไม่ match = คงค่าเดิม (กันบิลเก่าโดนล้าง)   // ฟาร์มของบิล = ฟาร์มจริงของหลังที่เลือก (รหัสไม่ซ้ำข้ามฟาร์ม จึงรู้แน่)
+function sbDeriveFarm(){ if(!SB_D)return; const raw=(SB_D.kind==='deadcull'?(SB_D.items||[]).map(x=>x&&x.house):(SB_D.houses||[]).map(x=>x&&x.code)).filter(Boolean); if(!raw.length){ SB_D.farm=[...new Set(sbSows(SB_D).filter(x=>sbNum(x.w)>0||x.code).map(x=>x.farm).filter(Boolean))].join(' + '); return; } const fs=[...new Set(raw.map(c=>sbResolveFarm(c)).filter(Boolean))]; if(fs.length) SB_D.farm=fs.join(' + '); }   // ไม่มีหลัง = ไม่มีฟาร์ม (เคลียร์ ไม่ค้างค่าเก่า) · มีหลังแต่ไม่ match = คงค่าเดิม (กันบิลเก่าโดนล้าง)   // ฟาร์มของบิล = ฟาร์มจริงของหลังที่เลือก (รหัสไม่ซ้ำข้ามฟาร์ม จึงรู้แน่)
 function sbAddItemHouse(code){ if(!SB_D)return; SB_D.items=SB_D.items||[];
   if(sbItemViewGroup()){ // 📦 มุมมองรวมต่อหลัง: แตะรหัสหลัง = +1 ตัว น้ำหนักเท่าตัวล่าสุดของหลังนั้น (ไม่มีช่องให้โฟกัสรายตัว)
     const n=sbNormCode(code), L=SB_D.items.slice().reverse().find(x=>x&&sbNormCode(x.house)===n);
@@ -16418,7 +16696,7 @@ function sbSumHTML(){ // แถบสรุปสดลอยติดจอ —
   let h=chip('🐷 <b>'+fmt(c.n)+'</b> ตัว')+chip('⚖️ <b>'+fmt(Math.round(c.totW*10)/10)+'</b> กก.')+(c.n?chip('📏 <b>'+c.avg.toFixed(1)+'</b> กก./ตัว'):'');
   if(c.scaleNet!=null){ const big=Math.abs(c.diff)>Math.max(150,c.totW*0.02);
     h+=chip('🚛 '+fmt(c.scaleNet)+' · ต่าง <b>'+fmt(Math.abs(c.diff))+'</b> กก.', big?'bad':'ok', 'น้ำหนักรวมรายตัว เทียบ ตาชั่งรถ (รถหนัก−รถเบา)'); }
-  if(SB_D.kind!=='deadcull'&&c.houseN&&c.n) h+=(c.houseN===c.n?chip('🏠 แบ่งหลังครบ','ok'):chip('🏠 แบ่งหลัง '+fmt(c.houseN)+' ≠ '+fmt(c.n),'bad','จำนวนที่แบ่งรายหลังไม่เท่ากับจำนวนที่ชั่งจริง'));
+  if(SB_D.kind!=='deadcull'&&c.houseN&&c.n) h+=(c.houseN===c.n?chip('🏠 แบ่งหลังครบ','ok'):chip('🏠 แบ่งหลัง '+(c.sowN?fmt(c.houseN-c.sowN)+' + แม่/พ่อ '+fmt(c.sowN):fmt(c.houseN))+' ≠ '+fmt(c.n),'bad','จำนวนที่แบ่งรายหลัง'+(c.sowN?' รวมแม่/พ่อพันธุ์':'')+' ไม่เท่ากับจำนวนที่ชั่งจริง'));
   if(SB_D&&SB_D.id&&SALE_BILLS.some(x=>x.id===SB_D.id)){ const online=!!(CONFIG.supabase&&CONFIG.supabase.enabled&&CONFIG.supabase.backend==='v2'); const pend=online&&(!SB_D._synced||_dirtySB[SB_D.id]||_syncInFlightSB.has(SB_D.id));
     h+=pend?chip('⏳ รอซิงก์ขึ้นระบบกลาง','warn','บิลนี้ยังส่งไม่ถึงระบบกลาง — รอสักครู่ อย่าปิดแอป'):chip('☁️ ซิงก์แล้ว','ok','เครื่องอื่นเห็นบิลนี้แล้ว');
     h+=SB_D.postedAt?(()=>{ let pc=null; try{ pc=sbPostCheck(SALE_BILLS.find(x=>x.id===SB_D.id)||SB_D); }catch(e){} return (pc&&pc.state==='bad')?chip('⚠️ ตัดหลังไม่ตรง — กด "ลงเข้าหลัง" ซ้ำ','bad',pc.detail||pc.title||''):chip('🔗 เชื่อมหลังแล้ว '+fmt((SB_D.postedHouses||[]).length)+' หลัง','ok'); })():((SB_D.kind==='deadcull'?(SB_D.items||[]).length:(SB_D.houses||[]).length)?chip('⚠️ ยังไม่ลงเข้าหลัง','warn','กด "ลงเข้าหลัง" เพื่อหักยอดหมูออกจากหลัง'):''); }   // 🔗 สถานะซิงก์/เชื่อมหลัง (690904k)
@@ -16435,6 +16713,7 @@ function sbRefresh(){ // อัปเดตเฉพาะส่วนคำน�
   const bb=$("#sbBandsBox"); if(bb) bb.innerHTML=sbBandsHTML();
   (SB_D.houses||[]).forEach((r,i)=>{ const el=$("#sbHInfo"+i); if(el) el.innerHTML=r.code?sbHInfoHTML(r.code):''; });
   const pl=$("#sbPaperLive"); if(pl) pl.innerHTML=sbBillPaperHTML(SB_D,true);   // 🧾 บิลจริงพรีวิวสด
+  try{ sbSowPaint(); }catch(e){}
   sbDraftSave();
   sbLiveTick();   // 📡 ส่งภาพสดขึ้นมอนิเตอร์เจ้าของ (เบาๆ · ไม่ถี่กว่า 4 วิ)
 }
@@ -16450,7 +16729,7 @@ function sbDraftDrop(id){ try{ const m=sbDraftsAll(); const k=id||(SB_D&&SB_D.id
 function sbDraftGetById(id){ const m=sbDraftsAll(); const d=m[id]; return (d&&d.d&&d.d.id)?d:null; }
 function sbDraftHasContent(d){ // ร่างมี "ของจริง" ที่เสียดายมั้ย (น้ำหนัก/รายการหมู/ผู้ซื้อ/แบ่งหลัง)
   if(!d||!d.d) return false; const x=d.d;
-  return !!(((x.weights||[]).length)||((x.items||[]).some(i=>i&&sbNum(i.w)>0))||gNrm(x.buyer)||((x.houses||[]).some(h=>h&&h.code)));
+  return !!(((x.weights||[]).length)||((x.items||[]).some(i=>i&&sbNum(i.w)>0))||gNrm(x.buyer)||((x.houses||[]).some(h=>h&&h.code))||sbSows(x).some(y=>sbNum(y.w)>0));
 }
 function sbDraftDiffers(d){ // ร่างของบิลที่บันทึกแล้ว "ต่างจากตัวจริงไหม" — เปิดดูเฉยๆ ไม่แก้ = ไม่นับเป็นบิลค้าง (กันบิลค้างผีสะสมทุกใบที่เปิดดู)
   // เทียบเฉพาะช่องที่ผู้ใช้แก้ได้จริง + normalize สองฝั่งเหมือนกัน — เพราะตอนเปิดฟอร์ม ระบบแต่งข้อมูลเอง (เติม bands เปล่า/คำนวณ farm ใหม่/คีย์เรียงใหม่จากคลาวด์)
@@ -16465,7 +16744,8 @@ function sbDraftDiffers(d){ // ร่างของบิลที่บัน�
     it:(x.items||[]).filter(i=>i&&(S(i.house)||sbNum(i.w)>0)).map(i=>[S(i.house).toUpperCase(),i.type||'',S(i.dtype),S(i.w)]),
     hs:(x.houses||[]).filter(h=>h&&S(h.code)).map(h=>[S(h.code).toUpperCase(),S(h.n)]),
     bd:(x.bands||[]).filter(bd=>bd&&(S(bd.cull)!==''||S(bd.dead)!=='')).map(bd=>[bd.a,bd.b,S(bd.cull),S(bd.dead)]),
-    dd:(x.deducts||[]).filter(v=>v&&(S(v.ref)||sbNum(v.amt)||sbNum(v.w)||sbNum(v.p))).map(v=>[S(v.ref),S(v.amt),S(v.w),S(v.p)])
+    dd:(x.deducts||[]).filter(v=>v&&(S(v.ref)||sbNum(v.amt)||sbNum(v.w)||sbNum(v.p))).map(v=>[S(v.ref),S(v.amt),S(v.w),S(v.p)]),
+    sw:sbSows(x).filter(v=>S(v.house)||S(v.code)||sbNum(v.w)>0).map(v=>[S(v.farm),S(v.code||v.house),v.type||'',S(v.n),S(v.w),S(v.p),S(v.ear).toUpperCase()])   // 🐷 691122a
   });
   try{ return norm(d.d)!==norm(b); }catch(e){ return true; }
 }
@@ -16713,6 +16993,7 @@ function renderSaleBillForm(){
         <textarea id="sbWPaste" class="cin" rows="3" style="margin-top:8px" placeholder="วางตัวเลขคั่นด้วยช่องว่างหรือขึ้นบรรทัดใหม่ เช่น  104 122 111 99 129"></textarea>
         <button class="btn sm" style="margin-top:8px" onclick="sbWPasteApply()">เพิ่มทั้งหมด</button></details>
       </div>`}
+    ${sbSowCardHTML()}
     <div class="card" style="padding:12px 14px"><h3>🧾 บิลจริง — พรีวิวสด <span class="more">ทุกตัวเลขที่คีย์เด้งเข้าบิลทันที (ตัวล่าสุดไฮไลต์เหลือง) · หน้าตาเดียวกับที่จะพิมพ์/Excel</span></h3>
       <div style="overflow-x:auto"><div id="sbPaperLive" class="sbpaper" style="min-width:740px">${sbBillPaperHTML(SB_D,true)}</div></div></div>
     <div class="card"><h3>🚛 ตาชั่งรถ & เวลา <span class="more">ใส่แล้วระบบเทียบผลต่าง + คำนวณ นาที·วิ/ตัว ให้อัตโนมัติ</span></h3>
@@ -16742,6 +17023,7 @@ function renderSaleBillForm(){
       ${!SB_ISNEW&&canFix?`<button class="btn ghost sm" style="color:var(--bad);margin-left:auto" onclick="sbDelete('${SB_D.id}')">🗑 ลบบิลนี้</button>`:''}
     </div>`;
   setTimeout(()=>{ const el=$("#sbWIn"); if(el&&SB_ISNEW&&!isDC) el.focus(); },60);
+  try{ sbSowPaint(); }catch(e){}
   sbDraftSave();
   sbLiveTick();   // 📡 เปิดฟอร์ม = ขึ้นจอมอนิเตอร์เจ้าของทันที
 }
@@ -16891,6 +17173,7 @@ function sbBuyerPrefill(){ // พิมพ์ชื่อผู้ซื้อ�
     const srcBill=past.find(b=>(b.bands||[]).some(x=>x&&((x.cull!==''&&x.cull!=null)||(x.dead!==''&&x.dead!=null))));
     if(srcBill) fillFrom(srcBill.bands,'บิลล่าสุด');
     if(filled){ sbRefresh(); toast('💡 เติมราคาของ '+name+' จาก'+srcLabel+' ('+filled+' ช่อง)'+(sbCanEditPrice()?' — แก้ทับได้':' · ราคาเจ้าของตั้ง')); }
+    try{ if(sbSowPrefill()) renderSaleBillForm(); }catch(e){}
   } else {
     if(SB_D.pricePerKg!==''&&SB_D.pricePerKg!=null) return;
     let price=null, label='';
@@ -16908,7 +17191,7 @@ function sbDuplicate(id){ // คัดลอกบิลเดิม → บิ�
   const b=JSON.parse(JSON.stringify(src));
   b.id=sbNewId(); b.dateISO=todayISO(); b.time=''; b.billNo=''; b.webNo=''; b.scaleBillNo=''; b.truckScaleNo='';   // บิลใหม่ = เลขระบบใหม่ (ออกตอนบันทึก) + เลขใบชั่งของวันใหม่
   b.weights=[]; b.items=(b.kind==='deadcull'?[{house:'',type:'dead',dtype:'ตาย',w:''}]:[]);
-  b.scaleIn=''; b.scaleOut=''; b.deducts=[]; b.note=''; b.editLog=[];
+  b.scaleIn=''; b.scaleOut=''; b.deducts=[]; b.note=''; b.editLog=[]; delete b.sows;
   b.payMode='credit'; b.payAmt=''; b.payResp=''; delete b.paySlip;   // 🔴 บิลใหม่ต้องเริ่มจาก "ขายเชื่อ" เสมอ — เดิมติด "โอนแล้ว"+สลิปเก่ามาด้วย ระบบออกใบรับเงินทั้งที่ยังไม่ได้เงิน
   b.by=whoNow(); b.createdAt=Date.now();
   delete b.postedAt; delete b.postedHouses; delete b.postedBy; delete b._synced; delete b._baseTs; delete b.locked; delete b.verifiedBy; delete b.verifiedAt; b.timeStart=''; b.timeEnd='';
@@ -16936,6 +17219,7 @@ function sbSave(){
   const stored=SALE_BILLS.find(x=>x.id===SB_D.id);
   if(stored&&!['owner','admin'].includes(ROLE)){ toast(stored.locked?'🔒 บิลนี้ถูกตรวจ/ล็อกแล้ว — แก้ไขได้เฉพาะเจ้าของ/ผู้ดูแล':'🔒 แก้บิลที่บันทึกแล้วได้เฉพาะเจ้าของ/ผู้ดูแล — แจ้งเจ้าของให้แก้'); return; }   // เข้ม: เสมียนสร้างบิลใหม่ได้ แต่แก้บิลที่บันทึกแล้วไม่ได้
   if(sbLkBlock()) return;   // 🔗 690919e: แถวหักต้องระบุบิลเก่า+หลัง (บิลตั้งแต่ SB_LK_SINCE)
+  if(sbSowBlock()) return;   // 🐷 691122a แถวแม่/พ่อพันธุ์ต้องมีเล้า+น้ำหนัก
   sbDeriveFarm();   // ฟาร์มบิลคำนวณจากหลังที่เลือก (ไม่ต้องเลือกฟาร์มแยก)
   // ⛔ 690829a: บันทึกครั้งแรกโดยไม่รู้ฟาร์ม = เลขที่บิลระบบออกเป็น XX แล้วแก้ไม่ได้ (เกิดจริง 29 ส.ค. 69 บิลปากท่อ XX-F-690829-000001) — เลขออกครั้งเดียวตอนบันทึกแรก จึงบล็อกเฉพาะบิลที่ยังไม่มีเลข
   if(!SB_D.farm && !SB_D.webNo && !(stored&&stored.webNo)){
@@ -16954,7 +17238,7 @@ function sbSave(){
   if(SB_D.payMode==='transfer' && String(SB_D.payAmt==null?'':SB_D.payAmt).trim()!=='' && sbNum(SB_D.payAmt)<=0){ toast('⚠️ ช่อง "ยอดโอนจริง" ต้องมากกว่า 0 — ถ้ายังไม่ได้รับโอน เปลี่ยนรูปแบบเก็บเงินเป็น "ขายเชื่อ" แทน'); return; }   // 🟡 payAmt=0 เดิมถูกตีเป็นโอนเต็มบิล
   if(SB_D.kind==='deadcull'){
     SB_D.items=(SB_D.items||[]).filter(x=>sbNum(x.w)>0);
-    if(!SB_D.items.length){ toast('ยังไม่มีรายการหมู (ใส่น้ำหนักอย่างน้อย 1 ตัว)'); return; }
+    if(!SB_D.items.length&&!sbSowAgg(SB_D).n){ toast('ยังไม่มีรายการหมู (ใส่น้ำหนักอย่างน้อย 1 ตัว)'); return; }
     const odd=SB_D.items.filter(x=>sbNum(x.w)<1||sbNum(x.w)>300).map(x=>x.w);
     if(odd.length&&!confirm('⚠️ พบน้ำหนักที่ดูผิดปกติ: '+odd.join(', ')+' กก.\nบันทึกต่อหรือไม่?')) return;
   }
@@ -16982,6 +17266,7 @@ function sbSave(){
     if(ov.length&&!confirm('⛔ จำนวนหมูในบิลมากกว่ายอดคงเหลือของเล้า!\n\n'+ov.map(o=>'• หลัง '+o.code+': ลงขาย '+fmt(o.n)+' ตัว แต่เล้าเหลือ '+fmt(o.remain)+' ตัว').join('\n')+'\n\nเช็คเลขหลังและจำนวนกับหน้าเล้าอีกครั้ง\nถ้ายืนยันว่าตัวเลขถูกต้อง (เช่น เล้ายังไม่ได้ลงบันทึกวันนี้) กด "ตกลง" เพื่อบันทึกต่อ')) return;
   }
   SB_D.houses=(SB_D.houses||[]).filter(x=>x.code);
+  { const L=sbSows(SB_D).filter(x=>sbNum(x.w)>0); if(L.length) SB_D.sows=L; else delete SB_D.sows; }   // 🐷 ทิ้งแถวแม่ที่ว่าง
   SB_D.deducts=(SB_D.deducts||[]).filter(x=>x.ref||sbNum(x.amt)||sbNum(x.w)||sbNum(x.p));
   // 🕘 ประวัติแก้ไขรายช่อง — ตรวจสอบย้อนหลังได้ว่าใครแก้อะไรจากค่าไหนเป็นค่าไหน
   let changes=[];
@@ -16989,7 +17274,7 @@ function sbSave(){
     const oc=sbCalc(stored);
     const F=[['ผู้ซื้อ',stored.buyer,SB_D.buyer],['ทะเบียนรถ',stored.truck,SB_D.truck],['วันที่',stored.dateISO,SB_D.dateISO],
       ['เล่มที่',stored.billBook,SB_D.billBook],['เลขที่',stored.billNo,SB_D.billNo],['ราคา/กก.',stored.pricePerKg,SB_D.pricePerKg],
-      ['จำนวนตัว',oc.n,c.n],['น้ำหนักรวม',Math.round(oc.totW*10)/10,Math.round(c.totW*10)/10],['หัก/ลดบิลรวม',oc.deduct||0,c.deduct||0],
+      ['จำนวนตัว',oc.n,c.n],['น้ำหนักรวม',Math.round(oc.totW*10)/10,Math.round(c.totW*10)/10],['หัก/ลดบิลรวม',oc.deduct||0,c.deduct||0],['แม่/พ่อพันธุ์ (ตัว)',oc.sowN||0,c.sowN||0],['แม่/พ่อพันธุ์ (กก.)',Math.round((oc.sowW||0)*10)/10,Math.round((c.sowW||0)*10)/10],
       ['รถเบา',stored.scaleIn,SB_D.scaleIn],['รถหนัก',stored.scaleOut,SB_D.scaleOut],
       ['ยอดสุทธิ',(oc.net==null?'รอราคา':fmt(oc.net)),(c.net==null?'รอราคา':fmt(c.net))]];
     changes=F.filter(f=>String(f[1]==null?'':f[1])!==String(f[2]==null?'':f[2]))
@@ -17025,6 +17310,7 @@ function sbSave(){
   let cbMsg=''; try{ const nCB=sbSyncClosedBatches(SB_D); if(nCB) cbMsg=' · 📦 อัปเดตงบปิดชุดตามบิลแล้ว ('+nCB+' ชุด)'; }catch(e){ console.warn('closedsync',e); }
   try{ const nLk=sbLkSyncClosed(); if(nLk) cbMsg+=' · ➖ หักภายหลังเข้างบชุดที่ปิดแล้ว ('+nLk+' หลัง)'; }catch(e){ console.warn('lksync',e); }   // 🔗 690919e
   toast('บันทึกบิลแล้ว ✓'+(c.pending?' — ติดป้ายรอใส่ราคาให้เจ้าของ':'')+cbMsg);
+  try{ localStorage.setItem('sbLastFarm',SB_D.farm||''); }catch(e){}   // 🐷 จำฟาร์มล่าสุดของเครื่องนี้ (ใช้ตัดสินว่าบิลใหม่ควรมีกล่องแม่/พ่อพันธุ์ไหม)
   SB_D=null; renderSaleStand();
 }
 function sbSaveRefsOnly(){ // 📄 เสมียนเติม "เลขที่บิลอ้างอิง" ให้บิลที่บันทึกแล้ว (เอกสารเว็บต้องอ้างอิงบิลตราชั่งจริง — ใบชั่งรถมักออกทีหลังบันทึกบิล)
@@ -17257,8 +17543,9 @@ function sbPostRowsFor(b){ // เตรียมแถว dailyLog ต่อห�
     (b.houses||[]).forEach(x=>{ const n=parseInt(x.n)||0; if(!x.code||!n) return;
       const H=sbFindHouse(x.code,b.farm); if(!H){ miss.push(x.code); return; }
       const e=Object.assign({},base,{rowId:sbRowUid()});
-      e.soldN=n; e.soldW=r1(c.avg*n); e.soldP=price; e.soldCust=buyer; e.soldBill=ref;
-      e.outN=n; e.avg=+(c.avg.toFixed(1)); e.value=Math.round(e.soldW*e.soldP);
+      const fa=c.sowN?c.favg:c.avg;   // 🐷 691122a มีแม่ในคัน = เฉลี่ยรายหลังไม่รวมน้ำหนักแม่
+      e.soldN=n; e.soldW=r1(fa*n); e.soldP=price; e.soldCust=buyer; e.soldBill=ref;
+      e.outN=n; e.avg=+(fa.toFixed(1)); e.value=Math.round(e.soldW*e.soldP);
       rows.push({code:x.code,H:H,e:e});
     });
   }
@@ -17285,6 +17572,7 @@ async function sbWaitBillSynced(id,maxMs){ // รอให้บิลใบน�
 async function sbPostToHouses(id){
   if(blockIfReadonly())return; if(!sbCanWrite()){ toast('บัญชีนี้ลงบันทึกไม่ได้'); return; }
   let b=SALE_BILLS.find(x=>x.id===id); if(!b){ toast('ไม่พบบิล — บันทึกบิลก่อน'); return; }
+  if(sbSowOnly(b)){ toast('🐷 บิลนี้มีแต่แม่/พ่อพันธุ์ — ไม่ต้องลงเข้าหลัง (แม่ไม่นับเป็นหมูของหลังขุน)'); return; }   // 🐷 691122a ไม่ต้องรอซิงก์/ดึงข้อมูลหลังสด
   if((b.dateISO||'')>todayISO()){ toast('⛔ บิลนี้ลงวันที่อนาคต ('+sbThaiDate(b.dateISO)+') — แก้วันที่บิลก่อนลงเข้าหลัง ไม่งั้นยอดคงเหลือของหลังจะคำนวณเพี้ยน'); return; }
   // 🛡️ ดึงข้อมูลหลัง "สดจากระบบกลาง" ก่อนลงเสมอ — เหตุ B19 18 ก.ค. 69: เครื่องเสมียนแท่นขายถือข้อมูลค้างก่อน 9 โมง (เล้ายังว่าง)
   //    พอกดลงบิล ระบบเซฟข้อมูลหลังทั้งก้อนจากสำเนาเก่า → ทับชุดเลี้ยงที่เพิ่งเปิดหายทั้งชุด · ดึงสดไม่สำเร็จ = ห้ามลง (กันทับข้อมูลทีม)
@@ -17298,7 +17586,7 @@ async function sbPostToHouses(id){
     b=SALE_BILLS.find(x=>x.id===id); if(!b){ toast('ไม่พบบิลหลังรีเฟรชข้อมูล — ลองใหม่อีกครั้ง'); return; }
   }
   // ⛔ กันแบ่งหลังไม่ครบ (690904j — เจ้าของ 6 ก.ย. 69): ยอดแบ่งรายหลังต้องเท่าจำนวนตัวที่ชั่ง ไม่งั้นหมูส่วนที่ขาดจะไม่ถูกหักจากหลังไหนเลย (เจอ BP-F-690823-000109 ขาด 2 · WK3-F-690723-000004 ขาด 11)
-  if(b.kind!=='deadcull'){ const cc=sbCalc(b); if((cc.n||0)>0&&(cc.houseN||0)!==cc.n){ toast('⛔ ยังไม่ลงเข้าหลัง — แบ่งหลังรวม '+fmt(cc.houseN||0)+' ตัว ไม่เท่าจำนวนที่ชั่ง '+fmt(cc.n)+' ตัว · แก้ช่อง "🏠 มาจากหลังไหนบ้าง" ให้ครบก่อน'); return; } }
+  if(b.kind!=='deadcull'){ const cc=sbCalc(b); if((cc.n||0)>0&&(cc.houseN||0)!==cc.n){ toast('⛔ ยังไม่ลงเข้าหลัง — แบ่งหลังรวม '+fmt((cc.houseN||0)-(cc.sowN||0))+' ตัว'+(cc.sowN?' + แม่/พ่อพันธุ์ '+fmt(cc.sowN)+' ตัว':'')+' ไม่เท่าจำนวนที่ชั่ง '+fmt(cc.n)+' ตัว · แก้ช่อง "🏠 มาจากหลังไหนบ้าง" ให้ครบก่อน'); return; } }
   const prep=sbPostRowsFor(b);
   // 📦 กันลงทับหมูชุดใหม่ (Peter 27 ก.ค.): หลังที่ปิดชุดไปแล้ว (แถวของบิลอยู่ในประวัติปิดชุด) หรือหลังที่เปิดชุดใหม่หลังวันที่บิล — ห้ามลงเข้า dailyLog ปัจจุบัน
   const blockedCB=[];
@@ -17315,6 +17603,7 @@ async function sbPostToHouses(id){
     return true;
   });
   if(blockedCB.length&&!prep.rows.length){ toast('📦 ไม่ลงเข้าหลัง — '+blockedCB.join(' · ')); return; }
+  if(!prep.rows.length&&!prep.miss.length&&sbSowAgg(b).n){ toast('🐷 บิลนี้มีแต่แม่/พ่อพันธุ์ — ไม่ต้องลงเข้าหลัง (แม่ไม่นับเป็นหมูของหลังขุน)'); return; }
   if(!prep.rows.length){ toast('ไม่พบหลังที่ตรงกับระบบในบิลนี้'+(prep.miss.length?' (ไม่รู้จัก: '+prep.miss.join(', ')+')':'')); return; }
   if(blockedCB.length) prep.miss=prep.miss.concat(blockedCB);
   // สรุปให้ยืนยันก่อนลงจริง
@@ -17458,7 +17747,7 @@ function bhaScan(){
   const bills=(SALE_BILLS||[]).filter(b=>b&&b.id&&String(b.dateISO||'')>=BHA_SINCE&&(farmsSet.has(b.farm)||(b.farms||[]).some(f=>farmsSet.has(f))));
   bills.forEach(b=>{
     const exp=bhaExpected(b), act=bhaActual(b,hs);
-    const n=b.kind==='deadcull'?(b.items||[]).filter(x=>x&&x.house&&sbNum(x.w)>0).length:(b.weights||[]).length;
+    const n=sbFatCount(b);   // 🐷 691122a ไม่นับแม่/พ่อพันธุ์
     const split=Object.values(exp).reduce((s,v)=>s+v,0);
     if(!b.postedAt&&n>0) issues.push({b,type:'ยังไม่ลงเข้าหลัง',detail:fmt(n)+' ตัว',sev:2});
     if(b.kind!=='deadcull'&&n>0&&split!==n) issues.push({b,type:'แบ่งหลังไม่ครบ',detail:'แบ่ง '+fmt(split)+' / ชั่ง '+fmt(n)+' ตัว',sev:2});
@@ -17716,7 +18005,7 @@ function lgQueue(fn,body,dedupKey){ // dedupKey: แทนที่งานเ�
 }
 /* 🔒 691029a: ส่งได้ทีละรอบเดียวต่อเครื่อง — เดิมเรียกได้ 3 ทาง (flushSyncV2 · ลงรับเงิน lgAddEntryLocal · lgAutoHeal) ไม่มีตัวล็อก
    2 รอบวิ่งซ้อน = ส่งหัวคิวซ้ำ แล้วต่างคน shift() ทิ้ง → รายการถัดไปหายโดยไม่เคยส่ง · ตอนนี้รอบที่ 2 รอผลรอบแรก แล้ววนต่อถ้ามีของเข้ามาเพิ่ม */
-let _lgFlushP=null;
+let _lgFlushP=null, _lgNoV2=false;   // 🐷 691122a _lgNoV2 = ระบบกลางยังไม่มี ledger_sync_invoice_v2
 function lgFlushQ(){
   if(_lgFlushP) return _lgFlushP.then(ok=>(ok&&_lgQ.length)?lgFlushQ():ok);
   _lgFlushP=lgFlushQRun().finally(()=>{ _lgFlushP=null; });
@@ -17733,7 +18022,10 @@ async function lgFlushQRun(){ // ส่งตามลำดับ ติดต�
       if(typeof _dirtySB!=='undefined'&&_dirtySB[sid]) return false;
       if(typeof SALE_BILLS!=='undefined'&&!SALE_BILLS.some(b=>b&&b.id===sid)){ try{ console.warn('lgQ dropped: invoice without bill',sid); logAudit('บัญชีลูกค้า','inv_'+sid,'ข้ามการลงยอด — ไม่มีบิลในเครื่อง',null,(it.body.p_customer_name||'')+' · '+fmt(+it.body.p_amount||0)+' บาท'); }catch(e){} lgQDrop(it); continue; }
     }
-    try{ res=await lgRpc(it.fn, it.body); }catch(e){ res=null; }
+    const fnSend=(it.fn==='ledger_sync_invoice'&&!_lgNoV2)?'ledger_sync_invoice_v2':it.fn;   // 🐷 691122a
+    if(it.fn==='ledger_sync_bill_pay'&&it.body&&it.body.p&&typeof it.body.p==='object') it.body.p.sow_ok=1;
+    try{ res=await lgRpc(fnSend, it.body); }catch(e){ res=null; }
+    if(fnSend!==it.fn&&res&&res.ok===false&&res.status===404){ _lgNoV2=true; try{ res=await lgRpc(it.fn, it.body); }catch(e){ res=null; } }
     if(res&&res.ok===false){ if(res.status>=400&&res.status<500&&![401,408,429].includes(res.status)&&ROLE!==null){ /* 🩹 691031c: 401 (บัตรผ่านหมด/ออกจากระบบแล้ว) · 408 · 429 = ชั่วคราว เก็บไว้ส่งใหม่ ไม่ทิ้งรายการรับเงิน */ try{ console.warn('lgQ dropped',res.status,it.op,it.tag); }catch(e){} cfgDeniedToast('บัญชีลูกหนี้'); lgQDrop(it); continue; } return false; }   // 🟡 log รายการที่ถูกทิ้ง (ไว้ไล่เคสแบบเจ๊วรรณ)   // P1: 4xx=ปฏิเสธถาวร→ทิ้งหัวคิว(กันบล็อกรายการถัดไป) · 5xx=ชั่วคราว→retry
     if(!res||res.ok!==true) return false;
     try{ lgApplyResult(it,res); }catch(e){}
@@ -18348,6 +18640,7 @@ function lgBillHeadInner(b){ // หัวสรุปบิล (ผู้ซื�
     +chip('🏭 '+escA(b.farm||'-'))
     +(codes.length?chip('🏠 '+escA(codes.join(', '))):'')
     +chip('🐷 '+fmt(c.n)+' ตัว · '+fmt(Math.round(c.totW))+' กก.')
+    +(c.sowN?chip('แม่/พ่อพันธุ์ '+fmt(c.sowN)+' ตัว · '+escA([...new Set(sbSows(b).map(x=>x.house).filter(Boolean))].join(', ')),'#fdf3e0','#8a5a12'):'')
     +(c.net!=null?chip('💰 ยอดสุทธิ '+lgMoney(c.net)+' บาท','#e7f6ee','#166446'):chip('⏳ รอใส่ราคา','#fdf3e0','#b7791f'))
     +sbPayState(b)
     +(lgFinView()&&c.net!=null?(out>0.5?chip('📒 คงค้างบิลนี้ '+lgMoney(out)+' บาท','#fdeae7','#c0392b'):chip('✓ บิลนี้เคลียร์แล้ว','#e7f6ee','#166446')):'')
@@ -18432,7 +18725,8 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
       return t; }
     const culls=(b.items||[]).filter(x=>x.type==='cull'), deads=(b.items||[]).filter(x=>x.type!=='cull');
     const nIt=(b.items||[]).length, useG=nIt>30&&(mkRows(culls).length+mkRows(deads).length)<=Math.floor(nIt/5);   // ยกหลัง = บรรทัดสรุปไม่เกิน 1/5 ของจำนวนตัว (บิลชั่งรายตัว น้ำหนักแทบไม่ซ้ำ จึงไม่เข้าเงื่อนไข)
-    h+='<table style="width:100%;border-collapse:collapse;margin-bottom:8px"><tr>'
+    const _noIt=!(b.items||[]).some(x=>x&&sbNum(x.w)>0)&&sbSowAgg(b).n>0;   // 🐷 691122a บิลมีแต่แม่/พ่อพันธุ์ = ไม่พิมพ์ตารางหมูขุน/ช่วงราคาที่ว่างเปล่า
+    if(!_noIt) h+='<table style="width:100%;border-collapse:collapse;margin-bottom:8px"><tr>'
       +'<td style="width:49%;vertical-align:top">'+mk(culls,'หมูคัดขาย')+'</td><td style="width:2%"></td>'
       +'<td style="width:49%;vertical-align:top">'+mk(deads,'หมูตาย',true)+'</td></tr></table>';
     // ── ตารางช่วงราคา ──
@@ -18456,7 +18750,8 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
       +'<td colspan="2" style="'+BD+';'+TH+';text-align:center;font-size:12px">รวมจำนวนเงิน</td>'
       +'<td style="'+BD+';'+TH+';text-align:center;font-size:12px;font-weight:800">'+(c.pending?PEND:fmt(gc))+'</td>'
       +'<td style="'+BD+';'+TH+';text-align:center;font-size:12px;font-weight:800">'+(c.pending?PEND:fmt(gd))+'</td></tr></table>';
-    h+=bt;
+    if(!_noIt) h+=bt;
+    h+=sbSowPaperHTML(b,live);
   }else{
     // ── ตารางน้ำหนักรายตัว 10 คู่คอลัมน์ — ทุกตัวอยู่บล็อกเดียว (แถวยืดตามจำนวน แล้วตัวย่อ A4 จัดการให้อยู่หน้าเดียวเสมอ) ──
     const ws=b.weights||[];
@@ -18483,6 +18778,7 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
   (b.houses||[]).forEach(x=>{ const age=sbAgeDays(x.code,b.farm);
     const H=HOUSES.find(y=>y.code===x.code&&(!b.farm||(y.farm||'')===b.farm))||HOUSES.find(y=>y.code===x.code)||{};
     noteLines.push('หลัง '+escA(x.code)+' = '+fmt(parseInt(x.n)||0)+' ตัว'+((age||H.vet)?' ('+(age?age+' วัน':'')+(H.vet?(age?' / ':'')+escA(H.vet):'')+')':'')); });
+  sbSowNoteLines(b).forEach(x=>noteLines.push(x));   // 🐷 691122a
   if(sbNum(b.fastPen)>0||sbNum(b.fastStand)>0) noteLines.push('อดอาหารในเล้า '+sbNum(b.fastPen)+' ชม. · ที่แท่น '+sbNum(b.fastStand)+' ชม.');
   if(c.scaleNet!=null) noteLines.push('นน.รายตัว'+(c.diff>=0?'มากกว่า':'น้อยกว่า')+'ตาชั่งรถ '+fmt(Math.abs(c.diff))+' กก.'+(c.n?' ('+(Math.abs(c.diff)/c.n).toFixed(2)+' กก./ตัว)':''));
   (b.deducts||[]).forEach(d=>{ const wp=(sbNum(d.w)>0&&sbNum(d.p)>0)?' ('+fmt(sbNum(d.w))+' กก. × '+fmt(sbNum(d.p))+' บาท/กก.)':''; noteLines.push('หัก: '+escA(d.why||d.ref||'-')+wp+(d.link?' — ของ'+(d.link.self?'บิลนี้เอง ':'บิล ')+escA(sbLkRefOf(d,b))+' ('+sbThaiDate(d.link.self?b.dateISO:d.link.date)+') หลัง '+sbLkSplit(d).map(r=>r.house+' '+(SB_LK_TYPE[r.type]||'')+' −'+fmt(r.amt)).join(', '):'')+' = '+fmt(sbNum(d.amt))+' บาท'); });
@@ -18498,14 +18794,16 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
     +'<td style="border-bottom:1px dotted #666;text-align:right;font-weight:800;font-size:'+(big?'15px':'13.5px')+';padding:3px 8px">'+v+'</td>'
     +'<td style="font-size:12px;padding:3px 2px;width:38px">'+u+'</td></tr>';
   let right='<table style="width:100%;border-collapse:collapse">';
-  if(b.kind==='deadcull'){
+  if(b.kind==='deadcull'&&!sbSowOnly(b)){
     const nc=(b.items||[]).filter(x=>x.type==='cull').length, nd=(b.items||[]).length-nc;
     right+=sumR('จำนวนตัว (คัดขาย / ตาย)',fmt(nc)+' / '+fmt(nd),'ตัว');
   }
+  if(c.sowN) right+=sumR('แม่/พ่อพันธุ์',fmt(c.sowN),'ตัว');   // 🐷 691122a
   right+=sumR('จำนวนหมูรวม',fmt(c.n),'ตัว')
     +sumR('น้ำหนักรวมสุทธิ',fmt(Math.round(c.totW*10)/10),'กก.')
     +sumR('น้ำหนักเฉลี่ย',c.n?c.avg.toFixed(2):'-','กก.');
   if(b.kind!=='deadcull') right+=sumR('ราคา/กก.',(b.pricePerKg===''||b.pricePerKg==null)?PEND:fmt(sbNum(b.pricePerKg)),'บาท');
+  if(c.sowN&&c.gross!=null&&c.fatN>0&&(b.kind==='deadcull'||sbSowAgg(b).own)) right+=sumR(b.kind==='deadcull'?'เงินหมูตาย/คัดขาย':'เงินหมูขุน',fmt(c.fatGross||0),'บาท')+sumR('เงินแม่/พ่อพันธุ์',fmt(c.sowVal||0),'บาท');
   right+=sumR('จำนวนเงินรวม',c.gross!=null?fmt(c.gross):PEND,'บาท');
   if(c.deduct) right+=sumR('หักส่วนลด/ลดบิล','-'+fmt(c.deduct),'บาท');
   right+=sumR('จำนวนเงินสุทธิ',c.net!=null?fmt(c.net):PEND,'บาท',true);
@@ -18618,6 +18916,7 @@ function sbExportXlsObj(b){
   if(sbNum(b.fastPen)>0) sumRows.push(['อดอาหารในเล้า', sbNum(b.fastPen), 'ชม.']);
   if(sbNum(b.fastStand)>0) sumRows.push(['อดอาหารที่แท่น', sbNum(b.fastStand), 'ชม.']);
   if(b.kind!=='deadcull') sumRows.push(['ราคา/กก.', (b.pricePerKg===''||b.pricePerKg==null)?PEND:sbNum(b.pricePerKg), 'บาท']);
+  if(c.sowN) sumRows.push(['ในจำนวนนี้เป็นแม่/พ่อพันธุ์', c.sowN, 'ตัว'],['น้ำหนักแม่/พ่อพันธุ์', Math.round(c.sowW*10)/10, 'กก.'],['เงินแม่/พ่อพันธุ์', c.sowVal!=null?c.sowVal:PEND, 'บาท']);   // 🐷 691122a
   sumRows.push(['ยอดเงินรวม', c.gross!=null?c.gross:PEND, 'บาท']);
   if(c.deduct) sumRows.push(['หัก/ลดบิล', -c.deduct, 'บาท']);
   sumRows.push(['ยอดสุทธิ', c.net!=null?c.net:PEND, 'บาท']);
@@ -18629,13 +18928,13 @@ function sbExportXlsObj(b){
       columns:[{label:'หลัง',w:100},{label:'จำนวน (ตัว)',type:'num',w:95},{label:'อายุ (วัน)',type:'num',w:85},{label:'หมอผู้ดูแล',w:130}],
       rows:b.houses.map(h=>{ const H=HOUSES.find(x=>x.code===h.code&&(!b.farm||(x.farm||'')===b.farm))||HOUSES.find(x=>x.code===h.code)||{};
         return [h.code, parseInt(h.n)||'', sbAgeDays(h.code,b.farm)||'', H.vet||'']; }),
-      totals:['รวม', c.houseN, '', '']})});
+      totals:['รวม', c.houseN-((b.kind!=='deadcull'&&c.sowN)||0), '', '']})});
   }
   if(b.kind==='deadcull'){
     sheets.push({name:'รายการหมู', html:xlsSheet({title:'รายการหมู (ทีละตัว)',
       columns:[{label:'ลำดับ',type:'num',w:60},{label:'หลัง',w:90},{label:'ประเภท',w:90},{label:'น้ำหนัก (กก.)',type:'dec',w:105}],
       rows:(b.items||[]).map((x,i)=>[i+1, x.house||'-', x.type==='cull'?'คัดขาย':'ตาย', sbNum(x.w)]),
-      totals:['','','รวม', Math.round(c.totW*10)/10]})});
+      totals:['','','รวม', Math.round((c.sowN?c.fatW:c.totW)*10)/10]})});
     const bandRows=(b.bands||[]).map((bd,i)=>{ const ag=c.bandAgg[i]||{cullW:0,deadW:0}; if(!(ag.cullW||ag.deadW)) return null;
       return [bd.a+'–'+bd.b,
         ag.cullW?Math.round(ag.cullW*10)/10:'', ag.cullW?((bd.cull===''||bd.cull==null)?PEND:sbNum(bd.cull)):'', (ag.cullW&&bd.cull!==''&&bd.cull!=null)?Math.round(ag.cullW*sbNum(bd.cull)):'',
@@ -18652,6 +18951,12 @@ function sbExportXlsObj(b){
     const rows=[]; for(let r=0;r<10;r++){ const row=[]; for(let j=0;j<CC;j++){ const idx=j*10+r; row.push(idx<ws.length?idx+1:'', idx<ws.length?sbNum(ws[idx]):''); } rows.push(row); }
     const tot=[]; for(let j=0;j<CC;j++){ let s=0; for(let r=0;r<10;r++){ const idx=j*10+r; if(idx<ws.length) s+=sbNum(ws[idx]); } tot.push('รวม', s?Math.round(s*10)/10:''); }
     sheets.push({name:'น้ำหนักรายตัว', html:xlsSheet({title:'น้ำหนักรายตัว (ไล่ลงทีละคอลัมน์ เหมือนบิลกระดาษ)', columns:cols, rows:rows, totals:tot})});
+  }
+  if(sbSows(b).some(x=>sbNum(x.w)>0)){   // 🐷 691122a
+    sheets.push({name:'แม่-พ่อพันธุ์', html:xlsSheet({title:'แม่/พ่อพันธุ์ในบิลนี้ (ไม่ลงเข้าหลัง)',
+      columns:[{label:'ฟาร์ม',w:150},{label:'เล้า',type:'txt',w:80},{label:'ชนิด',w:80},{label:'จำนวน (ตัว)',type:'num',w:85},{label:'น้ำหนัก (กก.)',type:'dec',w:100},{label:'ราคา/กก.',type:'dec',w:85},{label:'เป็นเงิน (บาท)',type:'num',w:110}],
+      rows:sbSows(b).filter(x=>sbNum(x.w)>0).map(x=>{ const p=sbSowP(b,x); return [x.farm||'-', x.house||'-', sbSowLab(x), sbSowN(x), sbNum(x.w), p!=null?p:PEND, p!=null?Math.round(sbNum(x.w)*p):'']; }),
+      totals:['รวม','','', c.sowN, Math.round(c.sowW*10)/10, '', c.sowVal!=null?c.sowVal:'']})});
   }
   if((b.deducts||[]).length){
     sheets.push({name:'หัก-ลดบิล', html:xlsSheet({title:'รายการหัก/ลดบิล',
@@ -25235,6 +25540,7 @@ function brOpen(ear){
     ${cullEv?`<div class="card" style="border-left:5px solid #a5342a"><h3 style="color:#a5342a">❌ ออกจากฝูงแล้ว</h3>
       <div style="font-size:13.5px">${sbThaiDate(cullEv.date)} · <b>${escA(cullEv.kind||'ปลด')}</b> · เหตุผล: ${escA(cullEv.reason||'-')}${(+cullEv.wt)?' · น้ำหนัก '+fmt(+cullEv.wt)+' กก.':''}${(+cullEv.price)?' · ราคาขาย '+fmt(+cullEv.price)+' บาท':''}${cullEv.buyer?' · ผู้ซื้อ '+escA(cullEv.buyer):''}</div>
       <div class="sub">ออกจากเล้า ${escA(cullEv.house||s.house||'-')} · ประวัติทั้งหมดยังเก็บไว้ในฐานข้อมูลถาวร</div></div>`:''}
+    ${sbSowSaleCardHTML(s)}
 
     <div class="card"><h3>📍 ที่อยู่และสถานะปัจจุบัน</h3>
       <div class="grid2" style="gap:4px 18px">
@@ -26315,7 +26621,7 @@ async function spDel(name){
    ══════════════════════════════════════════════════════════════════════ */
 const SB_LK_SINCE='2026-09-20';   // บิลตั้งแต่วันนี้ = บังคับระบุบิลเก่า+หลัง · บิลก่อนหน้า = ยุคเก่า (ไม่บังคับ ไม่นับค้าง)
 const SB_LK_DAYS=90;              // ค้นบิลเก่าย้อนหลังกี่วัน
-const SB_LK_TYPE={dead:'ซาก',cull:'คัดขาย',sold:'ขายขุน'};
+const SB_LK_TYPE={dead:'ซาก',cull:'คัดขาย',sold:'ขายขุน',sow:'แม่/พ่อพันธุ์'};
 let SB_LK=null;                   // {i: index แถวหัก, bill: id บิลเก่าที่เลือก, sel:{key:1}}
 function sbLkIsNew(b){ return String((b||{}).dateISO||'')>=SB_LK_SINCE; }
 function sbLkUid(){ return 'lk'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
@@ -26341,9 +26647,11 @@ function sbLkBillHouses(b){ // หน่วยที่หักได้ขอ�
   }else{
     const c=sbCalc(b), price=sbNum(b.pricePerKg);
     (b.houses||[]).forEach((x,ix)=>{ const n=parseInt(x.n)||0; if(!x||!x.code||!n) return;
-      const w=Math.round((c.avg||0)*n*10)/10;
+      const w=Math.round(((c.sowN?c.favg:c.avg)||0)*n*10)/10;
       out.push({key:'h'+ix, house:String(x.code).toUpperCase(), type:'sold', w:w, n:n, val:price?Math.round(w*price):null, p:price||null, lab:'ขายขุน', vet:sbLkVet(x.code,b.farm)}); });
   }
+  sbSows(b).forEach((x,ix)=>{ const w=sbNum(x.w); if(!(w>0)) return; const p=sbSowP(b,x);   // 🐷 691122a แม่/พ่อพันธุ์ = หน่วยที่หักได้ (ยอดหักไม่ตกถึงหลังขุน)
+    out.push({key:'s'+ix, house:String(x.house||'-'), type:'sow', w:w, n:sbSowN(x), val:p!=null?Math.round(w*p):null, p:p, lab:sbSowLab(x)+(x.ear?' '+x.ear:''), vet:''}); });
   return out;
 }
 function sbLkOpen(i){ const d=(SB_D.deducts||[])[i]; if(!d) return;
@@ -26456,7 +26764,7 @@ function sbLkAdjAll(){ // ทุกรายการหักที่ลิง
 function sbLkAdjAllRun(){
   const out=[];
   (SALE_BILLS||[]).forEach(b=>{ (b&&b.deducts||[]).forEach(d=>{ if(!d||!d.link||!(d.link.targets||[]).length||!(sbNum(d.amt)>0)) return;
-    sbLkSplit(d).forEach(r=>{ if(!(r.amt>0)) return;
+    sbLkSplit(d).forEach(r=>{ if(!(r.amt>0)||r.type==='sow') return;   // 🐷 691122a ยอดหักของแม่/พ่อพันธุ์ไม่ตกถึงหลังขุน
       const self=!!d.link.self;
       out.push({id:'lk|'+b.id+'|'+(d.id||d.link.ref)+'|'+r.house+'|'+r.type, date:b.dateISO||'', billId:b.id, bill:(b.webNo||sbBillRef(b)), buyer:b.buyer||'-', why:d.why||d.ref||'-',
         farm:(self?b.farm:d.link.farm)||b.farm||'', house:r.house, type:r.type, w:r.w, n:r.n, amt:r.amt, vet:r.vet||'', oldBillId:d.link.billId, oldRef:sbLkRefOf(d,b), oldDate:(self?b.dateISO:d.link.date)||'', self:self}); }); }); });
@@ -26544,7 +26852,7 @@ function sbLkOwnerHTML(days){ // หน้าแท่นขาย: ยอดห
 var SB_LK_VIEW=null, SB_LK_Q='';   // var ไม่ใช่ let: กันพังถ้าหน้าแท่นขายถูกวาดก่อนสคริปต์อ่านมาถึงบรรทัดนี้
 function sbLkNorm(t){ return String(t||'').toLowerCase().replace(/\s+/g,' '); }
 function sbLkBillQ(b){ return sbLkNorm([b.webNo,b.billBook,b.billNo,(b.billBook||'')+'/'+(b.billNo||''),b.scaleBillNo,b.truckScaleNo,b.buyer,b.farm,
-  ...(b.houses||[]).map(x=>x&&x.code),...(b.items||[]).map(x=>x&&x.house)].filter(Boolean).join(' ')); }
+  ...(b.houses||[]).map(x=>x&&x.code),...(b.items||[]).map(x=>x&&x.house),...sbSows(b).map(x=>x.house),...sbSows(b).map(x=>x.ear)].filter(Boolean).join(' ')); }
 function sbLkHits(q){ q=sbLkNorm(q).trim(); if(q.length<2) return [];
   const ws=q.split(' ').filter(Boolean);
   return (SALE_BILLS||[]).filter(b=>{ if(!b) return false; const t=sbLkBillQ(b); return ws.every(w=>t.includes(w)); })
