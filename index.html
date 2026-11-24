@@ -19298,7 +19298,12 @@ function sbPrintFit(){ // 📄 ย่อเอกสารอัตโนมั�
   try{
     const pg=document.getElementById('sbPrintPage'); if(!pg) return;
     const H=1035, W=716; // พื้นที่พิมพ์ A4 margin 10mm ≈ 277×190 มม. คิดเป็น px (96dpi)
-    const z=Math.min(1, H/Math.max(1,pg.scrollHeight), W/Math.max(1,pg.scrollWidth));
+    // 691124h: วัดที่ "ความกว้างกระดาษจริง" (716px ไม่มี padding) — เดิมวัดตามจอ: มือถือจอแคบ เนื้อหาถูกบีบยาว → ย่อเล็กเกิน ไม่เต็ม A4 · คอมมี padding/กว้าง 794 → คำนวณคลาด
+    const sv={w:pg.style.width,mw:pg.style.maxWidth,p:pg.style.padding};
+    pg.style.width=W+'px'; pg.style.maxWidth='none'; pg.style.padding='0';
+    const sh=pg.scrollHeight, sw=pg.scrollWidth;
+    pg.style.width=sv.w; pg.style.maxWidth=sv.mw; pg.style.padding=sv.p;
+    const z=Math.min(1, (H-8)/Math.max(1,sh), W/Math.max(1,sw));
     pg.style.setProperty('--sbfit', z<1?Math.max(z,0.3).toFixed(3):'1');   // กันสุดโต่ง: ต่ำสุด 30% (บิลปกติไม่มีทางถึง)
   }catch(e){}
 }
