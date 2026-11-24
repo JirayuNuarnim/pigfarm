@@ -9162,6 +9162,7 @@ let _autoP={cull:'',dead:''}; // ราคาที่เติมอัตโ�
 // เก็บ/คืนค่า "ตัวเลือกฟอร์มเสมียน" ทั้งหมด (เพื่อบันทึกถาวร + ซิงก์ข้ามเครื่อง)
 // 👤 ทะเบียนลูกค้าแท่นขาย — ตารางราคาตามน้ำหนักแยกรายเจ้า (เจ้าของแก้ได้ผู้เดียว · แทนตารางกลางเดิมในจัดการเล้า)
 let SB_CUST=[];
+let SB_DCP=[{u:'admin17',name:'เสมียนจ๋อมแท่นขายหมูเบิกไพร'},{u:'admin09',name:'เสมียนตูน หมูขุนท่าม่วง'}];   // ✍️ 691124c เสมียนที่แก้ราคาตาย/คัดขายได้ (options.dcp)
 function custRateForWeight(custName,w,type){ // ราคา/กก. จากทะเบียนลูกค้า (null = เจ้านี้ไม่ได้ตั้ง/ไม่พบชื่อ)
   const nm=gNrm(custName); if(!nm) return null;
   const c=SB_CUST.find(x=>gNrm(x.name)===nm); if(!c||!Array.isArray(c.bands)||!c.bands.length) return null;
@@ -9173,7 +9174,7 @@ function custRateForWeight(custName,w,type){ // ราคา/กก. จาก�
 let VAXPROG=[]; // 📋 โปรแกรมวัคซีนของฟาร์ม (เอกสารกลาง หมอเปิดดู เจ้าของ/ผู้ดูแลเขียน — 18 ก.ค. 69) · [{id,title,ref,rows:[{no,age,name,dose,brand,strain,medium,note}]}]
 let VET_START={}; // 📅 วันเริ่มดูแลของหมอ {ชื่อหมอ:'YYYY-MM-DD'} — ใช้แบ่งเงิน Incentive ชุดที่รับต่อกลางชุด (ซิงก์ options.vetstart · เจ้าของตั้งในหน้าประสิทธิภาพ)
 let BRCFG={}; // ⚙️ ค่ารอบการผลิตแม่พันธุ์ต่อฟาร์ม (รอบสัด/ตั้งท้อง/ตรวจท้อง/ให้นม/อายุสาว) — ซิงก์ผ่าน options
-function snapOpts(){return {death:DEATH_TYPES,cull:CULL_TYPES,cust:CUSTOMERS,source:SOURCE_OPTIONS,price:PRICE_TABLE,scust:SB_CUST,feedsrc:VET_FEEDSRC,feedno:VET_FEEDNO,vaxprog:VAXPROG,brcfg:BRCFG,sackkg:FEED_SACK,feedstd:FEED_STD,feedprice:FEED_PRICE,pigprice:PIG_PRICE,vetstart:VET_START,inc8:(INC8_OVR||{})};}
+function snapOpts(){return {death:DEATH_TYPES,cull:CULL_TYPES,cust:CUSTOMERS,source:SOURCE_OPTIONS,price:PRICE_TABLE,scust:SB_CUST,feedsrc:VET_FEEDSRC,feedno:VET_FEEDNO,vaxprog:VAXPROG,brcfg:BRCFG,sackkg:FEED_SACK,feedstd:FEED_STD,feedprice:FEED_PRICE,pigprice:PIG_PRICE,vetstart:VET_START,inc8:(INC8_OVR||{}),dcp:SB_DCP};}
 function applyOpts(o){ if(!o) return;
   if(Array.isArray(o.death)) DEATH_TYPES=o.death;
   if(Array.isArray(o.cull))  CULL_TYPES=o.cull;
@@ -9181,6 +9182,7 @@ function applyOpts(o){ if(!o) return;
   if(Array.isArray(o.source))SOURCE_OPTIONS=o.source;
   if(Array.isArray(o.price)) PRICE_TABLE=o.price; // 💰 ตารางราคากลางเดิม (คงไว้เป็นตัวสำรองตอนไม่ระบุลูกค้า)
   if(Array.isArray(o.scust)) SB_CUST=o.scust;     // 👤 ทะเบียนลูกค้าแท่นขาย + ราคารายเจ้า
+  if(Array.isArray(o.dcp)) SB_DCP=o.dcp;           // ✍️ 691124c เสมียนที่แก้ราคาตาย/คัดขายได้
   if(Array.isArray(o.feedsrc)&&o.feedsrc.length){ VET_FEEDSRC.length=0; o.feedsrc.forEach(x=>VET_FEEDSRC.push(x)); }   // 🌾 แหล่ง/เบอร์อาหารฟอร์มหมอ (const array → แทนที่เนื้อในเพื่อคงตัวอ้างอิงเดิม)
   if(Array.isArray(o.feedno)&&o.feedno.length){ VET_FEEDNO.length=0; o.feedno.forEach(x=>VET_FEEDNO.push(x)); }
   if(Array.isArray(o.vaxprog)) VAXPROG=o.vaxprog;   // 📋 โปรแกรมวัคซีน — ซิงก์ทุกเครื่องผ่าน app_config 'options'
@@ -17263,7 +17265,7 @@ function renderSbCustomers(){
     <div class="card">
       <h3>👥 ลูกค้าทั้งหมด <span class="more">${fmt(SB_CUST.length)} เจ้า · กดชื่อเพื่อเปิดตารางราคา</span></h3>
       <div class="homelist">${chips||'<div class="sub">— ยังไม่มีลูกค้าในทะเบียน '+(canE?'— เพิ่มเจ้าแรกด้านบนได้เลย':'')+' —</div>'}</div>
-    </div>`;
+    </div>${scDcpHTML(canE)}`;
 }
 /* ---------- 💡 จำราคาผู้ซื้อรายเดิม + ⧉ คัดลอกบิล (ตัวช่วยเสมียนขายเจ้าเดิมทุกวัน) ---------- */
 function sbBuyerPrefill(){ // พิมพ์ชื่อผู้ซื้อแล้ว → เติมราคาให้เอง: ①ทะเบียนลูกค้า (เจ้าของตั้ง) ②บิลล่าสุดของเจ้านั้น (เฉพาะช่องว่าง — แก้ทับได้เสมอ)
@@ -17316,7 +17318,26 @@ function sbAskBoxHTML(){ if(!SB_D||SB_D.kind!=='fatten') return ''; const a=SB_D
 /* ✍️ 691124c บิลตาย/คัดขาย: เสมียนใส่/แก้ราคาตามช่วงน้ำหนักเองได้ (เจ้าของ 24 พ.ย. 69: เสมียนรู้ราคารอบนั้น แต่ทะเบียนไม่มีใครอัปเดต)
    ราคาที่ต่างจากทะเบียน → b.clerkP={by,ts,d:[{a,b,k,reg,p}]} · ป้าย ✍️ + ปุ่มกรอง ✍️ ราคาเสมียน · เจ้าของ/การเงินกด 📒 อัปเดตทะเบียน หรือ ✅ ตรวจแล้ว (→ clerkP.ok)
    บิลขุน/แม่พ่อพันธุ์ เสมียนยังแก้ราคาไม่ได้เหมือนเดิม · แถวแม่ในบิลตาย/คัดขาย ยังใช้ราคาทะเบียนแม่/พ่อ */
-function sbDCClerkP(){ return !!(SB_D&&SB_D.kind==='deadcull'&&!sbCanEditPrice()&&SB_ISNEW&&sbCanWrite()); }
+/* ✍️ เฉพาะเสมียนที่เจ้าของเลือก (เจ้าของ+อุ้ม 24 พ.ย. 69: เสมียนจ๋อม แท่นขายเบิกไพร · เสมียนตูน หมูขุนท่าม่วง — คนอื่นห้าม)
+   เก็บใน app_config options.dcp = [{u:username,name}] · แก้ได้ที่ 👤 รายชื่อลูกค้า (เจ้าของ) */
+function sbDCPAllowed(){ const u=CURRENT_USER&&CURRENT_USER.username; return !!(u&&(SB_DCP||[]).some(x=>x&&x.u===u)); }
+function sbDCClerkP(){ return !!(SB_D&&SB_D.kind==='deadcull'&&!sbCanEditPrice()&&SB_ISNEW&&sbCanWrite()&&sbDCPAllowed()); }
+let _dcpUsers=null;
+function scDcpHTML(canE){
+  const list=(SB_DCP||[]).map((x,i)=>`<span class="sbfchip on" style="cursor:default">✍️ ${escA(x.name||x.u)}${canE?` <b style="cursor:pointer;margin-left:6px" title="เอาออก" onclick="scDcpDel(${i})">✕</b>`:''}</span>`).join(' ')||'<span class="sub">— ยังไม่มี (เสมียนทุกคนแก้ราคาไม่ได้) —</span>';
+  let add='';
+  if(canE){ if(_dcpUsers){ const opts=_dcpUsers.filter(u=>u.role==='clerk'&&u.active!==false&&!(SB_DCP||[]).some(x=>x.u===u.username));
+      add=opts.length?`<select class="cin tl" style="max-width:280px" onchange="scDcpAdd(this.value)"><option value="">＋ เลือกเสมียนที่จะเพิ่ม…</option>${opts.map(u=>`<option value="${escA(u.username)}">${escA(u.name||u.username)}</option>`).join('')}</select>`:'<span class="sub">เสมียนทุกคนอยู่ในรายการแล้ว</span>'; }
+    else add='<button class="btn ghost sm" onclick="scDcpLoad()">＋ เพิ่มเสมียน</button>'; }
+  return `<div class="card"><h3>✍️ เสมียนที่แก้ราคาตาย/คัดขายได้</h3>
+    <div class="sub" style="margin-top:-2px">คนในรายการนี้แก้ราคาตามช่วงน้ำหนักในบิลตาย/คัดขาย (บิลใหม่) ได้ · ราคาที่ต่างจากทะเบียนติดป้าย ✍️ ให้เจ้าของ/การเงินตรวจ · เสมียนคนอื่นแก้ไม่ได้ · บิลขุนและแม่/พ่อพันธุ์ไม่เกี่ยว</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">${list} ${add}</div></div>`; }
+async function scDcpLoad(){ if(!scCanEdit()) return; try{ const j=await adminUsersCall({action:'list'}); _dcpUsers=j.users||[]; renderSbCustomers(); }catch(e){ toast('โหลดรายชื่อเสมียนไม่ได้: '+e.message); } }
+function scDcpAdd(un){ if(!scCanEdit()||!un) return; const u=(_dcpUsers||[]).find(x=>x.username===un); if(!u) return;
+  SB_DCP=(SB_DCP||[]).concat([{u:u.username,name:u.name||u.username}]); syncConfig();
+  try{ logAudit('ตั้งค่า','dcp','เพิ่มเสมียนแก้ราคาตาย/คัด',[u.name||u.username],''); }catch(e){} toast('✍️ เพิ่ม '+(u.name||u.username)+' แล้ว'); renderSbCustomers(); }
+function scDcpDel(i){ if(!scCanEdit()) return; const x=(SB_DCP||[])[i]; if(!x) return; if(!confirm('เอา '+(x.name||x.u)+' ออกจากรายชื่อที่แก้ราคาตาย/คัดขายได้?')) return;
+  SB_DCP=SB_DCP.filter((_,k)=>k!==i); syncConfig(); try{ logAudit('ตั้งค่า','dcp','เอาเสมียนออกจากแก้ราคาตาย/คัด',[x.name||x.u],''); }catch(e){} renderSbCustomers(); }
 function sbRegBands(b){ const r=SB_CUST.find(c=>gNrm(c.name)===gNrm(b&&b.buyer)); return (r&&Array.isArray(r.bands))?r.bands:null; }
 function sbBandsMoneyPaint(){ const c=sbCalc(SB_D); (SB_D.bands||[]).forEach((bd,i)=>{ const ag=c.bandAgg[i]||{};
   [['cull','cullW'],['dead','deadW']].forEach(([k,wk])=>{ const el=document.getElementById('sbBM_'+k+i); if(el) el.textContent=(ag[wk]&&bd[k]!==''&&bd[k]!=null)?fmt(Math.round(ag[wk]*sbNum(bd[k]))):'-'; }); }); }
