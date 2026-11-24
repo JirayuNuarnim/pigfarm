@@ -15197,7 +15197,7 @@ function renderUserList(){
       }
       return `<tr>
         <td><b>${escA(u.username)}</b></td><td>${escA(u.name||'')}${others.length?'<br><span class="sub" style="font-size:11px;margin:0">↔ ดูอีกฟาร์ม: '+escA(others.map(f=>f.replace(/^ฟาร์ม/,'')).join(', '))+'</span>':''}</td>
-        <td><span class="tag wait">${ROLE_ICON[u.role]||''} ${escA(rl)}</span>${(u.role==='clerk'&&userDcpOn(u.username))?'<br><span class="tag" style="background:#fdf3e0;color:#8a5a00;margin-top:3px" title="แก้ราคาตาย/คัดขายในบิลได้">✍️ แก้ราคาตาย/คัด</span>':''}${isMgr?'<br><span class="tag" style="background:#fff3d6;color:#7a4b00;margin-top:3px">👔 ผจก.</span>':(vh.length?'<br><span class="sub" style="font-size:11px">'+fmt(vh.length)+' หลัง</span>':'')}</td>
+        <td><span class="tag wait">${ROLE_ICON[u.role]||''} ${escA(rl)}</span>${(u.role==='clerk'&&userDcpOn(u.username))?'<br><span class="tag" style="background:#fdf3e0;color:#8a5a00;margin-top:3px" title="แก้ราคาตาย/คัดขาย + แม่/พ่อพันธุ์ในบิลได้">✍️ แก้ราคาตาย/คัด/แม่พ่อ</span>':''}${isMgr?'<br><span class="tag" style="background:#fff3d6;color:#7a4b00;margin-top:3px">👔 ผจก.</span>':(vh.length?'<br><span class="sub" style="font-size:11px">'+fmt(vh.length)+' หลัง</span>':'')}</td>
         <td style="font-size:12px">${fm}</td>
         <td>${u.active!==false?'<span class="tag ok">ใช้งาน</span>':'<span class="tag bad">ปิด</span>'}</td>
         <td><div style="display:flex;gap:5px;flex-wrap:wrap">
@@ -15291,8 +15291,8 @@ function userEdit(uid){
     </div>
     <div class="frow" id="ue_farms_wrap" style="display:${u.role==='vet'?'':'none'}"><label>🏭 ฟาร์มที่ดูแล<span class="hint"> — เว้นว่าง = เห็นเฉพาะหลังที่ระบุชื่อนี้ (แนะนำ) · เลือกฟาร์ม = หัวหน้า เห็นทั้งฟาร์ม</span></label><div>${farmChecksHTML('uef',Array.isArray(u.farms)?u.farms:[])}</div>
       <div style="margin-top:9px"><label>🏛️ ยูนิตที่ดูแล (หมอแม่พันธุ์)<span class="hint"> — เว้นว่าง = เห็นทุกเล้าของฟาร์ม · ติ๊ก = เห็นเฉพาะเล้ายูนิตนั้น</span></label><div>${unitChecksHTML('ueu',Array.isArray(u.units)?u.units:[])}</div></div></div>
-    <div class="frow" id="ue_dcp_wrap" style="display:${u.role==='clerk'?'':'none'}"><label style="display:flex;gap:8px;align-items:center;cursor:pointer;font-weight:700"><input type="checkbox" id="ue_dcp" style="width:20px;height:20px"${userDcpOn(u.username)?' checked':''}> ✍️ แก้ราคาตาย/คัดขายในบิลได้</label>
-      <div class="sub" style="margin:4px 0 0">ติ๊ก = เสมียนคนนี้แก้ราคาตามช่วงน้ำหนักในบิลตาย/คัดขาย (บิลใหม่) ได้ · ราคาที่ต่างจากทะเบียนลูกค้าติดป้าย ✍️ ให้เจ้าของ/การเงินตรวจ · ใช้ได้กับทุกลูกค้า · บิลขุนและแม่/พ่อพันธุ์ไม่เกี่ยว</div></div>
+    <div class="frow" id="ue_dcp_wrap" style="display:${u.role==='clerk'?'':'none'}"><label style="display:flex;gap:8px;align-items:center;cursor:pointer;font-weight:700"><input type="checkbox" id="ue_dcp" style="width:20px;height:20px"${userDcpOn(u.username)?' checked':''}> ✍️ แก้ราคาตาย/คัดขาย + แม่/พ่อพันธุ์ ในบิลได้</label>
+      <div class="sub" style="margin:4px 0 0">ติ๊ก = เสมียนคนนี้แก้ราคาในบิลใหม่ได้: ราคาตามช่วงน้ำหนักของบิลตาย/คัดขาย และราคาแถวแม่/พ่อพันธุ์ (บิลตาย/คัด + บิลแม่/พ่อพันธุ์) · ราคาที่ต่างจากทะเบียนลูกค้าติดป้าย ✍️ ให้เจ้าของ/การเงินตรวจ · ใช้ได้กับทุกลูกค้า · บิลขุนไม่เกี่ยว</div></div>
     <div class="frow"><label>🔑 รหัสผ่าน</label>
       <input id="ue_pass" type="text" placeholder="พิมพ์รหัสใหม่ ≥ 6 ตัว (มองเห็นตัวอักษร) · เว้นว่าง = ใช้รหัสเดิม" autocomplete="off">
       <div class="sub" style="margin:5px 0 0">🔒 รหัสเดิมถูกเข้ารหัสทางเดียวไว้ในระบบ <b>ดูย้อนไม่ได้</b> (มาตรฐานความปลอดภัย — กันรหัสรั่วถึงแม้ข้อมูลหลุด) · พนักงานลืมรหัส? พิมพ์รหัสใหม่ตรงนี้แล้วกดบันทึก ใช้ได้ทันที</div></div>
@@ -16001,7 +16001,7 @@ function sbSowPrefill(){ // เติมราคาแม่ช่องที�
     if(rp!==''&&rp!=null&&sbNum(rp)>0){ x.p=String(rp); x.pAuto=1; n++; return; }
     for(const b of past){ const y=sbSows(b).find(z=>sbSowTOK(z.type)&&sbSowPKey(z)===k&&z.p!==''&&z.p!=null&&sbNum(z.p)>0); if(y){ x.p=String(y.p); x.pAuto=1; n++; break; } } });
   return n; }
-function sbSowReprice(x){ if(!x) return; if(!sbCanEditPrice()||x.pAuto){ x.p=''; delete x.pAuto; } sbSowPrefill(); }   // เปลี่ยน แม่↔พ่อ / ป่วย↔ตาย = ราคาคนละตัว: ราคาที่ระบบเติมให้ (หรือเสมียนที่แก้ราคาไม่ได้) ล้างแล้วเติมใหม่ · ราคาที่เจ้าของพิมพ์เองคงไว้
+function sbSowReprice(x){ if(!x) return; if(!sbSowCanP()||x.pAuto){ x.p=''; delete x.pAuto; } sbSowPrefill(); }   // เปลี่ยน แม่↔พ่อ / ป่วย↔ตาย = ราคาคนละตัว: ราคาที่ระบบเติมให้ (หรือเสมียนที่แก้ราคาไม่ได้) ล้างแล้วเติมใหม่ · ราคาที่เจ้าของพิมพ์เองคงไว้
 function sbSowNewId(){ return 'sw'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function sbSowById(id){ return sbSows(SB_D).find(x=>x.id===id)||null; }
 function sbSowAdd(pre){ if(!SB_D||blockIfReadonly()) return; if(!Array.isArray(SB_D.sows)) SB_D.sows=[];   // แถวเลือกเล้าเอง (แม่ที่หมอยังไม่ได้แจ้ง)
@@ -16099,7 +16099,7 @@ function sbSowQT(el,qi){ const q=(_sbSowPend||[])[qi]; if(!q||!SB_D) return; con
   const pi=document.querySelector('#sbSowQL_'+qi+' input[data-sowk="p"]'); if(pi&&document.activeElement!==pi) pi.value=(x.p==null?'':x.p);
   sbRefresh(); }
 function sbSowQP(el,qi){ const x=sbSowQRow((_sbSowPend||[])[qi]); if(!x) return; x.p=el.value; delete x.pAuto; sbRefresh(); }
-function sbSowPaint(){ if(!SB_D) return; let n=0,w=0,v=0,pend=false; const canP=sbCanEditPrice(), isDC=SB_D.kind==='deadcull';
+function sbSowPaint(){ if(!SB_D) return; let n=0,w=0,v=0,pend=false; const canP=sbSowCanP(), isDC=SB_D.kind==='deadcull';
   const amt=x=>{ const ww=sbNum(x.w), p=sbSowP(SB_D,x); if(ww>0){ n+=sbSowN(x); w+=ww; if(p==null) pend=true; else v+=ww*p; }
     return ww>0?(p!=null?fmt(Math.round(ww*p))+' ฿':'<span style="color:#b06000;font-weight:400;font-size:12px">รอราคา</span>'):''; };
   const done=new Set();
@@ -16114,7 +16114,7 @@ function sbSowPaint(){ if(!SB_D) return; let n=0,w=0,v=0,pend=false; const canP=
 function sbSowCardHTML(){
   if(!sbSowShow()) return '';
   sbSows(SB_D).forEach(x=>{ if(!x.id) x.id=sbSowNewId(); });
-  const isDC=SB_D.kind==='deadcull', own=sbSowOwnP(SB_D), canP=sbCanEditPrice();   // own = แถวแม่มี ป่วย/ตาย + ราคาของตัวเอง (บิลตาย/คัด · บิลแม่/พ่อพันธุ์)
+  const isDC=SB_D.kind==='deadcull', own=sbSowOwnP(SB_D), canP=sbSowCanP();   // own = แถวแม่มี ป่วย/ตาย + ราคาของตัวเอง (บิลตาย/คัด · บิลแม่/พ่อพันธุ์)
   const hl=sbSowHouseList(), ctx=sbSowCtxFarms();
   const farmsOrd=[...new Set(hl.map(h=>h.farm||''))].sort((a,b)=>((ctx.includes(b)?1:0)-(ctx.includes(a)?1:0))||String(a).localeCompare(String(b),'th'));
   const opts=x=>'<option value="">— เลือกเล้า —</option>'+farmsOrd.map(f=>'<optgroup label="'+escA(f)+'">'+hl.filter(h=>(h.farm||'')===f).slice().sort(byCode).map(h=>'<option value="'+escA(f+'|'+h.code)+'"'+((x.farm===f&&x.code===h.code)?' selected':'')+'>'+escA(brShortOf(h))+'</option>').join('')+'</optgroup>').join('')
@@ -16155,7 +16155,7 @@ function sbSowCardHTML(){
         +fld('ป่วย / ปลด / ตาย',`<select class="cin tl"${dis} style="${sbSowTOK(x.type)?'':'border-color:var(--bad)'}" onchange="sbSowSet('${escA(x.id)}','type',this.value)">${sbSowTOK(x.type)?'':'<option value="" selected>— เลือก —</option>'}${sbSowTOpts(x.type)}</select>`):''}
       ${!isDC?fld('จำนวนตัว',`<input class="cin" type="number" min="1" step="1" inputmode="numeric" value="${escA(x.n==null||x.n===''?1:x.n)}"${dis} oninput="sbSowSet('${escA(x.id)}','n',this.value)">`):''}
       ${fld(isDC?'น้ำหนัก (กก.)':'น้ำหนักรวมของแถวนี้ (กก.)',`<input class="cin" data-sowk="w" type="number" step="0.1" min="0" inputmode="decimal" value="${escA(x.w==null?'':x.w)}"${dis} oninput="sbSowSet('${escA(x.id)}','w',this.value)">`)}
-      ${fld('ราคา (บาท/กก.)',canP?`<input class="cin nospin" type="number" step="0.25" inputmode="decimal" placeholder="${isDC?'':'ว่าง = ราคารถ'}" value="${escA(x.p==null?'':x.p)}" oninput="sbSowSet('${escA(x.id)}','p',this.value)" onkeydown="sbPriceKey(event)">`
+      ${fld('ราคา (บาท/กก.)'+sbSowRegHint(x),canP?`<input class="cin nospin" type="number" step="0.25" inputmode="decimal" placeholder="${isDC?'':'ว่าง = ราคารถ'}" value="${escA(x.p==null?'':x.p)}" oninput="sbSowSet('${escA(x.id)}','p',this.value)" onkeydown="sbPriceKey(event)">`
         :`<span class="cin" style="background:var(--soft);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--ink)">${(x.p!==''&&x.p!=null)?fmt(sbNum(x.p)):((isDC||sbSowP(SB_D,x)==null)?'<span style="color:#b06000;font-weight:400;font-size:12.5px">🔒 รอเจ้าของใส่ราคา</span>':'<span style="font-weight:400;font-size:12.5px">ราคาเดียวกับรถ</span>')}</span>`)}
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;min-height:44px"><b id="sbSowAmt_${escA(x.id)}" style="white-space:nowrap;font-size:16px"></b>${ro?'':`<button class="btn ghost sm" style="color:var(--bad)" title="ลบแถวนี้" onclick="sbSowDel('${escA(x.id)}')">✕</button>`}</div>
     </div>`;
@@ -17092,7 +17092,7 @@ function renderSaleBillForm(){
         <textarea id="sbWPaste" class="cin" rows="3" style="margin-top:8px" placeholder="วางตัวเลขคั่นด้วยช่องว่างหรือขึ้นบรรทัดใหม่ เช่น  104 122 111 99 129"></textarea>
         <button class="btn sm" style="margin-top:8px" onclick="sbWPasteApply()">เพิ่มทั้งหมด</button></details>
       </div>`}
-    ${sbSowCardHTML()}
+    ${sbSowCardHTML()}${(SB_D.kind==='breeder'&&SB_D.clerkP)?'<div class="card">'+sbClerkBoxHTML()+'</div>':''}
     <div class="card" style="padding:12px 14px"><h3>🧾 บิลจริง — พรีวิวสด <span class="more">ทุกตัวเลขที่คีย์เด้งเข้าบิลทันที (ตัวล่าสุดไฮไลต์เหลือง) · หน้าตาเดียวกับที่จะพิมพ์/Excel</span></h3>
       <div style="overflow-x:auto"><div id="sbPaperLive" class="sbpaper" style="min-width:740px">${sbBillPaperHTML(SB_D,true)}</div></div></div>
     <div class="card"><h3>🚛 ตาชั่งรถ & เวลา <span class="more">ใส่แล้วระบบเทียบผลต่าง + คำนวณ นาที·วิ/ตัว ให้อัตโนมัติ</span></h3>
@@ -17331,26 +17331,34 @@ function sbAskBoxHTML(){ if(!SB_D||SB_D.kind!=='fatten') return ''; const a=SB_D
 function userDcpOn(un){ return (SB_DCP||[]).some(x=>x&&x.u===un); }
 function sbDCPAllowed(){ const u=CURRENT_USER&&CURRENT_USER.username; return !!(u&&(SB_DCP||[]).some(x=>x&&x.u===u)); }
 function sbDCClerkP(){ return !!(SB_D&&SB_D.kind==='deadcull'&&!sbCanEditPrice()&&SB_ISNEW&&sbCanWrite()&&sbDCPAllowed()); }
+function sbSowClerkP(){ return !!(SB_D&&sbSowOwnP(SB_D)&&!sbCanEditPrice()&&SB_ISNEW&&sbCanWrite()&&sbDCPAllowed()); }   // ✍️ แถวแม่/พ่อพันธุ์ (บิลตาย/คัด + บิลแม่/พ่อ) — เจ้าของขอเพิ่ม 24 พ.ย. 69
+function sbSowCanP(){ return sbCanEditPrice()||sbSowClerkP(); }
+function sbSowRegHint(x){ if(!sbSowClerkP()||!x||!sbSowTOK(x.type)) return ''; const rc=SB_CUST.find(c=>gNrm(c.name)===gNrm(SB_D.buyer)), rv=rc?rc[sbSowPKey(x)]:'';   // ✍️ เสมียนเห็นราคาทะเบียนเทียบ
+  if(rv===''||rv==null) return ' <span style="color:#8a5a00">· ทะเบียนว่าง</span>'; return (x.p!==''&&x.p!=null&&sbNum(x.p)!==sbNum(rv))?' <span style="color:#8a5a00;font-weight:700">✍️ ทะเบียน '+fmt(sbNum(rv))+'</span>':''; }
 function sbRegBands(b){ const r=SB_CUST.find(c=>gNrm(c.name)===gNrm(b&&b.buyer)); return (r&&Array.isArray(r.bands))?r.bands:null; }
 function sbBandsMoneyPaint(){ const c=sbCalc(SB_D); (SB_D.bands||[]).forEach((bd,i)=>{ const ag=c.bandAgg[i]||{};
   [['cull','cullW'],['dead','deadW']].forEach(([k,wk])=>{ const el=document.getElementById('sbBM_'+k+i); if(el) el.textContent=(ag[wk]&&bd[k]!==''&&bd[k]!=null)?fmt(Math.round(ag[wk]*sbNum(bd[k]))):'-'; }); }); }
 function sbBandsBlur(){ setTimeout(()=>{ const bb=document.getElementById('sbBandsBox'); if(bb&&SB_D&&!bb.contains(document.activeElement)) bb.innerHTML=sbBandsHTML(); },0); }   // ออกจากช่องราคา → วาดตารางใหม่ให้ป้าย ✍️ ทะเบียน ขึ้น
 function sbClerkDiffs(b){ const reg=sbRegBands(b), c=sbCalc(b), out=[];
-  (b.bands||[]).forEach((bd,i)=>{ const ag=c.bandAgg[i]||{}; [['cull','cullW'],['dead','deadW']].forEach(([k,wk])=>{ if(!(ag[wk]>0)) return;
+  const rc=SB_CUST.find(x=>gNrm(x.name)===gNrm(b&&b.buyer));
+  if(sbSowOwnP(b)) sbSows(b).forEach(x=>{ if(!(sbNum(x.w)>0)||!sbSowTOK(x.type)||x.p===''||x.p==null) return; const k=sbSowPKey(x), rv=rc?rc[k]:'';
+    if(rv===''||rv==null||sbNum(rv)!==sbNum(x.p)) out.push({sow:1,key:k,who:(sbSowWho(x)==='พ่อ'?'boar':'sow'),t:x.type,house:x.house||'',reg:(rv===''||rv==null)?null:sbNum(rv),p:sbNum(x.p)}); });
+  if(b.kind==='deadcull') (b.bands||[]).forEach((bd,i)=>{ const ag=c.bandAgg[i]||{}; [['cull','cullW'],['dead','deadW']].forEach(([k,wk])=>{ if(!(ag[wk]>0)) return;
     const p=bd[k]; if(p===''||p==null) return; const rb=reg&&reg.find(x=>x&&x.a===bd.a); const rv=rb?rb[k]:'';
     if(rv===''||rv==null||sbNum(rv)!==sbNum(p)) out.push({a:bd.a,b:bd.b,k:k,reg:(rv===''||rv==null)?null:sbNum(rv),p:sbNum(p)}); }); });
   return out; }
 function sbClerkOpen(b){ return !!(b&&b.clerkP&&!b.clerkP.ok); }
-function sbClerkTxt(d){ return (d.k==='cull'?'คัด':'ตาย')+' '+d.a+'–'+d.b+' กก. = '+fmt(d.p)+(d.reg!=null?' (ทะเบียน '+fmt(d.reg)+')':' (ทะเบียนว่าง)'); }
+function sbClerkTxt(d){ if(d.sow) return (d.who==='boar'?'พ่อพันธุ์':'แม่พันธุ์')+(SB_SOW_T[d.t]||'')+(d.house?' '+d.house:'')+' = '+fmt(d.p)+(d.reg!=null?' (ทะเบียน '+fmt(d.reg)+')':' (ทะเบียนว่าง)');
+  return (d.k==='cull'?'คัด':'ตาย')+' '+d.a+'–'+d.b+' กก. = '+fmt(d.p)+(d.reg!=null?' (ทะเบียน '+fmt(d.reg)+')':' (ทะเบียนว่าง)'); }
 function sbClerkPersist(){ const st=SALE_BILLS.find(x=>x.id===SB_D.id); if(st){ st.clerkP=JSON.parse(JSON.stringify(SB_D.clerkP)); syncSaleBill(st); } renderSaleBillForm(); }
 function sbClerkRegUpdate(){ if(!SB_D||!SB_D.clerkP||!scCanEdit()) return;
   const c=SB_CUST.find(x=>gNrm(x.name)===gNrm(SB_D.buyer)); if(!c){ toast('ไม่พบ '+(SB_D.buyer||'-')+' ในทะเบียนลูกค้า'); return; }
   if(!Array.isArray(c.bands)||!c.bands.length) c.bands=scNewBands();
-  SB_D.clerkP.d.forEach(d=>{ const bd=c.bands.find(x=>x&&x.a===d.a); if(bd) bd[d.k]=String(d.p); });
-  syncConfig(); try{ logAudit('ทะเบียนลูกค้า', c.name, 'อัปเดตราคาตาย/คัดตามบิล '+(SB_D.webNo||''), SB_D.clerkP.d.map(sbClerkTxt), c.name); }catch(e){}
+  SB_D.clerkP.d.forEach(d=>{ if(d.sow){ c[d.key]=String(d.p); return; } const bd=c.bands.find(x=>x&&x.a===d.a); if(bd) bd[d.k]=String(d.p); });
+  syncConfig(); try{ logAudit('ทะเบียนลูกค้า', c.name, 'อัปเดตราคาตาย/คัด/แม่พ่อตามบิล '+(SB_D.webNo||''), SB_D.clerkP.d.map(sbClerkTxt), c.name); }catch(e){}
   SB_D.clerkP.ok={by:whoNow(),ts:Date.now(),reg:1}; sbClerkPersist(); toast('📒 อัปเดตทะเบียนราคา '+c.name+' แล้ว — รอบหน้าเติมราคานี้ให้เอง'); }
 function sbClerkMarkOk(){ if(!SB_D||!SB_D.clerkP||!sbCanEditPrice()) return; SB_D.clerkP.ok={by:whoNow(),ts:Date.now()}; sbClerkPersist(); toast('✅ ตรวจราคาบิลนี้แล้ว'); }
-function sbClerkBoxHTML(){ const k=SB_D&&SB_D.clerkP; if(!k||SB_D.kind!=='deadcull') return '';
+function sbClerkBoxHTML(){ const k=SB_D&&SB_D.clerkP; if(!k||!sbSowOwnP(SB_D)) return '';
   if(k.ok) return `<div class="sub" style="margin-top:8px">✅ ราคาที่เสมียนใส่ ตรวจแล้วโดย ${escA(k.ok.by||'-')}${k.ok.reg?' · อัปเดตทะเบียนแล้ว':''}</div>`;
   const own=sbCanEditPrice()&&!SB_ISNEW;
   return `<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:#fdf3e0;border:1px solid #f0c987;color:#6b4700">
@@ -17407,7 +17415,7 @@ function sbSave(){
   if((SB_D.dateISO||'')>todayISO() && !confirm('⚠️ วันที่ขายในบิลเป็นวันอนาคต ('+sbThaiDate(SB_D.dateISO)+')\nถ้าลงเข้าหลังด้วยวันที่อนาคต ยอดคงเหลือของหลังจะคำนวณเพี้ยน\n\nยืนยันใช้วันที่นี้ต่อหรือไม่?')) return;
   const c=sbCalc(SB_D);
   if(sbCanEditPrice()&&sbAskOpen(SB_D)&&!c.pending) SB_D.askPrice.done={by:whoNow(),ts:Date.now()};
-  if(SB_D.kind==='deadcull'&&!sbCanEditPrice()){ const dd=sbClerkDiffs(SB_D); if(dd.length) SB_D.clerkP={by:whoNow(),ts:Date.now(),d:dd}; else delete SB_D.clerkP; }   // ✍️ 691124c   // 🙋 691124c เจ้าของ/การเงินใส่ราคาแล้ว → ปิดคำขอ (เก็บไว้เป็นประวัติ)
+  if(sbSowOwnP(SB_D)&&!sbCanEditPrice()){ const dd=sbClerkDiffs(SB_D); if(dd.length) SB_D.clerkP={by:whoNow(),ts:Date.now(),d:dd}; else delete SB_D.clerkP; }   // ✍️ 691124c   // 🙋 691124c เจ้าของ/การเงินใส่ราคาแล้ว → ปิดคำขอ (เก็บไว้เป็นประวัติ)
   if(c.net!=null && c.net<0 && !confirm('⚠️ ยอดสุทธิติดลบ ('+fmt(c.net)+' บาท) — ช่อง "หัก/ลดบิล" มากกว่ายอดขาย\nตรวจตัวเลขก่อน · ยืนยันบันทึกทั้งอย่างนี้หรือไม่?')) return;   // 🟡 กันหักเกินยอดขายเงียบๆ
   if(SB_D.payMode==='transfer' && String(SB_D.payAmt==null?'':SB_D.payAmt).trim()!=='' && sbNum(SB_D.payAmt)<=0){ toast('⚠️ ช่อง "ยอดโอนจริง" ต้องมากกว่า 0 — ถ้ายังไม่ได้รับโอน เปลี่ยนรูปแบบเก็บเงินเป็น "ขายเชื่อ" แทน'); return; }   // 🟡 payAmt=0 เดิมถูกตีเป็นโอนเต็มบิล
   if(SB_D.kind==='deadcull'){
