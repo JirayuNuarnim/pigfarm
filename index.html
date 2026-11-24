@@ -16396,6 +16396,7 @@ function sbRowHTML(b){
     const c=sbCalc(b), K=SB_KIND[b.kind]||SB_KIND.fatten;
     const money=c.net!=null?`<b style="color:var(--ok)">${fmt(c.net)} บาท</b>${c.deduct?`<span class="more"> (หัก ${fmt(c.deduct)})</span>`:''}`
       :(c.pending?'<span style="background:var(--warn);color:#fff;border-radius:999px;padding:2px 10px;font-size:11.5px;font-weight:700">⏳ รอใส่ราคา</span>'+(sbAskOpen(b)?'<div class="sub" style="font-size:11.5px;color:#8a5a00;margin-top:3px;text-align:right">🙋 '+escA(b.askPrice.by||'เสมียน')+(b.askPrice.note?': '+escA(b.askPrice.note):'')+'</div>':''):'<span class="more">—</span>');
+    const clk=sbClerkOpen(b)?'<div class="sub" style="font-size:11.5px;color:#8a5a00;margin-top:3px;text-align:right" title="'+escA(b.clerkP.d.map(sbClerkTxt).join(' · '))+'">✍️ '+escA(b.clerkP.by||'เสมียน')+' ใส่ราคาเอง ('+b.clerkP.d.length+' ช่อง)</div>':'';
     const diff=c.scaleNet!=null?`<span class="more"> · ตาชั่งรถ ${fmt(c.scaleNet)} กก. (${c.diff>=0?'รายตัวมากกว่า ':'น้อยกว่า '}${fmt(Math.abs(c.diff))} กก.)</span>`:'';
     const ref=(b.webNo?` · 🔢 ${escA(b.webNo)}`:'')+((b.billBook||b.billNo)?` · 📄 เล่ม ${escA(b.billBook||'-')}/${escA(b.billNo||'-')}`:'');
     const posted=sbPostBadge(b);   // ✅ ตรวจจากแถวในหลังจริง (690904m)
@@ -16404,7 +16405,7 @@ function sbRowHTML(b){
       <div class="fmeta" style="flex:1;min-width:230px"><div class="fn">${K.ico} <b>${sbThaiDate(b.dateISO)}</b> · ${escA(b.farm||'-')} → ${escA(b.buyer||'ไม่ระบุผู้ซื้อ')}${ref}</div>
       <div class="sub" style="margin:3px 0 0">${fmt(c.n)} ตัว · ${fmt(Math.round(c.totW))} กก.${c.n?` · เฉลี่ย ${(c.avg).toFixed(1)} กก./ตัว`:''}${c.sowN?` · 🐷 แม่/พ่อพันธุ์ ${fmt(c.sowN)} ตัว`:''}${diff}${b.truck?` · 🚚 ${escA(b.truck)}`:''} · ✍️ ${escA(b.by||'-')}${sbSavedStr(b)?` · 🕐 บันทึก ${sbSavedStr(b)} น.`:''}</div></div>
       <div style="display:flex;flex-direction:column;gap:7px;align-items:flex-end;margin-left:auto">
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${money}${sbPayChipHTML(b)}${b.locked?`<span title="ตรวจแล้ว·ล็อกโดย ${escA(b.verifiedBy||'')}">🔒</span>`:''}${posted}</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${money}${sbPayChipHTML(b)}${b.locked?`<span title="ตรวจแล้ว·ล็อกโดย ${escA(b.verifiedBy||'')}">🔒</span>`:''}${posted}</div>${clk}
         <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
           ${(!b.postedAt&&sbCanWrite()&&!sbSowOnly(b))?btn('⬇️ ลงเข้าหลัง','ลงบันทึกเข้าหลัง (ตัดคงเหลือ)',`sbPostToHouses('${b.id}')`,';color:var(--brand);font-weight:800;border-color:var(--brand)'):''}
           ${btn('🖨 พิมพ์','ดูบิล / พิมพ์ A4',`sbPrint('${b.id}')`)}
@@ -16431,9 +16432,9 @@ function sbArchiveHTML(){
     scopeLabel='ช่วง '+(sbFrom?sbThaiDate(sbFrom):'…')+' – '+(sbTo?sbThaiDate(sbTo):'…'); }
   else if(curM==='all'){ scope=base; scopeLabel='ทุกเดือน'; }
   else { scope=base.filter(b=>String(b.dateISO||'').slice(0,7)===curM||!b.dateISO); scopeLabel=sbMonthLabel(curM); }   // บิลไม่มีวันที่ (เก่า/พิมพ์ตก) โชว์เสมอ ไม่หายเงียบ
-  const stCnt={pend:0,unpost:0,locked:0,unpaid:0};
-  scope.forEach(b=>{ if(sbPricePending(b))stCnt.pend++; if(!b.postedAt)stCnt.unpost++; if(b.locked)stCnt.locked++; const ps=sbPayState(b); if(ps==='cash'||ps==='credit')stCnt.unpaid++; });
-  const bills=scope.filter(b=>sbStatFilter==='pend'?sbPricePending(b):sbStatFilter==='unpost'?!b.postedAt:sbStatFilter==='locked'?!!b.locked:sbStatFilter==='unpaid'?(function(){const ps=sbPayState(b);return ps==='cash'||ps==='credit';})():true)
+  const stCnt={pend:0,unpost:0,locked:0,unpaid:0,clerk:0};
+  scope.forEach(b=>{ if(sbClerkOpen(b))stCnt.clerk++; if(sbPricePending(b))stCnt.pend++; if(!b.postedAt)stCnt.unpost++; if(b.locked)stCnt.locked++; const ps=sbPayState(b); if(ps==='cash'||ps==='credit')stCnt.unpaid++; });
+  const bills=scope.filter(b=>sbStatFilter==='clerk'?sbClerkOpen(b):sbStatFilter==='pend'?sbPricePending(b):sbStatFilter==='unpost'?!b.postedAt:sbStatFilter==='locked'?!!b.locked:sbStatFilter==='unpaid'?(function(){const ps=sbPayState(b);return ps==='cash'||ps==='credit';})():true)
     .sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||''))||((b.createdAt||0)-(a.createdAt||0)));
   // ── แถวควบคุม: กล่องเดียว หัวข้อชิดซ้ายทุกแถว อ่านไล่จากบนลงล่าง ──
   const CTRL=(label,inner,cls)=>`<div class="sbctrl${cls?' '+cls:''}"><span class="sbctrl-l">${label}</span><div class="sbctrl-c">${inner}</div></div>`;
@@ -16448,7 +16449,7 @@ function sbArchiveHTML(){
   const farms=[...new Set(SALE_BILLS.map(b=>b.farm).filter(Boolean))].sort();
   const seg=[['','ทั้งหมด'],['fatten','🐖 ขุน'],['deadcull','⚰️ ตาย/คัด'],['breeder','🐷 พันธุ์']]
     .map(k=>`<button class="${sbKindFilter===k[0]?'on':''}" onclick="sbKindFilter='${k[0]}';sbArchiveRe()">${k[1]}</button>`).join('');
-  const stChips=[['','ทั้งหมด',scope.length],['pend','⏳ รอราคา',stCnt.pend],['unpaid','💵 ยังไม่ได้เงิน',stCnt.unpaid],['unpost','⬇️ ยังไม่ลงหลัง',stCnt.unpost],['locked','🔒 ตรวจแล้ว',stCnt.locked]]
+  const stChips=[['','ทั้งหมด',scope.length],['pend','⏳ รอราคา',stCnt.pend],['unpaid','💵 ยังไม่ได้เงิน',stCnt.unpaid],['unpost','⬇️ ยังไม่ลงหลัง',stCnt.unpost],['locked','🔒 ตรวจแล้ว',stCnt.locked]].concat(sbCanEditPrice()?[['clerk','✍️ เสมียนใส่ราคา',stCnt.clerk]]:[])
     .map(s=>`<button class="sbfchip${sbStatFilter===s[0]?' on':''}"${s[2]||s[0]===''?'':' style="opacity:.45"'} onclick="sbStatFilter='${s[0]}';sbArchiveRe()">${s[1]} (${fmt(s[2])})</button>`).join('');
   const controls=CTRL('ประเภทบิล',`<div class="seg" style="margin:0">${seg}</div>
       <select class="cin tl" style="max-width:220px" onchange="sbFarmFilter=this.value;sbArchiveRe()">
@@ -16746,9 +16747,13 @@ function sbItemsHTML(){
 function sbSetItemType(i,v){ const it=(SB_D.items||[])[i]; if(!it) return; if(v==='cull'){ it.type='cull'; } else { it.type='dead'; it.dtype=v; } sbRefresh(); } // ตาย/ตายใหญ่/ตายเน่า = type 'dead' + เก็บประเภทย่อยใน dtype (logic คำนวณเช็ค ==='cull' เหมือนเดิม)
 function sbBandsHTML(){
   const c=sbCalc(SB_D);
-  const canP=sbCanEditPrice();
+  const own=sbCanEditPrice(), clk=sbDCClerkP(), canP=own||clk;   // ✍️ 691124c เสมียนใส่ราคาตาย/คัดเองได้ (บิลใหม่)
+  const reg=clk?sbRegBands(SB_D):null;
+  const hint=(val,key,i)=>{ if(!clk) return ''; const ag=c.bandAgg[i]||{}; if(!(ag[key+'W']>0)) return ''; const rb=reg&&reg.find(x=>x&&x.a===SB_D.bands[i].a); const rv=rb?rb[key]:'';
+    if(rv===''||rv==null) return '<div style="font-size:11px;color:#8a5a00">ทะเบียนว่าง</div>';
+    return (val!==''&&val!=null&&sbNum(val)!==sbNum(rv))?'<div style="font-size:11px;color:#8a5a00">✍️ ทะเบียน '+fmt(sbNum(rv))+'</div>':''; };
   const pcell=(val,key,i)=> canP
-    ? `<input class="cin nospin" type="number" step="0.5" inputmode="decimal" style="max-width:90px;padding:5px 8px" placeholder="฿/กก." value="${escA(val)}" oninput="SB_D.bands[${i}].${key}=this.value;sbRefresh()" onkeydown="sbPriceKey(event)">`
+    ? `<input class="cin nospin" type="number" step="0.5" inputmode="decimal" style="max-width:90px;padding:5px 8px" placeholder="฿/กก." value="${escA(val)}" oninput="SB_D.bands[${i}].${key}=this.value;sbRefresh()" onchange="sbBandsBlur()" onkeydown="sbPriceKey(event)">${hint(val,key,i)}`
     : `<span style="display:inline-block;min-width:56px;text-align:center;font-weight:700">${val!==''&&val!=null?fmt(sbNum(val)):'<span style="color:#b06000;font-weight:400;font-size:11.5px">🔒 รอเจ้าของ</span>'}</span>`;
   const rows=(SB_D.bands||[]).map((bd,i)=>{
     const ag=c.bandAgg[i]||{cullW:0,deadW:0}; const has=ag.cullW>0||ag.deadW>0;
@@ -16756,15 +16761,15 @@ function sbBandsHTML(){
       <td><b>${bd.a}–${bd.b}</b></td>
       <td class="num">${ag.cullW?fmt(Math.round(ag.cullW*10)/10):'-'}</td>
       <td>${pcell(bd.cull,'cull',i)}</td>
-      <td class="num">${ag.cullW&&bd.cull!==''?fmt(Math.round(ag.cullW*sbNum(bd.cull))):'-'}</td>
+      <td class="num" id="sbBM_cull${i}">${ag.cullW&&bd.cull!==''?fmt(Math.round(ag.cullW*sbNum(bd.cull))):'-'}</td>
       <td class="num">${ag.deadW?fmt(Math.round(ag.deadW*10)/10):'-'}</td>
       <td>${pcell(bd.dead,'dead',i)}</td>
-      <td class="num">${ag.deadW&&bd.dead!==''?fmt(Math.round(ag.deadW*sbNum(bd.dead))):'-'}</td></tr>`;
+      <td class="num" id="sbBM_dead${i}">${ag.deadW&&bd.dead!==''?fmt(Math.round(ag.deadW*sbNum(bd.dead))):'-'}</td></tr>`;
   }).join('');
   return `<div style="overflow-x:auto"><table>
     <thead><tr><th>ช่วง นน. (กก.)</th><th class="num">คัดขาย (กก.)</th><th>ราคาคัด/กก.</th><th class="num">เงินคัด</th><th class="num">ตาย (กก.)</th><th>ราคาตาย/กก.</th><th class="num">เงินตาย</th></tr></thead>
     <tbody>${rows}</tbody></table></div>
-    <div class="sub" style="margin-top:7px">${canP?'💡 ใส่ราคาเฉพาะช่วงที่มีน้ำหนัก (แถวเข้ม) · เว้นว่างได้ — บิลจะติดป้าย "รอใส่ราคา" ให้เจ้าของเติม':'🔒 ราคาตั้งโดยเจ้าของ — เติมอัตโนมัติจากทะเบียนลูกค้า · เสมียนกรอกจำนวน/น้ำหนักได้ ราคาให้เจ้าของเป็นผู้ใส่'}</div>`;
+    <div class="sub" style="margin-top:7px">${clk?'✍️ เสมียนใส่/แก้ราคาได้ ตามราคารอบนี้ · ราคาที่ต่างจากทะเบียนลูกค้า บิลจะติดป้าย ✍️ ให้เจ้าของ/การเงินตรวจ':canP?'💡 ใส่ราคาเฉพาะช่วงที่มีน้ำหนัก (แถวเข้ม) · เว้นว่างได้ — บิลจะติดป้าย "รอใส่ราคา" ให้เจ้าของเติม':'🔒 ราคาตั้งโดยเจ้าของ — เติมอัตโนมัติจากทะเบียนลูกค้า · เสมียนกรอกจำนวน/น้ำหนักได้ ราคาให้เจ้าของเป็นผู้ใส่'}</div>`;
 }
 function sbDedSet(i,k,v){ // หัก/ลดบิล: เสมียนกรอก กก.×ราคา/กก. เองได้ (ราคาไม่ล็อกกับที่เจ้าของตั้ง) → ระบบคูณเป็นยอดหักให้ · หรือพิมพ์ยอดเงินตรงๆ แบบเดิม
   const d=(SB_D.deducts||[])[i]; if(!d) return; d[k]=v;
@@ -16794,7 +16799,7 @@ function sbSumHTML(){ // แถบสรุปสดลอยติดจอ —
 function sbRefresh(){ // อัปเดตเฉพาะส่วนคำนวณ (ไม่วาดฟอร์มใหม่ทั้งหน้า — โฟกัสช่องพิมพ์ไม่หลุด) + เก็บร่างอัตโนมัติ
   const st=$("#sbSum"); if(st) st.innerHTML=sbSumHTML();
   const w=$("#sbWChips"); if(w) w.innerHTML=sbWChipsHTML();
-  const bb=$("#sbBandsBox"); if(bb) bb.innerHTML=sbBandsHTML();
+  const bb=$("#sbBandsBox"); if(bb){ if(bb.contains(document.activeElement)) sbBandsMoneyPaint(); else bb.innerHTML=sbBandsHTML(); }   // 691124c: กำลังพิมพ์ราคา → อัปเดตแค่ช่องเงิน (เดิมวาดใหม่ทั้งตาราง โฟกัสหลุดทุกตัวอักษร)
   (SB_D.houses||[]).forEach((r,i)=>{ const el=$("#sbHInfo"+i); if(el) el.innerHTML=r.code?sbHInfoHTML(r.code):''; });
   const pl=$("#sbPaperLive"); if(pl) pl.innerHTML=sbBillPaperHTML(SB_D,true);   // 🧾 บิลจริงพรีวิวสด
   try{ sbSowPaint(); }catch(e){}
@@ -17060,7 +17065,7 @@ function renderSaleBillForm(){
     <div class="card"><h3>🐷 รายการหมู <span class="more">${fmt((SB_D.items||[]).length)} ตัว · ทีละมากใช้ ➕ เพิ่มทีละหลายตัว</span></h3><datalist id="sbHouseDL">${[...new Set(HOUSES.filter(h=>sbFilterFarms().indexOf(h.farm||'')>=0).slice().sort(byCode).map(h=>h.code))].map(c=>`<option value="${escA(c)}">`).join('')}</datalist>
       ${sbHousePickHTML()}
       <div id="sbItemsBox">${sbItemsHTML()}</div></div>
-    <div class="card"><h3>💵 ราคาตามช่วงน้ำหนัก</h3><div id="sbBandsBox">${sbBandsHTML()}</div></div>`
+    <div class="card"><h3>💵 ราคาตามช่วงน้ำหนัก</h3><div id="sbBandsBox">${sbBandsHTML()}</div>${sbClerkBoxHTML()}</div>`
     :`
     <div class="card"><h3>🏠 มาจากหลังไหนบ้าง <span class="more">คันเดียวหลายหลังได้ · อายุ/หมอ ดึงให้อัตโนมัติ</span></h3><div id="sbHousesBox">${sbHousesHTML()}</div></div>
     <div class="card"><h3>⚖️ น้ำหนักรายตัว <span class="more">พิมพ์เลข → Enter → ตัวต่อไป · แตะป้ายเพื่อลบ · ทุก 10 ตัวขึ้นยอดรวมแถวเหมือนบิลกระดาษ</span></h3>
@@ -17275,7 +17280,7 @@ function sbBuyerPrefill(){ // พิมพ์ชื่อผู้ซื้อ�
     if(reg) fillFrom(reg.bands,'ทะเบียนลูกค้า');
     const srcBill=past.find(b=>(b.bands||[]).some(x=>x&&((x.cull!==''&&x.cull!=null)||(x.dead!==''&&x.dead!=null))));
     if(srcBill) fillFrom(srcBill.bands,'บิลล่าสุด');
-    if(filled){ sbRefresh(); toast('💡 เติมราคาของ '+name+' จาก'+srcLabel+' ('+filled+' ช่อง)'+(sbCanEditPrice()?' — แก้ทับได้':' · ราคาเจ้าของตั้ง')); }
+    if(filled){ sbRefresh(); toast('💡 เติมราคาของ '+name+' จาก'+srcLabel+' ('+filled+' ช่อง)'+((sbCanEditPrice()||sbDCClerkP())?' — แก้ทับได้':' · ราคาเจ้าของตั้ง')); }
     try{ if(sbSowPrefill()) renderSaleBillForm(); }catch(e){}
   } else if(SB_D.kind==='breeder'){   // 🐷 691124a บิลแม่/พ่อพันธุ์: ราคาอยู่ที่แถวแม่ (ทะเบียนลูกค้า แม่/พ่อ × ป่วย/ตาย) — ไม่เอาราคาหมูขุนมาใส่เป็นราคารถ
     let n=0; try{ n=sbSowPrefill(); }catch(e){}
@@ -17308,13 +17313,43 @@ function sbAskBoxHTML(){ if(!SB_D||SB_D.kind!=='fatten') return ''; const a=SB_D
     <div style="font-weight:700;color:#8a5a00;margin-bottom:6px">🙋 ส่งให้เจ้าของ/การเงินใส่ราคา · บันทึกแล้วบิลขึ้น ⏳ รอใส่ราคา</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><input id="sbAskNote" class="cin tl" style="flex:1 1 240px" placeholder="เหตุผล เช่น หมูพิเศษ ราคาตกลงที่ฟาร์ม" value="${escA(a.note||'')}" oninput="if(SB_D&&SB_D.askPrice)SB_D.askPrice.note=this.value">
     <button class="btn ghost sm" onclick="sbAskPriceOff()">↩︎ ใช้ราคาประจำ</button></div></div>`; }
+/* ✍️ 691124c บิลตาย/คัดขาย: เสมียนใส่/แก้ราคาตามช่วงน้ำหนักเองได้ (เจ้าของ 24 พ.ย. 69: เสมียนรู้ราคารอบนั้น แต่ทะเบียนไม่มีใครอัปเดต)
+   ราคาที่ต่างจากทะเบียน → b.clerkP={by,ts,d:[{a,b,k,reg,p}]} · ป้าย ✍️ + ปุ่มกรอง ✍️ ราคาเสมียน · เจ้าของ/การเงินกด 📒 อัปเดตทะเบียน หรือ ✅ ตรวจแล้ว (→ clerkP.ok)
+   บิลขุน/แม่พ่อพันธุ์ เสมียนยังแก้ราคาไม่ได้เหมือนเดิม · แถวแม่ในบิลตาย/คัดขาย ยังใช้ราคาทะเบียนแม่/พ่อ */
+function sbDCClerkP(){ return !!(SB_D&&SB_D.kind==='deadcull'&&!sbCanEditPrice()&&SB_ISNEW&&sbCanWrite()); }
+function sbRegBands(b){ const r=SB_CUST.find(c=>gNrm(c.name)===gNrm(b&&b.buyer)); return (r&&Array.isArray(r.bands))?r.bands:null; }
+function sbBandsMoneyPaint(){ const c=sbCalc(SB_D); (SB_D.bands||[]).forEach((bd,i)=>{ const ag=c.bandAgg[i]||{};
+  [['cull','cullW'],['dead','deadW']].forEach(([k,wk])=>{ const el=document.getElementById('sbBM_'+k+i); if(el) el.textContent=(ag[wk]&&bd[k]!==''&&bd[k]!=null)?fmt(Math.round(ag[wk]*sbNum(bd[k]))):'-'; }); }); }
+function sbBandsBlur(){ setTimeout(()=>{ const bb=document.getElementById('sbBandsBox'); if(bb&&SB_D&&!bb.contains(document.activeElement)) bb.innerHTML=sbBandsHTML(); },0); }   // ออกจากช่องราคา → วาดตารางใหม่ให้ป้าย ✍️ ทะเบียน ขึ้น
+function sbClerkDiffs(b){ const reg=sbRegBands(b), c=sbCalc(b), out=[];
+  (b.bands||[]).forEach((bd,i)=>{ const ag=c.bandAgg[i]||{}; [['cull','cullW'],['dead','deadW']].forEach(([k,wk])=>{ if(!(ag[wk]>0)) return;
+    const p=bd[k]; if(p===''||p==null) return; const rb=reg&&reg.find(x=>x&&x.a===bd.a); const rv=rb?rb[k]:'';
+    if(rv===''||rv==null||sbNum(rv)!==sbNum(p)) out.push({a:bd.a,b:bd.b,k:k,reg:(rv===''||rv==null)?null:sbNum(rv),p:sbNum(p)}); }); });
+  return out; }
+function sbClerkOpen(b){ return !!(b&&b.clerkP&&!b.clerkP.ok); }
+function sbClerkTxt(d){ return (d.k==='cull'?'คัด':'ตาย')+' '+d.a+'–'+d.b+' กก. = '+fmt(d.p)+(d.reg!=null?' (ทะเบียน '+fmt(d.reg)+')':' (ทะเบียนว่าง)'); }
+function sbClerkPersist(){ const st=SALE_BILLS.find(x=>x.id===SB_D.id); if(st){ st.clerkP=JSON.parse(JSON.stringify(SB_D.clerkP)); syncSaleBill(st); } renderSaleBillForm(); }
+function sbClerkRegUpdate(){ if(!SB_D||!SB_D.clerkP||!scCanEdit()) return;
+  const c=SB_CUST.find(x=>gNrm(x.name)===gNrm(SB_D.buyer)); if(!c){ toast('ไม่พบ '+(SB_D.buyer||'-')+' ในทะเบียนลูกค้า'); return; }
+  if(!Array.isArray(c.bands)||!c.bands.length) c.bands=scNewBands();
+  SB_D.clerkP.d.forEach(d=>{ const bd=c.bands.find(x=>x&&x.a===d.a); if(bd) bd[d.k]=String(d.p); });
+  syncConfig(); try{ logAudit('ทะเบียนลูกค้า', c.name, 'อัปเดตราคาตาย/คัดตามบิล '+(SB_D.webNo||''), SB_D.clerkP.d.map(sbClerkTxt), c.name); }catch(e){}
+  SB_D.clerkP.ok={by:whoNow(),ts:Date.now(),reg:1}; sbClerkPersist(); toast('📒 อัปเดตทะเบียนราคา '+c.name+' แล้ว — รอบหน้าเติมราคานี้ให้เอง'); }
+function sbClerkMarkOk(){ if(!SB_D||!SB_D.clerkP||!sbCanEditPrice()) return; SB_D.clerkP.ok={by:whoNow(),ts:Date.now()}; sbClerkPersist(); toast('✅ ตรวจราคาบิลนี้แล้ว'); }
+function sbClerkBoxHTML(){ const k=SB_D&&SB_D.clerkP; if(!k||SB_D.kind!=='deadcull') return '';
+  if(k.ok) return `<div class="sub" style="margin-top:8px">✅ ราคาที่เสมียนใส่ ตรวจแล้วโดย ${escA(k.ok.by||'-')}${k.ok.reg?' · อัปเดตทะเบียนแล้ว':''}</div>`;
+  const own=sbCanEditPrice()&&!SB_ISNEW;
+  return `<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:#fdf3e0;border:1px solid #f0c987;color:#6b4700">
+    <div style="font-weight:700;margin-bottom:4px">✍️ ${escA(k.by||'เสมียน')} ใส่ราคาเอง ต่างจากทะเบียนลูกค้า</div>
+    ${k.d.map(d=>'<div>• '+escA(sbClerkTxt(d))+'</div>').join('')}
+    ${own?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${scCanEdit()?'<button class="btn sm" onclick="sbClerkRegUpdate()">📒 อัปเดตทะเบียนตามราคานี้</button>':''}<button class="btn ghost sm" onclick="sbClerkMarkOk()">✅ ตรวจแล้ว ไม่ต้องแก้ทะเบียน</button></div>`:''}</div>`; }
 function sbDuplicate(id){ // คัดลอกบิลเดิม → บิลใหม่วันนี้ (คงผู้ซื้อ/รถ/ฟาร์ม/หลัง/ราคา · ล้างน้ำหนัก-ตาชั่ง-เลขที่ ให้กรอกของวันนี้)
   if(blockIfReadonly())return; if(!sbCanWrite()){ toast('บัญชีนี้สร้างบิลไม่ได้'); return; }
   const src=SALE_BILLS.find(x=>x.id===id); if(!src){ toast('ไม่พบบิลต้นฉบับ'); return; }
   const b=JSON.parse(JSON.stringify(src));
   b.id=sbNewId(); b.dateISO=todayISO(); b.time=''; b.billNo=''; b.webNo=''; b.scaleBillNo=''; b.truckScaleNo='';   // บิลใหม่ = เลขระบบใหม่ (ออกตอนบันทึก) + เลขใบชั่งของวันใหม่
   b.weights=[]; b.items=(b.kind==='deadcull'?[{house:'',type:'dead',dtype:'ตาย',w:''}]:[]);
-  b.scaleIn=''; b.scaleOut=''; b.deducts=[]; b.note=''; b.editLog=[]; delete b.sows; delete b.askPrice;
+  b.scaleIn=''; b.scaleOut=''; b.deducts=[]; b.note=''; b.editLog=[]; delete b.sows; delete b.askPrice; delete b.clerkP;
   b.payMode='credit'; b.payAmt=''; b.payResp=''; delete b.paySlip;   // 🔴 บิลใหม่ต้องเริ่มจาก "ขายเชื่อ" เสมอ — เดิมติด "โอนแล้ว"+สลิปเก่ามาด้วย ระบบออกใบรับเงินทั้งที่ยังไม่ได้เงิน
   b.by=whoNow(); b.createdAt=Date.now();
   delete b.postedAt; delete b.postedHouses; delete b.postedBy; delete b._synced; delete b._baseTs; delete b.locked; delete b.verifiedBy; delete b.verifiedAt; b.timeStart=''; b.timeEnd='';
@@ -17357,7 +17392,8 @@ function sbSave(){
   }
   if((SB_D.dateISO||'')>todayISO() && !confirm('⚠️ วันที่ขายในบิลเป็นวันอนาคต ('+sbThaiDate(SB_D.dateISO)+')\nถ้าลงเข้าหลังด้วยวันที่อนาคต ยอดคงเหลือของหลังจะคำนวณเพี้ยน\n\nยืนยันใช้วันที่นี้ต่อหรือไม่?')) return;
   const c=sbCalc(SB_D);
-  if(sbCanEditPrice()&&sbAskOpen(SB_D)&&!c.pending) SB_D.askPrice.done={by:whoNow(),ts:Date.now()};   // 🙋 691124c เจ้าของ/การเงินใส่ราคาแล้ว → ปิดคำขอ (เก็บไว้เป็นประวัติ)
+  if(sbCanEditPrice()&&sbAskOpen(SB_D)&&!c.pending) SB_D.askPrice.done={by:whoNow(),ts:Date.now()};
+  if(SB_D.kind==='deadcull'&&!sbCanEditPrice()){ const dd=sbClerkDiffs(SB_D); if(dd.length) SB_D.clerkP={by:whoNow(),ts:Date.now(),d:dd}; else delete SB_D.clerkP; }   // ✍️ 691124c   // 🙋 691124c เจ้าของ/การเงินใส่ราคาแล้ว → ปิดคำขอ (เก็บไว้เป็นประวัติ)
   if(c.net!=null && c.net<0 && !confirm('⚠️ ยอดสุทธิติดลบ ('+fmt(c.net)+' บาท) — ช่อง "หัก/ลดบิล" มากกว่ายอดขาย\nตรวจตัวเลขก่อน · ยืนยันบันทึกทั้งอย่างนี้หรือไม่?')) return;   // 🟡 กันหักเกินยอดขายเงียบๆ
   if(SB_D.payMode==='transfer' && String(SB_D.payAmt==null?'':SB_D.payAmt).trim()!=='' && sbNum(SB_D.payAmt)<=0){ toast('⚠️ ช่อง "ยอดโอนจริง" ต้องมากกว่า 0 — ถ้ายังไม่ได้รับโอน เปลี่ยนรูปแบบเก็บเงินเป็น "ขายเชื่อ" แทน'); return; }   // 🟡 payAmt=0 เดิมถูกตีเป็นโอนเต็มบิล
   if(SB_D.kind==='deadcull'){
