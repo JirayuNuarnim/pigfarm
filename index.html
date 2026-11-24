@@ -19021,7 +19021,8 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
   // 🧾 ฉบับลูกค้า (690815a — เจ้าของขอ 15 ส.ค. 69): ซ่อนหมายเหตุภายในฟาร์ม (หลัง/อายุ/หมอ · ชม.อดอาหาร · ผลต่างตาชั่ง · โน้ต)
   //    คงไว้เฉพาะรายการหักที่กระทบยอดเงินลูกค้า · เลือกได้ที่ปุ่มบนหน้าพิมพ์ (SB_PRINT_CUST) · พรีวิวสดในฟอร์ม/Excel = ฉบับฟาร์มเสมอ
   const custCopy=!live&&(typeof SB_PRINT_CUST!=='undefined')&&SB_PRINT_CUST;
-  if(custCopy){ noteLines.length=0; (b.deducts||[]).forEach(d=>{ const wp=(sbNum(d.w)>0&&sbNum(d.p)>0)?' ('+fmt(sbNum(d.w))+' กก. × '+fmt(sbNum(d.p))+' บาท/กก.)':''; noteLines.push('หัก: '+escA(d.why||d.ref||'-')+wp+(d.link?' — ของ'+(d.link.self?'บิลนี้เอง ':'บิล ')+escA(sbLkRefOf(d,b))+' ('+sbThaiDate(d.link.self?b.dateISO:d.link.date)+') หลัง '+sbLkSplit(d).map(r=>r.house+' '+(SB_LK_TYPE[r.type]||'')+' −'+fmt(r.amt)).join(', '):'')+' = '+fmt(sbNum(d.amt))+' บาท'); }); }
+  if(custCopy){ noteLines.length=0; if(b.kind==='breeder'||sbSowAgg(b).own) sbSowNoteLines(b).forEach(x=>noteLines.push(x));   // 🐷 691124c ฉบับลูกค้าต้องเห็นราคาแม่/พ่อรายตัว (ช่องราคา/กก. เขียนว่า "ตามรายการแม่/พ่อ")
+    (b.deducts||[]).forEach(d=>{ const wp=(sbNum(d.w)>0&&sbNum(d.p)>0)?' ('+fmt(sbNum(d.w))+' กก. × '+fmt(sbNum(d.p))+' บาท/กก.)':''; noteLines.push('หัก: '+escA(d.why||d.ref||'-')+wp+(d.link?' — ของ'+(d.link.self?'บิลนี้เอง ':'บิล ')+escA(sbLkRefOf(d,b))+' ('+sbThaiDate(d.link.self?b.dateISO:d.link.date)+') หลัง '+sbLkSplit(d).map(r=>r.house+' '+(SB_LK_TYPE[r.type]||'')+' −'+fmt(r.amt)).join(', '):'')+' = '+fmt(sbNum(d.amt))+' บาท'); }); }
   const sumR=(k,v,u,big)=>'<tr><td style="padding:3px 6px;font-size:13px;white-space:nowrap">'+k+'</td>'
     +'<td style="border-bottom:1px dotted #666;text-align:right;font-weight:800;font-size:'+(big?'15px':'13.5px')+';padding:3px 8px">'+v+'</td>'
     +'<td style="font-size:12px;padding:3px 2px;width:38px">'+u+'</td></tr>';
