@@ -19301,6 +19301,8 @@ function sbBillPaperHTML(b,live){ // live = พรีวิวสดในฟอ
   (b.houses||[]).filter(x=>x&&x.code).forEach(x=>{ const age=sbAgeDays(x.code,b.farm);   // แถวหลังว่าง (ฟอร์มใหม่) ไม่พิมพ์ "หลัง = 0 ตัว"
     const H=HOUSES.find(y=>y.code===x.code&&(!b.farm||(y.farm||'')===b.farm))||HOUSES.find(y=>y.code===x.code)||{};
     noteLines.push('หลัง '+escA(x.code)+' = '+fmt(parseInt(x.n)||0)+' ตัว'+((age||H.vet)?' ('+(age?age+' วัน':'')+(H.vet?(age?' / ':'')+escA(H.vet):'')+')':'')); });
+  { const _hs=(b.houses||[]).filter(x=>x&&x.code); if(_hs.length>1){ const _hn=_hs.reduce((a,x)=>a+(parseInt(x.n)||0),0), _sw=(b.kind!=='breeder'&&!(sbSowAgg(b).n>0)&&!sbFars(b).length);   // 🧮 691125c ผู้ใช้ 25 พ.ย. 69: รวมยอดทุกหลังให้เชื่อมกับบิลรายตัว
+    noteLines.push('<b>รวม '+fmt(_hs.length)+' หลัง = '+fmt(_hn)+' ตัว</b>'+(_sw&&c.n&&_hn!==c.n?' <b style="color:#c0392b">⚠️ ไม่ตรงกับน้ำหนักรายตัว '+fmt(c.n)+' ตัว</b>':'')); } }
   if(b.kind!=='breeder') sbSowNoteLines(b).forEach(x=>noteLines.push(x));   // 🐷 691122a (บิลแม่/พ่อพันธุ์อยู่ในตารางแล้ว)
   sbFarNoteLines(b).forEach(x=>noteLines.push(x));   // 🍼 691124e
   if(sbNum(b.fastPen)>0||sbNum(b.fastStand)>0) noteLines.push('อดอาหารในเล้า '+sbNum(b.fastPen)+' ชม. · ที่แท่น '+sbNum(b.fastStand)+' ชม.');
