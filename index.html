@@ -5880,6 +5880,7 @@ function cfoBuild(){ // คืนข้อมูลรายหลัง: ใบ
       o.miss=(o.target==null)?null:Math.max(0,Math.round((o.target-o.got)*10)/10);
       o.over=(o.target==null)?null:Math.round((o.got-o.target)*10)/10;
       o.changed=[...new Set(o.parts.map(p=>feedNoKey(p.a.e.feedNo)).filter(nk=>nk&&o.no&&!feedNoSame(nk,o.no)))];   // JBF ใบเก่าสั่ง 110 รับ 113G = ตัวเดียวกัน ไม่ใช่เปลี่ยนเบอร์
+      if(o.st==='wait'&&o.r.recvAt) o.st='closed';   // 📌 691127g ใบที่ถูกปิดไว้แล้ว (recvAt) แต่ไม่มีบันทึกรับผูก/ชนได้ = ปิดใบแล้ว ไม่ขึ้น "รอรับ" (ระบบปิดให้ 18–20 ก.ย. 69 · ผู้ใช้ 27 พ.ย. 69)
       o.late=o.st==='wait'&&o.days>=4;   // "ของยังไม่มาเลย" เท่านั้นที่ขึ้นแดง · ได้บางส่วนแล้ว = ไม่นับวัน/ไม่เตือน (เจ้าของ 15 ส.ค. 69: สั่งกับรับไม่ตรงเป็นเรื่องปกติ) · ไม่มีน้ำหนัก = ปัญหาการกรอก ไม่ใช่ของไม่มา
     });
     const extra=arrs.filter(a=>a.left>0.5);
@@ -5945,6 +5946,7 @@ function cfoStTxt(o){
     :('ยอดชนครบ'+((o.over&&Math.abs(o.over)>=0.5)?' ('+(o.over>0?'+':'')+o.over+')':''));
   if(o.st==='nokg') return 'ของมาแล้ว แต่ยังไม่ใส่น้ำหนัก '+o.noKgArr.length+' ครั้ง';
   if(o.st==='partial') return 'รับแล้ว '+fmt(Math.round(o.got*10)/10)+' กก. (ขาดจากที่สั่ง '+fmt(o.miss)+' กก.)';   // 690829c: รับแล้ว = จบใบ ยอดขาดเป็นข้อมูลดูเฉยๆ
+  if(o.st==='closed') return 'ปิดใบแล้ว'+(o.r.closeNote?' — '+o.r.closeNote:(o.r.recvBy?' ('+o.r.recvBy+')':''));
   return 'รอรับ '+o.days+' วัน'+(o.late?' (เกิน 4 วัน)':'');
 }
 function cfoOrderLine(o){ // แถวใบสั่ง 1 ใบ พร้อมของที่มาชน
@@ -5954,9 +5956,10 @@ function cfoOrderLine(o){ // แถวใบสั่ง 1 ใบ พร้อ�
     :o.st==='nokg'?chip('📥 ของมาแล้ว แต่ยังไม่ใส่น้ำหนัก ('+o.noKgArr.length+' ครั้ง)','#eaf1f8','#2d5f8a')
     
     :o.st==='partial'?chip('✅ รับแล้ว '+fmt(Math.round(o.got*10)/10)+' กก. · ขาดจากที่สั่ง '+fmt(o.miss)+' กก.','#e9f5ee','#1d7a53')
+    :o.st==='closed'?chip('📌 ปิดใบแล้ว'+(o.r.closeNote?' · '+escA(o.r.closeNote):''),'#eef1f0','#40524d')
     :chip((o.late?'⚠️ ':'')+'🕐 รอรับ '+o.days+' วัน',o.late?'#fbe9e7':'#fdf3e0',o.late?'#c0392b':'#b7791f');
   const ordTxt=(o.sack!=null)?(fmt(o.sack)+' กระสอบ'+(o.target!=null?' (= '+fmt(o.target)+' กก.)':'')):fmt(Number(o.r.qty)||0)+' กก.';
-  return '<div style="border-left:3px solid '+((o.st==='full'||o.st==='partial')?'#9fd0b5':o.late?'#e0a0a0':o.st==='nokg'?'#a9c4de':'#e5b96e')+';padding:7px 0 7px 10px;margin-bottom:9px">'
+  return '<div style="border-left:3px solid '+((o.st==='full'||o.st==='partial'||o.st==='closed')?'#9fd0b5':o.late?'#e0a0a0':o.st==='nokg'?'#a9c4de':'#e5b96e')+';padding:7px 0 7px 10px;margin-bottom:9px">'
     +'<div style="display:flex;gap:9px;align-items:baseline;flex-wrap:wrap">'
     +'<b style="font-size:13px">📅 '+escA(o.r.date)+'</b><span class="sub" style="margin:0">สั่ง <b>'+ordTxt+'</b>'+(o.noFull?' · เบอร์ <b>'+escA(o.noFull)+'</b>':'')+(o.r.feedSrc?' · 🏭 '+escA(o.r.feedSrc):'')+(reqTimeStr(o.r)?' · ⏱ '+reqTimeStr(o.r)+' น.':'')+'</span>'+st+'</div>'
     +(o.parts.length?'<div style="margin-top:5px;display:flex;flex-direction:column;gap:3px">'+o.parts.map(p=>{
@@ -5966,7 +5969,7 @@ function cfoOrderLine(o){ // แถวใบสั่ง 1 ใบ พร้อ�
           +'<span class="sub" style="margin:0"> · '+escA(p.a.e.by||'-')+(reqTimeStr(p.a.e)?' '+reqTimeStr(p.a.e)+' น.':'')+'</span>'
           +(p.linked?' <span style="font-size:11px;color:var(--ok)">🔗 กดรับจากใบนี้</span>':'')
           +(diff?' <span style="background:#eaf1f8;color:#2d5f8a;border-radius:7px;padding:1px 7px;font-size:11px;font-weight:700">เปลี่ยนเบอร์ '+escA(o.no)+' → '+escA(nk)+'</span>':'')+'</div>'; }).join('')+'</div>'
-      :(o.noKgArr&&o.noKgArr.length?'':'<div class="sub" style="margin-top:4px">— ยังไม่มีของเข้าหลังนี้หลังวันสั่ง —</div>'))
+      :(o.noKgArr&&o.noKgArr.length?'':o.st==='closed'?'<div class="sub" style="margin-top:4px">— ใบนี้ถูกปิดไว้แล้ว ไม่มีบันทึกรับผูกกับใบ —</div>':'<div class="sub" style="margin-top:4px">— ยังไม่มีของเข้าหลังนี้หลังวันสั่ง —</div>'))
     +((o.noKgArr&&o.noKgArr.length&&o.st!=='full')?'<div style="margin-top:5px;background:#eaf1f8;border-radius:9px;padding:7px 9px">'
       +'<b style="font-size:12px;color:#22506f">📥 ของเข้าที่ยังไม่ใส่น้ำหนัก — ใส่ตัวเลขแล้วยอดจะชนใบสั่งเอง</b>'
       +o.noKgArr.map(a=>'<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:5px;font-size:12.5px">'
@@ -14764,6 +14767,7 @@ function feedReqStatusHTML(r){
     if(o.st==='nokg') return '<span style="background:#eaf1f8;color:#2d5f8a;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">📥 ของมาแล้ว รอใส่น้ำหนัก</span>';
     if(o.st==='full'&&o.unitDiff) return '<span style="background:#e6f4ea;color:#1e7e4f;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">✅ ของเข้าแล้ว '+fmt(Math.round(o.got))+' กก.</span>';
     if(o.st==='full') return '<span style="background:#e6f4ea;color:#1e7e4f;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">✅ ของเข้าครบ '+fmt(Math.round(o.got*10)/10)+' กก.'+((o.over&&Math.abs(o.over)>=0.5)?' ('+(o.over>0?'+':'')+fmt(o.over)+')':'')+(o.parts.length?' · '+escA(o.parts[o.parts.length-1].a.e.date):'')+'</span>'+chg;
+    if(o.st==='closed') return '<span title="'+escA(r.closeNote||r.recvBy||'')+'" style="background:#eef1f0;color:#40524d;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">📌 ปิดใบแล้ว'+(r.recvDate?' · '+escA(r.recvDate):'')+'</span>'+(r.closeNote?' <span class="sub" style="font-size:11px">'+escA(r.closeNote)+'</span>':'');   // 691127g
     const bg=o.late?'#fdecea':'#fdf3e0', fg=o.late?'#c0392b':'#b7791f';
     // 🟠 ได้บางส่วน: โชว์แค่ได้เท่าไหร่/ขาดเท่าไหร่ — เจ้าของสั่ง 15 ส.ค. 69: ไม่ต้องนับวัน/ไม่ต้องติด ⚠️ (สั่งกับรับไม่ตรงกันเป็นเรื่องปกติของฟาร์ม)
     if(o.st==='partial') return '<span style="background:#e6f4ea;color:#1e7e4f;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap">✅ รับแล้ว '+fmt(Math.round(o.got*10)/10)+' กก. <span style="opacity:.72;font-weight:400">(ขาดจากที่สั่ง '+fmt(o.miss)+')</span></span>'+chg;   // 690829c เจ้าของ 29 ส.ค. 69: รับกี่กิโลก็ถือว่ารับแล้ว — ยอดขาดโชว์เป็นข้อมูลเฉยๆ ไม่ใช่ตัวเตือน
