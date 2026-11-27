@@ -16614,6 +16614,9 @@ function sbPostCheck(b){ // → {state:'ok'|'bad'|'none'|'legacy'|'empty', txt, 
   if(bad.length) return {state:'bad',txt:'⚠️ ตัดหลังไม่ตรง',title:bad.join(' · ')+' — เปิดบิลแล้วกด "ลงเข้าหลังซ้ำ (อัปเดต)"',detail:bad.join(' · ')};
   return {state:'ok',txt:'✅ ตัดหลังตรง '+fmt(nH)+' หลัง',title:'ตรวจแล้ว: แถวในหลังตรงกับที่แบ่งในบิลทุกหลัง ('+Object.keys(exp).map(bhaLbl).join(', ')+')'};
 }
+/* ⬇️ 691127f ผู้ใช้ 27 พ.ย. 69: บิลแม่พันธุ์จากเล้า U (69/04925 แม่ตาย U1ท7) ไม่มีหลังให้ลง แต่ตัวนับ "ยังไม่ลงหลัง" ยังนับ ดูเหมือนผิดพลาด
+   → นับ/กรองเฉพาะบิลที่ป้ายในแถวขึ้นส้มจริง (sbPostCheck state none = มีหมูต้องหักจากหลังแต่ยังไม่กด) */
+function sbNeedsPost(b){ return !!b&&!b.postedAt&&sbPostCheck(b).state==='none'; }
 function sbPostBadge(b){
   const c=sbPostCheck(b); if(!c.txt) return '';
   const bg=c.state==='ok'||c.state==='legacy'?'var(--ok)':c.state==='bad'?'var(--bad)':'#b7791f';
@@ -16654,7 +16657,7 @@ function sbDayHTML(){
   const d=sbDayISO(), isToday=d===todayISO();
   const bills=SALE_BILLS.filter(b=>b&&!b._deleted&&b.dateISO===d).sort((a,b)=>(sbSavedTs(b)||0)-(sbSavedTs(a)||0));
   let pigs=0,kg=0,amt=0,pd=0,unpost=0; const byK={};
-  bills.forEach(b=>{ const c=sbCalc(b); pigs+=c.n; kg+=c.totW; if(c.net!=null)amt+=c.net; if(c.pending)pd++; if(!b.postedAt&&c.n)unpost++;
+  bills.forEach(b=>{ const c=sbCalc(b); pigs+=c.n; kg+=c.totW; if(c.net!=null)amt+=c.net; if(c.pending)pd++; if(sbNeedsPost(b))unpost++;
     const k=byK[b.kind]||(byK[b.kind]={bills:0,n:0}); k.bills++; k.n+=c.n; });
   const kinds=Object.keys(byK).map(k=>`<span class="sbchip">${(SB_KIND[k]||{}).ico||''} ${escA((SB_KIND[k]||{}).t||k)} ${fmt(byK[k].bills)} บิล · ${fmt(byK[k].n)} ตัว</span>`).join(' ');
   const nav=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;margin-left:auto">
@@ -16713,8 +16716,8 @@ function sbArchiveHTML(){
   else if(curM==='all'){ scope=base; scopeLabel='ทุกเดือน'; }
   else { scope=base.filter(b=>String(b.dateISO||'').slice(0,7)===curM||!b.dateISO); scopeLabel=sbMonthLabel(curM); }   // บิลไม่มีวันที่ (เก่า/พิมพ์ตก) โชว์เสมอ ไม่หายเงียบ
   const stCnt={pend:0,unpost:0,locked:0,unpaid:0,clerk:0};
-  scope.forEach(b=>{ if(sbClerkOpen(b))stCnt.clerk++; if(sbPricePending(b))stCnt.pend++; if(!b.postedAt)stCnt.unpost++; if(b.locked)stCnt.locked++; const ps=sbPayState(b); if(ps==='cash'||ps==='credit')stCnt.unpaid++; });
-  const bills=scope.filter(b=>sbStatFilter==='clerk'?sbClerkOpen(b):sbStatFilter==='pend'?sbPricePending(b):sbStatFilter==='unpost'?!b.postedAt:sbStatFilter==='locked'?!!b.locked:sbStatFilter==='unpaid'?(function(){const ps=sbPayState(b);return ps==='cash'||ps==='credit';})():true)
+  scope.forEach(b=>{ if(sbClerkOpen(b))stCnt.clerk++; if(sbPricePending(b))stCnt.pend++; if(sbNeedsPost(b))stCnt.unpost++; if(b.locked)stCnt.locked++; const ps=sbPayState(b); if(ps==='cash'||ps==='credit')stCnt.unpaid++; });
+  const bills=scope.filter(b=>sbStatFilter==='clerk'?sbClerkOpen(b):sbStatFilter==='pend'?sbPricePending(b):sbStatFilter==='unpost'?sbNeedsPost(b):sbStatFilter==='locked'?!!b.locked:sbStatFilter==='unpaid'?(function(){const ps=sbPayState(b);return ps==='cash'||ps==='credit';})():true)
     .sort((a,b)=>String(b.dateISO||'').localeCompare(String(a.dateISO||''))||((b.createdAt||0)-(a.createdAt||0)));
   // ── แถวควบคุม: กล่องเดียว หัวข้อชิดซ้ายทุกแถว อ่านไล่จากบนลงล่าง ──
   const CTRL=(label,inner,cls)=>`<div class="sbctrl${cls?' '+cls:''}"><span class="sbctrl-l">${label}</span><div class="sbctrl-c">${inner}</div></div>`;
